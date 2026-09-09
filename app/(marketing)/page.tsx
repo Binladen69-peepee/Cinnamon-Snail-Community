@@ -12,7 +12,7 @@ import {
   getPublishedCoursePreview,
 } from "@/lib/marketing/stats";
 
-export const revalidate = 60;
+export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
   const [momentum, liveCourses] = await Promise.all([
