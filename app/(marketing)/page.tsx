@@ -15,6 +15,7 @@ import {
 import { prisma } from "@/lib/db";
 import { Avatar } from "@/components/ui/avatar";
 import { HeadlineSwoosh, HeroVisual } from "@/components/marketing/hero-visual";
+import { resolveMemberAvatar } from "@/lib/community/member-avatars";
 
 export const dynamic = "force-dynamic";
 
@@ -26,8 +27,9 @@ export default async function HomePage() {
       ? prisma.profile
           .findMany({
             where: { directoryVisible: true },
+            orderBy: { createdAt: "asc" },
             take: 5,
-            select: { displayName: true, avatarUrl: true },
+            select: { displayName: true, avatarUrl: true, user: { select: { handle: true } } },
           })
           .catch(() => [])
       : Promise.resolve([]),
@@ -98,8 +100,12 @@ export default async function HomePage() {
                 {faces.length > 0 ? (
                   <div className="flex -space-x-2">
                     {faces.map((face) => (
-                      <span key={face.displayName} className="rounded-full ring-2 ring-cream">
-                        <Avatar name={face.displayName} src={face.avatarUrl} size="sm" />
+                      <span key={face.user.handle} className="rounded-full ring-2 ring-cream">
+                        <Avatar
+                          name={face.displayName}
+                          src={resolveMemberAvatar(face.user.handle, face.avatarUrl)}
+                          size="sm"
+                        />
                       </span>
                     ))}
                   </div>

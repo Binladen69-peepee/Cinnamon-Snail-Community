@@ -2,8 +2,28 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { renderMarkdown, toPlainText } from "../lib/markdown";
 import { seedTestFeed } from "./seed-test-feed";
+import { SEEDED_MEMBER_AVATARS } from "../lib/community/member-avatars";
 
 const prisma = new PrismaClient();
+
+async function applySeededAvatars() {
+  const users = await prisma.user.findMany({
+    where: { handle: { in: Object.keys(SEEDED_MEMBER_AVATARS) } },
+    select: { id: true, handle: true },
+  });
+  for (const user of users) {
+    const avatarUrl = SEEDED_MEMBER_AVATARS[user.handle];
+    if (!avatarUrl) continue;
+    await prisma.user.update({
+      where: { id: user.id },
+      data: { image: avatarUrl },
+    });
+    await prisma.profile.updateMany({
+      where: { userId: user.id },
+      data: { avatarUrl },
+    });
+  }
+}
 
 async function main() {
   const roles = ["MEMBER", "HOST", "ADMIN", "SUPER_ADMIN"] as const;
@@ -419,6 +439,8 @@ async function main() {
       });
     }
   }
+
+  await applySeededAvatars();
 
   await prisma.searchIndex.upsert({
     where: { entityType_entityId: { entityType: "member", entityId: "adam" } },
