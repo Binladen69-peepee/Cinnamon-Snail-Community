@@ -146,6 +146,7 @@
   --color-info: var(--accent);
   --font-sans: var(--font-inter);
   --font-display: var(--font-poppins);
+  --font-hand: var(--font-caveat);
   --radius-lg: 1.25rem;
 }
 
@@ -167,6 +168,10 @@ h3,
   font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
   font-weight: 700;
   letter-spacing: -0.03em;
+}
+
+.font-hand {
+  font-family: var(--font-caveat), "Segoe Script", cursive;
 }
 
 .prose-measure {

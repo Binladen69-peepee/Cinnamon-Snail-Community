@@ -1,6 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowRight, BookOpen, Calendar, FileText, Users } from "lucide-react";
+import { ArrowRight, BookOpen, Calendar, FileText, Leaf, Users } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { FaqAccordion } from "@/components/marketing/faq-accordion";
 import {
@@ -14,6 +14,7 @@ import {
 } from "@/lib/marketing/stats";
 import { prisma } from "@/lib/db";
 import { Avatar } from "@/components/ui/avatar";
+import { HeadlineSwoosh, HeroVisual } from "@/components/marketing/hero-visual";
 
 export const dynamic = "force-dynamic";
 
@@ -58,18 +59,19 @@ export default async function HomePage() {
         }));
 
   return (
-    <div className="pb-8">
-      <section className="vu-gutter py-12 md:py-20">
-        <div className="vu-shell grid items-center gap-10 lg:grid-cols-2">
+    <div className="overflow-x-clip pb-8">
+      <section className="vu-gutter pb-6 pt-10 md:pb-10 md:pt-16">
+        <div className="vu-shell grid items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
           <div className="hero-copy-reveal">
-            <p className="inline-flex items-center rounded-full bg-sage px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-forest">
+            <p className="inline-flex items-center gap-2 rounded-full bg-sage px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-forest">
+              <Leaf className="size-3.5" aria-hidden />
               A plant-based lifestyle community
             </p>
-            <h1 className="mt-5 font-display text-4xl leading-[1.1] font-bold tracking-tight text-foreground md:text-6xl">
+            <h1 className="mt-6 font-display text-[2.6rem] leading-[1.08] font-bold tracking-tight text-forest md:text-6xl">
               Learn to cook plants like you already{" "}
-              <span className="relative text-accent">
+              <span className="relative inline-block text-accent">
                 belong here.
-                <span className="absolute inset-x-0 -bottom-1 h-2 rounded-full bg-accent/25" aria-hidden />
+                <HeadlineSwoosh />
               </span>
             </h1>
             <p className="prose-measure mt-6 text-lg leading-relaxed font-normal text-foreground-muted">
@@ -77,68 +79,70 @@ export default async function HomePage() {
               table for the sauce question you were going to Google at 9pm.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href="/membership" size="lg" className="gap-2">
+              <Link
+                href="/membership"
+                className="inline-flex h-12 items-center gap-3 rounded-full bg-forest px-2 pr-6 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-deep-forest"
+              >
+                <span className="grid size-9 place-items-center rounded-full bg-white text-forest">
+                  <ArrowRight className="size-4" aria-hidden />
+                </span>
                 Become a member
-                <ArrowRight className="size-4" aria-hidden />
-              </ButtonLink>
-              <ButtonLink href="/community" variant="secondary" size="lg" className="gap-2">
+              </Link>
+              <ButtonLink href="/community" variant="secondary" size="lg" className="h-12 gap-2 border-forest !bg-white !text-forest">
                 <Users className="size-4" aria-hidden />
                 Peek at the community
               </ButtonLink>
             </div>
-            {faces.length > 0 && memberStat && memberStat.value !== "—" ? (
-              <div className="mt-8 flex items-center gap-3">
-                <div className="flex -space-x-2">
-                  {faces.map((face) => (
-                    <span key={face.displayName} className="rounded-full ring-2 ring-cream">
-                      <Avatar name={face.displayName} src={face.avatarUrl} size="sm" />
-                    </span>
-                  ))}
+            {memberStat ? (
+              <div className="mt-8 flex items-center gap-4">
+                {faces.length > 0 ? (
+                  <div className="flex -space-x-2">
+                    {faces.map((face) => (
+                      <span key={face.displayName} className="rounded-full ring-2 ring-cream">
+                        <Avatar name={face.displayName} src={face.avatarUrl} size="sm" />
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+                <div>
+                  <p className="flex items-center gap-2 text-sm font-semibold text-forest">
+                    <span className="size-2 shrink-0 rounded-full bg-accent" aria-hidden />
+                    {memberStat.value !== "—"
+                      ? `Join ${memberStat.value} plant lovers in our community`
+                      : "Join plant lovers in our community"}
+                  </p>
+                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
+                    Learn • Share • Grow
+                  </p>
                 </div>
-                <p className="text-sm text-foreground-muted">
-                  <span className="font-semibold text-forest">{memberStat.value} members</span>
-                  {" "}at the table · Learn · Share · Grow
-                </p>
               </div>
             ) : null}
           </div>
-          <div className="hero-copy-reveal relative mx-auto aspect-square w-full max-w-lg overflow-hidden rounded-[28px] shadow-[0_20px_60px_rgba(15,61,50,0.08)]">
-            <Image
-              src="https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1400&q=80"
-              alt="A vibrant bowl of roasted vegetables, greens, and citrus"
-              fill
-              priority
-              className="object-cover"
-            />
-          </div>
+          <HeroVisual />
         </div>
       </section>
 
       <section aria-label="Campus snapshot" className="vu-gutter pb-8">
-        <div className="vu-card vu-shell grid grid-cols-1 gap-6 px-6 py-8 sm:grid-cols-2 md:grid-cols-4 md:px-10">
+        <div className="vu-card vu-shell grid grid-cols-1 gap-8 rounded-[28px] px-6 py-8 sm:grid-cols-2 md:grid-cols-4 md:px-10 md:py-10">
           {momentum.map((stat) => (
             <div key={stat.label} className="flex gap-3">
-              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-sage text-forest">
+              <span className="grid size-11 shrink-0 place-items-center rounded-[14px] bg-sage text-forest">
                 {stat.label.includes("Members") ? (
                   <Users className="size-4" aria-hidden />
                 ) : stat.label.includes("Course") ? (
                   <BookOpen className="size-4" aria-hidden />
-                ) : stat.label.includes("rating") ? (
+                ) : stat.label.includes("event") ? (
                   <Calendar className="size-4" aria-hidden />
                 ) : (
                   <FileText className="size-4" aria-hidden />
                 )}
               </span>
               <div>
-                <p className="font-display text-2xl font-bold tracking-tight text-forest">
-                  {stat.value}
+                <p className="font-display text-xl font-bold tracking-tight text-forest">
+                  {stat.value}{" "}
+                  <span className="text-sm font-semibold text-foreground">{stat.label}</span>
                 </p>
-                <p className="text-sm font-medium text-foreground">{stat.label}</p>
-                {stat.placeholder ? (
-                  <p className="mt-1 text-xs font-normal text-foreground-muted">
-                    Placeholder — ratings arrive with the course catalog.
-                  </p>
-                ) : null}
+                <p className="mt-1 text-xs leading-relaxed text-foreground-muted">{stat.detail}</p>
               </div>
             </div>
           ))}
