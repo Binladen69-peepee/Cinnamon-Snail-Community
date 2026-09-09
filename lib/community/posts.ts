@@ -15,6 +15,12 @@ const FEED_INCLUDE = {
   attachments: true,
   pollOptions: { include: { _count: { select: { votes: true } } } },
   reactions: { select: { emoji: true, userId: true } },
+  comments: {
+    where: { parentId: null },
+    take: 3,
+    orderBy: { createdAt: "asc" as const },
+    include: { author: { include: { profile: true } } },
+  },
   _count: { select: { comments: true, bookmarks: true } },
 } satisfies Prisma.PostInclude;
 

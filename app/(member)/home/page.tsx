@@ -1,11 +1,14 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { prisma } from "@/lib/db";
 import { listFeed } from "@/lib/community/posts";
 import { PostCard } from "@/components/community/post-card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FeedSortBar } from "@/components/community/feed-sort-bar";
 import { parseFeedSort } from "@/lib/community/sort";
-import Link from "next/link";
+import { StoriesRail } from "@/components/community/stories-rail";
+import { FeedComposer } from "@/components/community/feed-composer";
+import { FeedRail } from "@/components/community/feed-rail";
 
 export default async function HomePage({
   searchParams,
@@ -15,22 +18,91 @@ export default async function HomePage({
   const session = await auth();
   if (!session?.user.id) redirect("/login");
   const sort = parseFeedSort((await searchParams).sort);
-  const { posts } = await listFeed({ userId: session.user.id, sort, take: 60 });
+  const [{ posts }, spaces, memberCount, eventPosts, recentComments, storyPosts] =
+    await Promise.all([
+      listFeed({ userId: session.user.id, sort, take: 60 }),
+      prisma.space.findMany({
+        orderBy: { sortOrder: "asc" },
+        select: {
+          name: true,
+          slug: true,
+          coverUrl: true,
+          description: true,
+          _count: { select: { memberships: true } },
+        },
+      }),
+      prisma.user.count({ where: { deletedAt: null, status: { not: "DELETED" } } }),
+      prisma.post.findMany({
+        where: { type: "EVENT", status: "PUBLISHED" },
+        orderBy: { publishedAt: "desc" },
+        take: 3,
+        select: {
+          id: true,
+          title: true,
+          publishedAt: true,
+          space: { select: { name: true } },
+        },
+      }),
+      prisma.comment.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 4,
+        select: {
+          id: true,
+          body: true,
+          createdAt: true,
+          author: {
+            select: {
+              handle: true,
+              profile: { select: { displayName: true, avatarUrl: true } },
+            },
+          },
+        },
+      }),
+      prisma.post.findMany({
+        where: {
+          status: "PUBLISHED",
+          attachments: { some: { kind: { in: ["image", "gif"] } } },
+        },
+        orderBy: { publishedAt: "desc" },
+        take: 8,
+        distinct: ["authorId"],
+        select: {
+          id: true,
+          author: {
+            select: {
+              handle: true,
+              profile: { select: { displayName: true, avatarUrl: true } },
+            },
+          },
+          attachments: {
+            where: { kind: { in: ["image", "gif"] } },
+            take: 1,
+            select: { url: true },
+          },
+        },
+      }),
+    ]);
+
+  const kitchen = spaces.find((space) => space.slug === "kitchen-table") ?? spaces[0];
+  const currentName = session.user.name || session.user.handle;
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_240px]">
-      <div className="min-w-0">
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <FeedSortBar current={sort} basePath="/home" />
-          <Link
-            href="/compose"
-            className="inline-flex h-8 items-center bg-foreground px-4 text-sm font-semibold text-primary-foreground"
-            style={{ borderRadius: 12 }}
-          >
-            Create post
-          </Link>
-        </div>
-        <div className="mt-4 space-y-3">
+    <div className="flex gap-5">
+      <div className="min-w-0 flex-1 space-y-5">
+        <StoriesRail
+          currentUser={{ name: currentName, avatar: session.user.image ?? null }}
+          stories={storyPosts.map((post) => ({
+            id: post.id,
+            name: post.author.profile?.displayName ?? post.author.handle,
+            href: `/posts/${post.id}`,
+            image: post.attachments[0]?.url ?? null,
+            avatar: post.author.profile?.avatarUrl ?? null,
+            unseen: true,
+          }))}
+        />
+        <FeedComposer name={currentName} avatar={session.user.image ?? null} />
+        <FeedSortBar current={sort} basePath="/home" />
+        <div className="space-y-5">
           {posts.length === 0 ? (
             <EmptyState
               title="The table is set"
@@ -42,24 +114,66 @@ export default async function HomePage({
             posts.map((post) => <PostCard key={post.id} post={post} />)
           )}
         </div>
+        <div className="space-y-5 xl:hidden">
+          <FeedRail
+            stacked
+            community={{
+              name: kitchen?.name ?? "Vegan University",
+              description: kitchen?.description ?? null,
+              coverUrl: kitchen?.coverUrl ?? null,
+            }}
+            memberCount={memberCount}
+            spaces={spaces.map((space) => ({
+              name: space.name,
+              slug: space.slug,
+              coverUrl: space.coverUrl,
+              memberCount: space._count.memberships,
+            }))}
+            events={eventPosts.map((event) => ({
+              id: event.id,
+              title: event.title,
+              publishedAt: event.publishedAt,
+              spaceName: event.space.name,
+            }))}
+            activity={recentComments.map((item) => ({
+              id: item.id,
+              body: item.body,
+              createdAt: item.createdAt,
+              authorName: item.author.profile?.displayName ?? item.author.handle,
+              avatar: item.author.profile?.avatarUrl ?? null,
+            }))}
+          />
+        </div>
       </div>
-      <aside className="hidden space-y-4 xl:block">
-        <div className="vu-card vu-card-hover p-5">
-          <h2 className="text-lg font-extrabold tracking-tight text-foreground">Continue learning</h2>
-          <p className="mt-2 text-sm text-foreground-muted">
-            Course playback arrives in Phase 3. Your progress will live here.
-          </p>
-        </div>
-        <div className="vu-card vu-card-hover p-5">
-          <h2 className="text-lg font-extrabold tracking-tight text-foreground">People nearby in spirit</h2>
-          <p className="mt-2 text-sm text-foreground-muted">
-            Matching comes later. For now, browse the member directory.
-          </p>
-          <Link href="/members" className="mt-3 inline-block text-sm text-accent">
-            Meet members
-          </Link>
-        </div>
-      </aside>
+      <div className="hidden xl:block">
+        <FeedRail
+          community={{
+            name: kitchen?.name ?? "Vegan University",
+            description: kitchen?.description ?? null,
+            coverUrl: kitchen?.coverUrl ?? null,
+          }}
+          memberCount={memberCount}
+          spaces={spaces.map((space) => ({
+            name: space.name,
+            slug: space.slug,
+            coverUrl: space.coverUrl,
+            memberCount: space._count.memberships,
+          }))}
+          events={eventPosts.map((event) => ({
+            id: event.id,
+            title: event.title,
+            publishedAt: event.publishedAt,
+            spaceName: event.space.name,
+          }))}
+          activity={recentComments.map((item) => ({
+            id: item.id,
+            body: item.body,
+            createdAt: item.createdAt,
+            authorName: item.author.profile?.displayName ?? item.author.handle,
+            avatar: item.author.profile?.avatarUrl ?? null,
+          }))}
+        />
+      </div>
     </div>
   );
 }

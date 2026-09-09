@@ -1,3 +1,4 @@
+import { PostType } from "@prisma/client";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
@@ -7,9 +8,19 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/empty-state";
 
-export default async function ComposePage() {
+const TYPES = Object.values(PostType);
+
+export default async function ComposePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
   const session = await auth();
   if (!session?.user.id) redirect("/login");
+  const requested = (await searchParams).type;
+  const defaultType = TYPES.includes(requested as PostType)
+    ? (requested as PostType)
+    : "SIMPLE";
   const spaces = await prisma.space.findMany({
     where: { memberships: { some: { userId: session.user.id } } },
     orderBy: { sortOrder: "asc" },
@@ -53,7 +64,7 @@ export default async function ComposePage() {
           <select
             name="type"
             className="mt-2 min-h-11 w-full rounded-2xl border border-sand bg-warm-white px-4"
-            defaultValue="SIMPLE"
+            defaultValue={defaultType}
           >
             <option value="SIMPLE">Simple</option>
             <option value="ARTICLE">Article</option>

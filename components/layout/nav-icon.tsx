@@ -7,6 +7,7 @@ import {
   Bell,
   CreditCard,
   LogOut,
+  MessageSquare,
   Plus,
   Search,
   Shield,
@@ -17,6 +18,7 @@ const icons = {
   search: Search,
   bell: Bell,
   create: Plus,
+  messages: MessageSquare,
   membership: CreditCard,
   admin: Shield,
   logout: LogOut,
@@ -54,7 +56,7 @@ export function NavIconLink({
         <Link href={href} aria-label={label} className={iconButtonClass}>
           <Icon className="size-4" aria-hidden />
           {badge && badge > 0 ? (
-            <span className="absolute right-1.5 top-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold leading-4 text-white">
+            <span className="absolute right-1.5 top-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-terracotta px-1 text-[10px] font-bold leading-4 text-white">
               {badge > 99 ? "99+" : badge}
             </span>
           ) : null}

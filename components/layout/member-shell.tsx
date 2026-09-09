@@ -10,15 +10,27 @@ export async function MemberShell({ children }: { children: React.ReactNode }) {
   if (!session?.sessionId) redirect("/login");
   const spaces = await prisma.space.findMany({
     orderBy: { sortOrder: "asc" },
-    select: { name: true, slug: true, coverUrl: true },
+    select: {
+      name: true,
+      slug: true,
+      coverUrl: true,
+      _count: { select: { memberships: true } },
+    },
   });
 
   return (
     <div className="min-h-screen bg-background pb-24 md:pb-0">
       <AppNav />
       <div className="vu-gutter">
-        <div className="vu-shell flex gap-6 py-8">
-          <MemberSidebar spaces={spaces} />
+        <div className="vu-feed-shell flex gap-6 py-8">
+          <MemberSidebar
+            spaces={spaces.map((space) => ({
+              name: space.name,
+              slug: space.slug,
+              coverUrl: space.coverUrl,
+              memberCount: space._count.memberships,
+            }))}
+          />
           <main className="min-w-0 flex-1">{children}</main>
         </div>
       </div>

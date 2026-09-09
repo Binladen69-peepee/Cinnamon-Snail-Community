@@ -3,111 +3,115 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Flavoriz-aligned theme: peach ground, near-black type, one orange accent. */
+/* Vegan University identity: cream ground, forest branding, Poppins + Inter. */
 @layer theme {
   :root,
   .light,
   [data-theme="light"] {
     color-scheme: light;
 
-    --background: #fff6ec;
-    --foreground: #1a1a1a;
-    --surface: #ffffff;
-    --surface-foreground: #1a1a1a;
+    --background: #fff8ef;
+    --foreground: #16231f;
+    --surface: #fffcf8;
+    --surface-foreground: #16231f;
     --overlay: #ffffff;
-    --overlay-foreground: #1a1a1a;
-    --muted: #6f6f6f;
-    --primary: #1a1a1a;
+    --overlay-foreground: #16231f;
+    --muted: #66736d;
+    --primary: #0f3d32;
     --primary-foreground: #ffffff;
-    --accent: #f28c28;
+    --accent: #16a34a;
     --accent-foreground: #ffffff;
-    --accent-gold: #f28c28;
-    --accent-magenta: #f28c28;
-    --accent-coral: #f28c28;
-    --foreground-muted: #6f6f6f;
-    --border: #f0e4d6;
-    --separator: #f0e4d6;
-    --focus: #f28c28;
-    --link: #1a1a1a;
-    --default: #fff1e3;
-    --default-foreground: #1a1a1a;
+    --accent-gold: #f59e0b;
+    --accent-magenta: #d97752;
+    --accent-coral: #d97752;
+    --foreground-muted: #66736d;
+    --border: #ede2d2;
+    --separator: #ede2d2;
+    --focus: #16a34a;
+    --link: #0f3d32;
+    --default: #e8f5e9;
+    --default-foreground: #0f3d32;
     --field-background: #ffffff;
-    --field-foreground: #1a1a1a;
-    --field-placeholder: #6f6f6f;
-    --field-border: #f0e4d6;
+    --field-foreground: #16231f;
+    --field-placeholder: #66736d;
+    --field-border: #ede2d2;
     --field-border-width: 1px;
-    --success: #3f6b4b;
+    --success: #16a34a;
     --success-foreground: #ffffff;
-    --warning: #f28c28;
-    --warning-foreground: #1a1a1a;
-    --danger: #c45c4a;
+    --warning: #f59e0b;
+    --warning-foreground: #16231f;
+    --danger: #d97752;
     --danger-foreground: #ffffff;
-    --radius: 1.5rem;
-    --field-radius: 9999px;
-    --surface-shadow: 0 10px 40px rgba(26, 26, 26, 0.06);
+    --radius: 1.25rem;
+    --field-radius: 0.875rem;
+    --surface-shadow: 0 10px 30px rgba(15, 61, 50, 0.05);
     --field-shadow: 0 0 0 0 transparent;
-    --overlay-shadow: 0 16px 40px rgba(26, 26, 26, 0.12);
+    --overlay-shadow: 0 20px 60px rgba(15, 61, 50, 0.08);
 
-    --forest: var(--foreground);
-    --olive: var(--foreground-muted);
-    --sage: #f5d0a6;
-    --cream: var(--background);
-    --warm-white: var(--surface);
-    --sand: var(--border);
-    --taupe: var(--foreground-muted);
-    --terracotta: var(--accent);
-    --apricot: var(--accent);
-    --ink: var(--foreground);
+    --forest: #0f3d32;
+    --deep-forest: #0b513f;
+    --olive: #66736d;
+    --sage: #e8f5e9;
+    --mint: #f1f8f2;
+    --cream: #fff8ef;
+    --warm-white: #fffcf8;
+    --sand: #ede2d2;
+    --taupe: #66736d;
+    --terracotta: #d97752;
+    --apricot: #f59e0b;
+    --ink: #16231f;
   }
 
   .dark,
   [data-theme="dark"] {
     color-scheme: dark;
 
-    --background: #161616;
-    --foreground: #fff6ec;
-    --surface: #1f1f1f;
-    --surface-foreground: #fff6ec;
-    --overlay: #1f1f1f;
-    --overlay-foreground: #fff6ec;
-    --muted: #b5b5b5;
-    --primary: #fff6ec;
-    --primary-foreground: #1a1a1a;
-    --accent: #ff9a3d;
-    --accent-foreground: #1a1a1a;
-    --accent-gold: #ff9a3d;
-    --accent-magenta: #ff9a3d;
-    --accent-coral: #ff9a3d;
-    --foreground-muted: #b5b5b5;
-    --border: #2c2c2c;
-    --separator: #2c2c2c;
-    --focus: #ff9a3d;
-    --link: #fff6ec;
-    --default: #2a2a2a;
-    --default-foreground: #fff6ec;
-    --field-background: #1f1f1f;
-    --field-foreground: #fff6ec;
-    --field-placeholder: #b5b5b5;
-    --field-border: #2c2c2c;
-    --success: #7da88a;
-    --success-foreground: #161616;
-    --warning: #ff9a3d;
-    --warning-foreground: #161616;
-    --danger: #e07a6a;
-    --danger-foreground: #161616;
-    --surface-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
-    --overlay-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+    --background: #0c1613;
+    --foreground: #fff8ef;
+    --surface: #15201c;
+    --surface-foreground: #fff8ef;
+    --overlay: #1a2622;
+    --overlay-foreground: #fff8ef;
+    --muted: #9aaba4;
+    --primary: #16a34a;
+    --primary-foreground: #052016;
+    --accent: #4ade80;
+    --accent-foreground: #052016;
+    --accent-gold: #f59e0b;
+    --accent-magenta: #d97752;
+    --accent-coral: #d97752;
+    --foreground-muted: #9aaba4;
+    --border: #2a3b35;
+    --separator: #2a3b35;
+    --focus: #4ade80;
+    --link: #86efac;
+    --default: #1c2e27;
+    --default-foreground: #fff8ef;
+    --field-background: #15201c;
+    --field-foreground: #fff8ef;
+    --field-placeholder: #9aaba4;
+    --field-border: #2a3b35;
+    --success: #4ade80;
+    --success-foreground: #052016;
+    --warning: #f59e0b;
+    --warning-foreground: #052016;
+    --danger: #f0a07a;
+    --danger-foreground: #052016;
+    --surface-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
+    --overlay-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
 
-    --forest: var(--foreground);
-    --olive: var(--foreground-muted);
-    --sage: #3a2a1c;
-    --cream: var(--background);
-    --warm-white: var(--surface);
-    --sand: var(--border);
-    --taupe: var(--foreground-muted);
-    --terracotta: var(--accent);
-    --apricot: var(--accent);
-    --ink: var(--foreground);
+    --forest: #86efac;
+    --deep-forest: #4ade80;
+    --olive: #9aaba4;
+    --sage: #1c2e27;
+    --mint: #15201c;
+    --cream: #0c1613;
+    --warm-white: #15201c;
+    --sand: #2a3b35;
+    --taupe: #9aaba4;
+    --terracotta: #d97752;
+    --apricot: #f59e0b;
+    --ink: #fff8ef;
   }
 }
 
@@ -118,14 +122,16 @@
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
-  --color-accent-gold: var(--accent);
-  --color-accent-magenta: var(--accent);
-  --color-accent-coral: var(--accent);
+  --color-accent-gold: var(--accent-gold);
+  --color-accent-magenta: var(--accent-magenta);
+  --color-accent-coral: var(--accent-coral);
   --color-foreground-muted: var(--foreground-muted);
   --color-border: var(--border);
   --color-forest: var(--forest);
+  --color-deep-forest: var(--deep-forest);
   --color-olive: var(--olive);
   --color-sage: var(--sage);
+  --color-mint: var(--mint);
   --color-cream: var(--cream);
   --color-warm-white: var(--warm-white);
   --color-sand: var(--sand);
@@ -138,9 +144,9 @@
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-info: var(--accent);
-  --font-sans: var(--font-outfit);
-  --font-display: var(--font-outfit);
-  --radius-lg: 1.5rem;
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-poppins);
+  --radius-lg: 1.25rem;
 }
 
 html {
@@ -150,7 +156,7 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
 }
 
@@ -158,8 +164,8 @@ h1,
 h2,
 h3,
 .font-display {
-  font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 800;
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
   letter-spacing: -0.03em;
 }
 
@@ -168,7 +174,7 @@ h3,
 }
 
 .vu-gutter {
-  padding-inline: 1.5rem;
+  padding-inline: 1.25rem;
 }
 
 @media (min-width: 640px) {
@@ -179,13 +185,7 @@ h3,
 
 @media (min-width: 1024px) {
   .vu-gutter {
-    padding-inline: 4rem;
-  }
-}
-
-@media (min-width: 1280px) {
-  .vu-gutter {
-    padding-inline: 5.5rem;
+    padding-inline: 3.5rem;
   }
 }
 
@@ -195,32 +195,41 @@ h3,
   max-width: 72rem;
 }
 
+.vu-feed-shell {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 86.25rem;
+}
+
 .vu-card {
   background: var(--surface);
-  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-radius: 20px;
   box-shadow: var(--surface-shadow);
 }
 
 .vu-card-hover {
   transition:
-    transform 180ms ease,
-    box-shadow 180ms ease;
+    transform 200ms ease,
+    box-shadow 200ms ease;
 }
 
 .vu-card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 14px 28px rgba(26, 26, 26, 0.1);
+  box-shadow: 0 20px 60px rgba(15, 61, 50, 0.08);
 }
 
 .vu-sidebar {
-  background: #1a1a1a;
-  color: #fff6ec;
-  border-radius: 12px;
+  background: var(--surface);
+  color: var(--foreground);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: var(--surface-shadow);
 }
 
 .dark .vu-sidebar,
 [data-theme="dark"] .vu-sidebar {
-  background: #111111;
+  background: var(--surface);
 }
 
 [data-slot="button"] {
@@ -250,6 +259,19 @@ h3,
 
 .hero-copy-reveal {
   animation: hero-copy 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes reaction-pop {
+  from {
+    transform: scale(0.86);
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+.reaction-pop {
+  animation: reaction-pop 180ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @media (prefers-reduced-motion: reduce) {

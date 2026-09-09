@@ -1,13 +1,27 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { Bookmark, Heart, HelpCircle, PartyPopper, ThumbsUp, type LucideIcon } from "lucide-react";
 import { reactAction } from "@/app/(member)/community-actions";
-import { FACEBOOK_REACTIONS } from "@/lib/community/facebook-reactions";
+import { FACEBOOK_REACTIONS, FEED_REACTIONS } from "@/lib/community/facebook-reactions";
 import { cn } from "@/lib/utils";
+
+const ICONS: Record<string, LucideIcon> = {
+  "❤️": Heart,
+  "👍": ThumbsUp,
+  "🎉": PartyPopper,
+  "🙌": Bookmark,
+  "🤔": HelpCircle,
+  "🤗": Heart,
+  "😆": PartyPopper,
+  "😮": HelpCircle,
+  "😢": HelpCircle,
+  "😡": HelpCircle,
+};
 
 export function FacebookReactions({
   postId,
-  counts,
+  counts: _counts,
   myReaction,
   total,
 }: {
@@ -20,6 +34,7 @@ export function FacebookReactions({
   const [pending, startTransition] = useTransition();
   const closeTimer = useRef<number | null>(null);
   const current = FACEBOOK_REACTIONS.find((item) => item.emoji === myReaction);
+  const CurrentIcon = ICONS[current?.emoji ?? "❤️"] ?? Heart;
 
   function pick(emoji: string) {
     const data = new FormData();
@@ -40,8 +55,6 @@ export function FacebookReactions({
     closeTimer.current = window.setTimeout(() => setOpen(false), 160);
   }
 
-  const visible = FACEBOOK_REACTIONS.filter((item) => (counts[item.emoji] ?? 0) > 0);
-
   return (
     <div className="relative flex flex-wrap items-center gap-2" onMouseEnter={show} onMouseLeave={hide}>
       {open ? (
@@ -50,43 +63,37 @@ export function FacebookReactions({
           role="listbox"
           aria-label="Reactions"
         >
-          {FACEBOOK_REACTIONS.map((item) => (
-            <button
-              key={item.emoji}
-              type="button"
-              className="grid size-9 place-items-center text-lg transition-transform hover:-translate-y-1 hover:scale-110"
-              aria-label={item.label}
-              onClick={() => pick(item.emoji)}
-            >
-              {item.emoji}
-            </button>
-          ))}
+          {FEED_REACTIONS.map((item) => {
+            const Icon = ICONS[item.emoji] ?? Heart;
+            const count = _counts[item.emoji] ?? 0;
+            return (
+              <button
+                key={item.emoji}
+                type="button"
+                className="reaction-pop relative grid size-10 place-items-center rounded-full text-forest transition hover:-translate-y-1 hover:bg-sage"
+                aria-label={count ? `${item.label}, ${count}` : item.label}
+                onClick={() => pick(item.emoji)}
+              >
+                <Icon className="size-4" aria-hidden />
+              </button>
+            );
+          })}
         </div>
       ) : null}
       <button
         type="button"
         disabled={pending}
-        onClick={() => pick(current?.emoji ?? "👍")}
+        onClick={() => pick(current?.emoji ?? "❤️")}
         className={cn(
-          "inline-flex h-8 items-center gap-1.5 bg-background px-3 text-xs font-semibold",
-          myReaction ? "text-accent" : "text-foreground",
+          "inline-flex h-11 items-center gap-1.5 rounded-full px-3 text-xs font-semibold",
+          myReaction ? "bg-sage text-forest" : "text-foreground-muted hover:bg-mint",
         )}
-        style={{ borderRadius: 12 }}
         aria-pressed={Boolean(myReaction)}
       >
-        <span aria-hidden>{current?.emoji ?? "👍"}</span>
-        {current?.label ?? "Like"}
+        <CurrentIcon className="size-4" aria-hidden />
+        {current?.label ?? "Love"}
+        {total > 0 ? <span className="tabular-nums">{total}</span> : null}
       </button>
-      {total > 0 ? (
-        <p className="flex items-center gap-1 text-xs text-foreground-muted">
-          {visible.slice(0, 3).map((item) => (
-            <span key={item.emoji} title={`${item.label} ${counts[item.emoji]}`}>
-              {item.emoji}
-            </span>
-          ))}
-          <span className="font-semibold text-foreground">{total}</span>
-        </p>
-      ) : null}
     </div>
   );
 }

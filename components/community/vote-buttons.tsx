@@ -23,17 +23,16 @@ export function VoteButtons({
     <div
       className={
         pill
-          ? "inline-flex h-8 items-center bg-background px-1"
+          ? "inline-flex h-11 items-center rounded-full border border-sand bg-warm-white px-1"
           : "flex w-8 shrink-0 flex-col items-center"
       }
-      style={pill ? { borderRadius: 12 } : undefined}
     >
       <VoteForm postId={postId} commentId={commentId} returnToPostId={returnToPostId} value={1}>
         <button
           type="submit"
           className={cn(
             "inline-flex items-center justify-center rounded-full",
-            pill ? "size-7" : "size-8",
+            pill ? "size-9" : "size-8",
             myVote === 1 ? "text-accent" : "text-foreground-muted hover:text-accent",
           )}
           aria-label="Upvote"
@@ -45,7 +44,7 @@ export function VoteButtons({
       <span
         className={cn(
           "min-w-[1.25rem] text-center text-xs font-bold tabular-nums",
-          myVote === 1 ? "text-accent" : "text-foreground",
+          myVote === 1 ? "text-forest" : "text-foreground",
         )}
       >
         {score}
@@ -55,7 +54,7 @@ export function VoteButtons({
           type="submit"
           className={cn(
             "inline-flex items-center justify-center rounded-full",
-            pill ? "size-7" : "size-8",
+            pill ? "size-9" : "size-8",
             myVote === -1 ? "text-foreground" : "text-foreground-muted hover:text-foreground",
           )}
           aria-label="Downvote"

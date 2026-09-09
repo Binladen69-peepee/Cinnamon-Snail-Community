@@ -39,7 +39,7 @@ const columns = [
 
 export function MarketingFooter() {
   return (
-    <footer className="mt-8 bg-[#1A1A1A] text-white">
+    <footer className="mt-8 bg-forest text-white">
       <div className="vu-gutter">
         <div className="vu-shell grid gap-10 py-16 md:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
         <div>

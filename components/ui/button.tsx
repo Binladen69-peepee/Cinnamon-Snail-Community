@@ -41,7 +41,7 @@ export function Button({
       className={cn(
         pill,
         variant === "primary" &&
-          "!bg-foreground !text-primary-foreground hover:!opacity-90",
+          "!bg-forest !text-white hover:!bg-deep-forest hover:-translate-y-px",
         className,
       )}
       {...props}
@@ -70,7 +70,7 @@ export function ButtonLink({
         pill,
         "no-underline",
         variant === "primary" &&
-          "!bg-foreground !text-primary-foreground hover:!opacity-90",
+          "!bg-forest !text-white hover:!bg-deep-forest hover:-translate-y-px",
         className,
       )}
     >

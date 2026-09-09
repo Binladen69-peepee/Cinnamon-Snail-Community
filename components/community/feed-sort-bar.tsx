@@ -9,7 +9,7 @@ export function FeedSortBar({
   basePath: string;
 }) {
   return (
-    <nav aria-label="Sort posts" className="flex flex-wrap items-center gap-1">
+    <nav aria-label="Sort posts" className="flex flex-wrap items-center gap-2">
       {FEED_SORTS.map((item) => {
         const href = `${basePath.split("?")[0]}?sort=${item.value}`;
         const active = current === item.value;
@@ -19,10 +19,9 @@ export function FeedSortBar({
             href={href}
             className={
               active
-                ? "bg-foreground px-3 py-1.5 text-sm font-semibold text-primary-foreground"
-                : "px-3 py-1.5 text-sm font-semibold text-foreground-muted hover:bg-surface hover:text-foreground"
+                ? "inline-flex h-10 items-center rounded-full bg-forest px-4 text-sm font-semibold text-white"
+                : "inline-flex h-10 items-center rounded-full border border-sand bg-transparent px-4 text-sm font-semibold text-foreground-muted hover:border-forest hover:text-forest"
             }
-            style={{ borderRadius: 12 }}
           >
             {item.label}
           </Link>

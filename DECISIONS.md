@@ -264,7 +264,25 @@ Question:
 Should community posts keep emoji reactions, or use Reddit-style voting?
 
 Decision:
-Posts and comments use upvote/downvote arrows with a net score. Feeds sort by Hot, New, Top, and Rising. Comments nest with reply and collapse. Facebook-style reactions (Like, Love, Care, Haha, Wow, Sad, Angry) sit beside votes on posts. One reaction per person per post.
+Posts and comments use upvote/downvote arrows with a net score. Feeds sort by Hot, New, Top, and Rising. Comments nest with reply and collapse. Reactions sit beside votes on posts: Love, Like, Celebrate, Helpful, and Curious (legacy stored Facebook-style emoji still count). One reaction per person per post.
+
+Date:
+2026-09-09
+
+Approved by:
+Product (human)
+
+---
+
+## DEC-013 — Forest-and-cream visual identity
+
+Status: ACCEPTED
+
+Question:
+Should Vegan University keep the Flavoriz peach/orange/Outfit system, or match the new hero + feed identity?
+
+Decision:
+The product uses the forest-and-cream system: cream `#FFF8EF` ground, warm-white cards, forest `#0F3D32` actions, green `#16A34A` accent, Poppins headings, Inter body. Marketing hero and member feed share that system. Member chrome is a light sidebar, not a dark dashboard. Live counts come from the database; do not invent member totals or online numbers.
 
 Date:
 2026-09-09

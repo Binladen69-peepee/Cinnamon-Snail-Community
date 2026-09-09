@@ -21,8 +21,7 @@ export function ShareButton({ path }: { path: string }) {
     <button
       type="button"
       onClick={share}
-      className="inline-flex h-8 items-center gap-1.5 bg-background px-3 text-xs font-semibold text-foreground hover:bg-border"
-      style={{ borderRadius: 12 }}
+      className="inline-flex h-11 items-center gap-1.5 rounded-full px-3 text-xs font-semibold text-foreground-muted hover:bg-mint"
     >
       <Share2 className="size-3.5" aria-hidden />
       {copied ? "Copied" : "Share"}

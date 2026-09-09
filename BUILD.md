@@ -117,15 +117,14 @@ The interface should make a new member immediately feel:
 
 ## 3.2 Visual personality
 
-Approved visual system (Flavoriz-aligned reference):
+Approved visual system (hero + feed, one identity):
 
-- Warm peach/cream page ground with floating white rounded cards
-- One vivid orange accent only
-- Near-black type and solid black pill buttons
-- Bold geometric sans for headings; lighter weight of the same sans for body — no serif
-- Contained photo cards (rounded, padded), not full-bleed heroes
-- Large orange stat numerals with small labels underneath
-- Soft card shadows; generous whitespace
+- Warm cream page ground (`#FFF8EF`) with warm-white cards (`#FFFCF8`)
+- Forest green branding (`#0F3D32`) and a single plant-green accent (`#16A34A`)
+- Poppins bold headings; Inter for body and UI
+- Rounded cards (20px), pill buttons, soft forest-tinted shadows
+- Light sidebars that match the hero — not a dark dashboard
+- Contained editorial food photography
 - One deliberate motion moment on first paint (hero reveal)
 - Light and dark modes via `next-themes` (`class="dark"` on `<html>`)
 
@@ -133,18 +132,19 @@ Approved visual system (Flavoriz-aligned reference):
 
 Define tokens in HeroUI theme CSS (`app/globals.css` `:root` / `.dark`), not as scattered hex values in components. Component library is HeroUI v3 (`@heroui/react` + `@heroui/styles`) on Tailwind v4. HeroUI v3 does **not** use the v2 `heroui()` Tailwind plugin; override CSS variables instead. Do not ship HeroUI’s default blue theme.
 
-Use **one** accent. Do not add a second highlight color.
+Use **forest + one green accent**. Do not add extra brand colors beyond the token table.
 
 ### Light mode
 
 | Token | Hex | Use |
 |---|---|---|
-| `background` | `#FFF6EC` | Page base — warm peach/cream |
-| `surface` | `#FFFFFF` | Cards, panels |
-| `foreground` | `#1A1A1A` | Body text, headings, primary pill buttons |
-| `foreground-muted` | `#6F6F6F` | Secondary text |
-| `accent` | `#F28C28` | Highlighted headline words, tags, stat numbers, orange quote cards |
-| `border` | `#F0E4D6` | Hairlines on peach |
+| `background` | `#FFF8EF` | Page base — warm cream |
+| `surface` | `#FFFCF8` | Cards, panels |
+| `foreground` | `#16231F` | Body text, headings |
+| `foreground-muted` | `#66736D` | Secondary text |
+| `primary` / `forest` | `#0F3D32` | Logo, primary buttons, header |
+| `accent` | `#16A34A` | Headline accents, active rings, icons |
+| `border` / `sand` | `#EDE2D2` | Hairlines |
 
 ### Dark mode
 
@@ -157,20 +157,18 @@ Use **one** accent. Do not add a second highlight color.
 | `accent` | `#FF9A3D` | Same jobs as light, brighter for contrast |
 | `border` | `#2C2C2C` | Hairlines |
 
-Primary buttons are **solid near-black pills with white label** (not orange fills). Orange is reserved for highlights, tags, and stats. Footer is inverted: near-black ground, white type, orange column labels.
-
-Keyboard focus must remain visible (`--focus` / HeroUI focus rings — do not override them away).
+Primary buttons are **solid forest pills with white label**. Footer is inverted forest. Keyboard focus must remain visible (`--focus` / HeroUI focus rings — do not override them away).
 
 ## 3.4 Typography
 
-One family, two weights. **No serif.**
+Two families. **No serif.**
 
-- **Headings:** `Outfit` extra-bold (800), tight tracking. Highlight a single keyword in `accent` orange.
-- **Body / UI:** `Outfit` regular/medium. Nav labels may be small caps / uppercase.
+- **Headings:** `Poppins` bold (700). Highlight a single keyword in `accent` green.
+- **Body / UI:** `Inter` regular/medium/semibold.
 
 Rules:
 
-- Same sans for emotional headings and UI — hierarchy is weight and size, not a second family.
+- Same sans pair for the whole product (hero and feed). Hierarchy is weight and size.
 - Body line length under ~75 characters.
 - Maintain strong hierarchy.
 

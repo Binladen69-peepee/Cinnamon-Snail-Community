@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { ArrowRight, BookOpen, Calendar, FileText, Users } from "lucide-react";
 import { ButtonLink } from "@/components/ui/button";
 import { FaqAccordion } from "@/components/marketing/faq-accordion";
 import {
@@ -11,14 +12,27 @@ import {
   getHomepageMomentum,
   getPublishedCoursePreview,
 } from "@/lib/marketing/stats";
+import { prisma } from "@/lib/db";
+import { Avatar } from "@/components/ui/avatar";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [momentum, liveCourses] = await Promise.all([
+  const [momentum, liveCourses, faces] = await Promise.all([
     getHomepageMomentum(),
     getPublishedCoursePreview(),
+    process.env.DATABASE_URL
+      ? prisma.profile
+          .findMany({
+            where: { directoryVisible: true },
+            take: 5,
+            select: { displayName: true, avatarUrl: true },
+          })
+          .catch(() => [])
+      : Promise.resolve([]),
   ]);
+
+  const memberStat = momentum.find((item) => item.label.includes("Members"));
 
   const courses =
     liveCourses.length > 0
@@ -48,27 +62,47 @@ export default async function HomePage() {
       <section className="vu-gutter py-12 md:py-20">
         <div className="vu-shell grid items-center gap-10 lg:grid-cols-2">
           <div className="hero-copy-reveal">
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-              A cooking school with a kitchen table
+            <p className="inline-flex items-center rounded-full bg-sage px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-forest">
+              A plant-based lifestyle community
             </p>
-            <h1 className="mt-4 text-4xl leading-[1.1] font-extrabold tracking-tight text-foreground md:text-6xl">
+            <h1 className="mt-5 font-display text-4xl leading-[1.1] font-bold tracking-tight text-foreground md:text-6xl">
               Learn to cook plants like you already{" "}
-              <span className="text-accent">belong</span> here.
+              <span className="relative text-accent">
+                belong here.
+                <span className="absolute inset-x-0 -bottom-1 h-2 rounded-full bg-accent/25" aria-hidden />
+              </span>
             </h1>
             <p className="prose-measure mt-6 text-lg leading-relaxed font-normal text-foreground-muted">
               Courses that end in dinner, recipes you actually make, and a hosted
               table for the sauce question you were going to Google at 9pm.
             </p>
             <div className="mt-8 flex flex-wrap gap-3">
-              <ButtonLink href="/membership" size="lg">
+              <ButtonLink href="/membership" size="lg" className="gap-2">
                 Become a member
+                <ArrowRight className="size-4" aria-hidden />
               </ButtonLink>
-              <ButtonLink href="/community" variant="secondary" size="lg">
+              <ButtonLink href="/community" variant="secondary" size="lg" className="gap-2">
+                <Users className="size-4" aria-hidden />
                 Peek at the community
               </ButtonLink>
             </div>
+            {faces.length > 0 && memberStat && memberStat.value !== "—" ? (
+              <div className="mt-8 flex items-center gap-3">
+                <div className="flex -space-x-2">
+                  {faces.map((face) => (
+                    <span key={face.displayName} className="rounded-full ring-2 ring-cream">
+                      <Avatar name={face.displayName} src={face.avatarUrl} size="sm" />
+                    </span>
+                  ))}
+                </div>
+                <p className="text-sm text-foreground-muted">
+                  <span className="font-semibold text-forest">{memberStat.value} members</span>
+                  {" "}at the table · Learn · Share · Grow
+                </p>
+              </div>
+            ) : null}
           </div>
-          <div className="hero-copy-reveal relative mx-auto aspect-square w-full max-w-lg overflow-hidden rounded-[2rem] shadow-[0_16px_40px_rgba(26,26,26,0.08)]">
+          <div className="hero-copy-reveal relative mx-auto aspect-square w-full max-w-lg overflow-hidden rounded-[28px] shadow-[0_20px_60px_rgba(15,61,50,0.08)]">
             <Image
               src="https://images.unsplash.com/photo-1540420773420-3366772f4999?auto=format&fit=crop&w=1400&q=80"
               alt="A vibrant bowl of roasted vegetables, greens, and citrus"
@@ -81,18 +115,31 @@ export default async function HomePage() {
       </section>
 
       <section aria-label="Campus snapshot" className="vu-gutter pb-8">
-        <div className="vu-card vu-shell grid grid-cols-2 gap-8 px-6 py-10 text-center md:grid-cols-4 md:px-10">
+        <div className="vu-card vu-shell grid grid-cols-1 gap-6 px-6 py-8 sm:grid-cols-2 md:grid-cols-4 md:px-10">
           {momentum.map((stat) => (
-            <div key={stat.label}>
-              <p className="text-4xl font-extrabold tracking-tight text-accent md:text-5xl">
-                {stat.value}
-              </p>
-              <p className="mt-2 text-sm font-medium text-foreground">{stat.label}</p>
-              {stat.placeholder ? (
-                <p className="mt-1 text-xs font-normal text-foreground-muted">
-                  Placeholder — ratings arrive with the course catalog.
+            <div key={stat.label} className="flex gap-3">
+              <span className="grid size-11 shrink-0 place-items-center rounded-full bg-sage text-forest">
+                {stat.label.includes("Members") ? (
+                  <Users className="size-4" aria-hidden />
+                ) : stat.label.includes("Course") ? (
+                  <BookOpen className="size-4" aria-hidden />
+                ) : stat.label.includes("rating") ? (
+                  <Calendar className="size-4" aria-hidden />
+                ) : (
+                  <FileText className="size-4" aria-hidden />
+                )}
+              </span>
+              <div>
+                <p className="font-display text-2xl font-bold tracking-tight text-forest">
+                  {stat.value}
                 </p>
-              ) : null}
+                <p className="text-sm font-medium text-foreground">{stat.label}</p>
+                {stat.placeholder ? (
+                  <p className="mt-1 text-xs font-normal text-foreground-muted">
+                    Placeholder — ratings arrive with the course catalog.
+                  </p>
+                ) : null}
+              </div>
             </div>
           ))}
         </div>

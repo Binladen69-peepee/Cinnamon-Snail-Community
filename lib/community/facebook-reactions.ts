@@ -1,6 +1,14 @@
-export const FACEBOOK_REACTIONS = [
-  { emoji: "👍", label: "Like" },
+export const FEED_REACTIONS = [
   { emoji: "❤️", label: "Love" },
+  { emoji: "👍", label: "Like" },
+  { emoji: "🎉", label: "Celebrate" },
+  { emoji: "🙌", label: "Helpful" },
+  { emoji: "🤔", label: "Curious" },
+] as const;
+
+/** Includes legacy stored values so existing reactions still count. */
+export const FACEBOOK_REACTIONS = [
+  ...FEED_REACTIONS,
   { emoji: "🤗", label: "Care" },
   { emoji: "😆", label: "Haha" },
   { emoji: "😮", label: "Wow" },
