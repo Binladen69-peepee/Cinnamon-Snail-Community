@@ -1,26 +1,266 @@
 @import "tailwindcss";
+@import "@heroui/styles";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Flavoriz-aligned theme: peach ground, near-black type, one orange accent. */
+@layer theme {
+  :root,
+  .light,
+  [data-theme="light"] {
+    color-scheme: light;
+
+    --background: #fff6ec;
+    --foreground: #1a1a1a;
+    --surface: #ffffff;
+    --surface-foreground: #1a1a1a;
+    --overlay: #ffffff;
+    --overlay-foreground: #1a1a1a;
+    --muted: #6f6f6f;
+    --primary: #1a1a1a;
+    --primary-foreground: #ffffff;
+    --accent: #f28c28;
+    --accent-foreground: #ffffff;
+    --accent-gold: #f28c28;
+    --accent-magenta: #f28c28;
+    --accent-coral: #f28c28;
+    --foreground-muted: #6f6f6f;
+    --border: #f0e4d6;
+    --separator: #f0e4d6;
+    --focus: #f28c28;
+    --link: #1a1a1a;
+    --default: #fff1e3;
+    --default-foreground: #1a1a1a;
+    --field-background: #ffffff;
+    --field-foreground: #1a1a1a;
+    --field-placeholder: #6f6f6f;
+    --field-border: #f0e4d6;
+    --field-border-width: 1px;
+    --success: #3f6b4b;
+    --success-foreground: #ffffff;
+    --warning: #f28c28;
+    --warning-foreground: #1a1a1a;
+    --danger: #c45c4a;
+    --danger-foreground: #ffffff;
+    --radius: 1.5rem;
+    --field-radius: 9999px;
+    --surface-shadow: 0 10px 40px rgba(26, 26, 26, 0.06);
+    --field-shadow: 0 0 0 0 transparent;
+    --overlay-shadow: 0 16px 40px rgba(26, 26, 26, 0.12);
+
+    --forest: var(--foreground);
+    --olive: var(--foreground-muted);
+    --sage: #f5d0a6;
+    --cream: var(--background);
+    --warm-white: var(--surface);
+    --sand: var(--border);
+    --taupe: var(--foreground-muted);
+    --terracotta: var(--accent);
+    --apricot: var(--accent);
+    --ink: var(--foreground);
+  }
+
+  .dark,
+  [data-theme="dark"] {
+    color-scheme: dark;
+
+    --background: #161616;
+    --foreground: #fff6ec;
+    --surface: #1f1f1f;
+    --surface-foreground: #fff6ec;
+    --overlay: #1f1f1f;
+    --overlay-foreground: #fff6ec;
+    --muted: #b5b5b5;
+    --primary: #fff6ec;
+    --primary-foreground: #1a1a1a;
+    --accent: #ff9a3d;
+    --accent-foreground: #1a1a1a;
+    --accent-gold: #ff9a3d;
+    --accent-magenta: #ff9a3d;
+    --accent-coral: #ff9a3d;
+    --foreground-muted: #b5b5b5;
+    --border: #2c2c2c;
+    --separator: #2c2c2c;
+    --focus: #ff9a3d;
+    --link: #fff6ec;
+    --default: #2a2a2a;
+    --default-foreground: #fff6ec;
+    --field-background: #1f1f1f;
+    --field-foreground: #fff6ec;
+    --field-placeholder: #b5b5b5;
+    --field-border: #2c2c2c;
+    --success: #7da88a;
+    --success-foreground: #161616;
+    --warning: #ff9a3d;
+    --warning-foreground: #161616;
+    --danger: #e07a6a;
+    --danger-foreground: #161616;
+    --surface-shadow: 0 10px 40px rgba(0, 0, 0, 0.35);
+    --overlay-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+
+    --forest: var(--foreground);
+    --olive: var(--foreground-muted);
+    --sage: #3a2a1c;
+    --cream: var(--background);
+    --warm-white: var(--surface);
+    --sand: var(--border);
+    --taupe: var(--foreground-muted);
+    --terracotta: var(--accent);
+    --apricot: var(--accent);
+    --ink: var(--foreground);
+  }
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-surface: var(--surface);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-accent: var(--accent);
+  --color-accent-gold: var(--accent);
+  --color-accent-magenta: var(--accent);
+  --color-accent-coral: var(--accent);
+  --color-foreground-muted: var(--foreground-muted);
+  --color-border: var(--border);
+  --color-forest: var(--forest);
+  --color-olive: var(--olive);
+  --color-sage: var(--sage);
+  --color-cream: var(--cream);
+  --color-warm-white: var(--warm-white);
+  --color-sand: var(--sand);
+  --color-taupe: var(--taupe);
+  --color-terracotta: var(--terracotta);
+  --color-apricot: var(--apricot);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-info: var(--accent);
+  --font-sans: var(--font-outfit);
+  --font-display: var(--font-outfit);
+  --radius-lg: 1.5rem;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+html {
+  scroll-behavior: smooth;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+}
+
+h1,
+h2,
+h3,
+.font-display {
+  font-family: var(--font-outfit), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.prose-measure {
+  max-width: 42rem;
+}
+
+.vu-gutter {
+  padding-inline: 1.5rem;
+}
+
+@media (min-width: 640px) {
+  .vu-gutter {
+    padding-inline: 2.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .vu-gutter {
+    padding-inline: 4rem;
+  }
+}
+
+@media (min-width: 1280px) {
+  .vu-gutter {
+    padding-inline: 5.5rem;
+  }
+}
+
+.vu-shell {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 72rem;
+}
+
+.vu-card {
+  background: var(--surface);
+  border-radius: 12px;
+  box-shadow: var(--surface-shadow);
+}
+
+.vu-card-hover {
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.vu-card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 28px rgba(26, 26, 26, 0.1);
+}
+
+.vu-sidebar {
+  background: #1a1a1a;
+  color: #fff6ec;
+  border-radius: 12px;
+}
+
+.dark .vu-sidebar,
+[data-theme="dark"] .vu-sidebar {
+  background: #111111;
+}
+
+[data-slot="button"] {
+  border-radius: 9999px;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--accent) 28%, transparent);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+@keyframes hero-copy {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.hero-copy-reveal {
+  animation: hero-copy 0.85s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

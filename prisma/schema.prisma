@@ -1,0 +1,1007 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+  PENDING_DELETION
+  DELETED
+}
+
+enum RoleName {
+  MEMBER
+  HOST
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum SpaceKind {
+  FEED
+  COURSE
+  EVENTS
+  CHAT
+  MEMBERS
+}
+
+enum SpaceVisibility {
+  PUBLIC
+  MEMBERS
+  PRIVATE
+}
+
+enum PostingPermission {
+  ALL_MEMBERS
+  HOSTS_ONLY
+  APPROVAL_REQUIRED
+}
+
+enum SpaceMembershipRole {
+  MEMBER
+  MODERATOR
+  HOST
+}
+
+enum PostType {
+  SIMPLE
+  ARTICLE
+  QUESTION
+  POLL
+  EVENT
+  LINK
+  IMAGE
+  VIDEO
+  RECIPE
+}
+
+enum PostStatus {
+  DRAFT
+  SCHEDULED
+  PUBLISHED
+  HIDDEN
+  REMOVED
+}
+
+enum DmPreference {
+  EVERYONE
+  CONNECTIONS
+  NOBODY
+}
+
+enum NotificationChannel {
+  IN_APP
+  EMAIL
+  WEB_PUSH
+}
+
+enum NotificationCategory {
+  REPLIES
+  MENTIONS
+  DMS
+  SPACE_ACTIVITY
+  EVENTS
+  HOST_ANNOUNCEMENTS
+  DIGESTS
+  SYSTEM
+}
+
+enum ProductKind {
+  MEMBERSHIP
+  COURSE
+  BUNDLE
+  MANUAL
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  PAST_DUE
+  DELINQUENT
+  CANCELING
+  CANCELED
+  REFUNDED
+  COMPED
+}
+
+enum EntitlementSource {
+  SUBSCRIPTION
+  ONE_TIME
+  MANUAL
+  MIGRATION
+}
+
+enum EntitlementStatus {
+  ACTIVE
+  EXPIRED
+  REVOKED
+}
+
+enum ReportStatus {
+  OPEN
+  REVIEWING
+  RESOLVED
+  DISMISSED
+}
+
+model User {
+  id            String     @id @default(cuid())
+  name          String?
+  email         String     @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String?
+  status        UserStatus @default(ACTIVE)
+  handle        String     @unique
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  lastLoginAt   DateTime?
+  deletedAt     DateTime?
+  deletionRequestedAt DateTime?
+
+  accounts      Account[]
+  sessions      Session[]
+  emails        UserEmail[]
+  profile       Profile?
+  roles         UserRole[]
+  spaceMemberships SpaceMembership[]
+  posts         Post[]
+  comments      Comment[]
+  reactions     Reaction[]
+  bookmarks     Bookmark[]
+  reports       Report[]
+  notifications Notification[]
+  pollVotes     PollVote[]
+  votes         Vote[]
+  eventRsvps    EventRsvp[]
+  conversationMembers ConversationMember[]
+  messages      Message[]
+  subscriptions Subscription[]
+  entitlements  Entitlement[]
+  auditLogs     AuditLog[]
+  memberRoadmaps MemberRoadmap[]
+  memberBadges  MemberBadge[]
+  lessonProgress LessonProgress[]
+  courseProgress CourseProgress[]
+  hostedSpaces  Space[] @relation("SpaceHost")
+  cancellationRequests CancellationRequest[]
+}
+
+model UserEmail {
+  id         String    @id @default(cuid())
+  userId     String
+  email      String    @unique
+  verifiedAt DateTime?
+  isPrimary  Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Account {
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([provider, providerAccountId])
+}
+
+model Session {
+  id           String    @id @default(cuid())
+  sessionToken String    @unique
+  userId       String
+  expires      DateTime
+  revokedAt    DateTime?
+  userAgent    String?
+  ip           String?
+  createdAt    DateTime  @default(now())
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String
+  expires    DateTime
+  usedAt     DateTime?
+  createdAt  DateTime  @default(now())
+
+  @@id([identifier, token])
+  @@index([identifier, expires])
+}
+
+model Role {
+  id    String   @id @default(cuid())
+  name  RoleName @unique
+  users UserRole[]
+}
+
+model UserRole {
+  userId String
+  roleId String
+  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model Profile {
+  id                 String       @id @default(cuid())
+  userId             String       @unique
+  displayName        String
+  avatarUrl          String?
+  bio                String?
+  city               String?
+  region             String?
+  country            String?
+  cityLatitude       Float?
+  cityLongitude      Float?
+  cookingInterests   Json?
+  skillLevel         String?
+  dietaryInterests   Json?
+  links              Json?
+  privacy            Json?
+  dmPreference       DmPreference @default(EVERYONE)
+  directoryVisible   Boolean      @default(true)
+  timezone           String?
+  cookVibe           String?
+  suckiestThing      String?
+  glutenFree         Boolean?
+  primaryBenefit     String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Space {
+  id                   String             @id @default(cuid())
+  slug                 String             @unique
+  name                 String
+  description          String?
+  coverUrl             String?
+  icon                 String?
+  kind                 SpaceKind          @default(FEED)
+  visibility           SpaceVisibility    @default(MEMBERS)
+  postingPermission    PostingPermission  @default(ALL_MEMBERS)
+  approvalRequired     Boolean            @default(false)
+  notificationDefaults Json?
+  sortOrder            Int                @default(0)
+  hostUserId           String?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  host                 User?              @relation("SpaceHost", fields: [hostUserId], references: [id])
+  memberships          SpaceMembership[]
+  posts                Post[]
+  events               Event[]
+  courses              Course[]
+}
+
+model SpaceMembership {
+  id        String              @id @default(cuid())
+  spaceId   String
+  userId    String
+  role      SpaceMembershipRole @default(MEMBER)
+  createdAt DateTime            @default(now())
+  space     Space               @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([spaceId, userId])
+}
+
+model Post {
+  id           String     @id @default(cuid())
+  spaceId      String
+  authorId     String
+  type         PostType   @default(SIMPLE)
+  status       PostStatus @default(PUBLISHED)
+  title        String?
+  body         String
+  bodyHtml     String?
+  plainText    String
+  linkUrl      String?
+  recipeId     String?
+  eventId      String?
+  pinnedAt     DateTime?
+  publishedAt  DateTime?
+  scheduledAt  DateTime?
+  score        Int        @default(0)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  space        Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  recipe       Recipe?    @relation(fields: [recipeId], references: [id])
+  event        Event?     @relation(fields: [eventId], references: [id])
+  attachments  PostAttachment[]
+  mentions     PostMention[]
+  comments     Comment[]
+  reactions    Reaction[]
+  votes        Vote[]
+  bookmarks    Bookmark[]
+  reports      Report[]
+  pollOptions  PollOption[]
+
+  @@index([spaceId, publishedAt])
+  @@index([authorId])
+  @@index([status, scheduledAt])
+  @@index([score])
+}
+
+model PostAttachment {
+  id        String @id @default(cuid())
+  postId    String
+  kind      String
+  url       String
+  alt       String?
+  mimeType  String?
+  width     Int?
+  height    Int?
+  post      Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model PostMention {
+  id         String @id @default(cuid())
+  postId     String
+  handle     String
+  mentionedUserId String?
+  post       Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([handle])
+}
+
+model PollOption {
+  id     String     @id @default(cuid())
+  postId String
+  label  String
+  sortOrder Int     @default(0)
+  post   Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  votes  PollVote[]
+}
+
+model PollVote {
+  id        String     @id @default(cuid())
+  optionId  String
+  userId    String
+  createdAt DateTime   @default(now())
+  option    PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([optionId, userId])
+}
+
+model Comment {
+  id        String    @id @default(cuid())
+  postId    String
+  authorId  String
+  parentId  String?
+  body      String
+  bodyHtml  String?
+  plainText String
+  score     Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent    Comment?  @relation("CommentThread", fields: [parentId], references: [id])
+  replies   Comment[] @relation("CommentThread")
+  reactions Reaction[]
+  votes     Vote[]
+  mentions  CommentMention[]
+
+  @@index([postId, createdAt])
+}
+
+model CommentMention {
+  id     String  @id @default(cuid())
+  commentId String
+  handle String
+  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+}
+
+model Reaction {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String?
+  commentId String?
+  emoji     String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId, emoji])
+  @@unique([userId, commentId, emoji])
+}
+
+model Vote {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String?
+  commentId String?
+  value     Int
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@unique([userId, commentId])
+  @@index([postId])
+  @@index([commentId])
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+}
+
+model Report {
+  id          String       @id @default(cuid())
+  reporterId  String
+  postId      String?
+  reason      String
+  details     String?
+  status      ReportStatus @default(OPEN)
+  createdAt   DateTime     @default(now())
+  resolvedAt  DateTime?
+  reporter    User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
+  post        Post?        @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id         String               @id @default(cuid())
+  userId     String
+  channel    NotificationChannel  @default(IN_APP)
+  category   NotificationCategory
+  title      String
+  body       String
+  href       String?
+  readAt     DateTime?
+  emailSentAt DateTime?
+  createdAt  DateTime             @default(now())
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt, createdAt])
+}
+
+model SearchIndex {
+  id         String   @id @default(cuid())
+  entityType String
+  entityId   String
+  title      String
+  body       String
+  spaceId    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([entityType, entityId])
+  @@index([entityType])
+}
+
+model Course {
+  id          String          @id @default(cuid())
+  slug        String          @unique
+  title       String
+  description String?
+  coverUrl    String?
+  published   Boolean         @default(false)
+  spaceId     String?
+  instructorName String?
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  space       Space?          @relation(fields: [spaceId], references: [id])
+  sections    CourseSection[]
+  progress    CourseProgress[]
+  resources   Resource[]
+}
+
+model CourseSection {
+  id        String   @id @default(cuid())
+  courseId  String
+  title     String
+  sortOrder Int      @default(0)
+  course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons   Lesson[]
+}
+
+model Lesson {
+  id          String           @id @default(cuid())
+  sectionId   String
+  title       String
+  slug        String
+  kind        String           @default("video")
+  body        String?
+  durationMin Int?
+  videoUid    String?
+  sortOrder   Int              @default(0)
+  section     CourseSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  progress    LessonProgress[]
+  resources   Resource[]
+
+  @@unique([sectionId, slug])
+}
+
+model LessonProgress {
+  id             String    @id @default(cuid())
+  lessonId       String
+  userId         String
+  positionSeconds Int      @default(0)
+  completedAt    DateTime?
+  updatedAt      DateTime  @updatedAt
+  lesson         Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, userId])
+}
+
+model CourseProgress {
+  id           String    @id @default(cuid())
+  courseId     String
+  userId       String
+  percent      Int       @default(0)
+  lastLessonId String?
+  completedAt  DateTime?
+  course       Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, userId])
+}
+
+model Resource {
+  id        String  @id @default(cuid())
+  courseId  String?
+  lessonId  String?
+  title     String
+  url       String
+  kind      String  @default("file")
+  course    Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson    Lesson? @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+}
+
+model Event {
+  id          String      @id @default(cuid())
+  spaceId     String?
+  title       String
+  description String?
+  startsAt    DateTime
+  endsAt      DateTime?
+  timezone    String      @default("UTC")
+  location    String?
+  zoomUrl     String?
+  capacity    Int?
+  coverUrl    String?
+  createdAt   DateTime    @default(now())
+  space       Space?      @relation(fields: [spaceId], references: [id])
+  rsvps       EventRsvp[]
+  posts       Post[]
+}
+
+model EventRsvp {
+  id        String   @id @default(cuid())
+  eventId   String
+  userId    String
+  status    String   @default("going")
+  createdAt DateTime @default(now())
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+model Conversation {
+  id        String                 @id @default(cuid())
+  isGroup   Boolean                @default(false)
+  title     String?
+  createdAt DateTime               @default(now())
+  members   ConversationMember[]
+  messages  Message[]
+}
+
+model ConversationMember {
+  id             String       @id @default(cuid())
+  conversationId String
+  userId         String
+  lastReadAt     DateTime?
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([conversationId, userId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  authorId       String
+  body           String
+  createdAt      DateTime     @default(now())
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  author         User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+}
+
+model Product {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  name        String
+  kind        ProductKind
+  description String?
+  active      Boolean     @default(true)
+  kitTag      String?
+  maps        SamcartProductMap[]
+  subscriptions Subscription[]
+  entitlements  Entitlement[]
+  pendingGrants PendingGrant[]
+}
+
+model SamcartProductMap {
+  id               String  @id @default(cuid())
+  productId        String
+  samcartProductId String  @unique
+  product          Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
+
+model Subscription {
+  id                   String             @id @default(cuid())
+  userId               String
+  productId            String
+  status               SubscriptionStatus
+  samcartSubscriptionId String?           @unique
+  samcartOrderId       String?
+  samcartCustomerId    String?
+  amountCents          Int?
+  currency             String?            @default("usd")
+  gateway              String?
+  interval             String?
+  periodEnd            DateTime?
+  cancelAt             DateTime?
+  canceledAt           DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product              Product            @relation(fields: [productId], references: [id])
+  entitlements         Entitlement[]
+  billingEvents        BillingEvent[]
+  cancellationRequests CancellationRequest[]
+
+  @@index([userId, status])
+}
+
+model Entitlement {
+  id             String            @id @default(cuid())
+  userId         String
+  productId      String
+  subscriptionId String?
+  source         EntitlementSource
+  status         EntitlementStatus @default(ACTIVE)
+  startsAt       DateTime          @default(now())
+  endsAt         DateTime?
+  revokedAt      DateTime?
+  createdAt      DateTime          @default(now())
+  user           User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product        Product           @relation(fields: [productId], references: [id])
+  subscription   Subscription?     @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId, status])
+}
+
+model BillingEvent {
+  id              String   @id @default(cuid())
+  provider        String   @default("samcart")
+  providerEventId String   @unique
+  type            String
+  payload         Json
+  processedAt     DateTime?
+  failedAt        DateTime?
+  error           String?
+  attempts        Int      @default(0)
+  deadLetteredAt  DateTime?
+  subscriptionId  String?
+  createdAt       DateTime @default(now())
+  subscription    Subscription? @relation(fields: [subscriptionId], references: [id])
+
+  @@index([processedAt])
+  @@index([failedAt, deadLetteredAt])
+}
+
+model PendingGrant {
+  id                    String    @id @default(cuid())
+  email                 String
+  productId             String
+  samcartSubscriptionId String?
+  samcartOrderId        String?
+  samcartCustomerId     String?
+  source                String
+  claimedAt             DateTime?
+  createdAt             DateTime  @default(now())
+  product               Product   @relation(fields: [productId], references: [id])
+
+  @@index([email, claimedAt])
+}
+
+model CancellationRequest {
+  id                 String       @id @default(cuid())
+  userId             String
+  subscriptionId     String
+  status             String
+  reason             String?
+  saveShownAt        DateTime?
+  confirmedAt        DateTime?
+  submittedAt        DateTime?
+  samcartConfirmedAt DateTime?
+  error              String?
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  subscription       Subscription @relation(fields: [subscriptionId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model ReconciliationRun {
+  id          String                   @id @default(cuid())
+  startedAt   DateTime                 @default(now())
+  finishedAt  DateTime?
+  status      String
+  summary     Json?
+  emailSentAt DateTime?
+  findings    ReconciliationFinding[]
+}
+
+model ReconciliationFinding {
+  id             String            @id @default(cuid())
+  runId          String
+  kind           String
+  severity       String
+  userId         String?
+  subscriptionId String?
+  detail         Json
+  autoFixed      Boolean           @default(false)
+  createdAt      DateTime          @default(now())
+  run            ReconciliationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@index([runId, kind])
+}
+
+model KitSyncLog {
+  id        String   @id @default(cuid())
+  userId    String
+  action    String
+  payload   Json?
+  success   Boolean
+  error     String?
+  createdAt DateTime @default(now())
+}
+
+model AutomationRule {
+  id        String           @id @default(cuid())
+  name      String
+  trigger   String
+  conditions Json
+  actions   Json
+  enabled   Boolean          @default(false)
+  createdAt DateTime         @default(now())
+  executions RuleExecution[]
+}
+
+model RuleExecution {
+  id        String         @id @default(cuid())
+  ruleId    String
+  userId    String?
+  dryRun    Boolean        @default(false)
+  success   Boolean
+  output    Json?
+  createdAt DateTime       @default(now())
+  rule      AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+}
+
+model AiPromptSchedule {
+  id        String          @id @default(cuid())
+  spaceId   String?
+  timezone  String          @default("America/Los_Angeles")
+  config    Json
+  paused    Boolean         @default(true)
+  drafts    AiPromptDraft[]
+}
+
+model AiPromptDraft {
+  id         String           @id @default(cuid())
+  scheduleId String
+  body       String
+  status     String           @default("pending")
+  createdAt  DateTime         @default(now())
+  schedule   AiPromptSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+}
+
+model RoadmapTrack {
+  id          String             @id @default(cuid())
+  slug        String             @unique
+  name        String
+  description String?
+  published   Boolean            @default(false)
+  version     Int                @default(1)
+  milestones  RoadmapMilestone[]
+  members     MemberRoadmap[]
+}
+
+model RoadmapMilestone {
+  id          String   @id @default(cuid())
+  trackId     String
+  sortOrder   Int
+  topic       String
+  lessonId    String?
+  recipeId    String?
+  learningGoal String
+  communityAction String?
+  track       RoadmapTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  progress    MemberMilestoneProgress[]
+}
+
+model MemberRoadmap {
+  id        String   @id @default(cuid())
+  userId    String
+  trackId   String
+  cadence   String   @default("weekly")
+  pausedAt  DateTime?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track     RoadmapTrack @relation(fields: [trackId], references: [id])
+  milestones MemberMilestoneProgress[]
+
+  @@unique([userId, trackId])
+}
+
+model MemberMilestoneProgress {
+  id            String   @id @default(cuid())
+  memberRoadmapId String
+  milestoneId   String
+  completedAt   DateTime?
+  memberRoadmap MemberRoadmap @relation(fields: [memberRoadmapId], references: [id], onDelete: Cascade)
+  milestone     RoadmapMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  @@unique([memberRoadmapId, milestoneId])
+}
+
+model Badge {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  name        String
+  description String
+  members     MemberBadge[]
+}
+
+model MemberBadge {
+  id       String   @id @default(cuid())
+  badgeId  String
+  userId   String
+  awardedAt DateTime @default(now())
+  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([badgeId, userId])
+}
+
+model Challenge {
+  id          String                  @id @default(cuid())
+  slug        String                  @unique
+  title       String
+  theme       String?
+  coverUrl    String?
+  startsAt    DateTime
+  endsAt      DateTime
+  target      String?
+  participants ChallengeParticipant[]
+}
+
+model ChallengeParticipant {
+  id          String    @id @default(cuid())
+  challengeId String
+  userId      String
+  progress    Int       @default(0)
+  completedAt DateTime?
+  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+
+  @@unique([challengeId, userId])
+}
+
+model Recipe {
+  id          String             @id @default(cuid())
+  slug        String             @unique
+  title       String
+  body        String
+  coverUrl    String?
+  createdAt   DateTime           @default(now())
+  variations  RecipeVariation[]
+  posts       Post[]
+}
+
+model RecipeVariation {
+  id          String  @id @default(cuid())
+  recipeId    String
+  authorNote  String
+  reason      String?
+  photoUrl    String?
+  ingredients Json?
+  status      String  @default("pending")
+  recipe      Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+}
+
+model MemberCard {
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  title       String
+  body        String
+  status      String  @default("pending")
+}
+
+model Happening {
+  id          String          @id @default(cuid())
+  hostUserId  String
+  kind        String
+  title       String
+  city        String
+  region      String?
+  country     String?
+  encryptedAddress String?
+  startsAt    DateTime
+  rsvps       HappeningRsvp[]
+}
+
+model HappeningRsvp {
+  id          String    @id @default(cuid())
+  happeningId String
+  userId      String
+  status      String    @default("requested")
+  happening   Happening @relation(fields: [happeningId], references: [id], onDelete: Cascade)
+
+  @@unique([happeningId, userId])
+}
+
+model Place {
+  id            String              @id @default(cuid())
+  name          String
+  category      String
+  veganStatus   String
+  city          String
+  providerPlaceId String?
+  testimonials  PlaceTestimonial[]
+}
+
+model PlaceTestimonial {
+  id      String @id @default(cuid())
+  placeId String
+  userId  String
+  body    String
+  place   Place  @relation(fields: [placeId], references: [id], onDelete: Cascade)
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  action     String
+  targetType String?
+  targetId   String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation(fields: [actorId], references: [id])
+
+  @@index([action, createdAt])
+}

@@ -1,36 +1,125 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Vegan University
 
-## Getting Started
+Premium community + cooking school platform. Mighty Networks is a capability reference only — this product has its own information architecture and visual identity.
 
-First, run the development server:
+`BUILD.md` is the master execution contract. Do not add a competing roadmap.
+
+## Setup
+
+1. Install [Docker](https://www.docker.com/) and [pnpm](https://pnpm.io/).
+2. Copy environment variables:
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+cp .env.example .env
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+3. Generate `AUTH_SECRET`:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+openssl rand -base64 32
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Start Postgres (Docker maps to **5433** so it does not collide with a local install on 5432) and run migrations:
 
-## Learn More
+```bash
+docker compose up -d
+pnpm db:generate
+pnpm db:migrate
+pnpm db:seed
+pnpm dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+Open [http://localhost:3000](http://localhost:3000).
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Seeded local accounts (password `vegan-local-dev`):
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- `adam@veganuniversity.test` (admin)
+- `member@veganuniversity.test` (member)
 
-## Deploy on Vercel
+Magic links are emailed through Resend when `RESEND_API_KEY` is set. The server console is only a development fallback if delivery is unavailable.
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Environment variables
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+See `.env.example`. Never commit secrets. Never expose SamCart or Kit keys to the client.
+
+| Variable | Purpose |
+|---|---|
+| `DATABASE_URL` | PostgreSQL connection |
+| `AUTH_SECRET` | Auth.js cookie signing |
+| `AUTH_URL` | Public origin |
+| `EMAIL_FROM` | From-address for magic links |
+| `RESEND_API_KEY` | Resend API key for transactional email |
+| `RESEND_API_KEY` | Transactional email (optional in development) |
+| `UPSTASH_REDIS_REST_URL` / `TOKEN` | Rate limit (optional; in-memory fallback in development) |
+| `SAMCART_WEBHOOK_SECRET` | Verify Notify URL `api_key` or HMAC signature |
+| `SAMCART_API_KEY` | Passed as the `sc-api` header for cancel / list / refund |
+| `ACCOUNT_DELETION_GRACE_DAYS` | Days before purge after a deletion request (default 7, DEC-010) |
+| `KIT_API_KEY` / `KIT_API_SECRET` | Tag sync after entitlement changes |
+| `BILLING_JOB_SECRET` | Protects `POST /api/jobs/billing` |
+| `BILLING_ALERT_EMAIL` | Daily reconciliation email, including clean days |
+
+## Database
+
+PostgreSQL 16 + Prisma. Schema: `prisma/schema.prisma`. Migrations: `prisma/migrations`.
+
+```bash
+pnpm db:migrate
+pnpm db:seed
+pnpm db:studio
+```
+
+## Local development
+
+```bash
+pnpm dev
+```
+
+Member app: `/home`  
+Public membership: `/membership`  
+Signed-in billing: `/billing`  
+Admin: `/admin` and `/admin/billing` (admin role required)  
+Health: `/api/health`  
+SamCart webhook: `POST /api/webhooks/samcart`
+
+## Testing
+
+```bash
+pnpm typecheck
+pnpm lint
+pnpm test
+pnpm build
+```
+
+## Deployment
+
+Node-compatible host (Vercel or equivalent), managed Postgres, environment-based secrets. Cloudflare R2/Stream remain later adapters.
+
+## Jobs
+
+Webhook processing runs after the SamCart response via Next.js `after()`. Retry failed events and nightly reconciliation with:
+
+```bash
+POST /api/jobs/billing?job=retry
+POST /api/jobs/billing?job=reconcile
+```
+
+Send `Authorization: Bearer $BILLING_JOB_SECRET` in production. The same functions can be wrapped by Inngest later (`DEC-011`).
+
+## Integrations
+
+| System | Role | Status |
+|---|---|---|
+| Auth.js | Sessions, magic link, optional password | Phase 1 |
+| Resend | Email | Adapter ready |
+| SamCart | Money source of truth | Webhook + cancel API adapter |
+| Kit | Tags from entitlements | Attempted after entitlement changes |
+| Cloudflare R2 / Stream | Media / video | Phase 1 adapter / Phase 3 video |
+
+Access checks never query SamCart or Kit. They read entitlements.
+
+## Troubleshooting
+
+- **Magic link not arriving:** check the server console in development.
+- **Prisma client missing:** `pnpm db:generate`.
+- **Postgres connection refused:** `docker compose up -d` and confirm port **5433** (mapped away from any local Postgres on 5432).
+- **Signed-in but bounced to login:** cookie blocked, or `AUTH_URL`/`AUTH_SECRET` mismatch.
