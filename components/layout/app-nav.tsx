@@ -16,15 +16,19 @@ const signedOutLinks = [
 ];
 
 export async function AppNav() {
-  const session = await auth();
+  const session = await auth().catch(() => null);
   const signedIn = Boolean(session?.sessionId);
   const homeHref = signedIn ? "/home" : "/";
-  const unread =
-    signedIn && session?.user.id
-      ? await prisma.notification.count({
-          where: { userId: session.user.id, readAt: null },
-        })
-      : 0;
+  let unread = 0;
+  if (signedIn && session?.user.id && process.env.DATABASE_URL) {
+    try {
+      unread = await prisma.notification.count({
+        where: { userId: session.user.id, readAt: null },
+      });
+    } catch {
+      unread = 0;
+    }
+  }
   const isAdmin = Boolean(
     session?.user.roles.some((role) => role === "ADMIN" || role === "SUPER_ADMIN"),
   );

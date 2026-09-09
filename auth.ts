@@ -56,6 +56,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   ],
   callbacks: {
     async jwt({ token, user }) {
+      if (!process.env.DATABASE_URL) {
+        return token;
+      }
       if (user?.id) {
         const session = await prisma.session.create({
           data: {
