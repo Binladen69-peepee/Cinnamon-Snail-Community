@@ -19,7 +19,7 @@ export async function MemberShell({ children }: { children: React.ReactNode }) {
   });
 
   return (
-    <div className="min-h-screen bg-background pb-24 md:pb-0">
+    <div className="relative min-h-screen bg-transparent pb-24 md:pb-0">
       <AppNav />
       <div className="vu-gutter">
         <div className="vu-feed-shell flex gap-6 py-8">

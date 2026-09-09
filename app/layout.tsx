@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Poppins, Caveat } from "next/font/google";
 import { Providers } from "@/app/providers";
+import { BotanicalBackdrop } from "@/components/marketing/hero-decor";
 import "./globals.css";
 
 const inter = Inter({
@@ -44,8 +45,13 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${poppins.variable} ${caveat.variable} h-full antialiased`}
     >
-      <body className="min-h-full bg-background font-sans text-foreground">
-        <Providers>{children}</Providers>
+      <body className="relative min-h-full bg-background font-sans text-foreground">
+        <div className="relative min-h-full">
+          <BotanicalBackdrop />
+          <div className="relative z-10">
+            <Providers>{children}</Providers>
+          </div>
+        </div>
       </body>
     </html>
   );

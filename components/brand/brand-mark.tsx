@@ -11,7 +11,7 @@ export function BrandMark({
   return (
     <Link
       href={href}
-      className={cn("flex min-h-11 items-center gap-2 text-forest", className)}
+      className={cn("flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap text-forest", className)}
     >
       <svg
         viewBox="0 0 24 24"
@@ -36,7 +36,7 @@ export function BrandMark({
           strokeLinecap="round"
         />
       </svg>
-      <span className="font-display text-base font-bold tracking-tight sm:text-lg">
+      <span className="hidden font-display text-base font-bold tracking-tight sm:inline sm:text-lg">
         Vegan University
       </span>
     </Link>

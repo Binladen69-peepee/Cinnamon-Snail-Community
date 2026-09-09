@@ -28,6 +28,7 @@ export function ThemeToggle() {
       isIconOnly
       variant="ghost"
       size="md"
+      className="shrink-0"
       aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
       onPress={() => setTheme(isDark ? "light" : "dark")}
     >

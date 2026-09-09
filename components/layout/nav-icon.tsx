@@ -27,7 +27,7 @@ const icons = {
 export type NavIconName = keyof typeof icons;
 
 const iconButtonClass =
-  "relative inline-flex size-11 items-center justify-center rounded-full text-foreground hover:bg-background";
+  "relative inline-flex size-11 shrink-0 items-center justify-center rounded-full text-foreground hover:bg-background";
 
 function Tip({ label, children }: { label: string; children: ReactNode }) {
   return (

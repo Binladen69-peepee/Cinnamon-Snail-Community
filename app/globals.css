@@ -66,52 +66,52 @@
   [data-theme="dark"] {
     color-scheme: dark;
 
-    --background: #0c1613;
-    --foreground: #fff8ef;
-    --surface: #15201c;
-    --surface-foreground: #fff8ef;
-    --overlay: #1a2622;
-    --overlay-foreground: #fff8ef;
-    --muted: #9aaba4;
+    --background: #000201;
+    --foreground: #e8f2ec;
+    --surface: #050c08;
+    --surface-foreground: #e8f2ec;
+    --overlay: #07110c;
+    --overlay-foreground: #e8f2ec;
+    --muted: #7f9588;
     --primary: #16a34a;
-    --primary-foreground: #052016;
-    --accent: #4ade80;
-    --accent-foreground: #052016;
+    --primary-foreground: #000201;
+    --accent: #3dcf73;
+    --accent-foreground: #000201;
     --accent-gold: #f59e0b;
     --accent-magenta: #d97752;
     --accent-coral: #d97752;
-    --foreground-muted: #9aaba4;
-    --border: #2a3b35;
-    --separator: #2a3b35;
-    --focus: #4ade80;
-    --link: #86efac;
-    --default: #1c2e27;
-    --default-foreground: #fff8ef;
-    --field-background: #15201c;
-    --field-foreground: #fff8ef;
-    --field-placeholder: #9aaba4;
-    --field-border: #2a3b35;
-    --success: #4ade80;
-    --success-foreground: #052016;
+    --foreground-muted: #7f9588;
+    --border: #122018;
+    --separator: #122018;
+    --focus: #3dcf73;
+    --link: #6ee7a0;
+    --default: #08140e;
+    --default-foreground: #e8f2ec;
+    --field-background: #050c08;
+    --field-foreground: #e8f2ec;
+    --field-placeholder: #7f9588;
+    --field-border: #122018;
+    --success: #3dcf73;
+    --success-foreground: #000201;
     --warning: #f59e0b;
-    --warning-foreground: #052016;
+    --warning-foreground: #000201;
     --danger: #f0a07a;
-    --danger-foreground: #052016;
-    --surface-shadow: 0 10px 30px rgba(0, 0, 0, 0.28);
-    --overlay-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    --danger-foreground: #000201;
+    --surface-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+    --overlay-shadow: 0 20px 60px rgba(0, 0, 0, 0.75);
 
-    --forest: #86efac;
-    --deep-forest: #4ade80;
-    --olive: #9aaba4;
-    --sage: #1c2e27;
-    --mint: #15201c;
-    --cream: #0c1613;
-    --warm-white: #15201c;
-    --sand: #2a3b35;
-    --taupe: #9aaba4;
+    --forest: #6ee7a0;
+    --deep-forest: #3dcf73;
+    --olive: #7f9588;
+    --sage: #08140e;
+    --mint: #050c08;
+    --cream: #000201;
+    --warm-white: #050c08;
+    --sand: #122018;
+    --taupe: #7f9588;
     --terracotta: #d97752;
     --apricot: #f59e0b;
-    --ink: #fff8ef;
+    --ink: #e8f2ec;
   }
 }
 
@@ -152,6 +152,7 @@
 
 html {
   scroll-behavior: smooth;
+  background: var(--background);
 }
 
 body {

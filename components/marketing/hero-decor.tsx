@@ -1,16 +1,97 @@
 export function BotanicalBackdrop() {
   return (
-    <div className="pointer-events-none absolute inset-x-0 top-0 h-[920px] overflow-hidden" aria-hidden>
-      <LeafCluster className="absolute -left-8 -top-6 w-[280px] opacity-[0.14] text-accent" />
-      <LeafCluster className="absolute left-[8%] top-[38%] w-[190px] rotate-[-18deg] opacity-[0.1] text-forest" />
-      <LeafCluster className="absolute -right-10 top-8 w-[240px] rotate-[22deg] opacity-[0.12] text-accent" />
-      <LeafCluster className="absolute bottom-[18%] right-[6%] w-[210px] rotate-[8deg] opacity-[0.09] text-forest" />
-      <LeafCluster className="absolute -bottom-8 left-[18%] w-[260px] -rotate-12 opacity-[0.08] text-accent" />
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden>
+      {LEAF_PLACEMENTS.map((leaf) => (
+        <LeafCluster key={leaf.key} className={leaf.className} />
+      ))}
     </div>
   );
 }
 
-function LeafCluster({ className }: { className?: string }) {
+const LEAF_PLACEMENTS = [
+  {
+    key: "tl",
+    className:
+      "absolute -left-8 top-[1%] w-[280px] text-accent opacity-[0.16] dark:opacity-[0.08]",
+  },
+  {
+    key: "tr",
+    className:
+      "absolute -right-10 top-[3%] w-[240px] rotate-[22deg] text-accent opacity-[0.14] dark:opacity-[0.07]",
+  },
+  {
+    key: "l14",
+    className:
+      "absolute left-[5%] top-[14%] w-[200px] rotate-[-18deg] text-forest opacity-[0.12] dark:opacity-[0.06]",
+  },
+  {
+    key: "r18",
+    className:
+      "absolute -right-12 top-[18%] w-[220px] rotate-[8deg] text-forest opacity-[0.11] dark:opacity-[0.06]",
+  },
+  {
+    key: "l28",
+    className:
+      "absolute -left-10 top-[28%] w-[250px] rotate-[14deg] text-accent opacity-[0.14] dark:opacity-[0.07]",
+  },
+  {
+    key: "r32",
+    className:
+      "absolute right-[4%] top-[32%] w-[190px] rotate-[-12deg] text-forest opacity-[0.1] dark:opacity-[0.055]",
+  },
+  {
+    key: "l42",
+    className:
+      "absolute left-[3%] top-[42%] w-[210px] -rotate-[10deg] text-accent opacity-[0.13] dark:opacity-[0.07]",
+  },
+  {
+    key: "r46",
+    className:
+      "absolute -right-14 top-[46%] w-[240px] rotate-[16deg] text-accent opacity-[0.12] dark:opacity-[0.065]",
+  },
+  {
+    key: "l56",
+    className:
+      "absolute -left-12 top-[56%] w-[230px] rotate-[6deg] text-forest opacity-[0.11] dark:opacity-[0.06]",
+  },
+  {
+    key: "r60",
+    className:
+      "absolute right-[6%] top-[60%] w-[180px] rotate-[20deg] text-accent opacity-[0.1] dark:opacity-[0.055]",
+  },
+  {
+    key: "l70",
+    className:
+      "absolute left-[4%] top-[70%] w-[240px] -rotate-12 text-accent opacity-[0.14] dark:opacity-[0.07]",
+  },
+  {
+    key: "r74",
+    className:
+      "absolute -right-10 top-[74%] w-[210px] rotate-[10deg] text-forest opacity-[0.11] dark:opacity-[0.06]",
+  },
+  {
+    key: "l84",
+    className:
+      "absolute -left-8 top-[84%] w-[260px] rotate-[12deg] text-forest opacity-[0.12] dark:opacity-[0.06]",
+  },
+  {
+    key: "r88",
+    className:
+      "absolute right-[5%] top-[88%] w-[200px] -rotate-[16deg] text-accent opacity-[0.13] dark:opacity-[0.07]",
+  },
+  {
+    key: "bl",
+    className:
+      "absolute -left-10 top-[96%] w-[240px] -rotate-[8deg] text-accent opacity-[0.12] dark:opacity-[0.06]",
+  },
+  {
+    key: "br",
+    className:
+      "absolute -right-12 top-[96%] w-[220px] rotate-[18deg] text-forest opacity-[0.1] dark:opacity-[0.055]",
+  },
+];
+
+export function LeafCluster({ className }: { className?: string }) {
   return (
     <svg viewBox="0 0 220 220" fill="none" className={className}>
       <path
