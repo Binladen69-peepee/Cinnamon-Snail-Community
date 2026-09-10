@@ -6,6 +6,7 @@ import { Reveal } from "@/components/marketing/reveal";
 import { PhotoSlot } from "@/components/marketing/photo-slot";
 import { HeroVideo } from "@/components/marketing/hero-video";
 import { PressMarquee } from "@/components/marketing/press-marquee";
+import { SocialLinks } from "@/components/marketing/social-links";
 import { Reel } from "@/components/marketing/reel";
 import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
 import { CourseCatalog } from "@/components/marketing/course-catalog";
@@ -59,6 +60,12 @@ export default async function HomePage() {
         ) : (
           <div className="absolute inset-0 bg-forest" />
         )}
+
+        {/* Corner placement, above the video but out of the CTA's way. */}
+        <SocialLinks
+          variant="heroDark"
+          className="absolute right-5 top-5 z-20 md:right-9 md:top-7"
+        />
 
         <div className="vu-gutter relative z-10 w-full pb-14 pt-28 md:pb-20">
           <div className="vu-shell hero-copy-reveal">

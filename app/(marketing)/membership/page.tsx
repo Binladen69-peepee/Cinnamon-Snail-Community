@@ -4,6 +4,7 @@ import { AmbientEmbers } from "@/components/marketing/ambient-embers";
 import { Reveal } from "@/components/marketing/reveal";
 import { VideoSlot } from "@/components/marketing/photo-slot";
 import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
+import { SocialLinks } from "@/components/marketing/social-links";
 import { CommunityHeatmap } from "@/components/marketing/community-heatmap";
 import {
   SenjaEmbed,
@@ -30,6 +31,11 @@ export default async function MembershipPage() {
       {/* Headline, credibility, sales video ---------------------------- */}
       <section className="relative vu-gutter pb-10 pt-14 md:pt-20">
         <AmbientEmbers density={20} />
+        {/* Corner placement, mirroring the homepage hero. */}
+        <SocialLinks
+          variant="heroLight"
+          className="absolute right-5 top-4 z-20 md:right-9 md:top-6"
+        />
         <div className="vu-shell relative">
           <div className="hero-copy-reveal mx-auto max-w-4xl text-center">
             <h1 className="vu-display vu-headline text-forest">
