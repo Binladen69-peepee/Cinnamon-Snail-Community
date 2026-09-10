@@ -1,5 +1,7 @@
 import type { HeatmapData } from "@/lib/marketing/heatmap";
 import { WORLD_LANDMASS_PATH } from "@/components/marketing/world-path";
+import { ScriptAccent } from "@/components/marketing/script-accent";
+import { HEADLINE_ACCENTS } from "@/lib/marketing/accent";
 
 /**
  * Where members are, as a glow-density map. General geographic spread only —
@@ -14,7 +16,10 @@ export function CommunityHeatmap({ data }: { data: HeatmapData }) {
             The community
           </p>
           <h2 className="vu-headline mt-2 font-display text-2xl font-bold tracking-tight text-forest md:text-3xl">
-            Cooks all over the world are already doing this.
+            <ScriptAccent
+              text="Cooks all over the world are already doing this."
+              accent={HEADLINE_ACCENTS.heatmap}
+            />
           </h2>
         </div>
         {!data.awaitingImport && data.countries > 0 ? (

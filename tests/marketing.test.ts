@@ -179,9 +179,10 @@ describe("video slots", () => {
     expect(hero.src).toBeTruthy();
   });
 
-  it("serves the compressed encode as the hero, not the 35 MB original", () => {
-    // Every visitor downloads this one, so the small cut is the only sane pick.
-    expect(assetSlot("home-hero").src).toContain("_compressed.mp4");
+  it("serves the original encode as the hero", () => {
+    // Reverted from the compressed cut on request, for image quality now that
+    // the footage sits sharp behind the copy. Costs 35 MB against 8.6 MB.
+    expect(assetSlot("home-hero").src).not.toContain("_compressed");
   });
 
   it("declares an orientation for every video so players can frame it", () => {

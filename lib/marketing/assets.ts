@@ -39,9 +39,10 @@ export const ASSET_SLOTS: AssetSlot[] = [
     need:
       "Landscape footage that survives heavy cropping and reads as texture behind the headline.",
     // Adam to camera in his own kitchen, 1920x1080, 107s. Runs muted and
-    // looping behind the hero copy. Compressed cut: same frames, 8.6 MB
-    // instead of 35 MB, which matters when it autoplays for everyone.
-    src: `${BLOB}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29_compressed.mp4`,
+    // looping behind the hero copy. This is the original encode, chosen for
+    // image quality now that the footage sits sharp behind the copy — it is
+    // 35 MB against the compressed cut's 8.6 MB, which every visitor fetches.
+    src: `${BLOB}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29.mp4`,
     alt: "",
     kind: "video",
     orientation: "landscape",

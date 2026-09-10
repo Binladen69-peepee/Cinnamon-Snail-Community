@@ -7,6 +7,7 @@ import { PhotoSlot } from "@/components/marketing/photo-slot";
 import { HeroVideo } from "@/components/marketing/hero-video";
 import { PressMarquee } from "@/components/marketing/press-marquee";
 import { SocialLinks } from "@/components/marketing/social-links";
+import { ScriptAccent } from "@/components/marketing/script-accent";
 import { Reel } from "@/components/marketing/reel";
 import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
 import { CourseCatalog } from "@/components/marketing/course-catalog";
@@ -18,6 +19,7 @@ import {
 import { getCatalogRows, getNextLiveClass } from "@/lib/marketing/catalog";
 import { getCommunityHeatmap } from "@/lib/marketing/heatmap";
 import { CANCEL_REASSURANCE } from "@/lib/marketing/checkout";
+import { HEADLINE_ACCENTS } from "@/lib/marketing/accent";
 import {
   REEL_KICKER,
   REEL_QUOTE,
@@ -75,7 +77,11 @@ export default async function HomePage() {
             </p>
 
             <h1 className="vu-display vu-headline-invert vu-on-media mt-6 max-w-[19ch] text-white">
-              {HOMEPAGE_HERO.headline}
+              <ScriptAccent
+                text={HOMEPAGE_HERO.headline}
+                accent={HEADLINE_ACCENTS.homepageHero}
+                tone="dark"
+              />
             </h1>
 
             <p className="vu-measure vu-on-media mt-6 text-lg leading-relaxed text-white/90 md:text-xl">
@@ -162,7 +168,11 @@ export default async function HomePage() {
             <div className="flex flex-col justify-center px-7 py-12 md:px-11 lg:px-14">
               <p className="vu-kicker">The differentiator</p>
               <h2 className="vu-display-sm vu-headline-invert mt-3 text-paper">
-                Kitchen Table is not a feed. It is the table.
+                <ScriptAccent
+                  text="Kitchen Table is not a feed. It is the table."
+                  accent={HEADLINE_ACCENTS.kitchenTable}
+                  tone="dark"
+                />
               </h2>
               {KITCHEN_TABLE_BLOCK.paragraphs.map((paragraph) => (
                 <p
@@ -195,7 +205,12 @@ export default async function HomePage() {
                   id="adam-reel"
                   className="vu-display-sm vu-headline mt-4 text-forest"
                 >
-                  &ldquo;{REEL_QUOTE}&rdquo;
+                  &ldquo;
+                  <ScriptAccent
+                    text={REEL_QUOTE}
+                    accent={HEADLINE_ACCENTS.reelQuote}
+                  />
+                  &rdquo;
                 </blockquote>
                 <p className="vu-measure mt-6 text-lg leading-relaxed text-foreground-muted">
                   {REEL_SUPPORT}
@@ -225,7 +240,10 @@ export default async function HomePage() {
               <div>
                 <p className="vu-kicker">The classes</p>
                 <h2 className="vu-display-sm vu-headline mt-3 text-forest">
-                  Every class, one library.
+                  <ScriptAccent
+                    text="Every class, one library."
+                    accent={HEADLINE_ACCENTS.everyClass}
+                  />
                 </h2>
               </div>
               {totalClasses > 0 ? (
@@ -300,7 +318,10 @@ export default async function HomePage() {
           <div className="vu-card mx-auto max-w-3xl rounded-[1.75rem] px-7 py-12 md:px-11">
             <p className="vu-kicker">FAQ</p>
             <h2 className="vu-display-sm vu-headline mt-3 text-forest">
-              Questions, answered plainly
+              <ScriptAccent
+                text="Questions, answered plainly"
+                accent={HEADLINE_ACCENTS.faq}
+              />
             </h2>
             <div className="mt-7">
               <FaqAccordion />
