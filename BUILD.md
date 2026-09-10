@@ -1750,9 +1750,9 @@ stopping. The full transcript sits behind a disclosure next to it — not shippe
 as a WebVTT track, because real caption timings are not available and invented
 timecodes would be worse than none.
 
-**Known cost:** the hero file is 35 MB for a decorative loop. It buffers fully
-and does not stall, but it should be trimmed to ~10-15s and re-compressed
-before launch. That needs a transcode step this environment cannot run.
+The hero uses a compressed encode of the same 107s cut — 8.6 MB rather than
+35 MB, verified frame-for-frame against the original. Trimming it to ~10-15s
+would save more still, but the file size is no longer a launch concern.
 
 SamCart's slide script loads with `strategy="afterInteractive"`. It rewrites
 checkout hrefs and injects `<sc-slide>`; loading it in `<head>` made it mutate
@@ -1760,10 +1760,9 @@ the DOM before hydration and React reported a mismatch.
 
 ## Waiting on the client
 
-- One photo: a community/potluck shot for the **Belong** card. Nothing on
-  cinnamonsnail.com shows people eating together, so this is the only homepage
-  slot still flagged. Everything else now uses real photos from his media
-  library (33 of 52 catalog cards matched dish-to-class; 19 still flagged).
+- Dish photos for the remaining 19 catalog cards. All six homepage slots are
+  now filled with real photography — the Belong card uses the crew shot from
+  the truck window, and 33 of 52 catalog cards are matched dish-to-class.
 - Teaser videos per class (Drive folder or YouTube access)
 - Re-hosting: the cinnamonsnail.com photos are hotlinked from Adam's live
   WordPress site. They should be copied into Vercel Blob alongside the videos so
@@ -2427,7 +2426,7 @@ Claude Code must operate under the following instruction while building this pro
 Update this section continuously.
 
 **Last updated:** 2026-09-10  
-**Currently building:** Phase 4 social connection and 4A direct messages are in. Client sales-page copy build (homepage + `/membership`) is in. Blocked on client-supplied media, the Mighty member-geography export, and live SamCart keys.  
+**Currently building:** Phase 4 social connection and 4A direct messages are in. Client sales-page copy build (homepage + `/membership`) is in, with the live catalog now served from the production Supabase database through the connection pooler (`DEC-021`). Blocked on the Mighty member-geography export, per-class teaser videos, and live SamCart keys.  
 **Auth:** Resend magic-link e2e verified. Password login and logout verified.  
 **Community gate:** Signed-in Adam completed the Phase 1 community loop.  
 **Billing policy:** Cancellation access follows SamCart’s reported period (31-day window on trial products `1069358` and `1069354`). Account deletion grace is 7 days.  

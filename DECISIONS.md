@@ -491,3 +491,53 @@ Date:
 
 Approved by:
 Engineering (design direction requested by the client)
+
+---
+
+## DEC-021 — Production database connects through the Supabase pooler, not the direct host
+
+Status: ACCEPTED
+
+Question:
+The supplied production connection string used Supabase's direct database host
+(`db.<ref>.supabase.co:5432`). It worked locally but every request on Vercel
+failed with `PrismaClientInitializationError`.
+
+Cause:
+`db.<ref>.supabase.co` resolves to **IPv6 only** — it publishes an AAAA record
+and no A record. Vercel's serverless functions have no outbound IPv6, so that
+host is unreachable from the deployed app no matter what the credentials are.
+Confirmed by DNS lookup: AAAA present, A absent.
+
+Decision:
+Production `DATABASE_URL` uses the Supavisor pooler instead, which is
+IPv4-reachable:
+
+```
+postgresql://postgres.<project-ref>:<password>@aws-0-<region>.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1
+```
+
+- The username takes the `postgres.<project-ref>` form the pooler requires.
+- Port 6543 is transaction mode, which is the right choice for serverless:
+  each invocation borrows a short-lived connection instead of holding a session.
+- `pgbouncer=true` disables prepared statements, which transaction mode cannot
+  support; `connection_limit=1` keeps a single lambda from opening a pool of
+  its own.
+- The region was found empirically. The pooler distinguishes "tenant/user not
+  found" (wrong region) from an auth failure, so scanning regions identifies
+  the right one; this project is in `ap-southeast-1`.
+
+Port 5432 on the pooler (session mode) also works and is the one to use for
+migrations, which need prepared statements.
+
+The credential itself lives only in Vercel's environment variables, stored as a
+Sensitive variable. It is in no file in this repository. Note that Sensitive
+variables cannot be read back — `vercel env pull` returns them empty, which is
+not evidence that they are unset.
+
+Date:
+2026-09-10
+
+Approved by:
+Engineering (the supplied host cannot work from Vercel; the pooler is the
+documented Supabase remedy)
