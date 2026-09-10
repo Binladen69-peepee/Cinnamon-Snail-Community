@@ -52,22 +52,32 @@ export default async function HomePage() {
       <ScrollProgress />
 
       {/* Hero — full-bleed video, text-forward ------------------------- */}
-      {/* Height is capped near 16:9 at desktop widths so the background video's
-          own aspect is close to the container's and object-cover barely crops. */}
-      <section className="relative isolate flex min-h-[clamp(32rem,74svh,44rem)] items-end overflow-hidden">
+      {/* Taller than 16:9 now, which costs a little horizontal crop on the
+          background video — acceptable for the extra vertical room.
+          data-hero-dark tells the nav to use light type while it is
+          transparent over this section. */}
+      {/* -mt-18 pulls the hero up under the sticky app bar, which is 72px
+          tall and would otherwise sit above it in normal flow — a transparent
+          bar would then show cream page background rather than this video. The
+          inner column's pt-32 keeps the copy clear of the bar. */}
+      <section
+        data-hero-dark
+        className="relative isolate -mt-18 flex min-h-[calc(clamp(38rem,92svh,54rem)+4.5rem)] items-end overflow-hidden"
+      >
         {heroVideo.src ? (
           <HeroVideo src={heroVideo.src} />
         ) : (
           <div className="absolute inset-0 bg-forest" />
         )}
 
-        {/* Corner placement, above the video but out of the CTA's way. */}
+        {/* Corner placement, clear of the app bar overlaying the top of this
+            section — the hero's -mt-18 slid it up underneath the bar. */}
         <SocialLinks
           variant="heroDark"
-          className="absolute right-5 top-5 z-20 md:right-9 md:top-7"
+          className="absolute right-5 top-24 z-20 md:right-9 md:top-28"
         />
 
-        <div className="vu-gutter relative z-10 w-full pb-14 pt-28 md:pb-20">
+        <div className="vu-gutter relative z-10 w-full pb-14 pt-32 md:pb-20 md:pt-36">
           <div className="vu-shell hero-copy-reveal">
             <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-md">
               <Leaf className="size-3.5 vu-leaf-drift" aria-hidden />

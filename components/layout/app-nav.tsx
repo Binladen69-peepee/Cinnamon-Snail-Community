@@ -10,6 +10,7 @@ import { BrandMark } from "@/components/brand/brand-mark";
 import { NavSearch } from "@/components/layout/nav-search";
 import { NavMobileSheet } from "@/components/layout/nav-mobile-sheet";
 import { CheckoutButton } from "@/components/marketing/checkout-button";
+import { NavShell } from "@/components/layout/nav-shell";
 
 const signedOutLinks = [
   { href: "/membership", label: "Membership" },
@@ -53,10 +54,12 @@ export async function AppNav() {
   );
 
   return (
-    <header className="sticky top-0 z-40">
-      {/* The blurred layer is its own element so the content never inherits a
-          filter, which would blur the type along with the background. */}
-      <div className="absolute inset-0 border-b border-sand/70 bg-[rgba(255,248,239,0.72)] backdrop-blur-xl dark:border-border dark:bg-black/70" />
+    <NavShell>
+      {/* Transparent by default so the hero video shows through; the surface
+          fades in on scroll (see .vu-nav-surface in globals.css) once cream
+          content starts passing underneath. Kept as its own element so the
+          nav content never inherits the blur filter. */}
+      <div className="vu-nav-surface absolute inset-0" />
 
       <div className="vu-gutter relative">
         <div className="vu-feed-shell flex h-[72px] items-center gap-3">
@@ -154,6 +157,6 @@ export async function AppNav() {
           </div>
         </div>
       </div>
-    </header>
+    </NavShell>
   );
 }

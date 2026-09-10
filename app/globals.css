@@ -336,15 +336,98 @@ h3,
 /* Headlines: a soft outer glow plus a speckle/scratch texture worked into the
    lettering itself. Worn and hand-made, not damaged — the texture rides at low
    opacity over the glyphs via background-clip so the type stays readable. */
+/* --- App bar surface ------------------------------------------------- */
+
+/* Fully transparent at the top of the page so the hero video shows through.
+   The surface fades in once the page scrolls, because from that point cream
+   content is passing underneath and the nav type has to stay readable. */
+.vu-nav-surface {
+  background: transparent;
+  border-bottom: 1px solid transparent;
+  transition:
+    background-color 260ms ease,
+    border-color 260ms ease,
+    backdrop-filter 260ms ease;
+}
+
+[data-app-nav][data-scrolled="true"] .vu-nav-surface {
+  background: rgba(255, 248, 239, 0.78);
+  border-bottom-color: color-mix(in oklab, var(--sand) 70%, transparent);
+  backdrop-filter: blur(18px);
+}
+
+.dark [data-app-nav][data-scrolled="true"] .vu-nav-surface,
+[data-theme="dark"] [data-app-nav][data-scrolled="true"] .vu-nav-surface {
+  background: rgba(0, 0, 0, 0.72);
+  border-bottom-color: var(--border);
+}
+
+/* While the bar is transparent over a dark hero, its type and chrome have to
+   invert or it disappears into the footage. Scoped with :has() so the nav does
+   not need to know which page it is on — only pages with a dark hero opt in. */
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] {
+  --nav-ink: #fff8ef;
+}
+
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] a,
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] button {
+  color: var(--nav-ink);
+}
+
+/* The wordmark's forest text and the logo roundel both need lifting. */
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .text-forest {
+  color: var(--nav-ink);
+}
+
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .text-olive {
+  color: color-mix(in oklab, var(--nav-ink) 72%, transparent);
+}
+
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .fill-forest {
+  fill: rgba(255, 248, 239, 0.16);
+}
+
+/* The centred pill reads as glass rather than a cream chip. */
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] nav[aria-label="Main"] {
+  border-color: rgba(255, 248, 239, 0.22);
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+  box-shadow: none;
+}
+
+body:has([data-hero-dark])
+  [data-app-nav][data-scrolled="false"]
+  nav[aria-label="Main"]
+  a:hover {
+  background: rgba(255, 255, 255, 0.16);
+  color: var(--nav-ink);
+}
+
+/* The primary CTA keeps its forest fill, so its label must stay cream. */
+body:has([data-hero-dark])
+  [data-app-nav][data-scrolled="false"]
+  [data-samcart-checkout] {
+  color: var(--cta-fill-foreground);
+}
+
+/* Headline glow. Block-level: the speckle lives on the inner
+   .vu-title-anim span, which shrink-wraps the text on its own. */
 .vu-headline {
-  display: inline-block;
-  position: relative;
   text-shadow:
     0 0 18px color-mix(in oklab, var(--accent) 22%, transparent),
     0 1px 0 color-mix(in oklab, var(--foreground) 8%, transparent);
 }
 
-.vu-headline::after {
+/* Same, for light type on a permanently dark ground. */
+.vu-headline-invert {
+  text-shadow:
+    0 0 22px rgba(255, 248, 239, 0.18),
+    0 1px 2px rgba(4, 18, 14, 0.5);
+}
+
+/* Speckle and scratch texture, worked into the lettering. Uses ::before so it
+   can coexist with the pen-stroke underline on ::after. */
+.vu-title-anim::before {
   content: "";
   position: absolute;
   inset: 0;
@@ -360,24 +443,22 @@ h3,
     29px 31px,
     61px 59px;
   mix-blend-mode: multiply;
-  opacity: 0.5;
-  -webkit-mask-image: linear-gradient(#000, #000);
-  mask-image: linear-gradient(#000, #000);
+  opacity: 0.45;
 }
 
-/* On the dark theme the speckle has to lighten, not darken, to read at all. */
-.dark .vu-headline::after,
-[data-theme="dark"] .vu-headline::after {
+/* On dark grounds the speckle has to lighten, not darken, to read at all. */
+.vu-headline-invert .vu-title-anim::before,
+.dark .vu-title-anim::before,
+[data-theme="dark"] .vu-title-anim::before {
   background-image:
-    radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.55) 0.6px, transparent 0.9px),
-    radial-gradient(circle at 68% 74%, rgba(255, 255, 255, 0.45) 0.5px, transparent 0.8px),
-    radial-gradient(circle at 38% 58%, rgba(255, 255, 255, 0.38) 0.5px, transparent 0.8px),
-    radial-gradient(circle at 84% 34%, rgba(255, 255, 255, 0.3) 0.4px, transparent 0.7px);
+    radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.5) 0.6px, transparent 0.9px),
+    radial-gradient(circle at 68% 74%, rgba(255, 255, 255, 0.4) 0.5px, transparent 0.8px),
+    radial-gradient(circle at 38% 58%, rgba(255, 255, 255, 0.34) 0.5px, transparent 0.8px),
+    radial-gradient(circle at 84% 34%, rgba(255, 255, 255, 0.28) 0.4px, transparent 0.7px);
   mix-blend-mode: screen;
-  opacity: 0.42;
+  opacity: 0.4;
 }
 
-/* Buttons: scale up slightly with a soft glow, not just a color change. */
 .vu-cta-glow {
   transition:
     transform 200ms ease,
@@ -450,33 +531,6 @@ h3,
 /* Headline grunge for light type on a permanently dark ground (the video hero
    and the inverted panels). Same speckle as .vu-headline, but screened rather
    than multiplied so it reads as worn light instead of dirt. */
-.vu-headline-invert {
-  display: inline-block;
-  position: relative;
-  text-shadow:
-    0 0 22px rgba(255, 248, 239, 0.18),
-    0 1px 2px rgba(4, 18, 14, 0.5);
-}
-
-.vu-headline-invert::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.5) 0.6px, transparent 0.9px),
-    radial-gradient(circle at 68% 74%, rgba(255, 255, 255, 0.4) 0.5px, transparent 0.8px),
-    radial-gradient(circle at 38% 58%, rgba(255, 255, 255, 0.34) 0.5px, transparent 0.8px),
-    radial-gradient(circle at 84% 34%, rgba(255, 255, 255, 0.28) 0.4px, transparent 0.7px);
-  background-size:
-    37px 41px,
-    53px 47px,
-    29px 31px,
-    61px 59px;
-  mix-blend-mode: screen;
-  opacity: 0.4;
-}
-
 /* The scattered leaf graphics drift instead of sitting still.
    This animates the independent `translate` property, not `transform`, so it
    composes with the per-leaf `rotate-*` utilities instead of overwriting them. */
