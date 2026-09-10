@@ -5,7 +5,6 @@ import { Reveal } from "@/components/marketing/reveal";
 import { VideoSlot } from "@/components/marketing/photo-slot";
 import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
 import { SocialLinks } from "@/components/marketing/social-links";
-import { ScriptAccent } from "@/components/marketing/script-accent";
 import { CommunityHeatmap } from "@/components/marketing/community-heatmap";
 import {
   SenjaEmbed,
@@ -14,7 +13,6 @@ import {
 import { getCommunityHeatmap } from "@/lib/marketing/heatmap";
 import { PRICING } from "@/lib/marketing/checkout";
 import { MEMBERSHIP_PAGE } from "@/lib/marketing/copy";
-import { HEADLINE_ACCENTS } from "@/lib/marketing/accent";
 
 export const dynamic = "force-dynamic";
 
@@ -40,11 +38,8 @@ export default async function MembershipPage() {
         />
         <div className="vu-shell relative">
           <div className="hero-copy-reveal mx-auto max-w-4xl text-center">
-            <h1 className="vu-display vu-headline text-forest">
-              <ScriptAccent
-                text={MEMBERSHIP_PAGE.headline}
-                accent={HEADLINE_ACCENTS.membershipHero}
-              />
+            <h1 className="vu-title-script vu-headline text-forest">
+              <span className="vu-title-anim">{MEMBERSHIP_PAGE.headline}</span>
             </h1>
             <p className="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-foreground-muted md:text-xl">
               {MEMBERSHIP_PAGE.subhead}
@@ -123,9 +118,8 @@ export default async function MembershipPage() {
         <div className="vu-shell">
           <Reveal>
             <p className="vu-kicker">Inside the membership</p>
-            <h2 className="vu-display-sm vu-headline mt-3 text-forest">
-              What&rsquo;s{" "}
-              <ScriptAccent text="inside" accent={HEADLINE_ACCENTS.whatsInside} />
+            <h2 className="vu-title-script-sm vu-headline mt-3 text-forest">
+              <span className="vu-title-anim">What&rsquo;s inside</span>
             </h2>
           </Reveal>
           <div className="mt-9 grid gap-5 md:grid-cols-2">

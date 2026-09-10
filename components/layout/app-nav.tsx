@@ -1,33 +1,38 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/db";
-import { ButtonLink } from "@/components/ui/button";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar } from "@/components/ui/avatar";
 import { NavIconLink, NavIconSubmit, NavProfileLink } from "@/components/layout/nav-icon";
-import { Search } from "lucide-react";
 import { MEMBER_NAV_LINKS } from "@/lib/navigation";
 import { totalUnreadForUser } from "@/lib/messages/conversations";
 import { BrandMark } from "@/components/brand/brand-mark";
-import { NavMore } from "@/components/layout/nav-more";
+import { NavSearch } from "@/components/layout/nav-search";
+import { NavMobileSheet } from "@/components/layout/nav-mobile-sheet";
+import { CheckoutButton } from "@/components/marketing/checkout-button";
 
-const signedOutPrimary = [
+const signedOutLinks = [
   { href: "/membership", label: "Membership" },
   { href: "/courses", label: "Courses" },
-];
-
-const signedOutOverflow = [
   { href: "/community", label: "Community" },
   { href: "/about", label: "About" },
 ];
 
-const linkClass =
-  "shrink-0 whitespace-nowrap rounded-full px-3 py-2 text-sm font-medium text-foreground hover:bg-sage hover:text-forest";
-
+/**
+ * The app bar.
+ *
+ * Three tracks rather than one flat row: brand on the left, a centred pill of
+ * navigation, and actions on the right. Signed-out visitors get the pill plus
+ * the single call to action the sales pages are built around; members get the
+ * search field and their icon rail. The bar floats on a translucent, blurred
+ * surface with a hairline, so it reads as a layer above the page instead of a
+ * band welded to the top of it.
+ */
 export async function AppNav() {
   const session = await auth().catch(() => null);
   const signedIn = Boolean(session?.sessionId);
   const homeHref = signedIn ? "/home" : "/";
+
   let unread = 0;
   let unreadMessages = 0;
   if (signedIn && session?.user.id && process.env.DATABASE_URL) {
@@ -48,54 +53,52 @@ export async function AppNav() {
   );
 
   return (
-    <header className="sticky top-0 z-30 border-b border-sand bg-[rgba(255,255,255,0.94)] backdrop-blur-[18px] dark:bg-black/94">
-      <div className="vu-gutter">
-        <div className="vu-feed-shell flex h-[74px] flex-nowrap items-center gap-3">
-          <BrandMark href={homeHref} className="min-w-0 shrink-0" />
+    <header className="sticky top-0 z-40">
+      {/* The blurred layer is its own element so the content never inherits a
+          filter, which would blur the type along with the background. */}
+      <div className="absolute inset-0 border-b border-sand/70 bg-[rgba(255,248,239,0.72)] backdrop-blur-xl dark:border-border dark:bg-black/70" />
 
+      <div className="vu-gutter relative">
+        <div className="vu-feed-shell flex h-[72px] items-center gap-3">
+          <BrandMark href={homeHref} className="min-w-0" />
+
+          {/* Centre track */}
           {signedIn ? (
-            <form action="/search" className="hidden min-w-0 flex-1 md:block">
-              <label className="relative mx-auto flex max-w-sm items-center xl:max-w-md">
-                <Search className="pointer-events-none absolute left-4 size-4 text-foreground-muted" aria-hidden />
-                <span className="sr-only">Search Vegan University</span>
-                <input
-                  type="search"
-                  name="q"
-                  placeholder="Search Vegan University..."
-                  className="h-11 w-full min-w-0 rounded-full border border-sand bg-warm-white pl-11 pr-4 text-sm text-foreground outline-none placeholder:text-foreground-muted focus:border-accent"
-                />
-              </label>
-            </form>
+            <div className="mx-auto hidden min-w-0 max-w-md flex-1 md:block">
+              <NavSearch />
+            </div>
           ) : (
-            <nav className="hidden min-w-0 flex-1 flex-nowrap items-center justify-center gap-0.5 lg:flex xl:gap-1">
-              {signedOutPrimary.map((link) => (
-                <Link key={link.href} href={link.href} className={linkClass}>
-                  {link.label}
-                </Link>
-              ))}
-              {signedOutOverflow.map((link) => (
+            <nav
+              aria-label="Main"
+              className="mx-auto hidden items-center gap-1 rounded-full border border-sand/80 bg-surface/70 p-1 shadow-[0_2px_10px_rgba(15,61,50,0.04)] lg:flex"
+            >
+              {signedOutLinks.map((link) => (
                 <Link
                   key={link.href}
                   href={link.href}
-                  className={`${linkClass} hidden xl:inline-flex`}
+                  className="rounded-full px-4 py-2 text-sm font-semibold text-foreground/80 no-underline transition hover:bg-sage hover:text-forest"
                 >
                   {link.label}
                 </Link>
               ))}
-              <span className="xl:hidden">
-                <NavMore items={signedOutOverflow} />
-              </span>
             </nav>
           )}
 
-          <div className="ml-auto flex shrink-0 flex-nowrap items-center gap-0.5">
+          {/* Right track */}
+          <div className="ml-auto flex shrink-0 items-center gap-1">
             {signedIn ? (
               <>
                 <span className="md:hidden">
                   <NavIconLink href="/search" label="Search" icon="search" />
                 </span>
                 <ThemeToggle />
-                <NavIconLink href="/notifications" label="Notifications" icon="bell" badge={unread} />
+                <span className="mx-1 hidden h-6 w-px bg-sand sm:block" aria-hidden />
+                <NavIconLink
+                  href="/notifications"
+                  label="Notifications"
+                  icon="bell"
+                  badge={unread}
+                />
                 <NavIconLink
                   href="/messages"
                   label="Messages"
@@ -126,65 +129,28 @@ export async function AppNav() {
               </>
             ) : (
               <>
-                <span className="min-[1440px]:hidden">
-                  <NavIconLink href="/search" label="Search" icon="search" />
-                </span>
-                <form action="/search" className="relative mx-1 hidden w-52 shrink-0 min-[1440px]:block">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground-muted" aria-hidden />
-                  <span className="sr-only">Search Vegan University</span>
-                  <input
-                    type="search"
-                    name="q"
-                    placeholder="Search Vegan University..."
-                    className="h-10 w-full rounded-full border border-sand bg-warm-white pl-9 pr-3 text-sm outline-none placeholder:text-foreground-muted focus:border-accent"
-                  />
-                </form>
                 <ThemeToggle />
-                <ButtonLink href="/login" size="sm" className="ml-1 shrink-0">
+                <Link
+                  href="/login"
+                  className="hidden rounded-full px-4 py-2 text-sm font-semibold text-foreground/80 no-underline transition hover:text-forest sm:inline-flex"
+                >
                   Sign in
-                </ButtonLink>
+                </Link>
+                <span className="hidden sm:inline-flex">
+                  <CheckoutButton size="md" className="!h-11 !px-5" />
+                </span>
               </>
             )}
-            <details className="relative shrink-0 lg:hidden">
-              <summary className="flex min-h-11 cursor-pointer list-none items-center whitespace-nowrap rounded-full px-3 text-sm font-semibold text-foreground hover:bg-sage [&::-webkit-details-marker]:hidden">
-                Menu
-              </summary>
-              <nav className="vu-card absolute right-0 top-[calc(100%+0.5rem)] z-50 flex w-56 flex-col gap-1 p-3 text-sm font-medium">
-                {(signedIn ? MEMBER_NAV_LINKS : [...signedOutPrimary, ...signedOutOverflow]).map(
-                  (link) => (
-                    <Link key={link.href} href={link.href} className="rounded-full px-3 py-2 hover:bg-mint hover:text-forest">
-                      {link.label}
-                    </Link>
-                  ),
-                )}
-                {signedIn ? (
-                  <>
-                    <Link href="/compose" className="rounded-full px-3 py-2 hover:bg-mint hover:text-forest">
-                      Create post
-                    </Link>
-                    {isAdmin ? (
-                      <Link href="/admin/billing" className="rounded-full px-3 py-2 hover:bg-mint hover:text-forest">
-                        Admin
-                      </Link>
-                    ) : null}
-                    <form
-                      action={async () => {
-                        "use server";
-                        await signOut({ redirectTo: "/" });
-                      }}
-                    >
-                      <button type="submit" className="w-full rounded-full px-3 py-2 text-left hover:bg-mint hover:text-forest">
-                        Sign out
-                      </button>
-                    </form>
-                  </>
-                ) : (
-                  <Link href="/login" className="rounded-full px-3 py-2 hover:bg-mint hover:text-forest">
-                    Sign in
-                  </Link>
-                )}
-              </nav>
-            </details>
+
+            <NavMobileSheet
+              signedIn={signedIn}
+              isAdmin={isAdmin}
+              links={
+                signedIn
+                  ? MEMBER_NAV_LINKS.map(({ href, label }) => ({ href, label }))
+                  : signedOutLinks
+              }
+            />
           </div>
         </div>
       </div>

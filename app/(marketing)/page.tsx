@@ -5,9 +5,9 @@ import { StickyCheckout } from "@/components/marketing/sticky-checkout";
 import { Reveal } from "@/components/marketing/reveal";
 import { PhotoSlot } from "@/components/marketing/photo-slot";
 import { HeroVideo } from "@/components/marketing/hero-video";
+import { HeroGlobe } from "@/components/marketing/hero-globe";
 import { PressMarquee } from "@/components/marketing/press-marquee";
 import { SocialLinks } from "@/components/marketing/social-links";
-import { ScriptAccent } from "@/components/marketing/script-accent";
 import { Reel } from "@/components/marketing/reel";
 import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
 import { CourseCatalog } from "@/components/marketing/course-catalog";
@@ -18,8 +18,8 @@ import {
 } from "@/components/marketing/senja-embed";
 import { getCatalogRows, getNextLiveClass } from "@/lib/marketing/catalog";
 import { getCommunityHeatmap } from "@/lib/marketing/heatmap";
+import { getGlobeMarkers } from "@/lib/marketing/globe-markers";
 import { CANCEL_REASSURANCE } from "@/lib/marketing/checkout";
-import { HEADLINE_ACCENTS } from "@/lib/marketing/accent";
 import {
   REEL_KICKER,
   REEL_QUOTE,
@@ -37,10 +37,11 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [catalogRows, heatmap, nextLive] = await Promise.all([
+  const [catalogRows, heatmap, nextLive, globe] = await Promise.all([
     getCatalogRows(),
     getCommunityHeatmap(),
     getNextLiveClass(),
+    getGlobeMarkers(8),
   ]);
   const heroVideo = assetSlot("home-hero");
   const reel = assetSlot("home-reel");
@@ -70,18 +71,15 @@ export default async function HomePage() {
         />
 
         <div className="vu-gutter relative z-10 w-full pb-14 pt-28 md:pb-20">
-          <div className="vu-shell hero-copy-reveal">
+          <div className="vu-shell grid items-center gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12">
+          <div className="hero-copy-reveal">
             <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-md">
               <Leaf className="size-3.5 vu-leaf-drift" aria-hidden />
               A vegan cooking school
             </p>
 
-            <h1 className="vu-display vu-headline-invert vu-on-media mt-6 max-w-[19ch] text-white">
-              <ScriptAccent
-                text={HOMEPAGE_HERO.headline}
-                accent={HEADLINE_ACCENTS.homepageHero}
-                tone="dark"
-              />
+            <h1 className="vu-title-script vu-headline-invert vu-on-media mt-6 max-w-[26ch] text-white">
+              <span className="vu-title-anim">{HOMEPAGE_HERO.headline}</span>
             </h1>
 
             <p className="vu-measure vu-on-media mt-6 text-lg leading-relaxed text-white/90 md:text-xl">
@@ -109,6 +107,12 @@ export default async function HomePage() {
               />
             </div>
           </div>
+
+          {/* The community heatmap's hero presentation — same data source. */}
+          <div className="hidden lg:block">
+            <HeroGlobe markers={globe.markers} placeholder={globe.placeholder} />
+          </div>
+          </div>
         </div>
       </section>
 
@@ -120,8 +124,8 @@ export default async function HomePage() {
         <div className="vu-shell">
           <Reveal>
             <p className="vu-kicker">What you get</p>
-            <h2 className="vu-display-sm vu-headline mt-3 text-forest">
-              Learn. Cook. <span className="vu-script text-accent">Belong.</span>
+            <h2 className="vu-title-script-sm vu-headline mt-3 text-forest">
+              <span className="vu-title-anim">Learn. Cook. Belong.</span>
             </h2>
           </Reveal>
 
@@ -167,12 +171,10 @@ export default async function HomePage() {
             </div>
             <div className="flex flex-col justify-center px-7 py-12 md:px-11 lg:px-14">
               <p className="vu-kicker">The differentiator</p>
-              <h2 className="vu-display-sm vu-headline-invert mt-3 text-paper">
-                <ScriptAccent
-                  text="Kitchen Table is not a feed. It is the table."
-                  accent={HEADLINE_ACCENTS.kitchenTable}
-                  tone="dark"
-                />
+              <h2 className="vu-title-script-sm vu-headline-invert mt-3 text-paper">
+                <span className="vu-title-anim">
+                  Kitchen Table is not a feed. It is the table.
+                </span>
               </h2>
               {KITCHEN_TABLE_BLOCK.paragraphs.map((paragraph) => (
                 <p
@@ -203,14 +205,9 @@ export default async function HomePage() {
                 <p className="vu-kicker">{REEL_KICKER}</p>
                 <blockquote
                   id="adam-reel"
-                  className="vu-display-sm vu-headline mt-4 text-forest"
+                  className="vu-title-script-sm vu-headline mt-4 text-forest"
                 >
-                  &ldquo;
-                  <ScriptAccent
-                    text={REEL_QUOTE}
-                    accent={HEADLINE_ACCENTS.reelQuote}
-                  />
-                  &rdquo;
+                  <span className="vu-title-anim">&ldquo;{REEL_QUOTE}&rdquo;</span>
                 </blockquote>
                 <p className="vu-measure mt-6 text-lg leading-relaxed text-foreground-muted">
                   {REEL_SUPPORT}
@@ -239,11 +236,8 @@ export default async function HomePage() {
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="vu-kicker">The classes</p>
-                <h2 className="vu-display-sm vu-headline mt-3 text-forest">
-                  <ScriptAccent
-                    text="Every class, one library."
-                    accent={HEADLINE_ACCENTS.everyClass}
-                  />
+                <h2 className="vu-title-script-sm vu-headline mt-3 text-forest">
+                  <span className="vu-title-anim">Every class, one library.</span>
                 </h2>
               </div>
               {totalClasses > 0 ? (
@@ -317,11 +311,8 @@ export default async function HomePage() {
         <Reveal>
           <div className="vu-card mx-auto max-w-3xl rounded-[1.75rem] px-7 py-12 md:px-11">
             <p className="vu-kicker">FAQ</p>
-            <h2 className="vu-display-sm vu-headline mt-3 text-forest">
-              <ScriptAccent
-                text="Questions, answered plainly"
-                accent={HEADLINE_ACCENTS.faq}
-              />
+            <h2 className="vu-title-script-sm vu-headline mt-3 text-forest">
+              <span className="vu-title-anim">Questions, answered plainly</span>
             </h2>
             <div className="mt-7">
               <FaqAccordion />

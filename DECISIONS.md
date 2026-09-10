@@ -541,3 +541,102 @@ Date:
 Approved by:
 Engineering (the supplied host cannot work from Vercel; the pooler is the
 documented Supabase remedy)
+
+---
+
+## DEC-022 — Auth stopped querying the database on every request
+
+Status: ACCEPTED
+
+Question:
+Members were being logged out unexpectedly, and every signed-in page was slow.
+
+Cause:
+The `jwt` callback re-read the user row and the session row on every
+invocation, and `auth()` runs three times per member page (the page, the member
+shell, and the nav). That is six database round trips per page load purely for
+auth. Worse, any one of them failing or returning nothing cleared
+`token.sessionId`, and `MemberShell` redirects to `/login` when `sessionId` is
+empty — so a single dropped connection logged the member out, permanently,
+because the cleared token was then re-signed without it.
+
+Decision:
+
+- The database is touched on sign-in, and after that only when the token is
+  older than `REVALIDATE_MS` (5 minutes) or the session is explicitly updated.
+  Handle, roles, email, name and avatar are carried on the token.
+- Revalidation **fails open**. A timeout or a dropped connection is not
+  evidence that a session is invalid; the token keeps working and the next
+  revalidation tries again. `sessionId` is cleared only when the database
+  gives a definitive answer: the account is missing or not `ACTIVE`, or the
+  session row is missing, revoked, or expired.
+- `lastLoginAt` and the audit row are written after the response.
+
+The trade: revoking a session takes effect within five minutes rather than
+instantly. That is the right trade for not querying on every request, and
+`revokeAllSessions` still works — it just is not instantaneous.
+
+Date:
+2026-09-10
+
+Approved by:
+Engineering (bug fix)
+
+---
+
+## DEC-023 — Functions run in the same region as the database
+
+Status: ACCEPTED
+
+Question:
+Why was every request slow even after the auth queries were removed?
+
+Cause:
+`X-Vercel-Id` showed functions executing in `iad1` (Washington DC) while the
+Supabase project is in `ap-southeast-1` (Singapore). Every query crossed the
+Pacific. Measured on production: `/api/health`, which runs a single `count()`,
+took **1.44s warm**; the homepage took **4.1s warm**.
+
+Decision:
+`vercel.json` pins `regions: ["sin1"]` so functions execute next to the
+database. Compute belongs beside its data when a request makes more than one
+query, which every page here does.
+
+Note this makes the network hop longer for US visitors while making each query
+roughly free. If the audience is predominantly US-based, the better long-term
+fix is a US-region Supabase project, at which point this should be changed to
+`iad1` to match.
+
+Date:
+2026-09-10
+
+Approved by:
+Engineering (measured)
+
+---
+
+## DEC-024 — The hero globe is the heatmap's hero presentation
+
+Status: ACCEPTED
+
+Question:
+Should the hero globe be its own feature with its own data?
+
+Decision:
+No. `getGlobeMarkers()` reads the same `MemberGeoPoint` table as
+`getCommunityHeatmap()`, so importing the Mighty Networks export lights up both
+surfaces at once with no code change. Until then it returns clearly-labelled
+placeholder pins and the caption says they are stand-ins.
+
+The globe is `cobe` — one WebGL canvas, no scene graph — rather than
+react-globe.gl, which brings three.js for control this does not need. cobe's
+own markers are disabled: they are projected by its shader and sat a few pixels
+off the avatar pins overlaid on top, which read as duplicate markers. The
+avatars are the markers. Desktop only, since it is decorative and WebGL is not
+worth it on a phone.
+
+Date:
+2026-09-10
+
+Approved by:
+Engineering

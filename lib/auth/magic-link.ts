@@ -1,4 +1,5 @@
 import { randomBytes } from "crypto";
+import { after } from "next/server";
 import { prisma } from "@/lib/db";
 import { normalizeEmail } from "@/lib/community/format";
 import { consumeRateLimit } from "@/lib/auth/rate-limit";
@@ -94,12 +95,22 @@ export async function requestMagicLink(typedEmail: string, ip: string) {
   });
 
   const url = `${process.env.AUTH_URL ?? "http://localhost:3000"}/api/auth/magic?email=${encodeURIComponent(normalized)}&token=${raw}`;
-  const delivery = await sendMagicLinkEmail(recipient, url);
-  await writeAuditLog({
-    action: "auth.magic_link.requested",
-    metadata: { domain: normalized.split("@")[1] ?? "" },
+
+  // The token is already stored, so the link is valid the moment it arrives.
+  // Sending it and writing the audit row happen after the response: the member
+  // is told to check their inbox either way, and waiting on a third-party API
+  // to answer only makes the form feel slow.
+  after(async () => {
+    try {
+      await sendMagicLinkEmail(recipient, url);
+    } catch {
+      console.error("[magic-link] delivery failed");
+    }
+    await writeAuditLog({
+      action: "auth.magic_link.requested",
+      metadata: { domain: normalized.split("@")[1] ?? "" },
+    }).catch(() => undefined);
   });
-  return delivery;
 }
 
 export async function findUserByAnyEmail(email: string) {
