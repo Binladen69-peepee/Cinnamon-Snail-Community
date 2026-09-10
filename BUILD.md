@@ -1736,17 +1736,24 @@ the DOM before hydration and React reported a mismatch.
 
 ## Waiting on the client
 
-- Real photography for 6 homepage slots and dish photos for 52 catalog cards
-  (WordPress media library on cinnamonsnail.com)
+- One photo: a community/potluck shot for the **Belong** card. Nothing on
+  cinnamonsnail.com shows people eating together, so this is the only homepage
+  slot still flagged. Everything else now uses real photos from his media
+  library (33 of 52 catalog cards matched dish-to-class; 19 still flagged).
 - Teaser videos per class (Drive folder or YouTube access)
-- Sales video "Vegan University Sale2" — hosted URL or embed
+- Re-hosting: the cinnamonsnail.com photos are hotlinked from Adam's live
+  WordPress site. They should be copied into Vercel Blob alongside the videos so
+  the sales pages don't depend on his WP host.
 - Mighty Networks member export for the heatmap
 - The extra FAQs on `shop.cinnamonsnail.com/products/monthly-subscription`
   (the page is JS-rendered and could not be read; the four FAQs in the brief
   are live)
-- Confirmation on the Senja homepage widget, which renders its own avatar row
-  and a "JOIN THOUSANDS OF VEGAN COOKS!" headline — close to the avatar strip
-  and member count the brief asked to remove. Editable in Senja.
+- **Action needed in Senja:** the homepage widget renders its own avatar row
+  and the headline "JOIN THOUSANDS OF VEGAN COOKS!". That is both the gravatar
+  strip and the member count the brief asked to remove, and it is now visually
+  prominent in the hero. It is client-owned content inside a shadow DOM, so it
+  cannot be restyled from this codebase — it has to be edited in the Senja
+  dashboard.
 
 ---
 

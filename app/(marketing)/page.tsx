@@ -1,10 +1,12 @@
-import { Leaf } from "lucide-react";
+import { ArrowDown, Leaf } from "lucide-react";
 import { FaqAccordion } from "@/components/marketing/faq-accordion";
 import { CheckoutButton } from "@/components/marketing/checkout-button";
 import { StickyCheckout } from "@/components/marketing/sticky-checkout";
-import { AmbientEmbers } from "@/components/marketing/ambient-embers";
 import { Reveal } from "@/components/marketing/reveal";
 import { PhotoSlot } from "@/components/marketing/photo-slot";
+import { HeroVideo } from "@/components/marketing/hero-video";
+import { PressMarquee } from "@/components/marketing/press-marquee";
+import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
 import { CourseCatalog } from "@/components/marketing/course-catalog";
 import { CommunityHeatmap } from "@/components/marketing/community-heatmap";
 import {
@@ -14,6 +16,7 @@ import {
 import { getCatalogRows, getNextLiveClass } from "@/lib/marketing/catalog";
 import { getCommunityHeatmap } from "@/lib/marketing/heatmap";
 import { CANCEL_REASSURANCE } from "@/lib/marketing/checkout";
+import { assetSlot } from "@/lib/marketing/assets";
 import {
   HOMEPAGE_HERO,
   KITCHEN_TABLE_BLOCK,
@@ -29,96 +32,131 @@ export default async function HomePage() {
     getCommunityHeatmap(),
     getNextLiveClass(),
   ]);
+  const heroVideo = assetSlot("home-hero");
+  const totalClasses = catalogRows.reduce(
+    (total, row) => total + row.courses.length,
+    0,
+  );
 
   return (
-    <div className="overflow-x-clip pb-8">
-      {/* Hero ---------------------------------------------------------- */}
-      <section className="relative vu-gutter pb-6 pt-10 md:pb-10 md:pt-16">
-        <AmbientEmbers />
-        <div className="vu-shell relative grid items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
-          <div className="hero-copy-reveal">
-            <p className="inline-flex items-center gap-2 rounded-full bg-sage px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-forest">
+    <div className="overflow-x-clip">
+      <ScrollProgress />
+
+      {/* Hero — full-bleed video, text-forward ------------------------- */}
+      <section className="relative isolate flex min-h-[clamp(34rem,88svh,54rem)] items-end overflow-hidden">
+        {heroVideo.src ? (
+          <HeroVideo src={heroVideo.src} />
+        ) : (
+          <div className="absolute inset-0 bg-forest" />
+        )}
+
+        <div className="vu-gutter relative z-10 w-full pb-14 pt-28 md:pb-20">
+          <div className="vu-shell hero-copy-reveal">
+            <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-md">
               <Leaf className="size-3.5 vu-leaf-drift" aria-hidden />
               A vegan cooking school
             </p>
-            <h1 className="vu-headline mt-6 font-display text-[2.1rem] leading-[1.1] font-bold tracking-tight text-forest md:text-[3.25rem] md:leading-[1.06]">
+
+            <h1 className="vu-display vu-headline mt-6 max-w-[19ch] text-white">
               {HOMEPAGE_HERO.headline}
             </h1>
-            <p className="prose-measure mt-6 text-lg leading-relaxed text-foreground-muted">
+
+            <p className="vu-measure mt-6 text-lg leading-relaxed text-white/85 md:text-xl">
               {HOMEPAGE_HERO.subhead}
             </p>
-            <div className="mt-8">
+
+            <div className="mt-9 flex flex-wrap items-center gap-5">
               <CheckoutButton size="lg" withArrow />
+              <span className="hidden items-center gap-2 text-sm text-white/70 sm:flex">
+                <ArrowDown className="size-4 animate-bounce" aria-hidden />
+                {nextLive?.liveAt
+                  ? `Next live cook-along ${nextLive.liveAt.toLocaleDateString(undefined, { month: "long", day: "numeric" })}`
+                  : "Scroll for the class library"}
+              </span>
             </div>
+
             {/* Real testimonial proof, in place of the old avatar strip. */}
-            <SenjaEmbed
-              widgetId={SENJA_HOMEPAGE_WIDGET}
-              title="What members say"
-              className="mt-8"
-            />
+            {/* Literal cream, not the warm-white token: the token inverts to
+                near-black in dark mode, and the Senja widget renders its own
+                light-themed content, so this card must stay light in both. */}
+            <div className="mt-10 max-w-2xl rounded-[1.5rem] bg-[#FFFCF8]/95 p-4 shadow-[0_18px_50px_rgba(6,26,21,0.35)] backdrop-blur-sm">
+              <SenjaEmbed
+                widgetId={SENJA_HOMEPAGE_WIDGET}
+                title="What members say"
+              />
+            </div>
           </div>
-          <PhotoSlot id="home-hero" aspect="aspect-[4/5]" rounded="rounded-[1.75rem]" />
         </div>
       </section>
 
+      <PressMarquee />
       <StickyCheckout />
 
-      {/* Learn / Cook / Belong ----------------------------------------- */}
-      <section className="vu-gutter py-16">
+      {/* Learn / Cook / Belong — editorial, staggered ------------------ */}
+      <section className="vu-gutter vu-section">
         <div className="vu-shell">
           <Reveal>
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-              What you get
-            </p>
-            <h2 className="vu-headline mt-3 max-w-[18ch] font-display text-4xl font-bold tracking-tight text-forest md:text-5xl">
-              Learn. Cook. Belong.
+            <p className="vu-kicker">What you get</p>
+            <h2 className="vu-display-sm mt-3 text-forest">
+              Learn. Cook. <span className="vu-script text-accent">Belong.</span>
             </h2>
           </Reveal>
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
+
+          <div className="mt-12 grid items-start gap-6 md:grid-cols-3 md:gap-7">
             {PILLAR_CARDS.map((pillar, index) => (
-              <Reveal key={pillar.title} as="article" delay={index * 90}>
-                <div className="vu-card vu-lift h-full overflow-hidden p-4">
-                  <PhotoSlot id={pillar.slotId} />
+              <Reveal
+                key={pillar.title}
+                as="article"
+                delay={index * 110}
+                className={index === 1 ? "md:mt-10" : index === 2 ? "md:mt-20" : ""}
+              >
+                <Spotlight className="vu-card vu-lift group h-full overflow-hidden rounded-[1.5rem] p-4">
+                  <div className="relative overflow-hidden rounded-[1.15rem]">
+                    <PhotoSlot id={pillar.slotId} className="vu-zoom" />
+                    <span className="absolute left-3 top-3 grid size-9 place-items-center rounded-full bg-forest/85 font-display text-xs font-bold text-paper backdrop-blur-sm">
+                      {String(index + 1).padStart(2, "0")}
+                    </span>
+                  </div>
                   <h3 className="mt-5 px-2 font-display text-2xl font-bold tracking-tight text-forest">
                     {pillar.title}
                   </h3>
-                  <p className="mt-2 px-2 pb-3 text-sm leading-relaxed text-foreground-muted">
+                  <p className="mt-2.5 px-2 pb-3 text-sm leading-relaxed text-foreground-muted">
                     {pillar.body}
                   </p>
-                </div>
+                </Spotlight>
               </Reveal>
             ))}
           </div>
         </div>
       </section>
 
-      {/* Kitchen Table is not a feed ----------------------------------- */}
-      <section className="vu-gutter py-8">
+      {/* Kitchen Table — dark panel for contrast rhythm ---------------- */}
+      <section className="vu-gutter vu-section-tight">
         <Reveal>
-          <div className="vu-card vu-shell grid overflow-hidden lg:grid-cols-2">
-            <PhotoSlot
-              id="home-kitchen-table"
-              aspect="min-h-[22rem]"
-              rounded="rounded-none"
-              className="size-full"
-            />
-            <div className="flex flex-col justify-center px-8 py-12 lg:px-12">
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-                The differentiator
-              </p>
-              <h2 className="vu-headline mt-3 font-display text-3xl font-bold tracking-tight text-forest md:text-4xl">
+          <div className="vu-panel-dark vu-shell grid overflow-hidden rounded-[1.75rem] lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
+            <div className="group relative min-h-[20rem] overflow-hidden">
+              <PhotoSlot
+                id="home-kitchen-table"
+                aspect="absolute inset-0 size-full"
+                rounded="rounded-none"
+                className="vu-zoom"
+              />
+            </div>
+            <div className="flex flex-col justify-center px-7 py-12 md:px-11 lg:px-14">
+              <p className="vu-kicker">The differentiator</p>
+              <h2 className="vu-display-sm mt-3 text-paper">
                 Kitchen Table is not a feed. It is the table.
               </h2>
               {KITCHEN_TABLE_BLOCK.paragraphs.map((paragraph) => (
                 <p
                   key={paragraph.slice(0, 32)}
-                  className="prose-measure mt-5 leading-relaxed text-foreground-muted"
+                  className="vu-measure mt-5 leading-relaxed text-paper/80"
                 >
                   {paragraph}
                 </p>
               ))}
-              <div className="mt-8">
-                <CheckoutButton />
+              <div className="mt-9">
+                <CheckoutButton tone="onDark" withArrow />
               </div>
             </div>
           </div>
@@ -126,27 +164,26 @@ export default async function HomePage() {
       </section>
 
       {/* Course catalog ------------------------------------------------ */}
-      <section className="vu-gutter py-16">
+      <section className="vu-gutter vu-section">
         <div className="vu-shell">
           <Reveal>
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-              The classes
-            </p>
-            <h2 className="vu-headline mt-3 font-display text-4xl font-bold tracking-tight text-forest">
-              Every class, one library.
-            </h2>
-            {nextLive?.liveAt ? (
-              <p className="mt-3 text-sm font-semibold text-forest">
-                Next live cook-along: {nextLive.title} on{" "}
-                {nextLive.liveAt.toLocaleDateString(undefined, {
-                  month: "long",
-                  day: "numeric",
-                })}
-                .
-              </p>
-            ) : null}
+            <div className="flex flex-wrap items-end justify-between gap-4">
+              <div>
+                <p className="vu-kicker">The classes</p>
+                <h2 className="vu-display-sm mt-3 text-forest">
+                  Every class, one library.
+                </h2>
+              </div>
+              {totalClasses > 0 ? (
+                <p className="text-sm text-foreground-muted">
+                  {totalClasses} classes across {catalogRows.length}{" "}
+                  {catalogRows.length === 1 ? "shelf" : "shelves"} — and more
+                  every month.
+                </p>
+              ) : null}
+            </div>
           </Reveal>
-          <div className="mt-10">
+          <div className="mt-11">
             <CourseCatalog
               rows={catalogRows.map((row) => ({
                 category: row.category,
@@ -165,7 +202,7 @@ export default async function HomePage() {
       </section>
 
       {/* Community heatmap --------------------------------------------- */}
-      <section className="vu-gutter py-8">
+      <section className="vu-gutter vu-section-tight">
         <Reveal>
           <div className="vu-shell">
             <CommunityHeatmap data={heatmap} />
@@ -174,49 +211,48 @@ export default async function HomePage() {
       </section>
 
       {/* Membership teaser -------------------------------------------- */}
-      <section className="vu-gutter py-16">
+      <section className="vu-gutter vu-section">
         <Reveal>
-          <div className="vu-card vu-shell grid items-center overflow-hidden lg:grid-cols-2">
-            <div className="px-8 py-12 lg:px-12">
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-                Membership
-              </p>
-              <p className="prose-measure mt-5 text-lg leading-relaxed text-foreground">
+          <Spotlight className="vu-card vu-shell grid items-center overflow-hidden rounded-[1.75rem] lg:grid-cols-2">
+            <div className="px-7 py-12 md:px-11 lg:px-14">
+              <p className="vu-kicker">Membership</p>
+              <p className="vu-measure mt-5 text-lg leading-relaxed text-foreground md:text-xl">
                 {MEMBERSHIP_TEASER.body}
               </p>
-              <div className="mt-8">
-                <CheckoutButton size="lg" />
+              <div className="mt-9">
+                <CheckoutButton size="lg" withArrow />
               </div>
               <p className="mt-4 text-sm text-foreground-muted">
                 {CANCEL_REASSURANCE}
               </p>
             </div>
-            <div className="p-4">
-              <PhotoSlot
-                id="home-membership-teaser"
-                aspect="min-h-[20rem]"
-                className="h-full"
-              />
+            <div className="group p-4">
+              <div className="overflow-hidden rounded-[1.4rem]">
+                <PhotoSlot
+                  id="home-membership-teaser"
+                  aspect="min-h-[21rem]"
+                  rounded="rounded-none"
+                  className="vu-zoom h-full"
+                />
+              </div>
             </div>
-          </div>
+          </Spotlight>
         </Reveal>
       </section>
 
       {/* FAQ ----------------------------------------------------------- */}
-      <section className="vu-gutter pb-16">
+      <section className="vu-gutter vu-section pt-0">
         <Reveal>
-          <div className="vu-card mx-auto max-w-3xl px-8 py-12">
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-              FAQ
-            </p>
-            <h2 className="vu-headline mt-3 font-display text-3xl font-bold tracking-tight text-forest md:text-4xl">
+          <div className="vu-card mx-auto max-w-3xl rounded-[1.75rem] px-7 py-12 md:px-11">
+            <p className="vu-kicker">FAQ</p>
+            <h2 className="vu-display-sm mt-3 text-forest">
               Questions, answered plainly
             </h2>
-            <div className="mt-6">
+            <div className="mt-7">
               <FaqAccordion />
             </div>
             <div className="mt-10">
-              <CheckoutButton />
+              <CheckoutButton size="lg" withArrow />
             </div>
           </div>
         </Reveal>

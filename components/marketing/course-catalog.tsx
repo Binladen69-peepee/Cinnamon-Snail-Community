@@ -57,12 +57,18 @@ function CatalogRail({ row }: { row: CatalogRowView }) {
   return (
     <section aria-labelledby={`row-${slugify(row.category)}`}>
       <div className="flex items-end justify-between gap-4">
-        <h3
-          id={`row-${slugify(row.category)}`}
-          className="font-display text-xl font-bold tracking-tight text-forest md:text-2xl"
-        >
-          {row.category}
-        </h3>
+        <div>
+          <h3
+            id={`row-${slugify(row.category)}`}
+            className="font-display text-xl font-bold tracking-tight text-forest md:text-2xl"
+          >
+            {row.category}
+          </h3>
+          <p className="mt-1 text-xs text-foreground-muted">
+            {row.courses.length}{" "}
+            {row.courses.length === 1 ? "class" : "classes"}
+          </p>
+        </div>
         <div className="hidden shrink-0 gap-2 md:flex">
           <button
             type="button"
@@ -85,7 +91,7 @@ function CatalogRail({ row }: { row: CatalogRowView }) {
 
       <ul
         ref={railRef}
-        className="vu-rail mt-4 flex gap-4 overflow-x-auto pb-2"
+        className="vu-rail vu-rail-mask mt-4 flex gap-4 overflow-x-auto pb-2"
         tabIndex={0}
         aria-label={`${row.category} classes`}
       >
@@ -95,7 +101,7 @@ function CatalogRail({ row }: { row: CatalogRowView }) {
           </li>
         ))}
         <li className="w-[16rem] shrink-0 sm:w-[18rem]">
-          <div className="vu-card vu-lift flex h-full min-h-[15rem] flex-col items-center justify-center gap-2 p-6 text-center">
+          <div className="vu-card vu-lift flex h-full min-h-[15rem] flex-col items-center justify-center gap-2 rounded-[1.25rem] p-6 text-center">
             <p className="font-display text-lg font-bold text-forest">
               …and many more
             </p>
@@ -114,7 +120,7 @@ function CatalogCard({ course }: { course: CatalogCardView }) {
   const [playing, setPlaying] = useState(false);
 
   return (
-    <article className="vu-card vu-lift flex h-full flex-col overflow-hidden p-3">
+    <article className="vu-card vu-lift group flex h-full flex-col overflow-hidden rounded-[1.25rem] p-3">
       <div className="relative aspect-[16/10] overflow-hidden rounded-[1rem] bg-mint/60">
         {playing && course.teaserVideoUrl ? (
           <video
@@ -134,7 +140,7 @@ function CatalogCard({ course }: { course: CatalogCardView }) {
                 src={course.coverUrl}
                 alt=""
                 loading="lazy"
-                className="size-full object-cover"
+                className="vu-zoom size-full object-cover"
               />
             ) : (
               <div

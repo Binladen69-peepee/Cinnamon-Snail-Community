@@ -22,14 +22,14 @@ export function PhotoSlot({
 
   if (slot.src) {
     return (
-      <div className={cn("relative overflow-hidden", aspect, rounded, className)}>
+      <div className={cn("relative overflow-hidden", aspect, rounded)}>
         {/* Media-library URLs are arbitrary hosts, not optimizer inputs. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={slot.src}
           alt={slot.alt}
-          className="size-full object-cover"
           loading="lazy"
+          className={cn("size-full object-cover", className)}
         />
       </div>
     );
@@ -45,32 +45,42 @@ export function PhotoSlot({
         className,
       )}
     >
-      <Leaf className="size-6 text-accent/70 vu-leaf-drift" aria-hidden />
+      <Leaf className="size-6 vu-leaf-drift text-accent/70" aria-hidden />
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-olive">
         Photo needed
       </p>
-      <p className="prose-measure text-xs leading-relaxed text-foreground-muted">
+      <p className="vu-measure text-xs leading-relaxed text-foreground-muted">
         {slot.need}
       </p>
     </div>
   );
 }
 
-/** The sales video slot on /membership. */
+/**
+ * The sales video slot. Portrait footage gets framed as a story-shaped card
+ * rather than letterboxed into a 16:9 player.
+ */
 export function VideoSlot({ id, className }: { id: string; className?: string }) {
   const slot = assetSlot(id);
+  const portrait = slot.orientation === "portrait";
 
   if (slot.src) {
     return (
-      <div className={cn("overflow-hidden rounded-[1.25rem] bg-black", className)}>
+      <figure
+        className={cn(
+          "mx-auto overflow-hidden rounded-[1.5rem] bg-black shadow-[0_24px_60px_rgba(15,61,50,0.22)]",
+          portrait ? "w-full max-w-[22rem]" : "w-full",
+          className,
+        )}
+      >
         <video
           src={slot.src}
           controls
           playsInline
           preload="metadata"
-          className="aspect-video w-full"
+          className={cn("w-full", portrait ? "aspect-[9/16]" : "aspect-video")}
         />
-      </div>
+      </figure>
     );
   }
 
@@ -78,14 +88,15 @@ export function VideoSlot({ id, className }: { id: string; className?: string })
     <div
       data-asset-needed={slot.id}
       className={cn(
-        "flex aspect-video flex-col items-center justify-center gap-2 rounded-[1.25rem] border border-dashed border-sand bg-mint/60 px-6 text-center",
+        "mx-auto flex flex-col items-center justify-center gap-2 rounded-[1.5rem] border border-dashed border-sand bg-mint/60 px-6 text-center",
+        portrait ? "aspect-[9/16] w-full max-w-[22rem]" : "aspect-video w-full",
         className,
       )}
     >
       <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-olive">
         Video needed
       </p>
-      <p className="prose-measure text-xs leading-relaxed text-foreground-muted">
+      <p className="vu-measure text-xs leading-relaxed text-foreground-muted">
         {slot.need}
       </p>
     </div>

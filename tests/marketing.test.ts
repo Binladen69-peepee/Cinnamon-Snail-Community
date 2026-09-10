@@ -6,7 +6,12 @@ import {
   PRICING,
   SAMCART_SLIDE_SCRIPT,
 } from "@/lib/marketing/checkout";
-import { ASSET_SLOTS, assetSlot, pendingAssets } from "@/lib/marketing/assets";
+import {
+  ASSET_SLOTS,
+  PRESS_CREDITS,
+  assetSlot,
+  pendingAssets,
+} from "@/lib/marketing/assets";
 import { isStockImageUrl, realPhotoOnly } from "@/lib/marketing/stock-hosts";
 import {
   HOMEPAGE_FAQS,
@@ -159,5 +164,61 @@ describe("stock imagery guard", () => {
 
   it("is not fooled by a stock host appearing as a subdomain", () => {
     expect(isStockImageUrl("https://cdn.unsplash.com/x.jpg")).toBe(true);
+  });
+});
+
+describe("video slots", () => {
+  it("uses a landscape clip for the hero, since it is cropped to a wide band", () => {
+    const hero = assetSlot("home-hero");
+    expect(hero.kind).toBe("video");
+    expect(hero.orientation).toBe("landscape");
+    expect(hero.src).toBeTruthy();
+  });
+
+  it("declares an orientation for every video so players can frame it", () => {
+    for (const slot of ASSET_SLOTS.filter((s) => s.kind === "video")) {
+      expect(slot.orientation).toBeDefined();
+    }
+  });
+
+  it("serves both videos from blob storage, not a third-party embed", () => {
+    for (const slot of ASSET_SLOTS.filter((s) => s.kind === "video" && s.src)) {
+      expect(slot.src).toContain("blob.vercel-storage.com");
+    }
+  });
+
+  it("keeps the hero decorative — no alt text on background video", () => {
+    expect(assetSlot("home-hero").alt).toBe("");
+  });
+});
+
+describe("press credits", () => {
+  it("lists only placements verifiable from Adam's own about page", () => {
+    expect(PRESS_CREDITS).toContain("New York Times");
+    expect(PRESS_CREDITS).toContain("Food Network");
+    expect(PRESS_CREDITS).toContain("James Beard House");
+  });
+
+  it("states no follower, student, or member counts", () => {
+    const joined = PRESS_CREDITS.join(" ");
+    expect(joined).not.toMatch(/\d[\d,]*\s*\+?\s*(members|students|followers)/i);
+  });
+});
+
+describe("real photography", () => {
+  it("sources filled photo slots from Adam's own media library", () => {
+    for (const slot of ASSET_SLOTS.filter((s) => s.kind === "image" && s.src)) {
+      expect(slot.src).toContain("cinnamonsnail.com/wp-content/uploads");
+    }
+  });
+
+  it("gives every filled photo real alt text", () => {
+    for (const slot of ASSET_SLOTS.filter((s) => s.kind === "image" && s.src)) {
+      expect(slot.alt.length).toBeGreaterThan(3);
+    }
+  });
+
+  it("still flags the community shot, which has no match on his site", () => {
+    expect(assetSlot("home-belong").src).toBeNull();
   });
 });

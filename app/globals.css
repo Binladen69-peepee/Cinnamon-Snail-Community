@@ -438,6 +438,221 @@ h3,
   animation: leaf-drift 14s ease-in-out infinite;
 }
 
+/* --- Premium pass: texture, marquee, spotlight, fluid type ----------- */
+
+/* Fluid display scale. Large sizes need tighter tracking to stay elegant. */
+.vu-display {
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(2.25rem, 1.15rem + 4.4vw, 4.75rem);
+  line-height: 1.03;
+  letter-spacing: -0.038em;
+  text-wrap: balance;
+}
+
+.vu-display-sm {
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 700;
+  font-size: clamp(1.75rem, 1.2rem + 1.9vw, 2.85rem);
+  line-height: 1.08;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+}
+
+/* Handwritten accent. Caveat is already loaded; this is where it earns its
+   place — warm, human labels on an otherwise geometric type system. */
+.vu-script {
+  font-family: var(--font-caveat), "Segoe Script", cursive;
+  font-size: 1.35em;
+  line-height: 1;
+}
+
+/* Section eyebrow. */
+.vu-kicker {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+}
+
+/* Film grain, for the hero. Keeps large flat video areas from looking cheap. */
+.vu-grain {
+  pointer-events: none;
+  opacity: 0.5;
+  mix-blend-mode: overlay;
+  background-image:
+    radial-gradient(circle at 17% 31%, rgba(255, 255, 255, 0.55) 0.5px, transparent 0.9px),
+    radial-gradient(circle at 63% 12%, rgba(0, 0, 0, 0.5) 0.5px, transparent 0.9px),
+    radial-gradient(circle at 41% 78%, rgba(255, 255, 255, 0.4) 0.4px, transparent 0.8px),
+    radial-gradient(circle at 88% 57%, rgba(0, 0, 0, 0.42) 0.5px, transparent 0.9px);
+  background-size: 23px 29px, 31px 27px, 19px 23px, 37px 33px;
+}
+
+/* Cursor-following highlight on cards. */
+.vu-spotlight {
+  position: relative;
+  isolation: isolate;
+}
+
+.vu-spotlight::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: inherit;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 260ms ease;
+  background: radial-gradient(
+    22rem circle at var(--spot-x, 50%) var(--spot-y, 50%),
+    color-mix(in oklab, var(--accent) 16%, transparent),
+    transparent 62%
+  );
+}
+
+.vu-spotlight:hover::before {
+  opacity: 1;
+}
+
+/* Photography that breathes on hover. Pair with an overflow-hidden parent. */
+.vu-zoom {
+  transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.group:hover .vu-zoom,
+.vu-lift:hover .vu-zoom {
+  transform: scale(1.055);
+}
+
+/* "Featured in" ticker. */
+.vu-marquee-wrap {
+  overflow: hidden;
+  --marquee-gap: 2rem;
+}
+
+.vu-marquee {
+  display: flex;
+  width: max-content;
+  gap: var(--marquee-gap);
+  animation: marquee-slide 38s linear infinite;
+}
+
+.vu-marquee-wrap:hover .vu-marquee {
+  animation-play-state: paused;
+}
+
+.vu-marquee-track {
+  display: flex;
+  align-items: center;
+  gap: var(--marquee-gap);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+@keyframes marquee-slide {
+  from {
+    transform: translate3d(0, 0, 0);
+  }
+  to {
+    /* Two identical copies sit side by side, so half the width is one loop. */
+    transform: translate3d(calc(-50% - var(--marquee-gap) / 2), 0, 0);
+  }
+}
+
+/* Catalog rails fade at the edges so cards feel like they continue. */
+.vu-rail-mask {
+  -webkit-mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 2.5rem,
+    #000 calc(100% - 3.5rem),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to right,
+    transparent 0,
+    #000 2.5rem,
+    #000 calc(100% - 3.5rem),
+    transparent 100%
+  );
+}
+
+/* Scroll progress bar, only where the scroll timeline actually exists. */
+.vu-scroll-progress {
+  transform: scaleX(0);
+}
+
+@supports (animation-timeline: scroll()) {
+  .vu-scroll-progress {
+    animation: scroll-progress linear;
+    animation-timeline: scroll(root block);
+  }
+
+  @keyframes scroll-progress {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+}
+
+/* Inverted panel, for contrast rhythm between cream sections. */
+.vu-panel-dark {
+  background:
+    radial-gradient(120% 120% at 12% 0%, rgba(22, 163, 74, 0.16) 0%, transparent 55%),
+    var(--forest);
+  color: var(--paper);
+}
+
+.dark .vu-panel-dark,
+[data-theme="dark"] .vu-panel-dark {
+  background:
+    radial-gradient(120% 120% at 12% 0%, rgba(255, 248, 239, 0.06) 0%, transparent 55%),
+    #0a0a0a;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+/* Vertical rhythm: one scale, used everywhere. */
+.vu-section {
+  padding-block: clamp(3.5rem, 2rem + 5vw, 7rem);
+}
+
+.vu-section-tight {
+  padding-block: clamp(2.25rem, 1.5rem + 2.5vw, 3.75rem);
+}
+
+/* Reading column, comfortably under 75 characters. */
+.vu-measure {
+  max-width: 62ch;
+}
+
+/* Arrow nudge on the primary CTA. */
+.vu-cta-glow .vu-cta-arrow {
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.vu-cta-glow:hover .vu-cta-arrow {
+  transform: translateX(3px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vu-marquee {
+    animation: none;
+  }
+  .vu-zoom,
+  .vu-spotlight::before,
+  .vu-cta-glow .vu-cta-arrow {
+    transition: none;
+  }
+  .vu-scroll-progress {
+    animation: none;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .vu-reveal {
     opacity: 1;

@@ -444,3 +444,50 @@ Date:
 
 Approved by:
 Engineering (brief: "Do not hardcode this list as static text")
+
+---
+
+## DEC-020 — Sales-page video placement and the premium design pass
+
+Status: ACCEPTED
+
+Question:
+Two videos were supplied from Vercel Blob. Which goes where, and what does the
+"more modern, attention-grabbing" design direction actually change?
+
+Decision:
+
+**Video placement is driven by aspect ratio, not filename.** Both files were
+inspected frame-by-frame before assigning them:
+
+| File | Shape | Content | Role |
+|---|---|---|---|
+| `Vegan Cooking Classes - Adam Sobel` | 1920x1080, 107s | Adam to camera | Homepage hero background, muted + looping |
+| `Video-11882` | 720x1280, 78s | Adam in his kitchen | `/membership` founder video, with controls |
+
+The landscape file has to be the hero: a wide full-bleed band crops a 9:16
+portrait to almost nothing. The portrait file is framed as a story-shaped card
+rather than letterboxed into a 16:9 player. Swapping them is a one-line `src`
+change in `lib/marketing/assets.ts`.
+
+**Design pass.** A cinematic video hero replaces the two-column photo box; a
+"featured in" marquee of verifiable press credits sits directly beneath it;
+Learn/Cook/Belong became a staggered editorial trio with numbered eyebrows and
+hover-zoom photography; Kitchen Table became an inverted forest panel so the
+page has light/dark contrast rhythm rather than uniform cream; the catalog rails
+gained edge-fade masks, per-shelf class counts, and cover zoom; and a fluid
+`clamp()` display scale, cursor-following card spotlights, a scroll-progress
+bar, and the previously-unused Caveat face as a handwritten accent were added.
+All motion is disabled under `prefers-reduced-motion`.
+
+**Theme-independent surfaces use literal colours, not tokens.** The Senja card
+and the on-dark CTA both sit on permanently dark backgrounds, and the
+`forest` / `warm-white` tokens invert between light and dark. Using tokens
+there rendered cream-on-cream in dark mode. `--paper` is cream in both themes
+and remains safe to use on the dark panels.
+
+Date:
+2026-09-10
+
+Approved by:
+Engineering (design direction requested by the client)

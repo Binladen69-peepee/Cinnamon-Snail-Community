@@ -3,11 +3,17 @@
  *
  * Photography rule from the client brief: no stock photography and no AI
  * images, anywhere. Replacements come from Adam's WordPress media library on
- * cinnamonsnail.com. Where a slot has no real photo yet, it renders a branded
+ * cinnamonsnail.com — which is what the `cinnamonsnail.com/wp-content/uploads`
+ * URLs below are. Where a slot still has no real photo, it renders a branded
  * flagged panel and appears in this manifest — never a stock placeholder.
  *
- * To fill a slot: put the real asset URL in `src`. That is the only edit
- * needed; the page picks it up automatically.
+ * To fill or swap a slot: change `src`. That is the only edit needed; the
+ * pages pick it up automatically.
+ *
+ * NOTE ON HOSTING: the cinnamonsnail.com photos are hotlinked from Adam's live
+ * WordPress site. That is correct per the brief (it is his own media library),
+ * but for production these should be copied into Vercel Blob alongside the
+ * videos so the sales pages do not depend on his WP host staying up or fast.
  */
 export type AssetSlot = {
   id: string;
@@ -17,42 +23,52 @@ export type AssetSlot = {
   src: string | null;
   alt: string;
   kind: "image" | "video";
+  /** Videos only: native aspect, so players frame them without letterboxing. */
+  orientation?: "landscape" | "portrait";
 };
+
+const BLOB = "https://yqcfew9eptifgesz.public.blob.vercel-storage.com";
+const WP = "https://cinnamonsnail.com/wp-content/uploads";
 
 export const ASSET_SLOTS: AssetSlot[] = [
   {
     id: "home-hero",
     page: "homepage",
-    section: "Hero",
+    section: "Hero background",
     need:
-      "Hero photo or short clip — Adam cooking, or a finished dish shot. Recipe-post hero images are the best-looking shot of any given dish.",
-    src: null,
+      "Landscape footage that survives heavy cropping and reads as texture behind the headline.",
+    // Adam to camera in his own kitchen, 1920x1080, 107s. Runs muted and
+    // looping behind the hero copy.
+    src: `${BLOB}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29.mp4`,
     alt: "",
-    kind: "image",
+    kind: "video",
+    orientation: "landscape",
   },
   {
     id: "home-learn",
     page: "homepage",
     section: "Learn card",
-    need: "A live cook-along photo — Adam teaching to camera, or a class in progress.",
-    src: null,
-    alt: "",
+    need:
+      "Ideally Adam mid-class, teaching to camera. This knife-work shot stands in until a true cook-along frame is available.",
+    src: `${WP}/2023/03/Parsley-Chop.jpg`,
+    alt: "Herbs being chopped on a wooden board",
     kind: "image",
   },
   {
     id: "home-cook",
     page: "homepage",
     section: "Cook card",
-    need: "A member's plate or a dish mid-cook in a normal home kitchen.",
-    src: null,
-    alt: "",
+    need: "A finished dish from a normal home kitchen.",
+    src: `${WP}/2025/08/mushroom_bourguignon-02-720x960.jpg`,
+    alt: "A bowl of mushroom bourguignon",
     kind: "image",
   },
   {
     id: "home-belong",
     page: "homepage",
     section: "Belong card",
-    need: "A community or potluck-style shot — real people around a table.",
+    need:
+      "A community or potluck-style shot — real members around a table. Nothing on cinnamonsnail.com currently shows people eating together; this needs a photo from Adam.",
     src: null,
     alt: "",
     kind: "image",
@@ -61,9 +77,10 @@ export const ASSET_SLOTS: AssetSlot[] = [
     id: "home-kitchen-table",
     page: "homepage",
     section: "Kitchen Table is not a feed",
-    need: "A shared table of plated food, or members eating together.",
-    src: null,
-    alt: "",
+    need:
+      "A shared table mid-meal, several plates and hands. The jewelled rice platter below reads as a sharing dish, but a real table photo would land the point better.",
+    src: `${WP}/2025/05/Persian_rice-06-720x960.jpg`,
+    alt: "A large platter of jewelled Persian rice pilaf",
     kind: "image",
   },
   {
@@ -71,9 +88,9 @@ export const ASSET_SLOTS: AssetSlot[] = [
     page: "homepage",
     section: "Membership teaser card",
     need:
-      "A dinner-party spread — ideally the kind of menu you'd cook for skeptical in-laws.",
-    src: null,
-    alt: "",
+      "The spread you'd cook for skeptical in-laws — a holiday centrepiece works.",
+    src: `${WP}/2024/09/Vegan-Turkey-Roast-01-720x960.jpg`,
+    alt: "A stuffed vegan roast on a serving board",
     kind: "image",
   },
   {
@@ -81,10 +98,11 @@ export const ASSET_SLOTS: AssetSlot[] = [
     page: "membership",
     section: "Top of page",
     need:
-      'Adam\'s existing sales video, "Vegan University Sale2" — needs a hosted URL or embed code.',
-    src: null,
+      'Adam talking straight to camera. Currently the 78s portrait clip from his kitchen; swap `src` to the landscape "Vegan Cooking Classes" file if that is the preferred sales cut.',
+    src: `${BLOB}/Video-11882.mp4`,
     alt: "",
     kind: "video",
+    orientation: "portrait",
   },
 ];
 
@@ -99,3 +117,17 @@ export function pendingAssets(page?: AssetSlot["page"]): AssetSlot[] {
     (slot) => slot.src === null && (page ? slot.page === page : true),
   );
 }
+
+/**
+ * "Featured in" credits. Every one of these is verifiable from Adam's own
+ * about page — no invented placements.
+ */
+export const PRESS_CREDITS = [
+  "New York Times",
+  "Food Network",
+  "PBS",
+  "VegNews",
+  "James Beard House",
+  "Vendy Cup winner",
+  "Street Vegan · Clarkson Potter",
+] as const;
