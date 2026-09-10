@@ -7,6 +7,7 @@ import { Avatar } from "@/components/ui/avatar";
 import { NavIconLink, NavIconSubmit, NavProfileLink } from "@/components/layout/nav-icon";
 import { Search } from "lucide-react";
 import { MEMBER_NAV_LINKS } from "@/lib/navigation";
+import { totalUnreadForUser } from "@/lib/messages/conversations";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { NavMore } from "@/components/layout/nav-more";
 
@@ -28,13 +29,18 @@ export async function AppNav() {
   const signedIn = Boolean(session?.sessionId);
   const homeHref = signedIn ? "/home" : "/";
   let unread = 0;
+  let unreadMessages = 0;
   if (signedIn && session?.user.id && process.env.DATABASE_URL) {
     try {
-      unread = await prisma.notification.count({
-        where: { userId: session.user.id, readAt: null },
-      });
+      [unread, unreadMessages] = await Promise.all([
+        prisma.notification.count({
+          where: { userId: session.user.id, readAt: null },
+        }),
+        totalUnreadForUser(session.user.id),
+      ]);
     } catch {
       unread = 0;
+      unreadMessages = 0;
     }
   }
   const isAdmin = Boolean(
@@ -42,7 +48,7 @@ export async function AppNav() {
   );
 
   return (
-    <header className="sticky top-0 z-30 border-b border-sand bg-[rgba(255,255,255,0.94)] backdrop-blur-[18px] dark:border-[#122018] dark:bg-[rgba(0,2,1,0.94)]">
+    <header className="sticky top-0 z-30 border-b border-sand bg-[rgba(255,255,255,0.94)] backdrop-blur-[18px] dark:bg-black/94">
       <div className="vu-gutter">
         <div className="vu-feed-shell flex h-[74px] flex-nowrap items-center gap-3">
           <BrandMark href={homeHref} className="min-w-0 shrink-0" />
@@ -90,7 +96,12 @@ export async function AppNav() {
                 </span>
                 <ThemeToggle />
                 <NavIconLink href="/notifications" label="Notifications" icon="bell" badge={unread} />
-                <NavIconLink href="/messages" label="Messages" icon="messages" />
+                <NavIconLink
+                  href="/messages"
+                  label="Messages"
+                  icon="messages"
+                  badge={unreadMessages}
+                />
                 {isAdmin ? (
                   <span className="hidden lg:inline-flex">
                     <NavIconLink href="/admin/billing" label="Admin" icon="admin" />

@@ -8,6 +8,8 @@ export function FeedRail({
   spaces,
   events,
   activity,
+  recognition,
+  suggestions,
   stacked = false,
 }: {
   community: { name: string; description: string | null; coverUrl: string | null };
@@ -25,6 +27,22 @@ export function FeedRail({
     createdAt: Date;
     authorName: string;
     avatar: string | null;
+  }[];
+  recognition: {
+    id: string;
+    icon: string;
+    badgeName: string;
+    reason: string;
+    memberName: string;
+    handle: string;
+    avatar: string | null;
+  }[];
+  suggestions: {
+    userId: string;
+    displayName: string;
+    handle: string;
+    avatarUrl: string | null;
+    reason: string;
   }[];
   stacked?: boolean;
 }) {
@@ -73,6 +91,74 @@ export function FeedRail({
             </li>
           ))}
         </ul>
+      </section>
+
+      <section className="vu-card p-5">
+        <h2 className="font-display text-base font-bold">People you should meet</h2>
+        {suggestions.length === 0 ? (
+          <p className="mt-3 text-sm text-foreground-muted">
+            Add what you cook and suggestions will show up here.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {suggestions.map((person) => (
+              <li key={person.userId} className="flex gap-2">
+                <Avatar name={person.displayName} src={person.avatarUrl} size="sm" />
+                <div className="min-w-0 flex-1">
+                  <Link
+                    href={`/members/${person.handle}`}
+                    className="block truncate text-sm font-semibold hover:text-forest"
+                  >
+                    {person.displayName}
+                  </Link>
+                  <p className="text-[12px] leading-snug text-foreground-muted">
+                    {person.reason}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+        <Link
+          href="/connect"
+          className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-full border border-sand text-sm font-semibold text-forest hover:bg-mint"
+        >
+          See why
+        </Link>
+      </section>
+
+      <section className="vu-card p-5">
+        <h2 className="font-display text-base font-bold">Recognition</h2>
+        {recognition.length === 0 ? (
+          <p className="mt-3 text-sm text-foreground-muted">
+            Badges land here when members do the work, not when they log in.
+          </p>
+        ) : (
+          <ul className="mt-3 space-y-3">
+            {recognition.map((award) => (
+              <li key={award.id} className="flex gap-2">
+                <span aria-hidden className="text-xl leading-none">
+                  {award.icon}
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm">
+                    <Link
+                      href={`/members/${award.handle}`}
+                      className="font-semibold hover:text-forest"
+                    >
+                      {award.memberName}
+                    </Link>{" "}
+                    <span className="text-foreground-muted">earned</span>{" "}
+                    <span className="font-semibold">{award.badgeName}</span>
+                  </p>
+                  <p className="truncate text-[12px] text-foreground-muted">
+                    {award.reason}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
       </section>
 
       <section className="vu-card p-5">

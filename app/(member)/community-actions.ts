@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { after } from "next/server";
 import { auth } from "@/auth";
 import {
   addComment,
@@ -14,6 +15,7 @@ import {
 import { toggleVote } from "@/lib/community/votes";
 import { PostType } from "@prisma/client";
 import { redirect } from "next/navigation";
+import { awardBadges } from "@/lib/social/badges";
 
 async function requireUserId() {
   const session = await auth();
@@ -48,6 +50,8 @@ export async function createPostAction(formData: FormData) {
   });
   revalidatePath("/home");
   revalidatePath("/spaces", "layout");
+  // Recognition is checked off the request path so posting stays fast.
+  after(() => awardBadges(userId));
   if (post.status === "PUBLISHED") {
     redirect(`/posts/${post.id}`);
   }
@@ -66,6 +70,7 @@ export async function commentAction(formData: FormData) {
   revalidatePath(`/posts/${postId}`);
   revalidatePath("/home");
   revalidatePath("/spaces", "layout");
+  after(() => awardBadges(userId));
 }
 
 export async function voteAction(formData: FormData) {

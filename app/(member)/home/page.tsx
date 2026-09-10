@@ -9,6 +9,8 @@ import { parseFeedSort } from "@/lib/community/sort";
 import { StoriesRail } from "@/components/community/stories-rail";
 import { FeedComposer } from "@/components/community/feed-composer";
 import { FeedRail } from "@/components/community/feed-rail";
+import { recentRecognition } from "@/lib/social/badges";
+import { peopleYouShouldMeet } from "@/lib/social/suggestions";
 
 export default async function HomePage({
   searchParams,
@@ -18,8 +20,16 @@ export default async function HomePage({
   const session = await auth();
   if (!session?.user.id) redirect("/login");
   const sort = parseFeedSort((await searchParams).sort);
-  const [{ posts }, spaces, memberCount, eventPosts, recentComments, storyPosts] =
-    await Promise.all([
+  const [
+    { posts },
+    spaces,
+    memberCount,
+    eventPosts,
+    recentComments,
+    storyPosts,
+    recognition,
+    suggestions,
+  ] = await Promise.all([
       listFeed({ userId: session.user.id, sort, take: 60 }),
       prisma.space.findMany({
         orderBy: { sortOrder: "asc" },
@@ -81,7 +91,26 @@ export default async function HomePage({
           },
         },
       }),
+      recentRecognition(4),
+      peopleYouShouldMeet(session.user.id, 3),
     ]);
+
+  const recognitionItems = recognition.map((award) => ({
+    id: award.id,
+    icon: award.badge.icon ?? "🌱",
+    badgeName: award.badge.name,
+    reason: award.reason ?? award.badge.description,
+    memberName: award.user.profile?.displayName ?? award.user.handle,
+    handle: award.user.handle,
+    avatar: award.user.profile?.avatarUrl ?? null,
+  }));
+  const suggestionItems = suggestions.map((person) => ({
+    userId: person.userId,
+    displayName: person.displayName,
+    handle: person.handle,
+    avatarUrl: person.avatarUrl,
+    reason: person.reason,
+  }));
 
   const kitchen = spaces.find((space) => space.slug === "kitchen-table") ?? spaces[0];
   const currentName = session.user.name || session.user.handle;
@@ -142,6 +171,8 @@ export default async function HomePage({
               authorName: item.author.profile?.displayName ?? item.author.handle,
               avatar: item.author.profile?.avatarUrl ?? null,
             }))}
+            recognition={recognitionItems}
+            suggestions={suggestionItems}
           />
         </div>
       </div>
@@ -172,6 +203,8 @@ export default async function HomePage({
             authorName: item.author.profile?.displayName ?? item.author.handle,
             avatar: item.author.profile?.avatarUrl ?? null,
           }))}
+          recognition={recognitionItems}
+          suggestions={suggestionItems}
         />
       </div>
     </div>
