@@ -38,7 +38,7 @@ export function MobileNav() {
                 <span
                   className={cn(
                     "grid size-10 place-items-center rounded-full",
-                    item.primary && "bg-forest text-white",
+                    item.primary && "vu-cta-fill",
                     !item.primary && active && "bg-sage",
                   )}
                 >

@@ -29,7 +29,7 @@ export function StoriesRail({
             className="group relative block h-[180px] w-[116px] overflow-hidden rounded-[18px] bg-sage"
           >
             <span className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-3 text-center">
-              <span className="grid size-12 place-items-center rounded-full bg-forest text-white transition group-hover:scale-105">
+              <span className="vu-cta-fill grid size-12 place-items-center rounded-full transition group-hover:scale-105">
                 <Plus className="size-6" aria-hidden />
               </span>
               <span className="text-xs font-semibold text-forest">Create Story</span>

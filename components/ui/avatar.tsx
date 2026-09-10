@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const sizeClass = {
@@ -20,7 +19,6 @@ export function Avatar({
   size?: "sm" | "md" | "lg";
   className?: string;
 }) {
-  const [failed, setFailed] = useState(false);
   const initials = name
     .split(" ")
     .map((part) => part[0])
@@ -28,35 +26,21 @@ export function Avatar({
     .slice(0, 2)
     .toUpperCase();
 
-  if (src && !failed) {
-    return (
-      <span
-        className={cn(
-          "relative inline-flex shrink-0 overflow-hidden rounded-full bg-sage",
-          sizeClass[size],
-          className,
-        )}
-      >
-        {/* Local and remote member photos; next/image is not required for avatars. */}
-        <img
-          src={src}
-          alt=""
-          className="size-full object-cover"
-          onError={() => setFailed(true)}
-        />
-      </span>
-    );
-  }
-
   return (
     <span
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-full bg-sage font-semibold text-forest",
+        "relative inline-flex shrink-0 overflow-hidden rounded-full bg-sage font-semibold text-forest",
         sizeClass[size],
         className,
       )}
     >
-      {initials}
+      {src ? (
+        // Local member photos must render even if the image optimizer is skipped.
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={src} alt={name} className="size-full object-cover" />
+      ) : (
+        <span className="flex size-full items-center justify-center">{initials}</span>
+      )}
     </span>
   );
 }

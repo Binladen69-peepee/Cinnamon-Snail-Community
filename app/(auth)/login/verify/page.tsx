@@ -71,7 +71,7 @@ export default async function VerifyPage({
         <input type="hidden" name="token" value={params.token} />
         <button
           type="submit"
-          className="min-h-11 rounded-full bg-forest px-5 text-sm text-cream"
+          className="vu-cta-fill min-h-11 rounded-full px-5 text-sm"
         >
           Continue
         </button>

@@ -19,7 +19,7 @@ export function FeedSortBar({
             href={href}
             className={
               active
-                ? "inline-flex h-10 items-center rounded-full bg-forest px-4 text-sm font-semibold text-white"
+                ? "vu-cta-fill inline-flex h-10 items-center rounded-full px-4 text-sm font-semibold"
                 : "inline-flex h-10 items-center rounded-full border border-sand bg-transparent px-4 text-sm font-semibold text-foreground-muted hover:border-forest hover:text-forest"
             }
           >

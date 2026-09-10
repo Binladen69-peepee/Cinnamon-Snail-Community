@@ -22,6 +22,8 @@ export type ButtonProps = Omit<HeroButtonProps, "variant" | "size" | "isDisabled
 };
 
 const pill = "rounded-full font-semibold tracking-tight";
+const primaryFill = "vu-cta-fill hover:-translate-y-px";
+const secondaryDark = "dark:border-paper dark:bg-black dark:text-paper";
 
 export function Button({
   className,
@@ -40,8 +42,8 @@ export function Button({
       isDisabled={isDisabled ?? disabled}
       className={cn(
         pill,
-        variant === "primary" &&
-          "!bg-forest !text-white hover:!bg-deep-forest hover:-translate-y-px",
+        variant === "primary" && primaryFill,
+        variant === "secondary" && secondaryDark,
         className,
       )}
       {...props}
@@ -69,8 +71,8 @@ export function ButtonLink({
         buttonVariants({ variant: variantMap[variant], size }),
         pill,
         "no-underline",
-        variant === "primary" &&
-          "!bg-forest !text-white hover:!bg-deep-forest hover:-translate-y-px",
+        variant === "primary" && primaryFill,
+        variant === "secondary" && secondaryDark,
         className,
       )}
     >

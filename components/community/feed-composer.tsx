@@ -24,7 +24,7 @@ export function FeedComposer({
         <ComposerChip href="/compose?type=EVENT" icon={Calendar} label="Event" className="text-foreground" />
         <Link
           href="/compose"
-          className="ml-auto inline-flex h-11 min-w-20 items-center justify-center rounded-full bg-forest px-5 text-sm font-semibold text-white transition hover:-translate-y-px"
+          className="vu-cta-fill ml-auto inline-flex h-11 min-w-20 items-center justify-center rounded-full px-5 text-sm font-semibold transition hover:-translate-y-px"
         >
           Post
         </Link>

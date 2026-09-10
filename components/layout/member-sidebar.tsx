@@ -86,7 +86,7 @@ export function MemberSidebar({
           <p className="mt-3 text-sm font-semibold text-forest">Join the conversation</p>
           <Link
             href="/compose"
-            className="mt-3 inline-flex h-11 w-full items-center justify-center rounded-full bg-forest text-sm font-semibold text-white transition hover:-translate-y-px"
+            className="vu-cta-fill mt-3 inline-flex h-11 w-full items-center justify-center rounded-full text-sm font-semibold transition hover:-translate-y-px"
           >
             Create post
           </Link>

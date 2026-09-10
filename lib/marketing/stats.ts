@@ -45,7 +45,7 @@ export async function getHomepageMomentum(): Promise<MomentumStat[]> {
       prisma.post.count({ where: { status: "PUBLISHED" } }),
       prisma.recipe.count(),
       prisma.course.count({ where: { published: true } }),
-      prisma.post.count({ where: { type: "EVENT", status: "PUBLISHED" } }),
+      prisma.event.count(),
     ]);
 
     return [
@@ -59,7 +59,7 @@ export async function getHomepageMomentum(): Promise<MomentumStat[]> {
         value: publishedCourses > 0 ? String(publishedCourses) : "—",
         label: "Courses in the catalog",
         placeholder: publishedCourses === 0,
-        detail: "Lessons that end in dinner, once playback ships.",
+        detail: "Lessons that end in dinner.",
       },
       {
         value: recipes > 0 ? String(recipes) : String(posts),
@@ -71,10 +71,7 @@ export async function getHomepageMomentum(): Promise<MomentumStat[]> {
         value: events > 0 ? String(events) : "—",
         label: "Live events & workshops",
         placeholder: events === 0,
-        detail:
-          events > 0
-            ? "Hosted sessions on the calendar porch."
-            : "Calendar listings arrive with hosted sessions.",
+        detail: "Hosted sessions on the campus calendar.",
       },
     ];
   } catch {

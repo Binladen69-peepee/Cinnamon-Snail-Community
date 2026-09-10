@@ -10,7 +10,7 @@ export function VideoEmbed({ url }: { url: string }) {
     );
   }
   return (
-    <div className="mt-4 aspect-video overflow-hidden rounded-2xl bg-forest/10">
+    <div className="mt-4 aspect-video overflow-hidden rounded-2xl bg-forest/10 dark:bg-paper/10">
       <iframe
         src={src}
         title="Embedded video"

@@ -69,7 +69,7 @@ export default async function SearchPage({
             </option>
           ))}
         </select>
-        <button type="submit" className="min-h-11 rounded-full bg-forest px-5 text-cream">
+        <button type="submit" className="vu-cta-fill min-h-11 rounded-full px-5">
           Search
         </button>
       </form>

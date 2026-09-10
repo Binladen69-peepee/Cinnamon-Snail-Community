@@ -27,5 +27,9 @@ export async function POST(request: Request) {
     const grace = getDeletionGraceDays();
     return Response.json({ ok: true, result: await purgeDueDeletions(grace) });
   }
+  if (job === "events") {
+    const { notifyUpcomingEventReminders } = await import("@/lib/learn/events");
+    return Response.json({ ok: true, result: await notifyUpcomingEventReminders() });
+  }
   return Response.json({ ok: false, error: "unknown job" }, { status: 400 });
 }
