@@ -94,15 +94,26 @@ export const ASSET_SLOTS: AssetSlot[] = [
     kind: "image",
   },
   {
-    id: "membership-sales-video",
-    page: "membership",
-    section: "Top of page",
+    id: "home-reel",
+    page: "homepage",
+    section: "From Adam's kitchen (reel)",
     need:
-      'Adam talking straight to camera. Currently the 78s portrait clip from his kitchen; swap `src` to the landscape "Vegan Cooking Classes" file if that is the preferred sales cut.',
+      "Portrait footage of Adam cooking and talking through what is inside. Shot vertically, so it is presented as a reel rather than cropped into a wide frame.",
     src: `${BLOB}/Video-11882.mp4`,
     alt: "",
     kind: "video",
     orientation: "portrait",
+  },
+  {
+    id: "membership-sales-video",
+    page: "membership",
+    section: "Top of page",
+    need:
+      'Adam talking straight to camera — the "Vegan Cooking Classes" landscape cut, which is the actual sales video the brief asks for near the top of this page.',
+    src: `${BLOB}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29.mp4`,
+    alt: "",
+    kind: "video",
+    orientation: "landscape",
   },
 ];
 
@@ -131,3 +142,32 @@ export const PRESS_CREDITS = [
   "Vendy Cup winner",
   "Street Vegan · Clarkson Potter",
 ] as const;
+
+/**
+ * Pull-quote for the reel, taken verbatim from what Adam says in the clip.
+ * Kept short on purpose: his delivery is the selling point, not a wall of
+ * transcript.
+ */
+export const REEL_QUOTE =
+  "Maybe this recipe on the back of the Oats container is going to teach me how to cook.";
+
+export const REEL_KICKER = "From Adam's kitchen";
+
+export const REEL_SUPPORT =
+  "A minute on what is actually inside — every class he has ever taught, plus the monthly live cook-alongs where you can ask him where to store the leftover lasagna.";
+
+/**
+ * Full transcript, offered next to the reel as a disclosure. Written out rather
+ * than shipped as a WebVTT track because the real caption timings are not
+ * available, and invented timecodes would be worse than none.
+ */
+export const REEL_TRANSCRIPT =
+  "Maybe this recipe on the back of the Oats container is going to teach me how to cook. " +
+  "Maybe these old recipes from my mom's Rolodex... I've just created this marvelous resource " +
+  "for anyone who's getting pretty serious about wanting to make extraordinarily better food. " +
+  "Aside from accessing all of the classes I've ever taught, from vegan fundamentals, learning " +
+  "how to make seitan, and vegan dairy products, everything from easy, quick weekday lunches to " +
+  "super gourmet fancy stuff, vegan donut making, cooking and brunch. Classes on vegan food from " +
+  "every corner of the vegan planet we live on. You also get access to all of my monthly live " +
+  "streamed cooking classes, and you could cook along with me. I could answer your questions... " +
+  "Where should you store your leftover lasagna?";

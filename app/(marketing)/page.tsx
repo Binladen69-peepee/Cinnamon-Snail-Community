@@ -6,6 +6,7 @@ import { Reveal } from "@/components/marketing/reveal";
 import { PhotoSlot } from "@/components/marketing/photo-slot";
 import { HeroVideo } from "@/components/marketing/hero-video";
 import { PressMarquee } from "@/components/marketing/press-marquee";
+import { Reel } from "@/components/marketing/reel";
 import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
 import { CourseCatalog } from "@/components/marketing/course-catalog";
 import { CommunityHeatmap } from "@/components/marketing/community-heatmap";
@@ -16,7 +17,13 @@ import {
 import { getCatalogRows, getNextLiveClass } from "@/lib/marketing/catalog";
 import { getCommunityHeatmap } from "@/lib/marketing/heatmap";
 import { CANCEL_REASSURANCE } from "@/lib/marketing/checkout";
-import { assetSlot } from "@/lib/marketing/assets";
+import {
+  REEL_KICKER,
+  REEL_QUOTE,
+  REEL_SUPPORT,
+  REEL_TRANSCRIPT,
+  assetSlot,
+} from "@/lib/marketing/assets";
 import {
   HOMEPAGE_HERO,
   KITCHEN_TABLE_BLOCK,
@@ -33,6 +40,7 @@ export default async function HomePage() {
     getNextLiveClass(),
   ]);
   const heroVideo = assetSlot("home-hero");
+  const reel = assetSlot("home-reel");
   const totalClasses = catalogRows.reduce(
     (total, row) => total + row.courses.length,
     0,
@@ -43,7 +51,9 @@ export default async function HomePage() {
       <ScrollProgress />
 
       {/* Hero — full-bleed video, text-forward ------------------------- */}
-      <section className="relative isolate flex min-h-[clamp(34rem,88svh,54rem)] items-end overflow-hidden">
+      {/* Height is capped near 16:9 at desktop widths so the background video's
+          own aspect is close to the container's and object-cover barely crops. */}
+      <section className="relative isolate flex min-h-[clamp(32rem,74svh,44rem)] items-end overflow-hidden">
         {heroVideo.src ? (
           <HeroVideo src={heroVideo.src} />
         ) : (
@@ -57,11 +67,11 @@ export default async function HomePage() {
               A vegan cooking school
             </p>
 
-            <h1 className="vu-display vu-headline mt-6 max-w-[19ch] text-white">
+            <h1 className="vu-display vu-on-media mt-6 max-w-[19ch] text-white">
               {HOMEPAGE_HERO.headline}
             </h1>
 
-            <p className="vu-measure mt-6 text-lg leading-relaxed text-white/85 md:text-xl">
+            <p className="vu-measure vu-on-media mt-6 text-lg leading-relaxed text-white/90 md:text-xl">
               {HOMEPAGE_HERO.subhead}
             </p>
 
@@ -161,6 +171,43 @@ export default async function HomePage() {
             </div>
           </div>
         </Reveal>
+      </section>
+
+      {/* From Adam's kitchen — vertical reel --------------------------- */}
+      <section className="vu-gutter vu-section" aria-labelledby="adam-reel">
+        <div className="vu-shell">
+          <Reveal>
+            <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] lg:gap-14">
+              {reel.src ? (
+                <Reel src={reel.src} label="Adam, on what's actually inside" />
+              ) : null}
+
+              <div>
+                <p className="vu-kicker">{REEL_KICKER}</p>
+                <blockquote
+                  id="adam-reel"
+                  className="vu-display-sm mt-4 text-forest"
+                >
+                  &ldquo;{REEL_QUOTE}&rdquo;
+                </blockquote>
+                <p className="vu-measure mt-6 text-lg leading-relaxed text-foreground-muted">
+                  {REEL_SUPPORT}
+                </p>
+                <div className="mt-8">
+                  <CheckoutButton size="lg" withArrow />
+                </div>
+                <details className="group mt-7 max-w-prose">
+                  <summary className="cursor-pointer text-sm font-semibold text-olive underline-offset-4 hover:underline">
+                    Read the transcript
+                  </summary>
+                  <p className="mt-3 text-sm leading-relaxed text-foreground-muted">
+                    {REEL_TRANSCRIPT}
+                  </p>
+                </details>
+              </div>
+            </div>
+          </Reveal>
+        </div>
       </section>
 
       {/* Course catalog ------------------------------------------------ */}

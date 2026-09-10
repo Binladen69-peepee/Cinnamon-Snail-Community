@@ -9,6 +9,10 @@ import {
 import {
   ASSET_SLOTS,
   PRESS_CREDITS,
+  REEL_KICKER,
+  REEL_QUOTE,
+  REEL_SUPPORT,
+  REEL_TRANSCRIPT,
   assetSlot,
   pendingAssets,
 } from "@/lib/marketing/assets";
@@ -220,5 +224,36 @@ describe("real photography", () => {
 
   it("still flags the community shot, which has no match on his site", () => {
     expect(assetSlot("home-belong").src).toBeNull();
+  });
+});
+
+describe("the reel", () => {
+  it("uses the portrait clip, presented as a reel rather than cropped", () => {
+    const reel = assetSlot("home-reel");
+    expect(reel.kind).toBe("video");
+    expect(reel.orientation).toBe("portrait");
+    expect(reel.src).toContain("Video-11882");
+  });
+
+  it("puts the landscape sales cut at the top of /membership", () => {
+    const sales = assetSlot("membership-sales-video");
+    expect(sales.orientation).toBe("landscape");
+    expect(sales.src).toContain("Vegan%20Cooking%20Classes");
+  });
+
+  it("quotes Adam verbatim and keeps the pull-quote short", () => {
+    expect(REEL_TRANSCRIPT).toContain(REEL_QUOTE);
+    expect(REEL_QUOTE.length).toBeLessThan(120);
+  });
+
+  it("keeps the full transcript available but off the main flow", () => {
+    // The long version is disclosure-only; the page shows the short quote.
+    expect(REEL_TRANSCRIPT.length).toBeGreaterThan(400);
+    expect(REEL_SUPPORT.length).toBeLessThan(240);
+  });
+
+  it("does not sneak a member count into the reel copy", () => {
+    const copy = `${REEL_QUOTE} ${REEL_SUPPORT} ${REEL_KICKER}`;
+    expect(copy).not.toMatch(/\d[\d,]*\s*\+?\s*(members|students|cooks)\b/i);
   });
 });

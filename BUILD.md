@@ -1729,6 +1729,30 @@ Structure:
 | Heatmap from real geo import | `lib/marketing/heatmap.ts` |
 | Senja widgets | `components/marketing/senja-embed.tsx` |
 | Motion (embers, reveals, sticky CTA) | `components/marketing/` |
+| Hero background video | `components/marketing/hero-video.tsx` |
+| Vertical reel card | `components/marketing/reel.tsx` |
+
+### Video placement
+
+`Vegan Cooking Classes - Adam Sobel` (1920x1080, 107s) is the homepage hero
+background — muted, looping, lightly treated — and the sales video at the top
+of `/membership`. `Video-11882` (720x1280, 78s) has its own reel section on the
+homepage, between Kitchen Table and the catalog, because Adam saying "every
+class I've ever taught" leads straight into the shelves.
+
+The hero is capped near 16:9 at desktop widths so `object-cover` barely crops,
+and the blur is 0.5px — heavy blur washed the footage out for no benefit. Type
+over the footage uses `.vu-on-media` for legibility rather than a darker scrim.
+
+The reel does not autoplay and does not loop: it is Adam talking, so sound that
+starts by itself would be hostile and looping a monologue is worse than
+stopping. The full transcript sits behind a disclosure next to it — not shipped
+as a WebVTT track, because real caption timings are not available and invented
+timecodes would be worse than none.
+
+**Known cost:** the hero file is 35 MB for a decorative loop. It buffers fully
+and does not stall, but it should be trimmed to ~10-15s and re-compressed
+before launch. That needs a transcode step this environment cannot run.
 
 SamCart's slide script loads with `strategy="afterInteractive"`. It rewrites
 checkout hrefs and injects `<sc-slide>`; loading it in `<head>` made it mutate
