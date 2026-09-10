@@ -97,7 +97,7 @@ export default async function MembershipPage() {
         <section key={block.title} className="vu-gutter vu-section-tight">
           <Reveal>
             <div className="mx-auto max-w-2xl">
-              <p className="vu-kicker">{block.title}</p>
+              <h2 className="vu-kicker">{block.title}</h2>
               <div className="mt-4">
                 {block.paragraphs.map((paragraph) => (
                   <p
@@ -118,7 +118,7 @@ export default async function MembershipPage() {
         <div className="vu-shell">
           <Reveal>
             <p className="vu-kicker">Inside the membership</p>
-            <h2 className="vu-display-sm mt-3 text-forest">
+            <h2 className="vu-display-sm vu-headline mt-3 text-forest">
               What&rsquo;s inside
             </h2>
           </Reveal>
@@ -172,7 +172,7 @@ export default async function MembershipPage() {
       <section className="vu-gutter vu-section-tight">
         <Reveal>
           <div className="vu-panel-dark mx-auto max-w-2xl rounded-[1.75rem] px-8 py-14 text-center">
-            <p className="vu-kicker">Pricing</p>
+            <h2 className="vu-kicker">Pricing</h2>
             <p className="mt-4 font-display text-5xl font-bold tracking-tight text-paper">
               {PRICING.monthly}
             </p>
@@ -195,7 +195,7 @@ export default async function MembershipPage() {
       <section className="vu-gutter vu-section">
         <Reveal>
           <div className="mx-auto max-w-2xl">
-            <p className="vu-kicker">{MEMBERSHIP_PAGE.close.title}</p>
+            <h2 className="vu-kicker">{MEMBERSHIP_PAGE.close.title}</h2>
             {MEMBERSHIP_PAGE.close.paragraphs.map((paragraph) => (
               <p
                 key={paragraph.slice(0, 32)}

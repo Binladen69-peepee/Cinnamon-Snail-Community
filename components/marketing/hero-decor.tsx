@@ -2,7 +2,10 @@ export function BotanicalBackdrop() {
   return (
     <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden>
       {LEAF_PLACEMENTS.map((leaf) => (
-        <LeafCluster key={leaf.key} className={leaf.className} />
+        <LeafCluster
+          key={leaf.key}
+          className={`${leaf.className} vu-leaf-float`}
+        />
       ))}
     </div>
   );

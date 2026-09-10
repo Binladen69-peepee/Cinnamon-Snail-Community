@@ -74,7 +74,7 @@ export default async function HomePage() {
               A vegan cooking school
             </p>
 
-            <h1 className="vu-display vu-on-media mt-6 max-w-[19ch] text-white">
+            <h1 className="vu-display vu-headline-invert vu-on-media mt-6 max-w-[19ch] text-white">
               {HOMEPAGE_HERO.headline}
             </h1>
 
@@ -114,7 +114,7 @@ export default async function HomePage() {
         <div className="vu-shell">
           <Reveal>
             <p className="vu-kicker">What you get</p>
-            <h2 className="vu-display-sm mt-3 text-forest">
+            <h2 className="vu-display-sm vu-headline mt-3 text-forest">
               Learn. Cook. <span className="vu-script text-accent">Belong.</span>
             </h2>
           </Reveal>
@@ -161,7 +161,7 @@ export default async function HomePage() {
             </div>
             <div className="flex flex-col justify-center px-7 py-12 md:px-11 lg:px-14">
               <p className="vu-kicker">The differentiator</p>
-              <h2 className="vu-display-sm mt-3 text-paper">
+              <h2 className="vu-display-sm vu-headline-invert mt-3 text-paper">
                 Kitchen Table is not a feed. It is the table.
               </h2>
               {KITCHEN_TABLE_BLOCK.paragraphs.map((paragraph) => (
@@ -193,7 +193,7 @@ export default async function HomePage() {
                 <p className="vu-kicker">{REEL_KICKER}</p>
                 <blockquote
                   id="adam-reel"
-                  className="vu-display-sm mt-4 text-forest"
+                  className="vu-display-sm vu-headline mt-4 text-forest"
                 >
                   &ldquo;{REEL_QUOTE}&rdquo;
                 </blockquote>
@@ -224,7 +224,7 @@ export default async function HomePage() {
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="vu-kicker">The classes</p>
-                <h2 className="vu-display-sm mt-3 text-forest">
+                <h2 className="vu-display-sm vu-headline mt-3 text-forest">
                   Every class, one library.
                 </h2>
               </div>
@@ -269,7 +269,7 @@ export default async function HomePage() {
         <Reveal>
           <Spotlight className="vu-card vu-shell grid items-center overflow-hidden rounded-[1.75rem] lg:grid-cols-2">
             <div className="px-7 py-12 md:px-11 lg:px-14">
-              <p className="vu-kicker">Membership</p>
+              <h2 className="vu-kicker">Membership</h2>
               <p className="vu-measure mt-5 text-lg leading-relaxed text-foreground md:text-xl">
                 {MEMBERSHIP_TEASER.body}
               </p>
@@ -299,7 +299,7 @@ export default async function HomePage() {
         <Reveal>
           <div className="vu-card mx-auto max-w-3xl rounded-[1.75rem] px-7 py-12 md:px-11">
             <p className="vu-kicker">FAQ</p>
-            <h2 className="vu-display-sm mt-3 text-forest">
+            <h2 className="vu-display-sm vu-headline mt-3 text-forest">
               Questions, answered plainly
             </h2>
             <div className="mt-7">

@@ -337,6 +337,7 @@ h3,
    lettering itself. Worn and hand-made, not damaged — the texture rides at low
    opacity over the glyphs via background-clip so the type stays readable. */
 .vu-headline {
+  display: inline-block;
   position: relative;
   text-shadow:
     0 0 18px color-mix(in oklab, var(--accent) 22%, transparent),
@@ -444,6 +445,76 @@ h3,
 
 .vu-leaf-drift {
   animation: leaf-drift 14s ease-in-out infinite;
+}
+
+/* Headline grunge for light type on a permanently dark ground (the video hero
+   and the inverted panels). Same speckle as .vu-headline, but screened rather
+   than multiplied so it reads as worn light instead of dirt. */
+.vu-headline-invert {
+  display: inline-block;
+  position: relative;
+  text-shadow:
+    0 0 22px rgba(255, 248, 239, 0.18),
+    0 1px 2px rgba(4, 18, 14, 0.5);
+}
+
+.vu-headline-invert::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.5) 0.6px, transparent 0.9px),
+    radial-gradient(circle at 68% 74%, rgba(255, 255, 255, 0.4) 0.5px, transparent 0.8px),
+    radial-gradient(circle at 38% 58%, rgba(255, 255, 255, 0.34) 0.5px, transparent 0.8px),
+    radial-gradient(circle at 84% 34%, rgba(255, 255, 255, 0.28) 0.4px, transparent 0.7px);
+  background-size:
+    37px 41px,
+    53px 47px,
+    29px 31px,
+    61px 59px;
+  mix-blend-mode: screen;
+  opacity: 0.4;
+}
+
+/* The scattered leaf graphics drift instead of sitting still.
+   This animates the independent `translate` property, not `transform`, so it
+   composes with the per-leaf `rotate-*` utilities instead of overwriting them. */
+@keyframes leaf-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 7px -12px;
+  }
+}
+
+.vu-leaf-float {
+  animation: leaf-float 19s ease-in-out infinite;
+  will-change: translate;
+}
+
+/* Stagger them so the backdrop breathes rather than pulsing in unison. */
+.vu-leaf-float:nth-of-type(3n) {
+  animation-duration: 25s;
+  animation-delay: -6s;
+}
+
+.vu-leaf-float:nth-of-type(3n + 1) {
+  animation-duration: 22s;
+  animation-delay: -13s;
+}
+
+.vu-leaf-float:nth-of-type(4n) {
+  animation-duration: 28s;
+  animation-delay: -3s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vu-leaf-float {
+    animation: none;
+  }
 }
 
 /* --- Premium pass: texture, marquee, spotlight, fluid type ----------- */
