@@ -120,6 +120,18 @@ enum EntitlementStatus {
   REVOKED
 }
 
+enum CohortKind {
+  NEW_MEMBERS
+  COURSE_STARTERS
+}
+
+enum MatchStatus {
+  SUGGESTED
+  SAVED
+  PASSED
+  CONNECTED
+}
+
 enum ReportStatus {
   OPEN
   REVIEWING
@@ -152,7 +164,7 @@ model User {
   comments      Comment[]
   reactions     Reaction[]
   bookmarks     Bookmark[]
-  reports       Report[]
+  reports       Report[]   @relation("ReportReporter")
   notifications Notification[]
   pollVotes     PollVote[]
   votes         Vote[]
@@ -168,6 +180,12 @@ model User {
   courseProgress CourseProgress[]
   hostedSpaces  Space[] @relation("SpaceHost")
   cancellationRequests CancellationRequest[]
+  blocksMade    UserBlock[] @relation("BlocksMade")
+  blocksAgainst UserBlock[] @relation("BlocksAgainst")
+  reportsAbout  Report[]    @relation("ReportSubject")
+  cohortMemberships CohortMember[]
+  matchesOwned  MemberMatch[] @relation("MatchOwner")
+  matchesToward MemberMatch[] @relation("MatchTarget")
 }
 
 model UserEmail {
@@ -257,6 +275,8 @@ model Profile {
   privacy            Json?
   dmPreference       DmPreference @default(EVERYONE)
   directoryVisible   Boolean      @default(true)
+  matchingOptIn      Boolean      @default(true)
+  matchingPausedUntil DateTime?
   timezone           String?
   cookVibe           String?
   suckiestThing      String?
@@ -288,6 +308,7 @@ model Space {
   posts                Post[]
   events               Event[]
   courses              Course[]
+  cohorts              Cohort[]
 }
 
 model SpaceMembership {
@@ -456,16 +477,22 @@ model Bookmark {
 }
 
 model Report {
-  id          String       @id @default(cuid())
-  reporterId  String
-  postId      String?
-  reason      String
-  details     String?
-  status      ReportStatus @default(OPEN)
-  createdAt   DateTime     @default(now())
-  resolvedAt  DateTime?
-  reporter    User         @relation(fields: [reporterId], references: [id], onDelete: Cascade)
-  post        Post?        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  id            String       @id @default(cuid())
+  reporterId    String
+  postId        String?
+  messageId     String?
+  subjectUserId String?
+  reason        String
+  details       String?
+  status        ReportStatus @default(OPEN)
+  createdAt     DateTime     @default(now())
+  resolvedAt    DateTime?
+  reporter      User         @relation("ReportReporter", fields: [reporterId], references: [id], onDelete: Cascade)
+  subjectUser   User?        @relation("ReportSubject", fields: [subjectUserId], references: [id], onDelete: Cascade)
+  post          Post?        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  message       Message?     @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
 }
 
 model Notification {
@@ -507,12 +534,20 @@ model Course {
   published   Boolean         @default(false)
   spaceId     String?
   instructorName String?
+  category       String?
+  categoryOrder  Int          @default(0)
+  catalogOrder   Int          @default(0)
+  teaserVideoUrl String?
+  liveAt         DateTime?
   createdAt   DateTime        @default(now())
   updatedAt   DateTime        @updatedAt
   space       Space?          @relation(fields: [spaceId], references: [id])
   sections    CourseSection[]
   progress    CourseProgress[]
   resources   Resource[]
+  cohorts     Cohort[]
+
+  @@index([published, category, catalogOrder])
 }
 
 model CourseSection {
@@ -609,12 +644,16 @@ model EventRsvp {
 }
 
 model Conversation {
-  id        String                 @id @default(cuid())
-  isGroup   Boolean                @default(false)
-  title     String?
-  createdAt DateTime               @default(now())
-  members   ConversationMember[]
-  messages  Message[]
+  id            String               @id @default(cuid())
+  isGroup       Boolean              @default(false)
+  title         String?
+  memberKey     String?              @unique
+  createdAt     DateTime             @default(now())
+  lastMessageAt DateTime?
+  members       ConversationMember[]
+  messages      Message[]
+
+  @@index([lastMessageAt])
 }
 
 model ConversationMember {
@@ -622,10 +661,13 @@ model ConversationMember {
   conversationId String
   userId         String
   lastReadAt     DateTime?
+  typingAt       DateTime?
+  leftAt         DateTime?
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   user           User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([conversationId, userId])
+  @@index([userId])
 }
 
 model Message {
@@ -633,9 +675,26 @@ model Message {
   conversationId String
   authorId       String
   body           String
+  imageUrl       String?
   createdAt      DateTime     @default(now())
+  deletedAt      DateTime?
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   author         User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reports        Report[]
+
+  @@index([conversationId, createdAt])
+}
+
+model UserBlock {
+  id        String   @id @default(cuid())
+  blockerId String
+  blockedId String
+  createdAt DateTime @default(now())
+  blocker   User     @relation("BlocksMade", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked   User     @relation("BlocksAgainst", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
 }
 
 model Product {
@@ -885,6 +944,9 @@ model Badge {
   slug        String        @unique
   name        String
   description String
+  icon        String?
+  criteria    String?
+  sortOrder   Int           @default(0)
   members     MemberBadge[]
 }
 
@@ -892,11 +954,13 @@ model MemberBadge {
   id       String   @id @default(cuid())
   badgeId  String
   userId   String
+  reason   String?
   awardedAt DateTime @default(now())
   badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([badgeId, userId])
+  @@index([awardedAt])
 }
 
 model Challenge {
@@ -1004,4 +1068,70 @@ model AuditLog {
   actor      User?    @relation(fields: [actorId], references: [id])
 
   @@index([action, createdAt])
+}
+
+model Cohort {
+  id          String         @id @default(cuid())
+  slug        String         @unique
+  name        String
+  kind        CohortKind
+  courseId    String?
+  spaceId     String?
+  startsAt    DateTime
+  introPrompt String
+  firstCook   String
+  goal        String
+  createdAt   DateTime       @default(now())
+  course      Course?        @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  space       Space?         @relation(fields: [spaceId], references: [id], onDelete: SetNull)
+  members     CohortMember[]
+
+  @@index([kind, startsAt])
+}
+
+model CohortMember {
+  id       String   @id @default(cuid())
+  cohortId String
+  userId   String
+  joinedAt DateTime @default(now())
+  cohort   Cohort   @relation(fields: [cohortId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([cohortId, userId])
+  @@index([userId])
+}
+
+model MemberMatch {
+  id            String      @id @default(cuid())
+  weekStart     DateTime
+  userId        String
+  matchedUserId String
+  score         Int
+  reason        String
+  starter       String
+  status        MatchStatus @default(SUGGESTED)
+  createdAt     DateTime    @default(now())
+  respondedAt   DateTime?
+  user          User        @relation("MatchOwner", fields: [userId], references: [id], onDelete: Cascade)
+  matchedUser   User        @relation("MatchTarget", fields: [matchedUserId], references: [id], onDelete: Cascade)
+
+  @@unique([weekStart, userId, matchedUserId])
+  @@index([userId, weekStart])
+}
+
+model MemberGeoPoint {
+  id        String   @id @default(cuid())
+  source    String   @default("mighty")
+  country   String
+  region    String?
+  city      String?
+  latitude  Float
+  longitude Float
+  /// Density for the glow only. Never rendered as a number: the sales pages
+  /// carry no member counts.
+  weight    Int      @default(1)
+  importedAt DateTime @default(now())
+
+  @@unique([source, country, region, city])
+  @@index([source])
 }

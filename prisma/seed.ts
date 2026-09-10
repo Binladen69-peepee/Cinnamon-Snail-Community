@@ -2,6 +2,9 @@ import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 import { renderMarkdown, toPlainText } from "../lib/markdown";
 import { seedTestFeed } from "./seed-test-feed";
+import { seedCampusLearning } from "./seed-learn";
+import { seedSocial } from "./seed-social";
+import { seedCourseCatalog } from "./seed-catalog";
 import { SEEDED_MEMBER_AVATARS } from "../lib/community/member-avatars";
 
 const prisma = new PrismaClient();
@@ -398,6 +401,7 @@ async function main() {
     authors: [adam, member, ...extras],
     spaces: feedSpaces,
   });
+  await seedCampusLearning(prisma, adam.id);
 
   const samplePosts = await prisma.post.findMany({
     where: { status: "PUBLISHED" },
@@ -441,6 +445,8 @@ async function main() {
   }
 
   await applySeededAvatars();
+  await seedSocial(prisma);
+  await seedCourseCatalog(prisma);
 
   await prisma.searchIndex.upsert({
     where: { entityType_entityId: { entityType: "member", entityId: "adam" } },

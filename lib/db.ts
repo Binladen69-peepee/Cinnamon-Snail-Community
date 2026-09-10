@@ -7,8 +7,11 @@ export const prisma =
   new PrismaClient({
     datasources: {
       db: {
+        // `||` not `??`: a blank DATABASE_URL (an env var set to an empty
+        // string) must fall back too, or Prisma throws "nonempty URL" at
+        // construction and every page importing this module dies.
         url:
-          process.env.DATABASE_URL ??
+          process.env.DATABASE_URL ||
           "postgresql://unconfigured:unconfigured@127.0.0.1:5433/unconfigured",
       },
     },

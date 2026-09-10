@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { NewsletterForm } from "@/components/marketing/newsletter-form";
 
 const columns = [
   {
@@ -39,19 +38,16 @@ const columns = [
 
 export function MarketingFooter() {
   return (
-    <footer className="mt-8 bg-forest text-white">
+    <footer className="mt-8 bg-[var(--cta-fill)] text-[var(--cta-fill-foreground)]">
       <div className="vu-gutter">
         <div className="vu-shell grid gap-10 py-16 md:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
         <div>
           <p className="text-2xl font-extrabold tracking-tight">Vegan University</p>
-          <p className="prose-measure mt-3 text-sm text-white/75">
+          <p className="prose-measure mt-3 text-sm text-white/75 dark:text-paper/75">
             A digital home for people learning to cook plants with confidence,
             community, and care — a school that still looks like a kitchen.
           </p>
-          <div className="mt-2 [&_label]:text-white/70 [&_p]:text-white/70">
-            <NewsletterForm />
-          </div>
-          <p className="mt-6 text-sm text-white/70">
+          <p className="mt-6 text-sm text-white/70 dark:text-paper/70">
             Public social handles are not published yet. We will not link empty
             profiles.
           </p>
@@ -67,7 +63,7 @@ export function MarketingFooter() {
                   <li key={link.href + link.label}>
                     <Link
                       href={link.href}
-                      className="text-white/90 hover:text-accent"
+                      className="text-white/90 hover:text-accent dark:text-paper/90"
                     >
                       {link.label}
                     </Link>

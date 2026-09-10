@@ -274,6 +274,24 @@ Product (human)
 
 ---
 
+## DEC-014 — Phase 3 video until Cloudflare Stream keys exist
+
+Status: ACCEPTED
+
+Question:
+How do lessons play before Cloudflare Stream credentials are in the environment?
+
+Decision:
+Lesson playback is entitlement-gated and issued as an expiring HMAC token. The player never receives a permanent paid CDN URL. When `CLOUDFLARE_STREAM_CUSTOMER_CODE` and a signing key are present, Stream is the provider. Until then, seeded demo lessons may use a short public clip through the same token route so resume, captions, and completion can be verified. Mighty course media is not imported (`DEC-003` remains blocked).
+
+Date:
+2026-09-09
+
+Approved by:
+Engineering (allowed by BUILD.md §5 / Phase 3 “or equivalent”)
+
+---
+
 ## DEC-013 — Forest-and-cream visual identity
 
 Status: ACCEPTED
@@ -289,3 +307,140 @@ Date:
 
 Approved by:
 Product (human)
+
+---
+
+## DEC-015 — Dark theme is black, not green
+
+Status: ACCEPTED
+
+Question:
+Should dark mode keep a green-tinted near-black, or go true black?
+
+Decision:
+Dark mode uses true black `#000000` with no green fills or mint type. Light text, headings, links, and accents use the light-theme cream `#FFF8EF`. Solid actions are black with cream type and a cream ring. Light mode stays forest-and-cream (DEC-013).
+
+Date:
+2026-09-09
+
+Approved by:
+Product (human)
+
+---
+
+## DEC-016 — What counts as a "connection" for direct messages
+
+Status: ACCEPTED
+
+Question:
+`Profile.dmPreference = CONNECTIONS` needs a definition of "connection". The
+build spec names the preference but never defines the relationship.
+
+Decision:
+A connection is someone you have already exchanged a conversation with, **or**
+someone who shares a `MEMBERS`/`PRIVATE` space membership with you. Either is
+sufficient. Public-space overlap alone does not count, because every signed-in
+member can see public spaces.
+
+Implemented in `lib/messages/permissions.ts` (`isConnection`) and enforced
+server-side in `lib/messages/conversations.ts` on every send, not only at
+thread creation — preferences and blocks change mid-conversation.
+
+Date:
+2026-09-09
+
+Approved by:
+Engineering (BUILD.md §1 rule 8 — recorded rather than silently invented)
+
+---
+
+## DEC-017 — DM delivery is polling until a realtime vendor is wired
+
+Status: ACCEPTED
+
+Question:
+Phase 4A asks for realtime delivery, typing indicators, and read receipts.
+`DEC-002` earmarked Ably/Pusher for 4A, but no realtime credentials exist.
+
+Decision:
+Delivery is short-interval polling against `GET /api/messages/[id]/poll`
+(4s), which returns messages after a cursor plus typing state and read
+receipts. Typing is a `ConversationMember.typingAt` timestamp with a 6s TTL,
+pinged by the client at most every 3s. Read receipts are
+`ConversationMember.lastReadAt`.
+
+All three are real, server-enforced features — not simulated. Swapping in Ably
+or Pusher later replaces the transport only; the permission gate and the data
+model do not change.
+
+Date:
+2026-09-09
+
+Approved by:
+Engineering (allowed by BUILD.md §5)
+
+---
+
+## DEC-018 — Sales-page assets are flagged, never substituted
+
+Status: ACCEPTED
+
+Question:
+The client copy brief forbids stock photography and AI images anywhere on the
+homepage and `/membership`, and requires replacements from Adam's WordPress
+media library. Those files are not accessible from this repository. What ships
+in the meantime?
+
+Decision:
+Every image and video slot is declared in `lib/marketing/assets.ts` with a
+description of the photo needed. A slot with no real asset renders a branded
+panel naming what is required (`data-asset-needed="<slot-id>"` in the DOM);
+it never renders a stock or AI image, and never a bare grey box pretending to
+be a design choice. Filling a slot means setting `src` on the manifest entry —
+no page edits.
+
+All previous Unsplash imagery has been removed from both sales pages. A test
+asserts no manifest entry points at a stock host.
+
+Date:
+2026-09-10
+
+Approved by:
+Engineering (brief: "flag it for Adam rather than dropping in a stock placeholder")
+
+---
+
+## DEC-019 — Course catalog and community heatmap read real data only
+
+Status: ACCEPTED
+
+Question:
+The brief requires the Netflix-style catalog to pull from live class data
+rather than a hardcoded list, and the heatmap to be drawn from real Mighty
+Networks member geography rather than local test accounts.
+
+Decision:
+**Catalog.** `Course` gained `category`, `categoryOrder`, `catalogOrder`,
+`teaserVideoUrl`, and `liveAt`. The homepage calls `getCatalogRows()`, which
+groups published courses by category at request time, so newly scheduled live
+cook-alongs appear without a deploy. The 52 classes and 6 categories from the
+brief are seeded via `prisma/seed-catalog.ts` as starting data, not as the
+source of truth. If Adam's Mighty course portal uses different category names,
+re-seeding with those names re-groups the rows.
+
+**Heatmap.** A dedicated `MemberGeoPoint` table is populated only by
+`scripts/import-member-geo.ts` from a real Mighty CSV export, aggregated to
+country/region/city so no individual member is stored. `Profile` rows are
+deliberately *not* a source. Until the export is imported, the map renders an
+explicit "member geography needed" state rather than fake pins. Density drives
+glow intensity only; no member count is ever displayed.
+
+**Urgency.** The only urgency permitted on the sales pages is the next
+scheduled live cook-along date (`getNextLiveClass()`), because it is true and
+specific. No countdowns, no "spots left", no member counts.
+
+Date:
+2026-09-10
+
+Approved by:
+Engineering (brief: "Do not hardcode this list as static text")

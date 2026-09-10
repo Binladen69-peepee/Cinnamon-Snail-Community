@@ -871,6 +871,8 @@ All billing acceptance tests from this BUILD.md must pass.
 
 # 11. PHASE 3 — COURSES & LEARNING
 
+**Status:** Vertical slice in app. Original `weeknight-plants` course, entitlement-gated player, progress, lesson threads, and campus calendar. Cloudflare Stream keys optional (`DEC-014`). Mighty extraction still blocked (`DEC-003`).
+
 ## Course model
 
 ```text
@@ -1700,6 +1702,54 @@ Admin modules:
 
 ---
 
+# 25A. CLIENT SALES-PAGE BUILD (homepage + /membership)
+
+Built to the client copy brief (`vumembershipcopy`). That document is the
+authority on wording; do not paraphrase its copy. It lives in code at
+`lib/marketing/copy.ts`.
+
+Enforced rules, each covered by a test in `tests/marketing.test.ts`:
+
+- **One CTA, repeated.** Every button on both pages reads "Become a member" and
+  points at the SamCart checkout with `#samcart-slide-open-right`. No
+  "peek at the community", no "see the catalog", no newsletter.
+- **No member counts**, exact or otherwise, on either page.
+- **No stock or AI photography.** Unfilled slots are flagged (`DEC-018`).
+- **No invented urgency.** Only the real next live cook-along date.
+- **No newsletter signup** anywhere in the marketing footer.
+
+Structure:
+
+| Piece | Where |
+|---|---|
+| Copy (verbatim client text) | `lib/marketing/copy.ts` |
+| Checkout URL / label / pricing | `lib/marketing/checkout.ts` |
+| Photo + video manifest | `lib/marketing/assets.ts` |
+| Catalog rows from live data | `lib/marketing/catalog.ts` |
+| Heatmap from real geo import | `lib/marketing/heatmap.ts` |
+| Senja widgets | `components/marketing/senja-embed.tsx` |
+| Motion (embers, reveals, sticky CTA) | `components/marketing/` |
+
+SamCart's slide script loads with `strategy="afterInteractive"`. It rewrites
+checkout hrefs and injects `<sc-slide>`; loading it in `<head>` made it mutate
+the DOM before hydration and React reported a mismatch.
+
+## Waiting on the client
+
+- Real photography for 6 homepage slots and dish photos for 52 catalog cards
+  (WordPress media library on cinnamonsnail.com)
+- Teaser videos per class (Drive folder or YouTube access)
+- Sales video "Vegan University Sale2" — hosted URL or embed
+- Mighty Networks member export for the heatmap
+- The extra FAQs on `shop.cinnamonsnail.com/products/monthly-subscription`
+  (the page is JS-rendered and could not be read; the four FAQs in the brief
+  are live)
+- Confirmation on the Senja homepage widget, which renders its own avatar row
+  and a "JOIN THOUSANDS OF VEGAN COOKS!" headline — close to the avatar strip
+  and member count the brief asked to remove. Editable in Senja.
+
+---
+
 # 26. MARKETING / PUBLIC WEBSITE
 
 Public pages should be separate from member application experience.
@@ -2345,12 +2395,13 @@ Claude Code must operate under the following instruction while building this pro
 
 Update this section continuously.
 
-**Last updated:** 2026-09-09  
-**Currently building:** Phase 2 live SamCart wiring. `DEC-001` and `DEC-010` are accepted. Local `.env` still needs real `SAMCART_WEBHOOK_SECRET` and `SAMCART_API_KEY` before purchase/cancel/refund can be closed against SamCart.  
+**Last updated:** 2026-09-10  
+**Currently building:** Phase 4 social connection and 4A direct messages are in. Client sales-page copy build (homepage + `/membership`) is in. Blocked on client-supplied media, the Mighty member-geography export, and live SamCart keys.  
 **Auth:** Resend magic-link e2e verified. Password login and logout verified.  
 **Community gate:** Signed-in Adam completed the Phase 1 community loop.  
 **Billing policy:** Cancellation access follows SamCart’s reported period (31-day window on trial products `1069358` and `1069354`). Account deletion grace is 7 days.  
-**From address:** `EMAIL_FROM` is `Vegan University <onboarding@resend.dev>` until a VU domain is verified (`DEC-009`).
+**From address:** `EMAIL_FROM` is `Vegan University <onboarding@resend.dev>` until a VU domain is verified (`DEC-009`).  
+**Courses:** Original `weeknight-plants` campus course with entitlement-gated playback, captions, progress, lesson threads, and calendar RSVP. Cloudflare Stream keys are not required for the demo path (`DEC-014`). Mighty extraction remains blocked (`DEC-003`).
 
 Seeded local accounts (password `vegan-local-dev`):
 - `adam@veganuniversity.test` (admin)
@@ -2389,24 +2440,24 @@ Seeded local accounts (password `vegan-local-dev`):
 - [x] Billing tests — unit + local DB integration; live SamCart/Kit acceptance still open
 
 ## Phase 3
-- [ ] Courses
-- [ ] Sections
-- [ ] Lessons
-- [ ] Video
-- [ ] Captions
-- [ ] Resources
-- [ ] Progress
-- [ ] Course comments
-- [ ] Events
+- [x] Courses — original VU catalog; Mighty import blocked (`DEC-003`)
+- [x] Sections
+- [x] Lessons — video, text, reflection
+- [x] Video — entitlement-gated expiring tokens; Stream when keys exist (`DEC-014`)
+- [x] Captions — VTT on demo video lessons
+- [x] Resources
+- [x] Progress — resume position, percent, continue learning
+- [x] Course comments — lesson threads in Course Hall
+- [x] Events — timezone list, RSVP/capacity, ICS, 24h reminder job; Zoom field unused until a real session exists
 
 ## Phase 4
-- [ ] DMs
-- [ ] Matching
-- [ ] People suggestions
-- [ ] Cohorts
-- [ ] Badges
-- [ ] Spotlights
-- [ ] Recognition
+- [x] DMs — 1:1 + small groups, unread counts, read receipts, typing indicators, image/link sharing, block, report, leave. Polling transport (`DEC-017`); every read and write behind a server-side membership gate.
+- [x] Matching — weekly, idempotent per week, opt-in and pausable, 8-week repeat cooldown
+- [x] People suggestions — 3–5 with an explicit reason; shared interests/spaces, similar progress, activity recency, prior-interaction penalty
+- [x] Cohorts — automatic new-member and course-starter cohorts, each with intro prompt, first cook, goal, and a private space
+- [x] Badges — 12 recognition badges, criteria-driven, awarded off the request path; no points, no leaderboard
+- [ ] Spotlights — not started
+- [x] Recognition — badge awards surface in the home feed rail and at `/connect/recognition`
 
 ## Phase 4B
 - [ ] Survey answers

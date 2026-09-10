@@ -2,7 +2,7 @@
 
 import { Accordion } from "@heroui/react/accordion";
 import { ChevronDown } from "lucide-react";
-import { HOMEPAGE_FAQS } from "@/lib/marketing/homepage";
+import { HOMEPAGE_FAQS } from "@/lib/marketing/copy";
 
 export function FaqAccordion() {
   return (
@@ -19,7 +19,11 @@ export function FaqAccordion() {
           </Accordion.Heading>
           <Accordion.Panel>
             <Accordion.Body className="prose-measure pb-5 text-foreground-muted">
-              {item.answer}
+              {item.answer.map((paragraph) => (
+                <p key={paragraph.slice(0, 32)} className="mt-3 first:mt-0">
+                  {paragraph}
+                </p>
+              ))}
             </Accordion.Body>
           </Accordion.Panel>
         </Accordion.Item>

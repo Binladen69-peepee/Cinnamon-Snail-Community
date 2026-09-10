@@ -1,392 +1,225 @@
-import Image from "next/image";
-import Link from "next/link";
-import { ArrowRight, BookOpen, Calendar, FileText, Leaf, Users } from "lucide-react";
-import { ButtonLink } from "@/components/ui/button";
+import { Leaf } from "lucide-react";
 import { FaqAccordion } from "@/components/marketing/faq-accordion";
+import { CheckoutButton } from "@/components/marketing/checkout-button";
+import { StickyCheckout } from "@/components/marketing/sticky-checkout";
+import { AmbientEmbers } from "@/components/marketing/ambient-embers";
+import { Reveal } from "@/components/marketing/reveal";
+import { PhotoSlot } from "@/components/marketing/photo-slot";
+import { CourseCatalog } from "@/components/marketing/course-catalog";
+import { CommunityHeatmap } from "@/components/marketing/community-heatmap";
 import {
-  MEMBER_STORIES,
-  PILLARS,
-  REPRESENTATIVE_COURSES,
-} from "@/lib/marketing/homepage";
+  SenjaEmbed,
+  SENJA_HOMEPAGE_WIDGET,
+} from "@/components/marketing/senja-embed";
+import { getCatalogRows, getNextLiveClass } from "@/lib/marketing/catalog";
+import { getCommunityHeatmap } from "@/lib/marketing/heatmap";
+import { CANCEL_REASSURANCE } from "@/lib/marketing/checkout";
 import {
-  getHomepageMomentum,
-  getPublishedCoursePreview,
-} from "@/lib/marketing/stats";
-import { prisma } from "@/lib/db";
-import { Avatar } from "@/components/ui/avatar";
-import { HeadlineSwoosh, HeroVisual } from "@/components/marketing/hero-visual";
-import { resolveMemberAvatar } from "@/lib/community/member-avatars";
+  HOMEPAGE_HERO,
+  KITCHEN_TABLE_BLOCK,
+  MEMBERSHIP_TEASER,
+  PILLAR_CARDS,
+} from "@/lib/marketing/copy";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [momentum, liveCourses, faces] = await Promise.all([
-    getHomepageMomentum(),
-    getPublishedCoursePreview(),
-    process.env.DATABASE_URL
-      ? prisma.profile
-          .findMany({
-            where: { directoryVisible: true },
-            orderBy: { createdAt: "asc" },
-            take: 5,
-            select: { displayName: true, avatarUrl: true, user: { select: { handle: true } } },
-          })
-          .catch(() => [])
-      : Promise.resolve([]),
+  const [catalogRows, heatmap, nextLive] = await Promise.all([
+    getCatalogRows(),
+    getCommunityHeatmap(),
+    getNextLiveClass(),
   ]);
-
-  const memberStat = momentum.find((item) => item.label.includes("Members"));
-
-  const courses =
-    liveCourses.length > 0
-      ? liveCourses.map((course) => ({
-          href: `/courses/${course.slug}`,
-          title: course.title,
-          level: course.instructorName ? `With ${course.instructorName}` : "Course",
-          description: course.description ?? "A cooking-school lesson that ends in a plate.",
-          image:
-            course.coverUrl ??
-            "https://images.unsplash.com/photo-1512621776951-a57141f2eefd?auto=format&fit=crop&w=900&q=80",
-          alt: course.title,
-          placeholder: false,
-        }))
-      : REPRESENTATIVE_COURSES.map((course) => ({
-          href: "/courses",
-          title: course.title,
-          level: course.level,
-          description: course.description,
-          image: course.image,
-          alt: course.alt,
-          placeholder: true,
-        }));
 
   return (
     <div className="overflow-x-clip pb-8">
-      <section className="vu-gutter pb-6 pt-10 md:pb-10 md:pt-16">
-        <div className="vu-shell grid items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
+      {/* Hero ---------------------------------------------------------- */}
+      <section className="relative vu-gutter pb-6 pt-10 md:pb-10 md:pt-16">
+        <AmbientEmbers />
+        <div className="vu-shell relative grid items-center gap-12 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)]">
           <div className="hero-copy-reveal">
             <p className="inline-flex items-center gap-2 rounded-full bg-sage px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-forest">
-              <Leaf className="size-3.5" aria-hidden />
-              A plant-based lifestyle community
+              <Leaf className="size-3.5 vu-leaf-drift" aria-hidden />
+              A vegan cooking school
             </p>
-            <h1 className="mt-6 font-display text-[2.6rem] leading-[1.08] font-bold tracking-tight text-forest md:text-6xl">
-              Learn to cook plants like you already{" "}
-              <span className="relative inline-block text-accent">
-                belong here.
-                <HeadlineSwoosh />
-              </span>
+            <h1 className="vu-headline mt-6 font-display text-[2.1rem] leading-[1.1] font-bold tracking-tight text-forest md:text-[3.25rem] md:leading-[1.06]">
+              {HOMEPAGE_HERO.headline}
             </h1>
-            <p className="prose-measure mt-6 text-lg leading-relaxed font-normal text-foreground-muted">
-              Courses that end in dinner, recipes you actually make, and a hosted
-              table for the sauce question you were going to Google at 9pm.
+            <p className="prose-measure mt-6 text-lg leading-relaxed text-foreground-muted">
+              {HOMEPAGE_HERO.subhead}
             </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                href="/membership"
-                className="inline-flex h-12 items-center gap-3 rounded-full bg-forest px-2 pr-6 text-sm font-semibold text-white transition hover:-translate-y-px hover:bg-deep-forest"
-              >
-                <span className="grid size-9 place-items-center rounded-full bg-white text-forest">
-                  <ArrowRight className="size-4" aria-hidden />
-                </span>
-                Become a member
-              </Link>
-              <ButtonLink href="/community" variant="secondary" size="lg" className="h-12 gap-2 border-forest !bg-white !text-forest">
-                <Users className="size-4" aria-hidden />
-                Peek at the community
-              </ButtonLink>
+            <div className="mt-8">
+              <CheckoutButton size="lg" withArrow />
             </div>
-            {memberStat ? (
-              <div className="mt-8 flex items-center gap-4">
-                {faces.length > 0 ? (
-                  <div className="flex -space-x-2">
-                    {faces.map((face) => (
-                      <span key={face.user.handle} className="rounded-full ring-2 ring-cream">
-                        <Avatar
-                          name={face.displayName}
-                          src={resolveMemberAvatar(face.user.handle, face.avatarUrl)}
-                          size="sm"
-                        />
-                      </span>
-                    ))}
-                  </div>
-                ) : null}
-                <div>
-                  <p className="flex items-center gap-2 text-sm font-semibold text-forest">
-                    <span className="size-2 shrink-0 rounded-full bg-accent" aria-hidden />
-                    {memberStat.value !== "—"
-                      ? `Join ${memberStat.value} plant lovers in our community`
-                      : "Join plant lovers in our community"}
-                  </p>
-                  <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.22em] text-accent">
-                    Learn • Share • Grow
-                  </p>
-                </div>
-              </div>
-            ) : null}
-          </div>
-          <HeroVisual />
-        </div>
-      </section>
-
-      <section aria-label="Campus snapshot" className="vu-gutter pb-8">
-        <div className="vu-card vu-shell grid grid-cols-1 gap-8 rounded-[28px] px-6 py-8 sm:grid-cols-2 md:grid-cols-4 md:px-10 md:py-10">
-          {momentum.map((stat) => (
-            <div key={stat.label} className="flex gap-3">
-              <span className="grid size-11 shrink-0 place-items-center rounded-[14px] bg-sage text-forest">
-                {stat.label.includes("Members") ? (
-                  <Users className="size-4" aria-hidden />
-                ) : stat.label.includes("Course") ? (
-                  <BookOpen className="size-4" aria-hidden />
-                ) : stat.label.includes("event") ? (
-                  <Calendar className="size-4" aria-hidden />
-                ) : (
-                  <FileText className="size-4" aria-hidden />
-                )}
-              </span>
-              <div>
-                <p className="font-display text-xl font-bold tracking-tight text-forest">
-                  {stat.value}{" "}
-                  <span className="text-sm font-semibold text-foreground">{stat.label}</span>
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-foreground-muted">{stat.detail}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
-      <section className="vu-gutter py-16">
-        <div className="vu-shell">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-            What you get
-          </p>
-          <h2 className="mt-3 max-w-[18ch] text-4xl font-extrabold tracking-tight md:text-5xl">
-            Learn. Cook. <span className="text-accent">Belong.</span>
-          </h2>
-          <div className="mt-10 grid gap-6 md:grid-cols-3">
-            {PILLARS.map((pillar) => (
-              <article key={pillar.title} className="vu-card overflow-hidden p-4">
-                <div className="relative aspect-[4/3] overflow-hidden rounded-[1.25rem]">
-                  <Image
-                    src={pillar.image}
-                    alt={pillar.alt}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <h3 className="mt-5 px-2 text-2xl font-extrabold tracking-tight">
-                  {pillar.title}
-                </h3>
-                <p className="mt-2 px-2 pb-3 text-sm leading-relaxed text-foreground-muted">
-                  {pillar.body}
-                </p>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="vu-gutter py-8">
-        <div className="vu-card vu-shell grid overflow-hidden lg:grid-cols-2">
-          <div className="relative min-h-[22rem]">
-            <Image
-              src="https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1400&q=80"
-              alt="A shared table of plated food — the kitchen table, not a dashboard"
-              fill
-              sizes="(min-width: 1024px) 50vw, 100vw"
-              className="object-cover"
+            {/* Real testimonial proof, in place of the old avatar strip. */}
+            <SenjaEmbed
+              widgetId={SENJA_HOMEPAGE_WIDGET}
+              title="What members say"
+              className="mt-8"
             />
           </div>
-          <div className="flex flex-col justify-center px-8 py-12 lg:px-12">
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-              The differentiator
-            </p>
-            <h2 className="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl">
-              Kitchen Table is not a feed. It is the{" "}
-              <span className="text-accent">table</span>.
-            </h2>
-            <p className="prose-measure mt-5 leading-relaxed text-foreground-muted">
-              Other platforms rent you a generic community module. Kitchen Table
-              is Vegan University&apos;s own room: hosted, named, and tied to
-              what you cooked. You follow a lesson, make dinner, post the plate,
-              and find someone wrestling the same radicchio.
-            </p>
-            <p className="prose-measure mt-4 leading-relaxed text-foreground-muted">
-              There is no engagement algorithm deciding who gets seen. Hosts keep
-              the conversation edible. Members have cities and favorite pans —
-              not anonymous handles in a content library.
-            </p>
-            <div className="mt-8">
-              <ButtonLink href="/community">Peek at the community</ButtonLink>
-            </div>
-          </div>
+          <PhotoSlot id="home-hero" aspect="aspect-[4/5]" rounded="rounded-[1.75rem]" />
         </div>
       </section>
 
+      <StickyCheckout />
+
+      {/* Learn / Cook / Belong ----------------------------------------- */}
       <section className="vu-gutter py-16">
         <div className="vu-shell">
-          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-            <div>
-              <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-                Courses
-              </p>
-              <h2 className="mt-3 text-4xl font-extrabold tracking-tight">
-                Cooking school energy. No{" "}
-                <span className="text-accent">LMS</span> maze.
-              </h2>
-            </div>
-            <ButtonLink href="/courses" variant="secondary">
-              See the catalog
-            </ButtonLink>
-          </div>
-          {liveCourses.length === 0 ? (
-            <p className="mt-4 text-sm text-foreground-muted">
-              Representative upcoming classes — the live catalog ships with course
-              playback (Phase 3). These are not fake enrolled listings.
+          <Reveal>
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
+              What you get
             </p>
-          ) : null}
-          <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-            {courses.map((course) => (
-              <Link
-                key={course.title}
-                href={course.href}
-                className="vu-card group block overflow-hidden p-3"
-              >
-                <div className="relative aspect-[4/3] overflow-hidden rounded-[1.25rem]">
-                  <Image
-                    src={course.image}
-                    alt={course.alt}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="px-2 pt-4 pb-3">
-                  <span className="inline-flex rounded-full bg-accent px-3 py-1 text-[11px] font-bold uppercase tracking-wider text-white">
-                    {course.level}
-                  </span>
-                  <h3 className="mt-3 text-lg font-extrabold tracking-tight group-hover:text-accent">
-                    {course.title}
+            <h2 className="vu-headline mt-3 max-w-[18ch] font-display text-4xl font-bold tracking-tight text-forest md:text-5xl">
+              Learn. Cook. Belong.
+            </h2>
+          </Reveal>
+          <div className="mt-10 grid gap-6 md:grid-cols-3">
+            {PILLAR_CARDS.map((pillar, index) => (
+              <Reveal key={pillar.title} as="article" delay={index * 90}>
+                <div className="vu-card vu-lift h-full overflow-hidden p-4">
+                  <PhotoSlot id={pillar.slotId} />
+                  <h3 className="mt-5 px-2 font-display text-2xl font-bold tracking-tight text-forest">
+                    {pillar.title}
                   </h3>
-                  <p className="mt-2 text-sm leading-relaxed text-foreground-muted">
-                    {course.description}
+                  <p className="mt-2 px-2 pb-3 text-sm leading-relaxed text-foreground-muted">
+                    {pillar.body}
                   </p>
                 </div>
-              </Link>
+              </Reveal>
             ))}
           </div>
         </div>
       </section>
 
+      {/* Kitchen Table is not a feed ----------------------------------- */}
       <section className="vu-gutter py-8">
-        <div className="vu-shell">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-            Member stories
-          </p>
-          <h2 className="mt-3 max-w-[16ch] text-4xl font-extrabold tracking-tight">
-            In their own kitchen <span className="text-accent">voice</span>.
-          </h2>
-          <p className="mt-3 max-w-xl text-sm text-foreground-muted">
-            Composite portraits from the kinds of journeys Kitchen Table is for —
-            not attributed quotes from live member profiles.
-          </p>
-          <div className="mt-10 grid gap-6 lg:grid-cols-3">
-            {MEMBER_STORIES.map((story, index) => (
-              <figure
-                key={story.name}
-                className={
-                  index === 0
-                    ? "rounded-[1.5rem] bg-accent p-6 text-white shadow-[0_10px_40px_rgba(26,26,26,0.08)]"
-                    : "vu-card p-6"
-                }
-              >
-                <div className="relative aspect-[5/4] overflow-hidden rounded-[1.25rem]">
-                  <Image
-                    src={story.image}
-                    alt={story.alt}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <blockquote
-                  className={
-                    index === 0
-                      ? "mt-5 text-xl font-bold leading-snug"
-                      : "mt-5 text-xl font-bold leading-snug text-foreground"
-                  }
+        <Reveal>
+          <div className="vu-card vu-shell grid overflow-hidden lg:grid-cols-2">
+            <PhotoSlot
+              id="home-kitchen-table"
+              aspect="min-h-[22rem]"
+              rounded="rounded-none"
+              className="size-full"
+            />
+            <div className="flex flex-col justify-center px-8 py-12 lg:px-12">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
+                The differentiator
+              </p>
+              <h2 className="vu-headline mt-3 font-display text-3xl font-bold tracking-tight text-forest md:text-4xl">
+                Kitchen Table is not a feed. It is the table.
+              </h2>
+              {KITCHEN_TABLE_BLOCK.paragraphs.map((paragraph) => (
+                <p
+                  key={paragraph.slice(0, 32)}
+                  className="prose-measure mt-5 leading-relaxed text-foreground-muted"
                 >
-                  “{story.quote}”
-                </blockquote>
-                <figcaption
-                  className={
-                    index === 0
-                      ? "mt-4 text-sm text-white/85"
-                      : "mt-4 text-sm text-foreground-muted"
-                  }
-                >
-                  <span className="font-bold">{story.name}</span>
-                  <span className="block font-normal">{story.detail}</span>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section className="vu-gutter py-16">
-        <div className="vu-card vu-shell grid items-center overflow-hidden lg:grid-cols-2">
-          <div className="px-8 py-12 lg:px-12">
-            <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-              Membership
-            </p>
-            <h2 className="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl">
-              A seat at the table, billed without{" "}
-              <span className="text-accent">tricks</span>.
-            </h2>
-            <p className="prose-measure mt-5 leading-relaxed text-foreground-muted">
-              Membership unlocks Kitchen Table, the course catalog as it ships,
-              events, and a cooking roadmap. Price lives on SamCart checkout — we
-              do not invent a number here because SamCart is the source of truth
-              for money.
-            </p>
-            <ul className="mt-6 max-w-md space-y-3 text-foreground">
-              <li>Learn at a human pace, with lessons that lead to dinner.</li>
-              <li>Cook with people in the same season, not a content drip.</li>
-              <li>
-                Cancel in the open from Membership after you sign in. Access
-                follows the period SamCart reports.
-              </li>
-            </ul>
-            <div className="mt-8">
-              <ButtonLink href="/membership" size="lg">
-                Become a member
-              </ButtonLink>
+                  {paragraph}
+                </p>
+              ))}
+              <div className="mt-8">
+                <CheckoutButton />
+              </div>
             </div>
           </div>
-          <div className="relative min-h-[22rem] p-4">
-            <div className="relative h-full min-h-[20rem] overflow-hidden rounded-[1.25rem]">
-              <Image
-                src="https://images.unsplash.com/photo-1507048331197-7d4ac70811cf?auto=format&fit=crop&w=1400&q=80"
-                alt="Hands preparing vegetables — membership is the school plus the table"
-                fill
-                className="object-cover"
+        </Reveal>
+      </section>
+
+      {/* Course catalog ------------------------------------------------ */}
+      <section className="vu-gutter py-16">
+        <div className="vu-shell">
+          <Reveal>
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
+              The classes
+            </p>
+            <h2 className="vu-headline mt-3 font-display text-4xl font-bold tracking-tight text-forest">
+              Every class, one library.
+            </h2>
+            {nextLive?.liveAt ? (
+              <p className="mt-3 text-sm font-semibold text-forest">
+                Next live cook-along: {nextLive.title} on{" "}
+                {nextLive.liveAt.toLocaleDateString(undefined, {
+                  month: "long",
+                  day: "numeric",
+                })}
+                .
+              </p>
+            ) : null}
+          </Reveal>
+          <div className="mt-10">
+            <CourseCatalog
+              rows={catalogRows.map((row) => ({
+                category: row.category,
+                courses: row.courses.map((course) => ({
+                  slug: course.slug,
+                  title: course.title,
+                  description: course.description,
+                  coverUrl: course.coverUrl,
+                  teaserVideoUrl: course.teaserVideoUrl,
+                  liveAt: course.liveAt ? course.liveAt.toISOString() : null,
+                })),
+              }))}
+            />
+          </div>
+        </div>
+      </section>
+
+      {/* Community heatmap --------------------------------------------- */}
+      <section className="vu-gutter py-8">
+        <Reveal>
+          <div className="vu-shell">
+            <CommunityHeatmap data={heatmap} />
+          </div>
+        </Reveal>
+      </section>
+
+      {/* Membership teaser -------------------------------------------- */}
+      <section className="vu-gutter py-16">
+        <Reveal>
+          <div className="vu-card vu-shell grid items-center overflow-hidden lg:grid-cols-2">
+            <div className="px-8 py-12 lg:px-12">
+              <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
+                Membership
+              </p>
+              <p className="prose-measure mt-5 text-lg leading-relaxed text-foreground">
+                {MEMBERSHIP_TEASER.body}
+              </p>
+              <div className="mt-8">
+                <CheckoutButton size="lg" />
+              </div>
+              <p className="mt-4 text-sm text-foreground-muted">
+                {CANCEL_REASSURANCE}
+              </p>
+            </div>
+            <div className="p-4">
+              <PhotoSlot
+                id="home-membership-teaser"
+                aspect="min-h-[20rem]"
+                className="h-full"
               />
             </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
+      {/* FAQ ----------------------------------------------------------- */}
       <section className="vu-gutter pb-16">
-        <div className="vu-card mx-auto max-w-3xl px-8 py-12">
-          <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
-            FAQ
-          </p>
-          <h2 className="mt-3 text-3xl font-extrabold tracking-tight md:text-4xl">
-            Questions, answered <span className="text-accent">plainly</span>
-          </h2>
-          <div className="mt-6">
-            <FaqAccordion />
+        <Reveal>
+          <div className="vu-card mx-auto max-w-3xl px-8 py-12">
+            <p className="text-sm font-bold uppercase tracking-[0.2em] text-accent">
+              FAQ
+            </p>
+            <h2 className="vu-headline mt-3 font-display text-3xl font-bold tracking-tight text-forest md:text-4xl">
+              Questions, answered plainly
+            </h2>
+            <div className="mt-6">
+              <FaqAccordion />
+            </div>
+            <div className="mt-10">
+              <CheckoutButton />
+            </div>
           </div>
-        </div>
+        </Reveal>
       </section>
     </div>
   );

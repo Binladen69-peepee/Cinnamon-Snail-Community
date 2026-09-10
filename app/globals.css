@@ -54,64 +54,72 @@
     --sage: #e8f5e9;
     --mint: #f1f8f2;
     --cream: #fff8ef;
+    --paper: #fff8ef;
     --warm-white: #fffcf8;
     --sand: #ede2d2;
     --taupe: #66736d;
     --terracotta: #d97752;
     --apricot: #f59e0b;
     --ink: #16231f;
+    --cta-fill: #0f3d32;
+    --cta-fill-hover: #0b513f;
+    --cta-fill-foreground: #ffffff;
   }
 
   .dark,
   [data-theme="dark"] {
     color-scheme: dark;
 
-    --background: #000201;
-    --foreground: #e8f2ec;
-    --surface: #050c08;
-    --surface-foreground: #e8f2ec;
-    --overlay: #07110c;
-    --overlay-foreground: #e8f2ec;
-    --muted: #7f9588;
-    --primary: #16a34a;
-    --primary-foreground: #000201;
-    --accent: #3dcf73;
-    --accent-foreground: #000201;
+    --background: #000000;
+    --foreground: #fff8ef;
+    --surface: #0a0a0a;
+    --surface-foreground: #fff8ef;
+    --overlay: #111111;
+    --overlay-foreground: #fff8ef;
+    --muted: #9a9084;
+    --primary: #fff8ef;
+    --primary-foreground: #000000;
+    --accent: #fff8ef;
+    --accent-foreground: #000000;
     --accent-gold: #f59e0b;
     --accent-magenta: #d97752;
     --accent-coral: #d97752;
-    --foreground-muted: #7f9588;
-    --border: #122018;
-    --separator: #122018;
-    --focus: #3dcf73;
-    --link: #6ee7a0;
-    --default: #08140e;
-    --default-foreground: #e8f2ec;
-    --field-background: #050c08;
-    --field-foreground: #e8f2ec;
-    --field-placeholder: #7f9588;
-    --field-border: #122018;
-    --success: #3dcf73;
-    --success-foreground: #000201;
+    --foreground-muted: #9a9084;
+    --border: #262626;
+    --separator: #262626;
+    --focus: #fff8ef;
+    --link: #fff8ef;
+    --default: #141414;
+    --default-foreground: #fff8ef;
+    --field-background: #0a0a0a;
+    --field-foreground: #fff8ef;
+    --field-placeholder: #9a9084;
+    --field-border: #262626;
+    --success: #c4b8a8;
+    --success-foreground: #000000;
     --warning: #f59e0b;
-    --warning-foreground: #000201;
+    --warning-foreground: #000000;
     --danger: #f0a07a;
-    --danger-foreground: #000201;
+    --danger-foreground: #000000;
     --surface-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
     --overlay-shadow: 0 20px 60px rgba(0, 0, 0, 0.75);
 
-    --forest: #6ee7a0;
-    --deep-forest: #3dcf73;
-    --olive: #7f9588;
-    --sage: #08140e;
-    --mint: #050c08;
-    --cream: #000201;
-    --warm-white: #050c08;
-    --sand: #122018;
-    --taupe: #7f9588;
+    --forest: #fff8ef;
+    --deep-forest: #ebe2d4;
+    --olive: #9a9084;
+    --sage: #161616;
+    --mint: #0a0a0a;
+    --cream: #000000;
+    --paper: #fff8ef;
+    --warm-white: #0a0a0a;
+    --sand: #262626;
+    --taupe: #9a9084;
     --terracotta: #d97752;
     --apricot: #f59e0b;
-    --ink: #e8f2ec;
+    --ink: #fff8ef;
+    --cta-fill: #000000;
+    --cta-fill-hover: #141414;
+    --cta-fill-foreground: #fff8ef;
   }
 }
 
@@ -133,6 +141,7 @@
   --color-sage: var(--sage);
   --color-mint: var(--mint);
   --color-cream: var(--cream);
+  --color-paper: var(--paper);
   --color-warm-white: var(--warm-white);
   --color-sand: var(--sand);
   --color-taupe: var(--taupe);
@@ -225,6 +234,25 @@ h3,
   box-shadow: 0 20px 60px rgba(15, 61, 50, 0.08);
 }
 
+.dark .vu-card-hover:hover,
+[data-theme="dark"] .vu-card-hover:hover {
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55);
+}
+
+.vu-cta-fill {
+  background-color: var(--cta-fill) !important;
+  color: var(--cta-fill-foreground) !important;
+}
+
+.vu-cta-fill:hover {
+  background-color: var(--cta-fill-hover) !important;
+}
+
+.dark .vu-cta-fill,
+[data-theme="dark"] .vu-cta-fill {
+  box-shadow: inset 0 0 0 1px var(--paper);
+}
+
 .vu-sidebar {
   background: var(--surface);
   color: var(--foreground);
@@ -278,6 +306,147 @@ h3,
 
 .reaction-pop {
   animation: reaction-pop 180ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* --- Marketing motion + headline treatment -------------------------- */
+
+/* Scroll-triggered reveal. Sections start slightly low and faded. */
+.vu-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 700ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 700ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+
+.vu-reveal[data-revealed="true"] {
+  opacity: 1;
+  transform: none;
+}
+
+/* Headlines: a soft outer glow plus a speckle/scratch texture worked into the
+   lettering itself. Worn and hand-made, not damaged — the texture rides at low
+   opacity over the glyphs via background-clip so the type stays readable. */
+.vu-headline {
+  position: relative;
+  text-shadow:
+    0 0 18px color-mix(in oklab, var(--accent) 22%, transparent),
+    0 1px 0 color-mix(in oklab, var(--foreground) 8%, transparent);
+}
+
+.vu-headline::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    radial-gradient(circle at 12% 22%, rgba(0, 0, 0, 0.5) 0.6px, transparent 0.9px),
+    radial-gradient(circle at 68% 74%, rgba(0, 0, 0, 0.42) 0.5px, transparent 0.8px),
+    radial-gradient(circle at 38% 58%, rgba(0, 0, 0, 0.36) 0.5px, transparent 0.8px),
+    radial-gradient(circle at 84% 34%, rgba(0, 0, 0, 0.3) 0.4px, transparent 0.7px);
+  background-size:
+    37px 41px,
+    53px 47px,
+    29px 31px,
+    61px 59px;
+  mix-blend-mode: multiply;
+  opacity: 0.5;
+  -webkit-mask-image: linear-gradient(#000, #000);
+  mask-image: linear-gradient(#000, #000);
+}
+
+/* On the dark theme the speckle has to lighten, not darken, to read at all. */
+.dark .vu-headline::after,
+[data-theme="dark"] .vu-headline::after {
+  background-image:
+    radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.55) 0.6px, transparent 0.9px),
+    radial-gradient(circle at 68% 74%, rgba(255, 255, 255, 0.45) 0.5px, transparent 0.8px),
+    radial-gradient(circle at 38% 58%, rgba(255, 255, 255, 0.38) 0.5px, transparent 0.8px),
+    radial-gradient(circle at 84% 34%, rgba(255, 255, 255, 0.3) 0.4px, transparent 0.7px);
+  mix-blend-mode: screen;
+  opacity: 0.42;
+}
+
+/* Buttons: scale up slightly with a soft glow, not just a color change. */
+.vu-cta-glow {
+  transition:
+    transform 200ms ease,
+    box-shadow 240ms ease,
+    background-color 200ms ease;
+}
+
+.vu-cta-glow:hover {
+  transform: translateY(-2px) scale(1.025);
+  box-shadow:
+    0 12px 30px rgba(15, 61, 50, 0.24),
+    0 0 0 6px color-mix(in oklab, var(--accent) 14%, transparent);
+}
+
+.dark .vu-cta-glow:hover,
+[data-theme="dark"] .vu-cta-glow:hover {
+  box-shadow:
+    0 12px 30px rgba(0, 0, 0, 0.6),
+    0 0 0 6px color-mix(in oklab, var(--paper) 16%, transparent);
+}
+
+/* Anything clickable that reads as a card lifts and gains a soft shadow. */
+.vu-lift {
+  transition:
+    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 220ms ease;
+}
+
+.vu-lift:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 22px 50px rgba(15, 61, 50, 0.14);
+}
+
+.dark .vu-lift:hover,
+[data-theme="dark"] .vu-lift:hover {
+  box-shadow: 0 22px 50px rgba(0, 0, 0, 0.6);
+}
+
+/* Course rows scroll sideways; hide the scrollbar but keep it keyboard- and
+   touch-scrollable. */
+.vu-rail {
+  scrollbar-width: none;
+  scroll-snap-type: x proximity;
+  -webkit-overflow-scrolling: touch;
+}
+
+.vu-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.vu-rail > * {
+  scroll-snap-align: start;
+}
+
+/* The static leaf graphics drift instead of sitting still. */
+@keyframes leaf-drift {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+  }
+  50% {
+    transform: translate3d(6px, -10px, 0) rotate(2.5deg);
+  }
+}
+
+.vu-leaf-drift {
+  animation: leaf-drift 14s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vu-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+  .vu-leaf-drift {
+    animation: none;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

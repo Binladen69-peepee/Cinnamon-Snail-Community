@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Inter, Poppins, Caveat } from "next/font/google";
 import { Providers } from "@/app/providers";
 import { BotanicalBackdrop } from "@/components/marketing/hero-decor";
+import { SAMCART_SLIDE_SCRIPT } from "@/lib/marketing/checkout";
 import "./globals.css";
 
 const inter = Inter({
@@ -46,6 +48,7 @@ export default function RootLayout({
       className={`${inter.variable} ${poppins.variable} ${caveat.variable} h-full antialiased`}
     >
       <body className="relative min-h-full bg-background font-sans text-foreground">
+        <Script src={SAMCART_SLIDE_SCRIPT} strategy="afterInteractive" />
         <div className="relative min-h-full">
           <BotanicalBackdrop />
           <div className="relative z-10">

@@ -52,3 +52,6 @@ next-env.d.ts
 .ui-shots/
 
 .vercel
+
+.env*
+!.env.example
