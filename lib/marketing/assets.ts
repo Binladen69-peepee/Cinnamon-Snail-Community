@@ -29,6 +29,7 @@ export type AssetSlot = {
 
 const BLOB = "https://yqcfew9eptifgesz.public.blob.vercel-storage.com";
 const WP = "https://cinnamonsnail.com/wp-content/uploads";
+const KIT_CDN = "https://embed.filekitcdn.com/e";
 
 export const ASSET_SLOTS: AssetSlot[] = [
   {
@@ -38,8 +39,9 @@ export const ASSET_SLOTS: AssetSlot[] = [
     need:
       "Landscape footage that survives heavy cropping and reads as texture behind the headline.",
     // Adam to camera in his own kitchen, 1920x1080, 107s. Runs muted and
-    // looping behind the hero copy.
-    src: `${BLOB}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29.mp4`,
+    // looping behind the hero copy. Compressed cut: same frames, 8.6 MB
+    // instead of 35 MB, which matters when it autoplays for everyone.
+    src: `${BLOB}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29_compressed.mp4`,
     alt: "",
     kind: "video",
     orientation: "landscape",
@@ -67,10 +69,9 @@ export const ASSET_SLOTS: AssetSlot[] = [
     id: "home-belong",
     page: "homepage",
     section: "Belong card",
-    need:
-      "A community or potluck-style shot — real members around a table. Nothing on cinnamonsnail.com currently shows people eating together; this needs a photo from Adam.",
-    src: null,
-    alt: "",
+    need: "A community shot — real people, real kitchen, faces not stock smiles.",
+    src: `${KIT_CDN}/2nBNkb8XH531YbB1QKAjjH/fRktQtbsP7LNGJeudVXnVK`,
+    alt: "The Cinnamon Snail crew crowded into the food truck window, laughing and pulling faces",
     kind: "image",
   },
   {

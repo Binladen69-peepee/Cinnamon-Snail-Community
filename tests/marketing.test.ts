@@ -179,6 +179,11 @@ describe("video slots", () => {
     expect(hero.src).toBeTruthy();
   });
 
+  it("serves the compressed encode as the hero, not the 35 MB original", () => {
+    // Every visitor downloads this one, so the small cut is the only sane pick.
+    expect(assetSlot("home-hero").src).toContain("_compressed.mp4");
+  });
+
   it("declares an orientation for every video so players can frame it", () => {
     for (const slot of ASSET_SLOTS.filter((s) => s.kind === "video")) {
       expect(slot.orientation).toBeDefined();
@@ -210,9 +215,12 @@ describe("press credits", () => {
 });
 
 describe("real photography", () => {
-  it("sources filled photo slots from Adam's own media library", () => {
+  it("sources filled photo slots from Adam's own media hosts", () => {
     for (const slot of ASSET_SLOTS.filter((s) => s.kind === "image" && s.src)) {
-      expect(slot.src).toContain("cinnamonsnail.com/wp-content/uploads");
+      const fromAdam =
+        slot.src!.includes("cinnamonsnail.com/wp-content/uploads") ||
+        slot.src!.includes("embed.filekitcdn.com/e/");
+      expect(fromAdam, `${slot.id} -> ${slot.src}`).toBe(true);
     }
   });
 
@@ -222,8 +230,14 @@ describe("real photography", () => {
     }
   });
 
-  it("still flags the community shot, which has no match on his site", () => {
-    expect(assetSlot("home-belong").src).toBeNull();
+  it("has the community shot for Belong, with descriptive alt text", () => {
+    const belong = assetSlot("home-belong");
+    expect(belong.src).toContain("filekitcdn.com");
+    expect(belong.alt.toLowerCase()).toContain("crew");
+  });
+
+  it("leaves no homepage slot unfilled", () => {
+    expect(pendingAssets("homepage")).toEqual([]);
   });
 });
 
