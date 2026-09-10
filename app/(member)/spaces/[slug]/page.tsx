@@ -68,7 +68,16 @@ export default async function SpacePage({
             actionHref="/compose"
           />
         ) : (
-          posts.map((post) => <PostCard key={post.id} post={post} />)
+          posts.map((post) => (
+            <PostCard
+              key={post.id}
+              post={post}
+              viewer={{
+                name: session.user.name || session.user.handle,
+                avatar: session.user.image ?? null,
+              }}
+            />
+          ))
         )}
       </div>
     </div>

@@ -5,7 +5,7 @@ import { PostCard } from "@/components/community/post-card";
 import { CommentThread, type ThreadComment } from "@/components/community/comment-thread";
 import { FeedSortBar } from "@/components/community/feed-sort-bar";
 import { nestComments, parseFeedSort } from "@/lib/community/sort";
-import { summarizeReactions } from "@/lib/community/facebook-reactions";
+import { summarizeReactions } from "@/lib/community/reactions";
 import { commentAction } from "@/app/(member)/community-actions";
 
 export default async function PostPage({
@@ -67,6 +67,10 @@ export default async function PostPage({
           reactionCounts: summary.counts,
           myReaction: summary.myReaction,
           reactionTotal: summary.total,
+        }}
+        viewer={{
+          name: session.user.name || session.user.handle,
+          avatar: session.user.image ?? null,
         }}
         preview={false}
       />

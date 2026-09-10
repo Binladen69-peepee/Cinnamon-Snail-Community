@@ -5,7 +5,7 @@ import { flattenLessons, getPublishedCourse } from "@/lib/learn/catalog";
 import { memberCanPlayLessons } from "@/lib/learn/access";
 import { prisma } from "@/lib/db";
 import { LessonPlayer } from "@/components/learn/lesson-player";
-import { InlineComments } from "@/components/community/inline-comments";
+import { CommentDisclosure } from "@/components/community/comment-disclosure";
 import { completeLessonAction } from "@/app/(member)/learn/actions";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { renderMarkdown } from "@/lib/markdown";
@@ -110,7 +110,13 @@ export default async function LessonPage({
           <h2 className="font-display text-2xl text-forest">Kitchen Table for this lesson</h2>
           <p className="mt-2 text-sm text-foreground-muted">Ask the sauce question here. Names stay on the comments.</p>
           <div className="mt-4">
-            <InlineComments postId={discussion.id} commentCount={0} />
+            <CommentDisclosure
+              postId={discussion.id}
+              viewer={{
+                name: session.user.name || session.user.handle,
+                avatar: session.user.image ?? null,
+              }}
+            />
           </div>
         </section>
       ) : null}

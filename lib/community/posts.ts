@@ -7,7 +7,7 @@ import { upsertSearchIndex } from "@/lib/search";
 import { canPostInSpace, canEnterSpace, type UserAuth } from "@/lib/permissions";
 import { writeAuditLog } from "@/lib/audit";
 import { nestComments, parseFeedSort, sortByFeed, type FeedSort } from "@/lib/community/sort";
-import { isFacebookReaction, summarizeReactions } from "@/lib/community/facebook-reactions";
+import { isReaction, summarizeReactions } from "@/lib/community/reactions";
 
 const FEED_INCLUDE = {
   author: { include: { profile: true } },
@@ -23,6 +23,9 @@ const FEED_INCLUDE = {
   },
   _count: { select: { comments: true, bookmarks: true } },
 } satisfies Prisma.PostInclude;
+
+/** Empty membership map, so a viewer with no memberships still type-checks. */
+type MembershipMap = Map<string, { role: "MEMBER" | "MODERATOR" | "HOST" }>;
 
 export async function getUserAuth(userId: string): Promise<UserAuth | null> {
   const user = await prisma.user.findUnique({
@@ -80,18 +83,29 @@ export async function listFeed(input: {
         where: { userId: input.userId },
         select: { value: true },
       },
+      bookmarks: {
+        where: { userId: input.userId },
+        select: { id: true },
+      },
     },
   });
 
-  const visible = [];
-  for (const post of posts) {
-    const membership = await prisma.spaceMembership.findUnique({
-      where: { spaceId_userId: { spaceId: post.spaceId, userId: input.userId } },
-    });
-    if (canEnterSpace(auth, post.space, membership)) {
-      visible.push(post);
-    }
-  }
+  // One query for the viewer's memberships, not one per post. This loop used to
+  // issue a spaceMembership.findUnique for every post in the batch — up to
+  // eighty sequential round trips to render one feed, which is most of why the
+  // page felt slow.
+  const memberships: MembershipMap = new Map(
+    (
+      await prisma.spaceMembership.findMany({
+        where: { userId: input.userId },
+        select: { spaceId: true, role: true },
+      })
+    ).map((row) => [row.spaceId, { role: row.role }]),
+  );
+
+  const visible = posts.filter((post) =>
+    canEnterSpace(auth, post.space, memberships.get(post.spaceId) ?? null),
+  );
 
   const ranked = sortByFeed(visible, sort).slice(0, take);
   const extra = visible.length > take;
@@ -102,6 +116,7 @@ export async function listFeed(input: {
       return {
         ...post,
         myVote: post.votes[0]?.value ?? 0,
+        myBookmark: post.bookmarks.length > 0,
         reactionCounts: summary.counts,
         myReaction: summary.myReaction,
         reactionTotal: summary.total,
@@ -313,7 +328,7 @@ export async function setPostReaction(input: {
   postId: string;
   emoji: string;
 }) {
-  if (!isFacebookReaction(input.emoji)) {
+  if (!isReaction(input.emoji)) {
     throw new Error("That reaction is not available.");
   }
   const existing = await prisma.reaction.findMany({

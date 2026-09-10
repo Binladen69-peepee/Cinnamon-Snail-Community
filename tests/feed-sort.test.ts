@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { hotRank, nestComments, parseFeedSort, sortByFeed } from "@/lib/community/sort";
 import { voteDelta } from "@/lib/community/votes";
-import { summarizeReactions } from "@/lib/community/facebook-reactions";
+import { summarizeReactions } from "@/lib/community/reactions";
 
 describe("feed sort", () => {
   it("parses known sorts and defaults to hot", () => {

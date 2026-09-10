@@ -1,7 +1,15 @@
 import Link from "next/link";
-import { Calendar, ImageIcon, ListChecks, Video } from "lucide-react";
+import { CalendarDays, ImageIcon, ListChecks, Soup } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 
+/**
+ * Composer entry point.
+ *
+ * Every control here opens /compose, so the old version's separate "Post"
+ * button was a fifth link to the same place sitting where a submit button
+ * should be. It is gone; the shortcuts now carry the intent instead, each
+ * pre-selecting a post type.
+ */
 export function FeedComposer({
   name,
   avatar,
@@ -10,46 +18,40 @@ export function FeedComposer({
   avatar: string | null;
 }) {
   return (
-    <section className="vu-card p-5">
-      <Link href="/compose" className="flex items-center gap-3">
+    <section className="rounded-[1.5rem] border border-sand/80 bg-surface p-4 shadow-[0_1px_2px_rgba(15,61,50,0.04)]">
+      <Link href="/compose" className="flex items-center gap-3 no-underline">
         <Avatar name={name} src={avatar} />
-        <span className="flex min-h-11 flex-1 items-center rounded-[14px] border border-sand bg-cream px-4 text-sm text-foreground-muted">
-          Share something with the community...
+        <span className="flex min-h-11 flex-1 items-center rounded-full border border-sand bg-mint/50 px-4 text-sm text-foreground-muted transition hover:border-accent/60 hover:bg-mint">
+          Share a plate, a question, or what went wrong…
         </span>
       </Link>
-      <div className="mt-4 flex flex-wrap items-center gap-2">
-        <ComposerChip href="/compose?type=IMAGE" icon={ImageIcon} label="Photo" className="text-accent" />
-        <ComposerChip href="/compose?type=VIDEO" icon={Video} label="Video" className="text-terracotta" />
-        <ComposerChip href="/compose?type=POLL" icon={ListChecks} label="Poll" className="text-deep-forest" />
-        <ComposerChip href="/compose?type=EVENT" icon={Calendar} label="Event" className="text-foreground" />
-        <Link
-          href="/compose"
-          className="vu-cta-fill ml-auto inline-flex h-11 min-w-20 items-center justify-center rounded-full px-5 text-sm font-semibold transition hover:-translate-y-px"
-        >
-          Post
-        </Link>
+      <div className="mt-3 flex flex-wrap items-center gap-1 border-t border-sand/60 pt-3">
+        <Shortcut href="/compose?type=IMAGE" icon={ImageIcon} label="Photo" />
+        <Shortcut href="/compose?type=RECIPE" icon={Soup} label="Recipe" />
+        <Shortcut href="/compose?type=POLL" icon={ListChecks} label="Poll" />
+        <Shortcut href="/compose?type=EVENT" icon={CalendarDays} label="Event" />
       </div>
     </section>
   );
 }
 
-function ComposerChip({
+function Shortcut({
   href,
   icon: Icon,
   label,
-  className,
 }: {
   href: string;
   icon: typeof ImageIcon;
   label: string;
-  className?: string;
 }) {
   return (
     <Link
       href={href}
-      className={`inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-sm font-semibold hover:bg-mint ${className ?? ""}`}
+      className="inline-flex h-10 items-center gap-2 rounded-full px-3 text-[13px] font-semibold text-foreground-muted no-underline transition hover:bg-mint hover:text-forest"
     >
-      <Icon className="size-4" aria-hidden />
+      {/* One tone for every shortcut: the old version coloured each icon
+          differently, which read as four unrelated features. */}
+      <Icon className="size-4 text-accent" aria-hidden />
       {label}
     </Link>
   );

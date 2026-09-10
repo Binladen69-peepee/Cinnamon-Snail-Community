@@ -3,14 +3,16 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { listFeed } from "@/lib/community/posts";
 import { PostCard } from "@/components/community/post-card";
-import { EmptyState } from "@/components/ui/empty-state";
 import { FeedSortBar } from "@/components/community/feed-sort-bar";
-import { parseFeedSort } from "@/lib/community/sort";
-import { StoriesRail } from "@/components/community/stories-rail";
 import { FeedComposer } from "@/components/community/feed-composer";
+import { FeedHeader } from "@/components/community/feed-header";
+import { FeedEmpty } from "@/components/community/feed-empty";
 import { FeedRail } from "@/components/community/feed-rail";
+import { parseFeedSort } from "@/lib/community/sort";
 import { recentRecognition } from "@/lib/social/badges";
 import { peopleYouShouldMeet } from "@/lib/social/suggestions";
+
+export const metadata = { title: "Kitchen Table" };
 
 export default async function HomePage({
   searchParams,
@@ -20,193 +22,197 @@ export default async function HomePage({
   const session = await auth();
   if (!session?.user.id) redirect("/login");
   const sort = parseFeedSort((await searchParams).sort);
-  const [
-    { posts },
+
+  const {
+    posts,
     spaces,
-    memberCount,
     eventPosts,
     recentComments,
-    storyPosts,
     recognition,
     suggestions,
-  ] = await Promise.all([
-      listFeed({ userId: session.user.id, sort, take: 60 }),
-      prisma.space.findMany({
-        orderBy: { sortOrder: "asc" },
-        select: {
-          name: true,
-          slug: true,
-          coverUrl: true,
-          description: true,
-          _count: { select: { memberships: true } },
-        },
-      }),
-      prisma.user.count({ where: { deletedAt: null, status: { not: "DELETED" } } }),
-      prisma.post.findMany({
-        where: { type: "EVENT", status: "PUBLISHED" },
-        orderBy: { publishedAt: "desc" },
-        take: 3,
-        select: {
-          id: true,
-          title: true,
-          publishedAt: true,
-          space: { select: { name: true } },
-        },
-      }),
-      prisma.comment.findMany({
-        orderBy: { createdAt: "desc" },
-        take: 4,
-        select: {
-          id: true,
-          body: true,
-          createdAt: true,
-          author: {
-            select: {
-              handle: true,
-              profile: { select: { displayName: true, avatarUrl: true } },
-            },
-          },
-        },
-      }),
-      prisma.post.findMany({
-        where: {
-          status: "PUBLISHED",
-          attachments: { some: { kind: { in: ["image", "gif"] } } },
-        },
-        orderBy: { publishedAt: "desc" },
-        take: 8,
-        distinct: ["authorId"],
-        select: {
-          id: true,
-          author: {
-            select: {
-              handle: true,
-              profile: { select: { displayName: true, avatarUrl: true } },
-            },
-          },
-          attachments: {
-            where: { kind: { in: ["image", "gif"] } },
-            take: 1,
-            select: { url: true },
-          },
-        },
-      }),
-      recentRecognition(4),
-      peopleYouShouldMeet(session.user.id, 3),
-    ]);
-
-  const recognitionItems = recognition.map((award) => ({
-    id: award.id,
-    icon: award.badge.icon ?? "🌱",
-    badgeName: award.badge.name,
-    reason: award.reason ?? award.badge.description,
-    memberName: award.user.profile?.displayName ?? award.user.handle,
-    handle: award.user.handle,
-    avatar: award.user.profile?.avatarUrl ?? null,
-  }));
-  const suggestionItems = suggestions.map((person) => ({
-    userId: person.userId,
-    displayName: person.displayName,
-    handle: person.handle,
-    avatarUrl: person.avatarUrl,
-    reason: person.reason,
-  }));
-
+    newToday,
+    nextEvent,
+    memberCount,
+  } = await loadFeed(session.user.id, sort);
   const kitchen = spaces.find((space) => space.slug === "kitchen-table") ?? spaces[0];
   const currentName = session.user.name || session.user.handle;
+  const viewer = { name: currentName, avatar: session.user.image ?? null };
+  const isHost = session.user.roles.some(
+    (role) => role === "ADMIN" || role === "SUPER_ADMIN" || role === "HOST",
+  );
+
+  const railProps = {
+    community: {
+      name: kitchen?.name ?? "Vegan University",
+      description: kitchen?.description ?? null,
+      coverUrl: kitchen?.coverUrl ?? null,
+    },
+    memberCount,
+    spaces: spaces.map((space) => ({
+      name: space.name,
+      slug: space.slug,
+      coverUrl: space.coverUrl,
+      memberCount: space._count.memberships,
+    })),
+    events: eventPosts.map((event) => ({
+      id: event.id,
+      title: event.title,
+      publishedAt: event.publishedAt,
+      spaceName: event.space.name,
+    })),
+    activity: recentComments.map((item) => ({
+      id: item.id,
+      body: item.body,
+      createdAt: item.createdAt,
+      authorName: item.author.profile?.displayName ?? item.author.handle,
+      avatar: item.author.profile?.avatarUrl ?? null,
+    })),
+    recognition: recognition.map((award) => ({
+      id: award.id,
+      icon: award.badge.icon ?? "🌱",
+      badgeName: award.badge.name,
+      reason: award.reason ?? award.badge.description,
+      memberName: award.user.profile?.displayName ?? award.user.handle,
+      handle: award.user.handle,
+      avatar: award.user.profile?.avatarUrl ?? null,
+    })),
+    suggestions: suggestions.map((person) => ({
+      userId: person.userId,
+      displayName: person.displayName,
+      handle: person.handle,
+      avatarUrl: person.avatarUrl,
+      reason: person.reason,
+    })),
+  };
 
   return (
-    <div className="flex gap-5">
+    <div className="flex gap-6">
       <div className="min-w-0 flex-1 space-y-5">
-        <StoriesRail
-          currentUser={{ name: currentName, avatar: session.user.image ?? null }}
-          stories={storyPosts.map((post) => ({
-            id: post.id,
-            name: post.author.profile?.displayName ?? post.author.handle,
-            href: `/posts/${post.id}`,
-            image: post.attachments[0]?.url ?? null,
-            avatar: post.author.profile?.avatarUrl ?? null,
-            unseen: true,
-          }))}
+        <FeedHeader
+          firstName={currentName.split(" ")[0]}
+          spaceCount={spaces.length}
+          nextEvent={
+            nextEvent ? { title: nextEvent.title, when: nextEvent.startsAt } : null
+          }
+          newToday={newToday}
         />
-        <FeedComposer name={currentName} avatar={session.user.image ?? null} />
-        <FeedSortBar current={sort} basePath="/home" />
+
+        <FeedComposer name={currentName} avatar={viewer.avatar} />
+
+        {/* Sticks under the app bar so the filter stays reachable in a long
+            feed without a jump-to-top trip. */}
+        <div className="sticky top-[72px] z-20 -mx-1 bg-background/85 px-1 py-2 backdrop-blur-sm">
+          <FeedSortBar current={sort} basePath="/home" />
+        </div>
+
         <div className="space-y-5">
           {posts.length === 0 ? (
-            <EmptyState
-              title="The table is set"
-              body="No posts yet in spaces you can see. Start the first conversation."
-              actionLabel="Create a post"
-              actionHref="/compose"
-            />
+            <FeedEmpty sort={sort} />
           ) : (
-            posts.map((post) => <PostCard key={post.id} post={post} />)
+            posts.map((post) => (
+              <PostCard
+                key={post.id}
+                post={post}
+                viewer={viewer}
+                canPin={isHost}
+              />
+            ))
           )}
         </div>
+
         <div className="space-y-5 xl:hidden">
-          <FeedRail
-            stacked
-            community={{
-              name: kitchen?.name ?? "Vegan University",
-              description: kitchen?.description ?? null,
-              coverUrl: kitchen?.coverUrl ?? null,
-            }}
-            memberCount={memberCount}
-            spaces={spaces.map((space) => ({
-              name: space.name,
-              slug: space.slug,
-              coverUrl: space.coverUrl,
-              memberCount: space._count.memberships,
-            }))}
-            events={eventPosts.map((event) => ({
-              id: event.id,
-              title: event.title,
-              publishedAt: event.publishedAt,
-              spaceName: event.space.name,
-            }))}
-            activity={recentComments.map((item) => ({
-              id: item.id,
-              body: item.body,
-              createdAt: item.createdAt,
-              authorName: item.author.profile?.displayName ?? item.author.handle,
-              avatar: item.author.profile?.avatarUrl ?? null,
-            }))}
-            recognition={recognitionItems}
-            suggestions={suggestionItems}
-          />
+          <FeedRail stacked {...railProps} />
         </div>
       </div>
+
       <div className="hidden xl:block">
-        <FeedRail
-          community={{
-            name: kitchen?.name ?? "Vegan University",
-            description: kitchen?.description ?? null,
-            coverUrl: kitchen?.coverUrl ?? null,
-          }}
-          memberCount={memberCount}
-          spaces={spaces.map((space) => ({
-            name: space.name,
-            slug: space.slug,
-            coverUrl: space.coverUrl,
-            memberCount: space._count.memberships,
-          }))}
-          events={eventPosts.map((event) => ({
-            id: event.id,
-            title: event.title,
-            publishedAt: event.publishedAt,
-            spaceName: event.space.name,
-          }))}
-          activity={recentComments.map((item) => ({
-            id: item.id,
-            body: item.body,
-            createdAt: item.createdAt,
-            authorName: item.author.profile?.displayName ?? item.author.handle,
-            avatar: item.author.profile?.avatarUrl ?? null,
-          }))}
-          recognition={recognitionItems}
-          suggestions={suggestionItems}
-        />
+        <FeedRail {...railProps} />
       </div>
     </div>
   );
+}
+
+/**
+ * Everything the feed page needs, in one round of parallel queries.
+ *
+ * Kept out of the component body so the timestamp maths is not an impure call
+ * during render, and so the page reads as layout rather than data plumbing.
+ */
+async function loadFeed(userId: string, sort: ReturnType<typeof parseFeedSort>) {
+  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
+  const [
+    feed,
+    spaces,
+    eventPosts,
+    recentComments,
+    recognition,
+    suggestions,
+    newToday,
+    nextEvent,
+    memberCount,
+  ] = await Promise.all([
+    listFeed({ userId, sort, take: 25 }),
+    prisma.space.findMany({
+      orderBy: { sortOrder: "asc" },
+      select: {
+        name: true,
+        slug: true,
+        coverUrl: true,
+        description: true,
+        _count: { select: { memberships: true } },
+      },
+    }),
+    prisma.post.findMany({
+      where: { type: "EVENT", status: "PUBLISHED" },
+      orderBy: { publishedAt: "desc" },
+      take: 3,
+      select: {
+        id: true,
+        title: true,
+        publishedAt: true,
+        space: { select: { name: true } },
+      },
+    }),
+    prisma.comment.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 4,
+      select: {
+        id: true,
+        body: true,
+        createdAt: true,
+        author: {
+          select: {
+            handle: true,
+            profile: { select: { displayName: true, avatarUrl: true } },
+          },
+        },
+      },
+    }),
+    recentRecognition(4),
+    peopleYouShouldMeet(userId, 3),
+    prisma.post.count({
+      where: { status: "PUBLISHED", publishedAt: { gte: dayAgo } },
+    }),
+    prisma.event.findFirst({
+      where: { startsAt: { gt: new Date() } },
+      orderBy: { startsAt: "asc" },
+      select: { title: true, startsAt: true },
+    }),
+    prisma.user.count({
+      where: { deletedAt: null, status: { not: "DELETED" } },
+    }),
+  ]);
+
+  return {
+    posts: feed.posts,
+    spaces,
+    eventPosts,
+    recentComments,
+    recognition,
+    suggestions,
+    newToday,
+    nextEvent,
+    memberCount,
+  };
 }
