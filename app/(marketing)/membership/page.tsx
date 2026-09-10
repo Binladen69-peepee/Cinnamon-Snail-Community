@@ -5,12 +5,12 @@ import { Reveal } from "@/components/marketing/reveal";
 import { VideoSlot } from "@/components/marketing/photo-slot";
 import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
 import { SocialLinks } from "@/components/marketing/social-links";
-import { CommunityHeatmap } from "@/components/marketing/community-heatmap";
+import { CommunityGlobe } from "@/components/marketing/community-globe";
 import {
   SenjaEmbed,
   SENJA_MEMBERSHIP_WIDGET,
 } from "@/components/marketing/senja-embed";
-import { getCommunityHeatmap } from "@/lib/marketing/heatmap";
+import { getGlobeMarkers } from "@/lib/marketing/globe-markers";
 import { PRICING } from "@/lib/marketing/checkout";
 import { MEMBERSHIP_PAGE } from "@/lib/marketing/copy";
 
@@ -22,7 +22,7 @@ export const metadata = {
 };
 
 export default async function MembershipPage() {
-  const heatmap = await getCommunityHeatmap();
+  const globe = await getGlobeMarkers(8);
 
   return (
     <div className="overflow-x-clip">
@@ -147,11 +147,11 @@ export default async function MembershipPage() {
         </div>
       </section>
 
-      {/* Community heatmap --------------------------------------------- */}
+      {/* The community — globe as centrepiece --------------------------- */}
       <section className="vu-gutter vu-section-tight">
         <Reveal>
           <div className="vu-shell">
-            <CommunityHeatmap data={heatmap} />
+            <CommunityGlobe data={globe} />
           </div>
         </Reveal>
       </section>

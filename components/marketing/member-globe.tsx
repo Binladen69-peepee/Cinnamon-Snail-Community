@@ -1,20 +1,20 @@
 "use client";
 
 import createGlobe from "cobe";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { GlobeMarker } from "@/lib/marketing/globe-markers";
 
 /**
- * Rotating, draggable globe for the hero.
+ * Rotating, draggable globe of member geography.
  *
  * cobe rather than a three.js wrapper: it is a single WebGL canvas with no
  * scene graph, which is all this needs and a fraction of the bytes.
  *
- * The dotted-continent glow comes from cobe itself. The markers are plain
- * DOM avatars positioned over the canvas each frame, since the brief asks for
- * profile photos rather than flat dots.
+ * The dotted-continent glow comes from cobe itself. The markers are plain DOM
+ * map pins positioned over the canvas each frame — cobe's own markers are flat
+ * dots drawn by its shader, and they cannot carry a photo.
  */
-export function HeroGlobe({
+export function MemberGlobe({
   markers,
   placeholder,
 }: {
@@ -26,7 +26,7 @@ export function HeroGlobe({
   const pinRefs = useRef<(HTMLDivElement | null)[]>([]);
   const [ready, setReady] = useState(false);
 
-  // Drag state lives in refs: it changes every pointer move and must not
+  // Drag state lives in refs: it changes on every pointer move and must not
   // re-render the tree.
   const rotation = useRef(0);
   const dragStartX = useRef<number | null>(null);
@@ -40,12 +40,10 @@ export function HeroGlobe({
 
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     let width = wrap.clientWidth;
-    let height = wrap.clientWidth;
     let frame = 0;
 
     const onResize = () => {
       width = wrap.clientWidth;
-      height = wrap.clientWidth;
     };
     const observer = new ResizeObserver(onResize);
     observer.observe(wrap);
@@ -53,20 +51,20 @@ export function HeroGlobe({
     const globe = createGlobe(canvas, {
       devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
       width: width * 2,
-      height: height * 2,
+      height: width * 2,
       phi: 0,
       theta: 0.22,
       dark: 1,
       diffuse: 1.15,
-      mapSamples: 16000,
-      mapBrightness: 5.2,
-      // Deep teal ground with cyan land dots and cyan marker glow.
+      mapSamples: 18000,
+      mapBrightness: 5.4,
+      // Deep teal ground with cyan land dots and a cyan atmosphere.
       baseColor: [0.05, 0.14, 0.16],
       markerColor: [0.35, 0.95, 0.85],
       glowColor: [0.12, 0.42, 0.44],
-      // No cobe markers: its dots are projected by its own shader and sat a
-      // few pixels off the avatar pins overlaid below, which read as duplicate
-      // markers. The avatars are the markers, and they carry their own glow.
+      // No cobe markers: its dots are projected by its own shader and sit a few
+      // pixels off the pins overlaid below, which reads as duplicate markers.
+      // The pins are the markers, and they carry the photo.
       markers: [],
     });
 
@@ -82,10 +80,10 @@ export function HeroGlobe({
         phi: rotation.current,
         theta: THETA,
         width: width * 2,
-        height: height * 2,
+        height: width * 2,
       });
 
-      // Project each marker to screen space so its avatar tracks the globe.
+      // Project each marker to screen space so its pin tracks the globe.
       const radius = width / 2;
       for (let i = 0; i < markers.length; i += 1) {
         const pin = pinRefs.current[i];
@@ -108,10 +106,12 @@ export function HeroGlobe({
         }
         const screenX = radius + x * radius * 0.92;
         const screenY = radius - yT * radius * 0.92;
-        const depth = 0.55 + zT * 0.45;
+        const depth = 0.62 + zT * 0.38;
         pin.style.opacity = String(Math.min(1, zT * 2.4));
         pin.style.pointerEvents = "auto";
-        pin.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-50%, -50%) scale(${depth})`;
+        // translate(-50%, -100%) puts the pin's point on the coordinate, which
+        // is how a map pin is meant to sit.
+        pin.style.transform = `translate3d(${screenX}px, ${screenY}px, 0) translate(-50%, -100%) scale(${depth})`;
       }
 
       if (!painted) {
@@ -146,7 +146,7 @@ export function HeroGlobe({
   function onPointerMove(event: React.PointerEvent) {
     if (dragStartX.current === null) return;
     const delta = event.clientX - dragStartX.current;
-    rotation.current = dragStartRotation.current + delta / 180;
+    rotation.current = dragStartRotation.current + delta / 200;
   }
 
   function onPointerUp() {
@@ -155,10 +155,10 @@ export function HeroGlobe({
   }
 
   return (
-    <div className="relative mx-auto w-full max-w-[34rem]">
+    <div className="w-full">
       <div
         ref={wrapRef}
-        className="relative aspect-square w-full cursor-grab touch-none select-none active:cursor-grabbing"
+        className="relative mx-auto aspect-square w-full cursor-grab touch-none select-none active:cursor-grabbing"
         onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
@@ -167,17 +167,17 @@ export function HeroGlobe({
         {/* Orbital rings, purely decorative. */}
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-[6%] rounded-full border border-cyan-300/15"
+          className="pointer-events-none absolute inset-[4%] rounded-full border border-cyan-300/15"
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-[-2%] rotate-[18deg] rounded-full border border-cyan-300/10"
-          style={{ transform: "rotate(18deg) scaleY(0.34)" }}
+          className="pointer-events-none absolute inset-[-3%] rounded-full border border-cyan-300/10"
+          style={{ transform: "rotate(18deg) scaleY(0.32)" }}
         />
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-[-6%] rounded-full border border-cyan-300/[0.07]"
-          style={{ transform: "rotate(-24deg) scaleY(0.52)" }}
+          className="pointer-events-none absolute inset-[-8%] rounded-full border border-cyan-300/[0.07]"
+          style={{ transform: "rotate(-24deg) scaleY(0.5)" }}
         />
 
         <canvas
@@ -186,7 +186,7 @@ export function HeroGlobe({
           style={{ opacity: ready ? 1 : 0, contain: "layout paint size" }}
         />
 
-        {/* Avatar pins, positioned by the rAF loop above. */}
+        {/* Map pins, positioned by the rAF loop above. */}
         {markers.map((marker, index) => (
           <div
             key={`${marker.lat},${marker.lng}`}
@@ -195,26 +195,72 @@ export function HeroGlobe({
             }}
             className="absolute left-0 top-0 opacity-0 will-change-transform"
           >
-            <span className="relative block">
-              <span className="absolute -inset-1.5 animate-pulse rounded-full bg-cyan-300/25" />
-              {/* Member avatars are arbitrary hosts, not optimizer inputs. */}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img
-                src={marker.avatarUrl}
-                alt=""
-                loading="lazy"
-                className="relative size-7 rounded-full object-cover ring-2 ring-cyan-200/80"
-              />
-            </span>
+            <MapPin avatarUrl={marker.avatarUrl} place={marker.place} />
           </div>
         ))}
       </div>
 
-      <p className="mt-3 text-center text-[11px] text-white/45">
+      <p className="mt-5 text-center text-xs text-paper/50">
         {placeholder
           ? "Drag to spin. Pins are stand-ins until the member map is imported."
           : "Drag to spin. Regions only — no names, no exact locations."}
       </p>
     </div>
+  );
+}
+
+/**
+ * A teardrop map pin with the member's photo set into its head.
+ *
+ * Drawn as SVG rather than a rotated CSS square so the point is genuinely
+ * pointed and the photo can be clipped to a true circle without having to be
+ * counter-rotated.
+ */
+function MapPin({ avatarUrl, place }: { avatarUrl: string; place: string }) {
+  const clipId = useId();
+
+  return (
+    <span className="relative block" title={place}>
+      <svg
+        viewBox="0 0 44 58"
+        className="h-[3.25rem] w-auto drop-shadow-[0_6px_10px_rgba(2,20,18,0.55)]"
+        role="img"
+        aria-label={place}
+      >
+        <defs>
+          <clipPath id={clipId}>
+            <circle cx="22" cy="20" r="13.5" />
+          </clipPath>
+        </defs>
+
+        {/* Teardrop body: round head tapering to a point at the bottom. */}
+        <path
+          d="M22 57C22 57 3 34.6 3 20.6A19 19 0 0 1 41 20.6C41 34.6 22 57 22 57Z"
+          fill="#0d3b36"
+          stroke="rgb(103 232 219)"
+          strokeWidth="2"
+        />
+        {/* Photo well, so a transparent avatar never shows the body through. */}
+        <circle cx="22" cy="20" r="13.5" fill="#062725" />
+        <image
+          href={avatarUrl}
+          x="8.5"
+          y="6.5"
+          width="27"
+          height="27"
+          clipPath={`url(#${clipId})`}
+          preserveAspectRatio="xMidYMid slice"
+        />
+        {/* Frame ring over the photo edge. */}
+        <circle
+          cx="22"
+          cy="20"
+          r="13.5"
+          fill="none"
+          stroke="rgb(165 243 252)"
+          strokeWidth="1.6"
+        />
+      </svg>
+    </span>
   );
 }

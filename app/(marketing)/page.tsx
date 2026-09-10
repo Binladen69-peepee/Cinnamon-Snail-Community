@@ -5,19 +5,17 @@ import { StickyCheckout } from "@/components/marketing/sticky-checkout";
 import { Reveal } from "@/components/marketing/reveal";
 import { PhotoSlot } from "@/components/marketing/photo-slot";
 import { HeroVideo } from "@/components/marketing/hero-video";
-import { HeroGlobe } from "@/components/marketing/hero-globe";
 import { PressMarquee } from "@/components/marketing/press-marquee";
 import { SocialLinks } from "@/components/marketing/social-links";
 import { Reel } from "@/components/marketing/reel";
 import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
 import { CourseCatalog } from "@/components/marketing/course-catalog";
-import { CommunityHeatmap } from "@/components/marketing/community-heatmap";
+import { CommunityGlobe } from "@/components/marketing/community-globe";
 import {
   SenjaEmbed,
   SENJA_HOMEPAGE_WIDGET,
 } from "@/components/marketing/senja-embed";
 import { getCatalogRows, getNextLiveClass } from "@/lib/marketing/catalog";
-import { getCommunityHeatmap } from "@/lib/marketing/heatmap";
 import { getGlobeMarkers } from "@/lib/marketing/globe-markers";
 import { CANCEL_REASSURANCE } from "@/lib/marketing/checkout";
 import {
@@ -37,9 +35,8 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [catalogRows, heatmap, nextLive, globe] = await Promise.all([
+  const [catalogRows, nextLive, globe] = await Promise.all([
     getCatalogRows(),
-    getCommunityHeatmap(),
     getNextLiveClass(),
     getGlobeMarkers(8),
   ]);
@@ -71,8 +68,7 @@ export default async function HomePage() {
         />
 
         <div className="vu-gutter relative z-10 w-full pb-14 pt-28 md:pb-20">
-          <div className="vu-shell grid items-center gap-10 lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-12">
-          <div className="hero-copy-reveal">
+          <div className="vu-shell hero-copy-reveal">
             <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-md">
               <Leaf className="size-3.5 vu-leaf-drift" aria-hidden />
               A vegan cooking school
@@ -106,12 +102,6 @@ export default async function HomePage() {
                 title="What members say"
               />
             </div>
-          </div>
-
-          {/* The community heatmap's hero presentation — same data source. */}
-          <div className="hidden lg:block">
-            <HeroGlobe markers={globe.markers} placeholder={globe.placeholder} />
-          </div>
           </div>
         </div>
       </section>
@@ -267,11 +257,11 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Community heatmap --------------------------------------------- */}
+      {/* The community — globe as centrepiece --------------------------- */}
       <section className="vu-gutter vu-section-tight">
         <Reveal>
           <div className="vu-shell">
-            <CommunityHeatmap data={heatmap} />
+            <CommunityGlobe data={globe} />
           </div>
         </Reveal>
       </section>

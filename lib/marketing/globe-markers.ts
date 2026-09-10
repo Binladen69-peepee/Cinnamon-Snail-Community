@@ -38,15 +38,17 @@ const PLACEHOLDER_MARKERS: Omit<GlobeMarker, "placeholder">[] = [
 
 export type GlobeData = {
   markers: GlobeMarker[];
+  /** Distinct countries represented. A count of places, never of people. */
+  countries: number;
   /** True when showing stand-ins because no geography has been imported. */
   placeholder: boolean;
 };
 
 /**
- * Markers for the hero globe.
+ * Markers for the community globe.
  *
- * Reads the same `MemberGeoPoint` table the community heatmap uses — the globe
- * is that feature's hero-section presentation, not a second, disconnected one.
+ * The single source for member geography on the sales pages. The globe is the
+ * community section's centrepiece, not a second, disconnected feature.
  * When the Mighty export is imported both surfaces light up together, and this
  * function starts returning real geography with no code change.
  *
@@ -59,24 +61,32 @@ export async function getGlobeMarkers(limit = 8): Promise<GlobeData> {
       ...marker,
       placeholder: true,
     })),
+    countries: 0,
     placeholder: true,
   };
 
   if (!process.env.DATABASE_URL) return placeholder;
 
   try {
-    const rows = await prisma.memberGeoPoint.findMany({
-      orderBy: { weight: "desc" },
-      take: limit,
-      select: {
-        latitude: true,
-        longitude: true,
-        weight: true,
-        city: true,
-        region: true,
-        country: true,
-      },
-    });
+    const [rows, allCountries] = await Promise.all([
+      prisma.memberGeoPoint.findMany({
+        orderBy: { weight: "desc" },
+        take: limit,
+        select: {
+          latitude: true,
+          longitude: true,
+          weight: true,
+          city: true,
+          region: true,
+          country: true,
+        },
+      }),
+      // Distinct countries across the whole import, not just the pinned ones.
+      prisma.memberGeoPoint.findMany({
+        distinct: ["country"],
+        select: { country: true },
+      }),
+    ]);
     if (rows.length === 0) return placeholder;
 
     const maxWeight = Math.max(...rows.map((row) => row.weight));
@@ -86,10 +96,11 @@ export async function getGlobeMarkers(limit = 8): Promise<GlobeData> {
         lng: row.longitude,
         weight: maxWeight > 0 ? row.weight / maxWeight : 0.5,
         avatarUrl: PLACEHOLDER_AVATAR,
-        // City or region at the finest, exactly as the heatmap rule requires.
+        // City or region at the finest, per the geography rule.
         place: row.city ?? row.region ?? row.country,
         placeholder: false,
       })),
+      countries: allCountries.length,
       placeholder: false,
     };
   } catch {

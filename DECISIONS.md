@@ -615,25 +615,38 @@ Engineering (measured)
 
 ---
 
-## DEC-024 — The hero globe is the heatmap's hero presentation
+## DEC-024 — The globe *is* the community section
 
 Status: ACCEPTED
 
 Question:
-Should the hero globe be its own feature with its own data?
+Where does the member globe live, and does it duplicate the heatmap?
 
 Decision:
-No. `getGlobeMarkers()` reads the same `MemberGeoPoint` table as
-`getCommunityHeatmap()`, so importing the Mighty Networks export lights up both
-surfaces at once with no code change. Until then it returns clearly-labelled
-placeholder pins and the caption says they are stand-ins.
+It is the community section, not a hero ornament and not a second feature. The
+globe sits at the centre of a full-width dark panel on both sales pages, at a
+size that carries the section, and it replaced the flat SVG world map that used
+to sit in an empty card. `getCommunityHeatmap()`, `lib/marketing/heatmap.ts`
+and the hand-drawn `WORLD_LANDMASS_PATH` are all deleted; `getGlobeMarkers()`
+is now the single source for member geography and reads the same
+`MemberGeoPoint` table, so importing the Mighty Networks export lights it up
+with no code change. Until then it returns clearly-labelled placeholder pins
+and the caption says they are stand-ins.
 
 The globe is `cobe` — one WebGL canvas, no scene graph — rather than
 react-globe.gl, which brings three.js for control this does not need. cobe's
 own markers are disabled: they are projected by its shader and sat a few pixels
-off the avatar pins overlaid on top, which read as duplicate markers. The
-avatars are the markers. Desktop only, since it is decorative and WebGL is not
-worth it on a phone.
+off the pins overlaid on top, which read as duplicate markers.
+
+Markers are teardrop map pins drawn as SVG, with the member's photo clipped
+into a circle at the head. SVG rather than the usual rotated-square CSS
+teardrop, because that approach needs the photo counter-rotated inside it and
+never gives a genuinely pointed tip. Each pin is positioned
+`translate(-50%, -100%)` so its point — not its centre — lands on the
+coordinate, which is how a map pin is meant to read.
+
+The country count shown beneath the globe is a count of places, not of people,
+which is why it does not breach the no-member-counts rule.
 
 Date:
 2026-09-10
