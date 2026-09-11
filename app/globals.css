@@ -63,6 +63,10 @@
     --brand-strong: #0f3d32;
     --brand-wash: #e8f5e9;
 
+    /* One step firmer than --border. Cards rest on a hairline and firm up on
+       hover; without this the hover state was a no-op class. */
+    --hairline-firm: #d3d0c8;
+
     --forest: #0f3d32;
     --deep-forest: #0b513f;
     --olive: #66736d;
@@ -130,6 +134,8 @@
     --brand-strong: #86efac;
     --brand-wash: #10241a;
 
+    --hairline-firm: #333b37;
+
     --forest: #fff8ef;
     --deep-forest: #ebe2d4;
     --olive: #9a9084;
@@ -185,6 +191,7 @@
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-wash: var(--brand-wash);
+  --color-hairline-firm: var(--hairline-firm);
   /* Four radii and nothing else: the app had twelve arbitrary values.
      Retuned tighter for the rebuild. 16px cards read soft and consumer-app;
      Reddit sits at 8px, which reads like a tool you work in. The marketing

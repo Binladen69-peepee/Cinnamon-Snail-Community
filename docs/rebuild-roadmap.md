@@ -47,34 +47,54 @@ school, not an attention market).
 
 Each phase is shippable on its own and ends with a check you can run.
 
-### 0 — Foundation
+### 0 — Foundation — **done**
 
-Design tokens retuned for density, the app shell, and the primitives every page
-needs: button, input, card, avatar, badge, skeleton, empty state, menu, modal,
-toast.
+Tokens retuned for density (radii 16px → 8px, `--hairline-firm` added for hover
+borders), the three-column shell with a fixed bar, the left rail, the phone tab
+bar, and the account menu. Admin moved off the member shell onto its own plain
+chrome.
 
-*Done when:* the shell renders, `/home` is reachable, and every primitive exists
-in all its states.
+*Verified:* shell renders, `/home` reachable, typecheck/lint/build clean.
 
-### 1 — Feed (`/home`)
+### 1 — Feed (`/home`) — **done**
 
-The page members see most. Post card, vote rail, engagement row, inline
-composer with upload, sort bar, density toggle, threaded comments, and the
-right rail.
+Post card in both densities, vote rail, action row, inline composer with the
+upload pipeline, sort bar, Card/Compact toggle, threaded comments, discovery
+rail.
 
-*Done when:* a member can read, vote, react, comment, and post with a photo
-without leaving the page.
+*Verified:* both densities rendered and compared — compact fits five posts where
+card fits one, with media collapsed to a thumbnail. Optimistic votes, reactions
+and saves. Composer posts without navigating.
 
-### 2 — Spaces (`/spaces`, `/spaces/[slug]`)
+### 2 — Spaces (`/spaces`, `/spaces/[slug]`) — **done**
 
-Typed spaces, groups, visibility, unread, favourites, pinned resources, and the
-space header with kind-driven tabs. The Phase 3 domain layer in `lib/spaces`
-survives and is reused.
+Directory grouped from the same `listNavSpaces` call the rail uses, so the two
+cannot disagree. Space detail with a thin cover band, kind/visibility/host
+metadata, kind-driven tabs, join/leave/favourite, pinned resources, and an About
+rail. `lib/spaces` was preserved whole and reused.
 
-*Done when:* rail navigation still scales past five spaces, and a private space
-is invisible to a non-member.
+*Verified:*
 
-### 3 — Post detail and comments (`/posts/[id]`)
+| Flow | How |
+| --- | --- |
+| Typed tabs | FEED → Posts/Members/About. COURSE adds Lessons. EVENTS adds Events. CHAT adds neither. Read from the rendered tab nav, not assumed. |
+| Groups | Favourites, The Kitchen, Learning, Gatherings render as headings in both rail and directory. |
+| Visibility | A private room is absent from a non-member's listing, and `canDiscover` 404s the page. Asserted in `tests/spaces-flow.integration.test.ts`. |
+| Access | Self-serve join into a private room refuses; a host cannot leave their own room. |
+| Unread | A post by someone else raises the count; the author never sees their own; visiting clears it. |
+| Join/leave | Round-trips join → favourite → unfavourite → leave against the database, including the favourite being moved rather than duplicated. |
+| Pinned resources | Returned in sort order; every row has a label and URL. |
+| Responsive | Zero horizontal overflow at 485px and 749px on both pages, measured rather than eyeballed. |
+
+Seven integration tests cover the flows, and the suite was mutation-checked —
+inverting an assertion fails it — so the green is not vacuous.
+
+Two fixes found while building: `border-hairline-firm` was a token I had used in
+five places without ever defining, so those hover states were silently no-ops;
+and pinned resources moved from above the feed into the rail, because above the
+feed they pushed the first post down on every visit.
+
+### 3 — Post detail and comments (`/posts/[id]`) — next
 
 Full post view, threaded conversation, comment sort, permalinks.
 
@@ -124,6 +144,27 @@ optimistic interactions everywhere something is written.
 
 *Done when:* no route shows a browser default state, and the feed scrolls
 smoothly with a hundred posts.
+
+## Status
+
+| Phase | State |
+| --- | --- |
+| 0 Foundation | done |
+| 1 Feed | done |
+| 2 Spaces | done, verified |
+| 3 Post detail | next |
+| 4 Discover and search | not started |
+| 5 People | not started |
+| 6 Messages | not started |
+| 7 Learning | not started |
+| 8 Local and notifications | not started |
+| 9 Hardening | not started |
+
+Routes still missing, and therefore 404 until their phase lands: `/posts/[id]`,
+`/discover`, `/search`, `/members`, `/connect`, `/messages`, `/learn`,
+`/calendar`, `/roadmap`, `/bulletin`, `/notifications`, `/compose`. Links to
+them exist in the rail and the cards, because building the navigation twice
+would be waste — but they are dead until rebuilt.
 
 ## Standing rules for this rebuild
 
