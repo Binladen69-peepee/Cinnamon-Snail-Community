@@ -45,6 +45,7 @@ See `.env.example`. Never commit secrets. Never expose SamCart or Kit keys to th
 | Variable | Purpose |
 |---|---|
 | `DATABASE_URL` | PostgreSQL connection |
+| `DIRECT_URL` | Session-mode connection, for migrations only |
 | `AUTH_SECRET` | Auth.js cookie signing |
 | `AUTH_URL` | Public origin |
 | `EMAIL_FROM` | From-address for magic links |
@@ -62,6 +63,22 @@ See `.env.example`. Never commit secrets. Never expose SamCart or Kit keys to th
 | `BILLING_ALERT_EMAIL` | Daily reconciliation email, including clean days |
 
 ## Database
+
+### Migrations are applied by the build
+
+`pnpm build` runs `prisma migrate deploy` before `next build`, so a deployment
+cannot ship code whose migrations were never applied. That failure mode is not
+hypothetical: two migrations were hand-applied locally and never run against
+production, the build passed because it only generated the client, and every
+request touching the new tables returned 500 while the build was green.
+
+`prisma migrate deploy` uses `DIRECT_URL`, not `DATABASE_URL`. In production
+`DATABASE_URL` is the Supabase pooler in **transaction** mode, which is what
+serverless needs and which Prisma Migrate cannot run DDL through — it hangs
+indefinitely rather than failing, so a build using it would time out rather than
+report anything useful. `DIRECT_URL` is the same pooler in **session** mode
+(port 5432). Locally the two are identical, because there is no pooler.
+
 
 PostgreSQL 16 + Prisma. Schema: `prisma/schema.prisma`. Migrations: `prisma/migrations`.
 

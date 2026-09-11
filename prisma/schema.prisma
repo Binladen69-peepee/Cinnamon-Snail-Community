@@ -4,7 +4,14 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
+  /// Runtime connection. In production this is the Supabase pooler in
+  /// transaction mode, which is what serverless needs.
+  url       = env("DATABASE_URL")
+  /// Migrations and introspection only. Prisma Migrate cannot run DDL through
+  /// pgBouncer in transaction mode — it hangs indefinitely rather than
+  /// erroring — so it needs a session-mode connection. Falls back to
+  /// DATABASE_URL locally, where there is no pooler.
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserStatus {
