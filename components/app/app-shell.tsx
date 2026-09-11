@@ -3,10 +3,11 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { listNavSpaces } from "@/lib/spaces";
 import { totalUnreadForUser } from "@/lib/messages/conversations";
-import { LOOK_COOKIE, parseLook } from "@/lib/looks";
+import { DARK_LOOK, LOOK_COOKIE, parseLook } from "@/lib/looks";
 import { AppHeader } from "@/components/app/app-header";
 import { SideRail } from "@/components/app/side-rail";
 import { MobileTabs } from "@/components/app/mobile-tabs";
+import { cn } from "@/lib/utils";
 import { LookSwitcher } from "@/components/app/look-switcher";
 
 /**
@@ -44,8 +45,11 @@ export async function AppShell({
 
   return (
     <div
-      data-look={look ?? undefined}
-      className="min-h-screen bg-background text-foreground"
+      data-look={look}
+      className={cn(
+        "min-h-screen bg-background text-foreground",
+        look === DARK_LOOK && "dark",
+      )}
     >
       <AppHeader />
 

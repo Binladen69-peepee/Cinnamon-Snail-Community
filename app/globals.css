@@ -1032,37 +1032,25 @@ body:has([data-hero-dark])
    -------------------------------------------------------------------------- */
 
 /* --- 1. DARK — charcoal ground, green as the only accent ----------------- */
+/*
+ * Dark is not a fourth palette — it is the landing page's own dark theme, so
+ * the app and the marketing site are recognisably one product. The `.dark`
+ * class is stamped alongside this attribute (see AppShell), which is what
+ * actually brings in the black/cream tokens and lets every `dark:` variant in
+ * the components fire.
+ *
+ * The only override: a green brand was added to the dark theme earlier so a
+ * vote arrow would still read as "mine". The landing page has no green in it
+ * at all — its emphasis is warm cream on black, and the CTA inverts rather
+ * than colours. So emphasis here is cream, and the photography carries the
+ * colour, exactly as it does on the landing page.
+ */
 [data-look="dark"] {
-  --background: #0e1211;
-  --surface: #171c1a;
-  --overlay: #1c2220;
-  --foreground: #ecefec;
-  --foreground-muted: #93a09a;
-  --border: #262d2a;
-  --hairline-firm: #333b37;
-
-  --brand: #4fbf92;
-  --brand-strong: #86efac;
-  --brand-wash: #13251e;
-  --on-brand: #06120d;
-
-  /* The old literal vocabulary, repointed so components using it stay
-     coherent instead of inverting. */
-  --mint: #1e2422;
-  --sage: #1e2422;
-  --sand: #262d2a;
-  --olive: #93a09a;
-  --cream: #0e1211;
-  --warm-white: #171c1a;
-  --forest: #4fbf92;
-  --deep-forest: #6bd0a6;
-  --paper: #06120d;
-
-  --apricot: #e0a54a;
-  --terracotta: #f0907e;
-  --danger: #f0907e;
-
-  color-scheme: dark;
+  --brand: #fff8ef;
+  --brand-strong: #ebe2d4;
+  --brand-wash: #141414;
+  --on-brand: #000000;
+  --sage: #141414;
 }
 
 /* --- 2. PORCELAIN — neutral ground, editorial serif --------------------- */

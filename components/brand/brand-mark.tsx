@@ -13,6 +13,12 @@ import { cn } from "@/lib/utils";
  *
  * Two leaves are the accent green and one is a lighter tint, so the mark keeps
  * some depth when it is rendered at 20px.
+ *
+ * In dark mode both --forest and --accent resolve to the same warm cream,
+ * which collapsed the whole mark into a solid cream disc with the sprig
+ * invisible inside it. So the sprig flips to the ground colour on dark: cream
+ * roundel, black leaves. This was already broken for anyone using the moon
+ * toggle, not just the dark candidate.
  */
 export function BrandLogo({ className }: { className?: string }) {
   return (
@@ -37,7 +43,7 @@ export function BrandLogo({ className }: { className?: string }) {
       {/* Stem */}
       <path
         d="M20 30.5V17.2"
-        className="stroke-accent"
+        className="stroke-accent dark:stroke-cream"
         strokeWidth="1.9"
         strokeLinecap="round"
         strokeOpacity="0.9"
@@ -46,23 +52,23 @@ export function BrandLogo({ className }: { className?: string }) {
       {/* Left leaf */}
       <path
         d="M19.1 22.6c-3.4.5-5.9-1-6.7-4.2 3.1-1.3 5.8-.4 6.7 4.2Z"
-        className="fill-accent"
+        className="fill-accent dark:fill-cream"
         fillOpacity="0.62"
       />
       {/* Right leaf */}
       <path
         d="M20.9 19.4c3.4.5 5.9-1 6.7-4.2-3.1-1.3-5.8-.4-6.7 4.2Z"
-        className="fill-accent"
+        className="fill-accent dark:fill-cream"
         fillOpacity="0.62"
       />
       {/* Crown leaf, with a midrib */}
       <path
         d="M20 16.8c-2.6-2.1-2.6-5.4 0-8.3 2.6 2.9 2.6 6.2 0 8.3Z"
-        className="fill-accent"
+        className="fill-accent dark:fill-cream"
       />
       <path
         d="M20 15.4V10.2"
-        className="stroke-forest"
+        className="stroke-forest dark:stroke-accent"
         strokeWidth="0.9"
         strokeLinecap="round"
         strokeOpacity="0.55"

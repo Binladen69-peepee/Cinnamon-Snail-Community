@@ -17,13 +17,13 @@ import { cn } from "@/lib/utils";
  * Deliberately conspicuous: it is scaffolding for a decision, not a feature,
  * and it goes when the decision is made.
  */
-export function LookSwitcher({ current }: { current: Look | null }) {
+export function LookSwitcher({ current }: { current: Look }) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
-  function pick(value: Look | null) {
+  function pick(value: Look) {
     start(async () => {
-      await setLookAction(value ?? "");
+      await setLookAction(value);
       router.refresh();
     });
   }
@@ -59,21 +59,6 @@ export function LookSwitcher({ current }: { current: Look | null }) {
             </button>
           );
         })}
-
-        <button
-          type="button"
-          onClick={() => pick(null)}
-          title="The current theme, unchanged"
-          aria-pressed={current === null}
-          className={cn(
-            "inline-flex h-8 items-center rounded-full px-3 text-[12.5px] font-bold transition",
-            current === null
-              ? "bg-brand text-on-brand"
-              : "text-foreground-muted hover:bg-mint hover:text-foreground",
-          )}
-        >
-          Current
-        </button>
       </div>
     </div>
   );
