@@ -77,7 +77,7 @@ export function UploadTray({
             {item.status === "done" ? (
               <>
                 <span
-                  className="absolute right-1 top-1 grid size-4.5 place-items-center rounded-full bg-brand text-[#06120d]"
+                  className="absolute right-1 top-1 grid size-4.5 place-items-center rounded-full bg-brand text-on-brand"
                   aria-hidden
                 >
                   <Check className="size-3" />

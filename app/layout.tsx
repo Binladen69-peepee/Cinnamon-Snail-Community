@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Inter, Poppins, Caveat } from "next/font/google";
+import { Inter, Poppins, Caveat, Fraunces } from "next/font/google";
 import { Providers } from "@/app/providers";
 import { BotanicalBackdrop } from "@/components/marketing/hero-decor";
 import { SAMCART_SLIDE_SCRIPT } from "@/lib/marketing/checkout";
@@ -14,6 +14,18 @@ const inter = Inter({
 
 const poppins = Poppins({
   variable: "--font-poppins",
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  display: "swap",
+});
+
+/**
+ * Display face for the "porcelain" look under evaluation. Loaded here so the
+ * three candidate identities can be compared without a rebuild; it costs
+ * nothing on pages that do not reference it.
+ */
+const fraunces = Fraunces({
+  variable: "--font-fraunces",
   subsets: ["latin"],
   weight: ["600", "700"],
   display: "swap",
@@ -45,7 +57,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${poppins.variable} ${caveat.variable} h-full antialiased`}
+      className={`${inter.variable} ${poppins.variable} ${caveat.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="relative min-h-full bg-background font-sans text-foreground">
         <Script src={SAMCART_SLIDE_SCRIPT} strategy="afterInteractive" />

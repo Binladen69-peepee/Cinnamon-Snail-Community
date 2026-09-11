@@ -44,7 +44,7 @@ export function FeedRail({
       <Panel>
         <Link
           href="/compose"
-          className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-forest text-[13.5px] font-bold text-paper no-underline transition hover:bg-deep-forest dark:bg-brand dark:text-[#06120d] dark:hover:bg-brand-strong"
+          className="flex h-9 items-center justify-center gap-1.5 rounded-full bg-forest text-[13.5px] font-bold text-paper no-underline transition hover:bg-deep-forest dark:bg-brand dark:text-on-brand dark:hover:bg-brand-strong"
         >
           <Plus className="size-4" aria-hidden />
           Create a post
@@ -63,7 +63,7 @@ export function FeedRail({
                   <span
                     className={cn(
                       "grid size-9 shrink-0 place-items-center rounded-ctl text-center",
-                      event.live ? "bg-brand text-[#06120d]" : "bg-brand-wash",
+                      event.live ? "bg-brand text-on-brand" : "bg-brand-wash",
                     )}
                     aria-hidden
                   >

@@ -236,7 +236,7 @@ export function Composer({
                     "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                     "bg-forest text-paper hover:bg-deep-forest",
                     "disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100",
-                    "dark:bg-brand dark:text-[#06120d] dark:hover:bg-brand-strong",
+                    "dark:bg-brand dark:text-on-brand dark:hover:bg-brand-strong",
                   )}
                 >
                   {pending ? (

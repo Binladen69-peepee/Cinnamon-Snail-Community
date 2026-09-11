@@ -1,10 +1,13 @@
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { listNavSpaces } from "@/lib/spaces";
 import { totalUnreadForUser } from "@/lib/messages/conversations";
+import { LOOK_COOKIE, parseLook } from "@/lib/looks";
 import { AppHeader } from "@/components/app/app-header";
 import { SideRail } from "@/components/app/side-rail";
 import { MobileTabs } from "@/components/app/mobile-tabs";
+import { LookSwitcher } from "@/components/app/look-switcher";
 
 /**
  * The member app frame.
@@ -17,6 +20,10 @@ import { MobileTabs } from "@/components/app/mobile-tabs";
  * The right rail is a slot rather than a fixed component, because what belongs
  * beside a page depends on the page: a space shows its About card, the feed
  * shows what to do next, and a settings screen wants nothing there at all.
+ *
+ * The candidate look is read here and stamped on this element, not on <html>:
+ * the marketing site keeps its own identity and must never inherit the
+ * attribute. Reading it on the server means no flash of the previous theme.
  */
 export async function AppShell({
   children,
@@ -28,13 +35,18 @@ export async function AppShell({
   const session = await auth();
   if (!session?.sessionId) redirect("/login");
 
-  const [nav, unreadMessages] = await Promise.all([
+  const [nav, unreadMessages, store] = await Promise.all([
     listNavSpaces(session.user.id),
     totalUnreadForUser(session.user.id).catch(() => 0),
+    cookies(),
   ]);
+  const look = parseLook(store.get(LOOK_COOKIE)?.value);
 
   return (
-    <div className="min-h-screen bg-background">
+    <div
+      data-look={look ?? undefined}
+      className="min-h-screen bg-background text-foreground"
+    >
       <AppHeader />
 
       <div className="mx-auto flex max-w-[1600px] gap-5 px-3 sm:px-4">
@@ -69,6 +81,7 @@ export async function AppShell({
       </div>
 
       <MobileTabs />
+      <LookSwitcher current={look} />
     </div>
   );
 }

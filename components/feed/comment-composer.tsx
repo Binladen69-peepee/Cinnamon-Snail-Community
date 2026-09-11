@@ -113,7 +113,7 @@ export function CommentComposer({
                 type="button"
                 onClick={submit}
                 disabled={!text || pending}
-                className="inline-flex h-8 min-w-16 items-center justify-center gap-1.5 rounded-full bg-forest px-3.5 text-[12.5px] font-bold text-paper transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 hover:bg-deep-forest dark:bg-brand dark:text-[#06120d] dark:hover:bg-brand-strong"
+                className="inline-flex h-8 min-w-16 items-center justify-center gap-1.5 rounded-full bg-forest px-3.5 text-[12.5px] font-bold text-paper transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 hover:bg-deep-forest dark:bg-brand dark:text-on-brand dark:hover:bg-brand-strong"
               >
                 {pending ? (
                   <>

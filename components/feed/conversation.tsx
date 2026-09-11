@@ -229,7 +229,7 @@ function Node({
             <button
               type="submit"
               disabled={pending}
-              className="inline-flex h-8 shrink-0 items-center rounded-full bg-forest px-3 text-[12.5px] font-bold text-paper transition hover:bg-deep-forest disabled:opacity-50 dark:bg-brand dark:text-[#06120d]"
+              className="inline-flex h-8 shrink-0 items-center rounded-full bg-forest px-3 text-[12.5px] font-bold text-paper transition hover:bg-deep-forest disabled:opacity-50 dark:bg-brand dark:text-on-brand"
             >
               {pending ? "Posting…" : "Reply"}
             </button>

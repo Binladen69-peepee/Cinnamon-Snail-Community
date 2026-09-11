@@ -170,7 +170,7 @@ export function CommentThread({
             <button
               type="submit"
               disabled={replyPending}
-              className="inline-flex h-9 shrink-0 items-center rounded-full bg-forest px-3.5 text-[13px] font-bold text-paper transition hover:bg-deep-forest disabled:opacity-50 dark:bg-brand dark:text-[#06120d]"
+              className="inline-flex h-9 shrink-0 items-center rounded-full bg-forest px-3.5 text-[13px] font-bold text-paper transition hover:bg-deep-forest disabled:opacity-50 dark:bg-brand dark:text-on-brand"
             >
               {replyPending ? "Posting…" : "Reply"}
             </button>

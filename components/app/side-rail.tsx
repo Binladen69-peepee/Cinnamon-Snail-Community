@@ -259,7 +259,7 @@ function Badge({ count, className }: { count: number; className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex min-w-[1.1rem] shrink-0 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold tabular-nums text-[#06120d]",
+        "inline-flex min-w-[1.1rem] shrink-0 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold tabular-nums text-on-brand",
         className,
       )}
     >

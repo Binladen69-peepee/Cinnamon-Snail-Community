@@ -49,7 +49,7 @@ export function SpaceCard({ space }: { space: NavSpace }) {
               {space.name}
             </span>
             {space.unread > 0 ? (
-              <span className="shrink-0 rounded-full bg-brand px-1.5 text-[10px] font-bold tabular-nums text-[#06120d]">
+              <span className="shrink-0 rounded-full bg-brand px-1.5 text-[10px] font-bold tabular-nums text-on-brand">
                 {space.unread >= 50 ? "50+" : space.unread} new
               </span>
             ) : null}

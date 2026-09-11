@@ -62,6 +62,14 @@
     --brand: #16a34a;
     --brand-strong: #0f3d32;
     --brand-wash: #e8f5e9;
+    --on-brand: #06120d;
+
+    /* Radii live as runtime variables because @theme inline bakes literals in
+       at build time, which would make them unswappable. */
+    --r-chip: 0.375rem;
+    --r-ctl: 0.5rem;
+    --r-card: 0.5rem;
+    --r-modal: 0.75rem;
 
     /* One step firmer than --border. Cards rest on a hairline and firm up on
        hover; without this the hover state was a no-op class. */
@@ -133,6 +141,7 @@
     --brand: #4ade80;
     --brand-strong: #86efac;
     --brand-wash: #10241a;
+    --on-brand: #06120d;
 
     --hairline-firm: #333b37;
 
@@ -191,15 +200,16 @@
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-wash: var(--brand-wash);
+  --color-on-brand: var(--on-brand);
   --color-hairline-firm: var(--hairline-firm);
   /* Four radii and nothing else: the app had twelve arbitrary values.
      Retuned tighter for the rebuild. 16px cards read soft and consumer-app;
      Reddit sits at 8px, which reads like a tool you work in. The marketing
      pages keep their own generous radii through the vu-* classes. */
-  --radius-chip: 0.375rem;
-  --radius-ctl: 0.5rem;
-  --radius-card: 0.5rem;
-  --radius-modal: 0.75rem;
+  --radius-chip: var(--r-chip);
+  --radius-ctl: var(--r-ctl);
+  --radius-card: var(--r-card);
+  --radius-modal: var(--r-modal);
   --radius-lg: 1.25rem;
   --shadow-e1: var(--e1);
   --shadow-e2: var(--e2);
@@ -221,13 +231,21 @@ body {
   font-weight: 400;
 }
 
+:root {
+  /* Type roles, so a candidate look can repoint them. Defaults are today's
+     faces, which is why the marketing pages are unaffected. */
+  --ui-display: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --ui-display-weight: 700;
+  --ui-display-tracking: -0.03em;
+}
+
 h1,
 h2,
 h3,
 .font-display {
-  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-family: var(--ui-display);
+  font-weight: var(--ui-display-weight);
+  letter-spacing: var(--ui-display-tracking);
 }
 
 .font-hand {
@@ -997,4 +1015,140 @@ body:has([data-hero-dark])
   to {
     opacity: 1;
   }
+}
+
+
+/* ==========================================================================
+   CANDIDATE LOOKS — under evaluation, one to be chosen and the rest deleted.
+   ==========================================================================
+
+   Each block redefines every colour token the member app actually references
+   (22 of them) plus the radius scale, so nothing falls through to the default
+   palette. No component changes: the comparison is purely identity, which is
+   the only way to judge it fairly.
+
+   Applied by AppShell stamping data-look on its wrapper, driven by a cookie.
+   Marketing pages never carry the attribute and so never change.
+   -------------------------------------------------------------------------- */
+
+/* --- 1. DARK — charcoal ground, green as the only accent ----------------- */
+[data-look="dark"] {
+  --background: #0e1211;
+  --surface: #171c1a;
+  --overlay: #1c2220;
+  --foreground: #ecefec;
+  --foreground-muted: #93a09a;
+  --border: #262d2a;
+  --hairline-firm: #333b37;
+
+  --brand: #4fbf92;
+  --brand-strong: #86efac;
+  --brand-wash: #13251e;
+  --on-brand: #06120d;
+
+  /* The old literal vocabulary, repointed so components using it stay
+     coherent instead of inverting. */
+  --mint: #1e2422;
+  --sage: #1e2422;
+  --sand: #262d2a;
+  --olive: #93a09a;
+  --cream: #0e1211;
+  --warm-white: #171c1a;
+  --forest: #4fbf92;
+  --deep-forest: #6bd0a6;
+  --paper: #06120d;
+
+  --apricot: #e0a54a;
+  --terracotta: #f0907e;
+  --danger: #f0907e;
+
+  color-scheme: dark;
+}
+
+/* --- 2. PORCELAIN — neutral ground, editorial serif --------------------- */
+[data-look="porcelain"] {
+  --background: #f6f5f2;
+  --surface: #ffffff;
+  --overlay: #ffffff;
+  --foreground: #151c18;
+  --foreground-muted: #5c665f;
+  --border: #e3e1db;
+  --hairline-firm: #d3d0c8;
+
+  --brand: #1c5b46;
+  --brand-strong: #123b2e;
+  --brand-wash: #e7efea;
+  --on-brand: #ffffff;
+
+  --mint: #f1f0ec;
+  --sage: #e7efea;
+  --sand: #e3e1db;
+  --olive: #5c665f;
+  --cream: #f6f5f2;
+  --warm-white: #ffffff;
+  --forest: #1c5b46;
+  --deep-forest: #123b2e;
+  --paper: #ffffff;
+
+  --apricot: #9a6a14;
+  --terracotta: #a93a29;
+  --danger: #a93a29;
+
+  /* The real departure here is the type, not the palette. */
+  --ui-display: var(--font-fraunces), "Iowan Old Style", Georgia, serif;
+  --ui-display-weight: 600;
+  --ui-display-tracking: -0.015em;
+
+  color-scheme: light;
+}
+
+/* --- 3. UTILITY — white, high-contrast edges, squared ------------------- */
+[data-look="utility"] {
+  --background: #ffffff;
+  --surface: #ffffff;
+  --overlay: #ffffff;
+  --foreground: #0a0a0a;
+  --foreground-muted: #6b6b6b;
+  --border: #e0e0e0;
+  --hairline-firm: #0a0a0a;
+
+  /* Monochrome on purpose. Green as the accent is what makes every other
+     candidate read as a variation of the same page; here the photography is
+     the only colour, and ink carries the emphasis instead. */
+  --brand: #0a0a0a;
+  --brand-strong: #000000;
+  --brand-wash: #f2f2f2;
+  --on-brand: #ffffff;
+
+  --mint: #f5f5f5;
+  --sage: #f2f2f2;
+  --sand: #e0e0e0;
+  --olive: #6b6b6b;
+  --cream: #ffffff;
+  --warm-white: #ffffff;
+  --forest: #0a0a0a;
+  --deep-forest: #000000;
+  --paper: #ffffff;
+
+  /* The one exception: destructive still has to look destructive. */
+  --apricot: #6b6b6b;
+  --terracotta: #b4402f;
+  --danger: #b4402f;
+
+  --e1: 0 0 #0000;
+  --e2: 0 0 #0000;
+  --e3: 0 0 #0000;
+
+  color-scheme: light;
+}
+
+/* Squared corners are part of the utility identity, so the named radii go to
+   zero. rounded-full is Tailwind's own 9999px and cannot be repointed through
+   a token, so pills and avatars stay round in this preview — a known
+   simplification rather than the finished look. */
+[data-look="utility"] {
+  --r-chip: 0px;
+  --r-ctl: 0px;
+  --r-card: 0px;
+  --r-modal: 0px;
 }

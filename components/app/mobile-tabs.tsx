@@ -51,7 +51,7 @@ export function MobileTabs() {
                 <Link
                   href={tab.href}
                   aria-label="Create a post"
-                  className="my-1.5 grid size-10 place-items-center rounded-full bg-forest text-paper no-underline transition active:scale-95 dark:bg-brand dark:text-[#06120d]"
+                  className="my-1.5 grid size-10 place-items-center rounded-full bg-forest text-paper no-underline transition active:scale-95 dark:bg-brand dark:text-on-brand"
                 >
                   <Icon className="size-5" aria-hidden />
                 </Link>

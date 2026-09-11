@@ -50,7 +50,7 @@ export async function AppHeader() {
               inside a page. */}
           <Link
             href="/compose"
-            className="mr-1 hidden h-9 items-center gap-1.5 rounded-full bg-forest px-3.5 text-[13.5px] font-bold text-paper no-underline transition hover:bg-deep-forest sm:inline-flex dark:bg-brand dark:text-[#06120d] dark:hover:bg-brand-strong"
+            className="mr-1 hidden h-9 items-center gap-1.5 rounded-full bg-forest px-3.5 text-[13.5px] font-bold text-paper no-underline transition hover:bg-deep-forest sm:inline-flex dark:bg-brand dark:text-on-brand dark:hover:bg-brand-strong"
           >
             <Plus className="size-4" aria-hidden />
             Create
