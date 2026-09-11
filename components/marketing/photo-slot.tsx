@@ -1,5 +1,6 @@
 import { Leaf } from "lucide-react";
 import { assetSlot } from "@/lib/marketing/assets";
+import { SalesVideo } from "@/components/marketing/sales-video";
 import { cn } from "@/lib/utils";
 
 /**
@@ -73,12 +74,10 @@ export function VideoSlot({ id, className }: { id: string; className?: string })
           className,
         )}
       >
-        <video
+        <SalesVideo
           src={slot.src}
-          controls
-          playsInline
-          preload="metadata"
-          className={cn("w-full", portrait ? "aspect-[9/16]" : "aspect-video")}
+          portrait={portrait}
+          label="Adam, talking straight to camera"
         />
       </figure>
     );

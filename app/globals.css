@@ -546,7 +546,8 @@ body:has([data-hero-dark])
 
 .vu-leaf-float {
   animation: leaf-float 19s ease-in-out infinite;
-  will-change: translate;
+  /* No will-change: it promoted every leaf to its own compositor layer for the
+     whole visit. An animating element is promoted while it animates anyway. */
 }
 
 /* Stagger them so the backdrop breathes rather than pulsing in unison. */
@@ -893,4 +894,35 @@ body:has([data-hero-dark])
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Video reveal: the frame opens from a dot at the centre out to full size.
+   clip-path rather than a scale transform so the footage is never interpolated
+   up from a few pixels — every visible pixel stays at its native size, so the
+   frame opens sharp. fill-mode: both means attaching the class is enough to
+   snap the element closed, with no separate closed state to clean up.
+   See lib/marketing/video-reveal.ts, which starts playback on animationend. */
+@keyframes vu-video-open {
+  0% {
+    clip-path: inset(49.5% 49.5% round 50%);
+    opacity: 0;
+  }
+  /* The dot is held, at full opacity, for the first tenth of the animation.
+     Without the hold an ease-out curve spends its first frames already well
+     into the expansion, so the dot is never actually seen — the frame just
+     appears. This is the part that makes it read as opening from a point. */
+  11% {
+    clip-path: inset(49.5% 49.5% round 50%);
+    opacity: 1;
+  }
+  100% {
+    clip-path: inset(0 0 round 0);
+    opacity: 1;
+  }
+}
+
+.vu-video-open {
+  /* Accelerate out of the hold, then settle: a straight ease-out would put
+     most of the growth in the first 150ms and crawl through the rest. */
+  animation: vu-video-open 920ms cubic-bezier(0.4, 0, 0.2, 1) both;
 }

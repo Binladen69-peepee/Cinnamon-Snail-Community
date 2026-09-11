@@ -28,16 +28,6 @@ const LEAF_PLACEMENTS = [
       "absolute left-[5%] top-[14%] w-[200px] rotate-[-18deg] text-forest opacity-[0.12] dark:opacity-[0.11]",
   },
   {
-    key: "r18",
-    className:
-      "absolute -right-12 top-[18%] w-[220px] rotate-[8deg] text-forest opacity-[0.11] dark:opacity-[0.1]",
-  },
-  {
-    key: "l28",
-    className:
-      "absolute -left-10 top-[28%] w-[250px] rotate-[14deg] text-accent opacity-[0.14] dark:opacity-[0.12]",
-  },
-  {
     key: "r32",
     className:
       "absolute right-[4%] top-[32%] w-[190px] rotate-[-12deg] text-forest opacity-[0.1] dark:opacity-[0.1]",
@@ -48,24 +38,9 @@ const LEAF_PLACEMENTS = [
       "absolute left-[3%] top-[42%] w-[210px] -rotate-[10deg] text-accent opacity-[0.13] dark:opacity-[0.12]",
   },
   {
-    key: "r46",
-    className:
-      "absolute -right-14 top-[46%] w-[240px] rotate-[16deg] text-accent opacity-[0.12] dark:opacity-[0.12]",
-  },
-  {
     key: "l56",
     className:
       "absolute -left-12 top-[56%] w-[230px] rotate-[6deg] text-forest opacity-[0.11] dark:opacity-[0.1]",
-  },
-  {
-    key: "r60",
-    className:
-      "absolute right-[6%] top-[60%] w-[180px] rotate-[20deg] text-accent opacity-[0.1] dark:opacity-[0.1]",
-  },
-  {
-    key: "l70",
-    className:
-      "absolute left-[4%] top-[70%] w-[240px] -rotate-12 text-accent opacity-[0.14] dark:opacity-[0.12]",
   },
   {
     key: "r74",
@@ -81,11 +56,6 @@ const LEAF_PLACEMENTS = [
     key: "r88",
     className:
       "absolute right-[5%] top-[88%] w-[200px] -rotate-[16deg] text-accent opacity-[0.13] dark:opacity-[0.12]",
-  },
-  {
-    key: "bl",
-    className:
-      "absolute -left-10 top-[96%] w-[240px] -rotate-[8deg] text-accent opacity-[0.12] dark:opacity-[0.11]",
   },
   {
     key: "br",

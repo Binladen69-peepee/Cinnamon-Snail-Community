@@ -653,3 +653,68 @@ Date:
 
 Approved by:
 Engineering
+
+## DEC-025 — Videos open from a point, and every ambient loop is gated on visibility
+
+Status: ACCEPTED
+
+Question:
+The two sales-page videos were not playing at all. What was actually wrong,
+what should playback look like, and what were the looping decorations costing?
+
+Decision:
+The playback failure was not in this codebase. Every file in the Vercel Blob
+store `AdamSobleClips` (`store_YQCFew9epTIFGESZ`) answers `403 Forbidden` with
+the body `Your store is blocked`, because the store's billing state is
+Inactive and Vercel has suspended it. No frontend change can make a suspended
+store serve bytes; reactivating Blob billing on the account is the fix, and
+the URLs then work untouched. Verified by pointing the manifest at a local
+file, where the full load-reveal-play path ran correctly end to end.
+
+Playback now opens the frame from a dot at the centre out to full size, then
+starts, rather than fading the video in. It is `clip-path: inset()` rather than
+a transform scale: scaling makes the browser interpolate the footage up from a
+few pixels, which is visibly soft for the first half-second, whereas clipping
+leaves every visible pixel at native size. The keyframes hold the dot for the
+first 11% of the animation — without that hold an ease-out curve is already
+three-quarters open by 160ms and the dot is never actually perceived, so the
+effect reads as a pop rather than an expansion. `revealAndPlay()` in
+`lib/marketing/video-reveal.ts` is the single implementation, used by the hero,
+the reel and the membership sales video, and it starts playback on
+`animationend` so the expansion always completes first.
+
+Both server-rendered players catch up on state that predates hydration
+(`video.error`, `video.readyState`). Their `<video>` elements ship in the HTML,
+so the browser begins fetching before React attaches any listener — an
+unreachable file failed before the listener existed, and the card went on
+offering a play button that did nothing. This is exactly how the blocked store
+managed to look like a silent frontend bug.
+
+The hero serves the compressed encode again (8.6 MB against 35 MB), reversing
+DEC-020's preference for the original. That call was made for image quality;
+start-up speed now outranks it, and this footage sits behind a heavy scrim at
+background scale where the difference does not show.
+
+Ambient loops are all gated on visibility, not just on tab focus:
+  - the globe builds nothing until it is within 400px of the viewport. Creating
+    the WebGL context and generating the sample map used to happen during page
+    load for a section far below the fold. Its sample count is 13k, not 18k.
+  - the globe's and the embers' render loops stop when they scroll out of view
+    and resume where they left off. Both previously ran for the whole visit.
+  - embers are pre-rendered sprites blitted with `drawImage`, not a radial
+    gradient built per particle per frame — that was allocating upwards of a
+    thousand gradient objects a second — and they paint at 30fps, since a
+    particle moving a third of a pixel per frame renders the same picture twice
+    at 60.
+  - the backdrop is 10 animated leaves rather than 16, and `will-change` is
+    gone from them: it promoted every leaf to its own compositor layer for the
+    whole visit, and an animating element is promoted while it animates anyway.
+
+The "featured in" marquee is left alone. It animates only `translate3d`, so it
+runs on the compositor and costs no main-thread work.
+
+Date:
+2026-09-11
+
+Approved by:
+Engineering

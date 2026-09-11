@@ -13,6 +13,14 @@ import type { GlobeMarker } from "@/lib/marketing/globe-markers";
  * The dotted-continent glow comes from cobe itself. The markers are plain DOM
  * map pins positioned over the canvas each frame — cobe's own markers are flat
  * dots drawn by its shader, and they cannot carry a photo.
+ *
+ * Cost control, since this sits well below the fold on both sales pages:
+ *  - nothing is built until the panel is near the viewport. Creating the WebGL
+ *    context and generating the sample map is the expensive part, and it used
+ *    to happen during page load for a section most visitors had not reached.
+ *  - the render loop stops when the globe scrolls out of view or the tab is
+ *    hidden, and resumes where it left off. Spinning a globe nobody is looking
+ *    at cost a frame's work sixty times a second for the whole visit.
  */
 export function MemberGlobe({
   markers,
@@ -24,6 +32,7 @@ export function MemberGlobe({
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
   const pinRefs = useRef<(HTMLDivElement | null)[]>([]);
+  const [started, setStarted] = useState(false);
   const [ready, setReady] = useState(false);
 
   // Drag state lives in refs: it changes on every pointer move and must not
@@ -33,7 +42,25 @@ export function MemberGlobe({
   const dragStartRotation = useRef(0);
   const autoSpin = useRef(true);
 
+  // Hold off building anything until the panel is close to the viewport.
   useEffect(() => {
+    const wrap = wrapRef.current;
+    if (!wrap) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setStarted(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "400px" },
+    );
+    observer.observe(wrap);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!started) return;
     const canvas = canvasRef.current;
     const wrap = wrapRef.current;
     if (!canvas || !wrap) return;
@@ -45,8 +72,8 @@ export function MemberGlobe({
     const onResize = () => {
       width = wrap.clientWidth;
     };
-    const observer = new ResizeObserver(onResize);
-    observer.observe(wrap);
+    const sizeObserver = new ResizeObserver(onResize);
+    sizeObserver.observe(wrap);
 
     const globe = createGlobe(canvas, {
       devicePixelRatio: Math.min(window.devicePixelRatio || 1, 2),
@@ -56,7 +83,9 @@ export function MemberGlobe({
       theta: 0.22,
       dark: 1,
       diffuse: 1.15,
-      mapSamples: 18000,
+      // 13k samples rather than 18k: the dot grid is indistinguishable at this
+      // size and it is meaningfully quicker to generate.
+      mapSamples: 13000,
       mapBrightness: 5.4,
       // Deep teal ground with cyan land dots and a cyan atmosphere.
       baseColor: [0.05, 0.14, 0.16],
@@ -120,21 +149,49 @@ export function MemberGlobe({
       }
       frame = requestAnimationFrame(tick);
     };
-    frame = requestAnimationFrame(tick);
+    let onScreen = true;
+    let running = false;
+
+    function start() {
+      if (running || document.hidden || !onScreen) return;
+      running = true;
+      frame = requestAnimationFrame(tick);
+    }
+
+    function stop() {
+      if (!running) return;
+      running = false;
+      cancelAnimationFrame(frame);
+    }
+
+    // Narrower margin than the build trigger above, so the globe has already
+    // been drawn by the time it starts spinning.
+    const viewObserver = new IntersectionObserver(
+      ([entry]) => {
+        onScreen = entry.isIntersecting;
+        if (onScreen) start();
+        else stop();
+      },
+      { rootMargin: "100px" },
+    );
+    viewObserver.observe(wrap);
 
     const onVisibility = () => {
-      cancelAnimationFrame(frame);
-      if (!document.hidden) frame = requestAnimationFrame(tick);
+      if (document.hidden) stop();
+      else start();
     };
     document.addEventListener("visibilitychange", onVisibility);
 
+    start();
+
     return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
+      stop();
+      sizeObserver.disconnect();
+      viewObserver.disconnect();
       document.removeEventListener("visibilitychange", onVisibility);
       globe.destroy();
     };
-  }, [markers]);
+  }, [markers, started]);
 
   function onPointerDown(event: React.PointerEvent) {
     dragStartX.current = event.clientX;

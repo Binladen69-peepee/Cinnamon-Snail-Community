@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Pause, Play } from "lucide-react";
+import { Pause, Play, VideoOff } from "lucide-react";
+import { revealAndPlay } from "@/lib/marketing/video-reveal";
 
 /**
  * Vertical "reel" card for portrait footage.
@@ -11,8 +12,9 @@ import { Pause, Play } from "lucide-react";
  * letterboxed with black bars.
  *
  * It does not autoplay: this clip is Adam talking, and sound that starts by
- * itself is hostile. A single tap starts it with audio. It also does not loop —
- * looping a monologue is worse than stopping at the end.
+ * itself is hostile. A single tap opens the frame from a dot at the centre out
+ * to full size, then starts it with audio. It also does not loop — looping a
+ * monologue is worse than stopping at the end.
  */
 export function Reel({
   src,
@@ -22,36 +24,67 @@ export function Reel({
   label: string;
 }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const opened = useRef(false);
   const [playing, setPlaying] = useState(false);
+  // The ~0.8s the frame takes to open. The poster overlay hides for it, or the
+  // expansion would happen behind the thing you just tapped.
+  const [opening, setOpening] = useState(false);
   const [duration, setDuration] = useState<number | null>(null);
+  const [failed, setFailed] = useState(false);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    const onPlay = () => setPlaying(true);
+    const onPlay = () => {
+      setPlaying(true);
+      setOpening(false);
+    };
     const onPause = () => setPlaying(false);
     const onMeta = () =>
       setDuration(Number.isFinite(video.duration) ? video.duration : null);
+    const onError = () => {
+      setOpening(false);
+      setFailed(true);
+      console.error(`[reel] could not load ${src}.`);
+    };
     video.addEventListener("play", onPlay);
     video.addEventListener("pause", onPause);
     video.addEventListener("ended", onPause);
     video.addEventListener("loadedmetadata", onMeta);
+    video.addEventListener("error", onError);
+
+    // This element is server-rendered, so the browser starts fetching metadata
+    // before React hydrates — an unreachable file can fail before the listener
+    // above exists, and the card would sit there offering a play button that
+    // does nothing. Catch up on whatever already happened.
+    if (video.error) onError();
+    else if (video.readyState >= 1) onMeta();
+
     return () => {
       video.removeEventListener("play", onPlay);
       video.removeEventListener("pause", onPause);
       video.removeEventListener("ended", onPause);
       video.removeEventListener("loadedmetadata", onMeta);
+      video.removeEventListener("error", onError);
     };
-  }, []);
+  }, [src]);
 
   function toggle() {
     const video = videoRef.current;
-    if (!video) return;
-    if (video.paused) {
-      void video.play().catch(() => {});
-    } else {
+    if (!video || failed) return;
+    if (!video.paused) {
       video.pause();
+      return;
     }
+    // First play opens the frame; resuming after a pause should not replay the
+    // whole reveal.
+    if (opened.current) {
+      void video.play().catch(() => {});
+      return;
+    }
+    opened.current = true;
+    setOpening(true);
+    revealAndPlay(video);
   }
 
   return (
@@ -72,8 +105,18 @@ export function Reel({
         />
 
         {/* Poster-state overlay. Hidden once playing so it never covers the
-            native controls. */}
-        {!playing ? (
+            native controls, and hidden while the frame opens so the expansion
+            is actually visible. */}
+        {failed ? (
+          <div className="absolute inset-0 grid place-items-center bg-[#0b2a22] px-6 text-center">
+            <div>
+              <VideoOff className="mx-auto size-7 text-white/50" aria-hidden />
+              <p className="mt-3 text-[13px] font-semibold leading-snug text-white/85">
+                This clip is temporarily unavailable.
+              </p>
+            </div>
+          </div>
+        ) : !playing && !opening ? (
           <button
             type="button"
             onClick={toggle}
@@ -87,7 +130,7 @@ export function Reel({
               {label}
             </span>
           </button>
-        ) : (
+        ) : playing ? (
           <button
             type="button"
             onClick={toggle}
@@ -96,10 +139,10 @@ export function Reel({
           >
             <Pause className="size-4" aria-hidden />
           </button>
-        )}
+        ) : null}
 
         {/* Reel chrome: duration pill, top-left. */}
-        {duration ? (
+        {duration && !failed ? (
           <span className="pointer-events-none absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 text-[11px] font-semibold text-white backdrop-blur-sm">
             {formatDuration(duration)}
           </span>

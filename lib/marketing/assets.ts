@@ -39,10 +39,11 @@ export const ASSET_SLOTS: AssetSlot[] = [
     need:
       "Landscape footage that survives heavy cropping and reads as texture behind the headline.",
     // Adam to camera in his own kitchen, 1920x1080, 107s. Runs muted and
-    // looping behind the hero copy. This is the original encode, chosen for
-    // image quality now that the footage sits sharp behind the copy — it is
-    // 35 MB against the compressed cut's 8.6 MB, which every visitor fetches.
-    src: `${BLOB}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29.mp4`,
+    // looping behind the hero copy. The compressed cut, 8.6 MB against the
+    // original's 35 MB: every visitor fetches this, and the footage sits behind
+    // a heavy scrim at background scale, where a quick start is worth more than
+    // the last of the sharpness.
+    src: `${BLOB}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29_compressed.mp4`,
     alt: "",
     kind: "video",
     orientation: "landscape",
@@ -112,7 +113,9 @@ export const ASSET_SLOTS: AssetSlot[] = [
     section: "Top of page",
     need:
       'Adam talking straight to camera — the "Vegan Cooking Classes" landscape cut, which is the actual sales video the brief asks for near the top of this page.',
-    src: `${BLOB}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29.mp4`,
+    // Same compressed cut as the hero, so a visitor who has seen the homepage
+    // already has it cached.
+    src: `${BLOB}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29_compressed.mp4`,
     alt: "",
     kind: "video",
     orientation: "landscape",
