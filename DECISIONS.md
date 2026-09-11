@@ -756,3 +756,78 @@ Date:
 
 Approved by:
 Engineering
+
+## DEC-027 — The blueprint is applied in its own phases, starting with the shell
+
+Status: ACCEPTED
+
+Question:
+The redesign blueprint covers thirteen sections and nine build phases. How much
+of it lands at once?
+
+Decision:
+In the sequence the blueprint itself prescribes, because it explicitly warns
+against "a visual-only rewrite" and asks each phase to produce a usable slice.
+Phase 0 (audit) and most of Phase 2 (social core — feed, composer, posts,
+reactions, comments, saves, share) were already done. This is Phase 1, the
+shell, which is also what the blueprint's own audit criticises hardest.
+
+What changed:
+
+  - **The app bar is a command centre.** Cmd/Ctrl-K (or "/") opens a palette
+    searching members, posts, courses, lessons, events and comments, grouped
+    with members first, fully keyboard-driven, with the create actions offered
+    before anything is typed. It replaced a GET form that navigated to /search —
+    a page, not a command surface: looking something up cost you your place in
+    the feed. Enter with no match falls through to the full search page.
+
+  - **The left rail is grouped.** Nine flat destinations became Home/Discover,
+    then Community, Learning and Local, with the spaces list scrolling
+    independently so navigation stays reachable past a handful of spaces. The
+    card around it is gone; the active row carries the only fill. Unread counts
+    render on the destination, not only on an app-bar icon.
+
+  - **The right rail is one panel, not seven cards.** It was community,
+    suggested spaces, people, recognition, events, recent activity and a tag
+    cloud that repeated the spaces list a third time — two of which duplicated
+    the left rail. It is now "Your next move", divided by hairlines, in the
+    blueprint's order: next live class, pick up where you left off, people you
+    should meet, spaces to join. Sections with no data do not render at all.
+
+  - **Discover exists.** A primary destination with People / Spaces / Courses /
+    Events tabs. Without it, everything a member has not already joined was
+    reachable only through search, and the rail's "Browse" links had nowhere to
+    go.
+
+  - **Mobile tabs are Home, Discover, Events, Messages, Profile**, with create
+    as a floating button. Create used to occupy one of five tab slots, which
+    spent a permanent destination on an action and buried both discovery and
+    events.
+
+Two things found while building, neither cosmetic:
+
+  - **The search index held 13 rows against 62 published posts.**
+    `upsertSearchIndex` only runs for content created through the app, and
+    almost all current content came from seed scripts, so global search was
+    blind to it — working perfectly on the three posts it could see.
+    `prisma/reindex-search.ts` backfills posts, comments, members, courses,
+    lessons and events; it is idempotent and safe in any environment, so it also
+    covers a restore or a bulk import.
+
+  - **Discover's "Everyone else" group rendered a heading over an empty grid**
+    when every member was already in "Suggested for you", which happens in a
+    small community. The blueprint's acceptance criteria call for designed empty
+    states; both that group and the all-empty case are now conditional.
+
+One conflict, resolved in favour of the more recent explicit instruction: the
+blueprint gives Home the secondary tabs For You / Following / Latest, but the
+feed was built the week before with Reddit's Hot / New / Top / Rising at the
+client's direct request, and confirmed on screen. Those stay. For You and
+Following are a different axis — whose posts, rather than how they rank — and
+can be added alongside rather than instead.
+
+Date:
+2026-09-11
+
+Approved by:
+Engineering

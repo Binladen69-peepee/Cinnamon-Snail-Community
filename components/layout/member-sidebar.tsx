@@ -3,76 +3,131 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Avatar } from "@/components/ui/avatar";
-import { MEMBER_NAV_LINKS } from "@/lib/navigation";
+import { MEMBER_NAV_GROUPS } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
+/**
+ * The workspace rail.
+ *
+ * Grouped rather than one flat list of nine, and the spaces list scrolls on its
+ * own so the navigation above it stays reachable once there are more than a
+ * handful — the old rail simply grew until it ran off the bottom of a laptop
+ * screen.
+ *
+ * No card around it: the rail sits on the page ground with the active row
+ * carrying the only fill, which stops it competing with the feed beside it.
+ */
 export function MemberSidebar({
   spaces,
+  unread,
 }: {
   spaces: { name: string; slug: string; coverUrl: string | null; memberCount?: number }[];
+  /** Per-destination unread counts, keyed by href. */
+  unread?: Record<string, number>;
 }) {
   const pathname = usePathname();
 
+  const isActive = (href: string) =>
+    href === "/home"
+      ? pathname === "/home"
+      : pathname === href || pathname.startsWith(`${href}/`);
+
   return (
-    <aside className="hidden w-[260px] shrink-0 lg:block">
-      <div className="vu-sidebar sticky top-[90px] p-3">
-        <nav className="space-y-1" aria-label="Member">
-          {MEMBER_NAV_LINKS.map((item) => {
-            const Icon = item.icon;
-            const active =
-              item.href === "/home"
-                ? pathname === "/home"
-                : pathname === item.href || pathname.startsWith(`${item.href}/`);
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "relative flex min-h-11 items-center gap-3 rounded-[0.85rem] px-3 py-2 text-sm font-semibold text-foreground-muted no-underline transition hover:bg-mint hover:text-forest",
-                  active && "bg-sage text-forest",
-                )}
-              >
-                {active ? (
-                  <span className="absolute left-0 top-1/2 h-6 w-[3px] -translate-y-1/2 rounded-r-full bg-accent" aria-hidden />
-                ) : null}
-                <Icon className="size-4 shrink-0" aria-hidden />
-                {item.label}
-              </Link>
-            );
-          })}
+    <aside className="hidden w-[248px] shrink-0 lg:block">
+      <div className="sticky top-[90px] max-h-[calc(100vh-7rem)] overflow-y-auto pb-6 pr-1">
+        <nav aria-label="Member" className="space-y-5">
+          {MEMBER_NAV_GROUPS.map((group, index) => (
+            <div key={group.label ?? `group-${index}`}>
+              {group.label ? (
+                <p className="mb-1 px-3 text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
+                  {group.label}
+                </p>
+              ) : null}
+              <ul className="space-y-0.5">
+                {group.links.map((item) => {
+                  const Icon = item.icon;
+                  const active = isActive(item.href);
+                  const count = unread?.[item.href] ?? 0;
+                  return (
+                    <li key={item.href}>
+                      <Link
+                        href={item.href}
+                        aria-current={active ? "page" : undefined}
+                        className={cn(
+                          "relative flex min-h-10 items-center gap-2.5 rounded-ctl px-3 py-2 text-[14px] font-semibold no-underline transition",
+                          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                          active
+                            ? "bg-brand-wash text-brand-strong"
+                            : "text-foreground-muted hover:bg-mint/70 hover:text-foreground",
+                        )}
+                      >
+                        {active ? (
+                          <span
+                            className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-brand"
+                            aria-hidden
+                          />
+                        ) : null}
+                        <Icon
+                          className={cn(
+                            "size-[1.05rem] shrink-0",
+                            active ? "text-brand" : "",
+                          )}
+                          aria-hidden
+                        />
+                        <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                        {count > 0 ? (
+                          <span className="ml-auto inline-flex min-w-5 shrink-0 items-center justify-center rounded-full bg-brand px-1.5 text-[11px] font-bold tabular-nums text-[#06120d]">
+                            {count > 99 ? "99+" : count}
+                          </span>
+                        ) : null}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
         </nav>
-        <div className="mt-6">
-          <p className="px-3 text-[11px] font-semibold uppercase tracking-[0.16em] text-foreground-muted">
-            Spaces
-          </p>
-          <ul className="mt-2 space-y-1">
-            {spaces.map((space) => {
-              const href = `/spaces/${space.slug}`;
-              const active = pathname === href;
-              return (
-                <li key={space.slug}>
-                  <Link
-                    href={href}
-                    className={cn(
-                      "flex min-h-11 items-center gap-2.5 rounded-[0.85rem] px-3 py-2 text-sm font-medium text-foreground-muted no-underline transition hover:bg-mint hover:text-forest",
-                      active && "bg-sage text-forest",
-                    )}
-                  >
-                    <Avatar name={space.name} src={space.coverUrl} size="sm" />
-                    <span className="min-w-0">
-                      <span className="block truncate">{space.name}</span>
-                      {typeof space.memberCount === "number" ? (
-                        <span className="block text-[11px] font-normal text-foreground-muted">
-                          {space.memberCount} members
-                        </span>
-                      ) : null}
-                    </span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </div>
+
+        {spaces.length > 0 ? (
+          <div className="mt-5 border-t border-border/60 pt-4">
+            <div className="mb-1 flex items-baseline justify-between gap-2 px-3">
+              <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
+                Your spaces
+              </p>
+              <Link
+                href="/spaces"
+                className="text-[11px] font-bold text-brand no-underline hover:underline"
+              >
+                All
+              </Link>
+            </div>
+            <ul className="space-y-0.5">
+              {spaces.map((space) => {
+                const href = `/spaces/${space.slug}`;
+                const active = pathname === href;
+                return (
+                  <li key={space.slug}>
+                    <Link
+                      href={href}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "flex min-h-10 items-center gap-2.5 rounded-ctl px-3 py-1.5 text-[13.5px] font-semibold no-underline transition",
+                        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+                        active
+                          ? "bg-brand-wash text-brand-strong"
+                          : "text-foreground-muted hover:bg-mint/70 hover:text-foreground",
+                      )}
+                    >
+                      <Avatar name={space.name} src={space.coverUrl} size="sm" />
+                      <span className="min-w-0 flex-1 truncate">{space.name}</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ul>
+          </div>
+        ) : null}
       </div>
     </aside>
   );

@@ -7,7 +7,7 @@ import { NavIconLink, NavIconSubmit, NavProfileLink } from "@/components/layout/
 import { MEMBER_NAV_LINKS } from "@/lib/navigation";
 import { totalUnreadForUser } from "@/lib/messages/conversations";
 import { BrandMark } from "@/components/brand/brand-mark";
-import { NavSearch } from "@/components/layout/nav-search";
+import { CommandPalette } from "@/components/layout/command-palette";
 import { NavMobileSheet } from "@/components/layout/nav-mobile-sheet";
 import { CheckoutButton } from "@/components/marketing/checkout-button";
 import { NavShell } from "@/components/layout/nav-shell";
@@ -65,10 +65,11 @@ export async function AppNav() {
         <div className="vu-feed-shell flex h-[72px] items-center gap-3">
           <BrandMark href={homeHref} className="min-w-0" />
 
-          {/* Centre track */}
+          {/* Centre track. For members this is the command centre, not a
+              search box that navigates away from the feed. */}
           {signedIn ? (
             <div className="mx-auto hidden min-w-0 max-w-md flex-1 md:block">
-              <NavSearch />
+              <CommandPalette />
             </div>
           ) : (
             <nav

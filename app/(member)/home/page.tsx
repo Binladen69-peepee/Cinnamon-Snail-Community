@@ -11,6 +11,7 @@ import { FeedRail } from "@/components/community/feed-rail";
 import { parseFeedSort } from "@/lib/community/sort";
 import { recentRecognition } from "@/lib/social/badges";
 import { peopleYouShouldMeet } from "@/lib/social/suggestions";
+import { getContinueLearning } from "@/lib/learn/catalog";
 
 export const metadata = { title: "Kitchen Table" };
 
@@ -26,14 +27,13 @@ export default async function HomePage({
   const {
     posts,
     spaces,
-    eventPosts,
-    recentComments,
     recognition,
     suggestions,
     newToday,
     nextEvent,
-    memberCount,
     mySpaces,
+    railEvents,
+    continueLearning,
   } = await loadFeed(session.user.id, sort);
   const kitchen = spaces.find((space) => space.slug === "kitchen-table") ?? spaces[0];
   const currentName = session.user.name || session.user.handle;
@@ -43,39 +43,13 @@ export default async function HomePage({
   );
 
   const railProps = {
-    community: {
-      name: kitchen?.name ?? "Vegan University",
-      description: kitchen?.description ?? null,
-      coverUrl: kitchen?.coverUrl ?? null,
-    },
-    memberCount,
-    spaces: spaces.map((space) => ({
-      name: space.name,
-      slug: space.slug,
-      coverUrl: space.coverUrl,
-      memberCount: space._count.memberships,
-    })),
-    events: eventPosts.map((event) => ({
-      id: event.id,
-      title: event.title,
-      publishedAt: event.publishedAt,
-      spaceName: event.space.name,
-    })),
-    activity: recentComments.map((item) => ({
-      id: item.id,
-      body: item.body,
-      createdAt: item.createdAt,
-      authorName: item.author.profile?.displayName ?? item.author.handle,
-      avatar: item.author.profile?.avatarUrl ?? null,
-    })),
-    recognition: recognition.map((award) => ({
-      id: award.id,
-      icon: award.badge.icon ?? "🌱",
-      badgeName: award.badge.name,
-      reason: award.reason ?? award.badge.description,
-      memberName: award.user.profile?.displayName ?? award.user.handle,
-      handle: award.user.handle,
-      avatar: award.user.profile?.avatarUrl ?? null,
+    // Already shaped by loadFeed: deciding what counts as "live" needs the
+    // clock, which is not something to read during render.
+    nextEvents: railEvents,
+    progress: continueLearning.map((item) => ({
+      courseSlug: item.course.slug,
+      courseTitle: item.course.title,
+      percent: item.percent,
     })),
     suggestions: suggestions.map((person) => ({
       userId: person.userId,
@@ -83,6 +57,19 @@ export default async function HomePage({
       handle: person.handle,
       avatarUrl: person.avatarUrl,
       reason: person.reason,
+    })),
+    spaces: spaces.map((space) => ({
+      name: space.name,
+      slug: space.slug,
+      coverUrl: space.coverUrl,
+      memberCount: space._count.memberships,
+    })),
+    recognition: recognition.map((award) => ({
+      id: award.id,
+      icon: award.badge.icon ?? "🌱",
+      badgeName: award.badge.name,
+      memberName: award.user.profile?.displayName ?? award.user.handle,
+      handle: award.user.handle,
     })),
   };
 
@@ -152,13 +139,12 @@ async function loadFeed(userId: string, sort: ReturnType<typeof parseFeedSort>) 
     feed,
     spaces,
     mySpaces,
-    eventPosts,
-    recentComments,
     recognition,
     suggestions,
     newToday,
     nextEvent,
-    memberCount,
+    railEvents,
+    continueLearning,
   ] = await Promise.all([
     listFeed({ userId, sort, take: 25 }),
     prisma.space.findMany({
@@ -178,32 +164,6 @@ async function loadFeed(userId: string, sort: ReturnType<typeof parseFeedSort>) 
       orderBy: { sortOrder: "asc" },
       select: { id: true, name: true, slug: true },
     }),
-    prisma.post.findMany({
-      where: { type: "EVENT", status: "PUBLISHED" },
-      orderBy: { publishedAt: "desc" },
-      take: 3,
-      select: {
-        id: true,
-        title: true,
-        publishedAt: true,
-        space: { select: { name: true } },
-      },
-    }),
-    prisma.comment.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 4,
-      select: {
-        id: true,
-        body: true,
-        createdAt: true,
-        author: {
-          select: {
-            handle: true,
-            profile: { select: { displayName: true, avatarUrl: true } },
-          },
-        },
-      },
-    }),
     recentRecognition(4),
     peopleYouShouldMeet(userId, 3),
     prisma.post.count({
@@ -214,21 +174,47 @@ async function loadFeed(userId: string, sort: ReturnType<typeof parseFeedSort>) 
       orderBy: { startsAt: "asc" },
       select: { title: true, startsAt: true },
     }),
-    prisma.user.count({
-      where: { deletedAt: null, status: { not: "DELETED" } },
+    // Anything still running counts as upcoming, so a class in progress shows
+    // as live rather than disappearing the moment it starts.
+    prisma.event.findMany({
+      where: { startsAt: { gte: new Date(Date.now() - 2 * 60 * 60 * 1000) } },
+      orderBy: { startsAt: "asc" },
+      take: 3,
+      select: {
+        id: true,
+        title: true,
+        startsAt: true,
+        endsAt: true,
+        space: { select: { name: true } },
+      },
     }),
+    getContinueLearning(userId),
   ]);
+
+  // Live while the class is running, or for an hour after it starts when no end
+  // time was set - a class with no endsAt is still a class in progress.
+  const now = Date.now();
+  const railEventsShaped = railEvents.map((event) => ({
+    id: event.id,
+    title: event.title,
+    startsAt: event.startsAt,
+    spaceName: event.space?.name ?? null,
+    live:
+      event.startsAt.getTime() <= now &&
+      (event.endsAt
+        ? event.endsAt.getTime() >= now
+        : now - event.startsAt.getTime() < 60 * 60 * 1000),
+  }));
 
   return {
     posts: feed.posts,
     spaces,
-    eventPosts,
-    recentComments,
     recognition,
     suggestions,
     newToday,
     nextEvent,
-    memberCount,
     mySpaces,
+    railEvents: railEventsShaped,
+    continueLearning,
   };
 }

@@ -1,42 +1,48 @@
 import Link from "next/link";
+import { ArrowRight, CalendarDays, Radio } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
-import { formatRelativeTime } from "@/lib/utils";
+import { formatShortTime } from "@/lib/community/format-count";
+import { cn } from "@/lib/utils";
 
+export type RailEvent = {
+  id: string;
+  title: string;
+  startsAt: Date;
+  spaceName: string | null;
+  /** Set while the class is running, so the rail can say so. */
+  live: boolean;
+};
+
+export type RailProgress = {
+  courseSlug: string;
+  courseTitle: string;
+  percent: number;
+};
+
+/**
+ * The discovery rail: "Your next move".
+ *
+ * Was seven separate cards — community, suggested spaces, people, recognition,
+ * events, recent activity, and a tag cloud that repeated the spaces list a
+ * third time. A stack of boxes reads as a dashboard, and two of those boxes
+ * duplicated the left rail.
+ *
+ * It is one panel now, divided by hairlines, in the order the blueprint asks
+ * for: the next live class, then what you were learning, then who to meet,
+ * then where to go. Each section answers "what should I do next", which is the
+ * rail's whole job; things that only described the community are gone, since
+ * the page header already does that.
+ */
 export function FeedRail({
-  community,
-  memberCount,
-  spaces,
-  events,
-  activity,
-  recognition,
+  nextEvents,
+  progress,
   suggestions,
+  spaces,
+  recognition,
   stacked = false,
 }: {
-  community: { name: string; description: string | null; coverUrl: string | null };
-  memberCount: number;
-  spaces: { name: string; slug: string; coverUrl: string | null; memberCount: number }[];
-  events: {
-    id: string;
-    title: string | null;
-    publishedAt: Date | null;
-    spaceName: string;
-  }[];
-  activity: {
-    id: string;
-    body: string;
-    createdAt: Date;
-    authorName: string;
-    avatar: string | null;
-  }[];
-  recognition: {
-    id: string;
-    icon: string;
-    badgeName: string;
-    reason: string;
-    memberName: string;
-    handle: string;
-    avatar: string | null;
-  }[];
+  nextEvents: RailEvent[];
+  progress: RailProgress[];
   suggestions: {
     userId: string;
     displayName: string;
@@ -44,189 +50,218 @@ export function FeedRail({
     avatarUrl: string | null;
     reason: string;
   }[];
+  spaces: { name: string; slug: string; coverUrl: string | null; memberCount: number }[];
+  recognition: {
+    id: string;
+    icon: string;
+    badgeName: string;
+    memberName: string;
+    handle: string;
+  }[];
   stacked?: boolean;
 }) {
   return (
-    <aside className={stacked ? "space-y-5" : "hidden w-[320px] shrink-0 space-y-5 xl:block"}>
-      <section className="vu-card overflow-hidden">
-        {community.coverUrl ? (
-          <div className="relative h-28">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={community.coverUrl} alt="" className="h-full w-full object-cover" />
-          </div>
-        ) : null}
-        <div className="p-5">
-          <h2 className="font-display text-lg font-bold text-foreground">{community.name}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-foreground-muted">
-            {community.description ?? "A hosted table for plates, questions, and the sauce you were going to Google."}
-          </p>
-          <p className="mt-4 text-sm font-semibold text-forest">
-            {memberCount} {memberCount === 1 ? "member" : "members"}
-          </p>
-          <Link
-            href="/members"
-            className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-full border border-sand text-sm font-semibold text-forest hover:bg-mint"
-          >
-            Meet members
-          </Link>
-        </div>
-      </section>
-
-      <section className="vu-card p-5">
-        <h2 className="font-display text-base font-bold">Suggested spaces</h2>
-        <ul className="mt-3 space-y-3">
-          {spaces.map((space) => (
-            <li key={space.slug} className="flex items-center gap-2">
-              <Avatar name={space.name} src={space.coverUrl} size="sm" />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{space.name}</p>
-                <p className="text-[12px] text-foreground-muted">{space.memberCount} members</p>
-              </div>
+    <aside
+      aria-label="Your next move"
+      className={cn(
+        stacked
+          ? "rounded-card border border-border/70 bg-surface"
+          : "hidden w-[320px] shrink-0 xl:block",
+      )}
+    >
+      <div
+        className={cn(
+          !stacked &&
+            "sticky top-[90px] max-h-[calc(100vh-7rem)] overflow-y-auto rounded-card border border-border/70 bg-surface",
+        )}
+      >
+        {nextEvents.length > 0 ? (
+          <RailSection title={nextEvents[0].live ? "Happening now" : "Next live class"}>
+            {nextEvents.slice(0, 2).map((event) => (
               <Link
-                href={`/spaces/${space.slug}`}
-                className="inline-flex h-9 items-center rounded-full bg-sage px-3 text-xs font-semibold text-forest"
+                key={event.id}
+                href="/calendar"
+                className="-mx-2 flex gap-3 rounded-ctl px-2 py-2 no-underline transition hover:bg-mint/60"
               >
-                Open
+                <span
+                  className={cn(
+                    "grid size-11 shrink-0 place-items-center rounded-ctl text-center",
+                    event.live ? "bg-brand text-[#06120d]" : "bg-brand-wash",
+                  )}
+                  aria-hidden
+                >
+                  {event.live ? (
+                    <Radio className="size-5" />
+                  ) : (
+                    <>
+                      <span className="block text-[9.5px] font-bold uppercase tracking-wider text-brand-strong">
+                        {event.startsAt.toLocaleString("en-US", { month: "short" })}
+                      </span>
+                      <span className="block text-[15px] font-bold leading-none text-brand-strong">
+                        {event.startsAt.getDate()}
+                      </span>
+                    </>
+                  )}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate text-[14px] font-bold text-foreground">
+                    {event.title}
+                  </span>
+                  <span className="mt-0.5 flex items-center gap-1.5 text-[12.5px] text-foreground-muted">
+                    {event.live ? (
+                      <span className="font-bold text-brand">Live now</span>
+                    ) : (
+                      <>
+                        <CalendarDays className="size-3" aria-hidden />
+                        {event.startsAt.toLocaleString(undefined, {
+                          weekday: "short",
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </>
+                    )}
+                  </span>
+                </span>
               </Link>
-            </li>
-          ))}
-        </ul>
-      </section>
+            ))}
+          </RailSection>
+        ) : null}
 
-      <section className="vu-card p-5">
-        <h2 className="font-display text-base font-bold">People you should meet</h2>
-        {suggestions.length === 0 ? (
-          <p className="mt-3 text-sm text-foreground-muted">
-            Add what you cook and suggestions will show up here.
-          </p>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {suggestions.map((person) => (
-              <li key={person.userId} className="flex gap-2">
+        {progress.length > 0 ? (
+          <RailSection title="Pick up where you left off" href="/roadmap" cta="Roadmap">
+            {progress.slice(0, 2).map((item) => (
+              <Link
+                key={item.courseSlug}
+                href={`/learn/${item.courseSlug}`}
+                className="-mx-2 block rounded-ctl px-2 py-2 no-underline transition hover:bg-mint/60"
+              >
+                <span className="flex items-baseline justify-between gap-2">
+                  <span className="min-w-0 truncate text-[14px] font-bold text-foreground">
+                    {item.courseTitle}
+                  </span>
+                  <span className="shrink-0 text-[12px] font-bold tabular-nums text-brand">
+                    {Math.round(item.percent)}%
+                  </span>
+                </span>
+                {/* The bar is the point of this section, so it gets real room. */}
+                <span className="mt-2 block h-1.5 overflow-hidden rounded-full bg-mint">
+                  <span
+                    className="block h-full rounded-full bg-brand"
+                    style={{ width: `${Math.max(2, Math.min(100, item.percent))}%` }}
+                  />
+                </span>
+              </Link>
+            ))}
+          </RailSection>
+        ) : null}
+
+        <RailSection title="People you should meet" href="/connect" cta="See all">
+          {suggestions.length === 0 ? (
+            <p className="text-[13px] leading-relaxed text-foreground-muted">
+              Add what you cook to your profile and this fills in.
+            </p>
+          ) : (
+            suggestions.slice(0, 3).map((person) => (
+              <div key={person.userId} className="flex items-center gap-2.5">
                 <Avatar name={person.displayName} src={person.avatarUrl} size="sm" />
                 <div className="min-w-0 flex-1">
                   <Link
                     href={`/members/${person.handle}`}
-                    className="block truncate text-sm font-semibold hover:text-forest"
+                    className="block truncate text-[13.5px] font-bold text-foreground no-underline hover:text-brand hover:underline"
                   >
                     {person.displayName}
                   </Link>
-                  <p className="text-[12px] leading-snug text-foreground-muted">
+                  {/* The reason is the feature. A directory row without one is
+                      just a list of strangers. */}
+                  <p className="truncate text-[12px] text-foreground-muted">
                     {person.reason}
                   </p>
                 </div>
-              </li>
-            ))}
-          </ul>
-        )}
-        <Link
-          href="/connect"
-          className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-full border border-sand text-sm font-semibold text-forest hover:bg-mint"
-        >
-          See why
-        </Link>
-      </section>
+              </div>
+            ))
+          )}
+        </RailSection>
 
-      <section className="vu-card p-5">
-        <h2 className="font-display text-base font-bold">Recognition</h2>
-        {recognition.length === 0 ? (
-          <p className="mt-3 text-sm text-foreground-muted">
-            Badges land here when members do the work, not when they log in.
-          </p>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {recognition.map((award) => (
-              <li key={award.id} className="flex gap-2">
-                <span aria-hidden className="text-xl leading-none">
-                  {award.icon}
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm">
-                    <Link
-                      href={`/members/${award.handle}`}
-                      className="font-semibold hover:text-forest"
-                    >
-                      {award.memberName}
-                    </Link>{" "}
-                    <span className="text-foreground-muted">earned</span>{" "}
-                    <span className="font-semibold">{award.badgeName}</span>
-                  </p>
-                  <p className="truncate text-[12px] text-foreground-muted">
-                    {award.reason}
-                  </p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="vu-card p-5">
-        <h2 className="font-display text-base font-bold">Upcoming events</h2>
-        {events.length === 0 ? (
-          <p className="mt-3 text-sm text-foreground-muted">No events on the porch yet.</p>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {events.map((event) => {
-              const date = event.publishedAt ?? new Date();
-              const month = date.toLocaleString("en-US", { month: "short" }).toUpperCase();
-              const day = date.getDate();
-              return (
-                <li key={event.id} className="flex gap-3">
-                  <div className="grid size-12 shrink-0 place-items-center rounded-[14px] bg-sage text-center">
-                    <span className="text-[10px] font-bold text-forest">{month}</span>
-                    <span className="text-sm font-bold text-forest">{day}</span>
-                  </div>
-                  <div className="min-w-0">
-                    <Link href={`/posts/${event.id}`} className="text-sm font-semibold hover:text-forest">
-                      {event.title ?? "Community event"}
-                    </Link>
-                    <p className="text-[12px] text-foreground-muted">{event.spaceName}</p>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
-
-      <section className="vu-card p-5">
-        <h2 className="font-display text-base font-bold">Recent activity</h2>
-        {activity.length === 0 ? (
-          <p className="mt-3 text-sm text-foreground-muted">The table is quiet right now.</p>
-        ) : (
-          <ul className="mt-3 space-y-3">
-            {activity.map((item) => (
-              <li key={item.id} className="flex gap-2">
-                <Avatar name={item.authorName} src={item.avatar} size="sm" />
-                <div className="min-w-0">
-                  <p className="text-sm text-foreground">
-                    <span className="font-semibold">{item.authorName}</span>{" "}
-                    <span className="text-foreground-muted">commented</span>
-                  </p>
-                  <p className="truncate text-[12px] text-foreground-muted">{item.body}</p>
-                  <p className="text-[11px] text-foreground-muted">{formatRelativeTime(item.createdAt)}</p>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
-
-      <section className="vu-card p-5">
-        <h2 className="font-display text-base font-bold">Spaces as topics</h2>
-        <div className="mt-3 flex flex-wrap gap-2">
-          {spaces.map((space) => (
+        <RailSection title="Spaces to join" href="/discover" cta="Browse">
+          {spaces.slice(0, 4).map((space) => (
             <Link
               key={space.slug}
               href={`/spaces/${space.slug}`}
-              className="inline-flex h-9 items-center rounded-full border border-sand px-3 text-xs font-semibold text-forest hover:bg-mint"
+              className="-mx-2 flex items-center gap-2.5 rounded-ctl px-2 py-1.5 no-underline transition hover:bg-mint/60"
             >
-              #{space.slug.replaceAll("-", "")}
+              <Avatar name={space.name} src={space.coverUrl} size="sm" />
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[13.5px] font-bold text-foreground">
+                  {space.name}
+                </span>
+                <span className="block text-[12px] text-foreground-muted">
+                  {space.memberCount} {space.memberCount === 1 ? "member" : "members"}
+                </span>
+              </span>
+              <ArrowRight
+                className="size-3.5 shrink-0 text-foreground-muted"
+                aria-hidden
+              />
             </Link>
           ))}
-        </div>
-      </section>
+        </RailSection>
+
+        {recognition.length > 0 ? (
+          <RailSection title="Recently earned">
+            <div className="flex flex-wrap gap-1.5">
+              {recognition.slice(0, 4).map((award) => (
+                <Link
+                  key={award.id}
+                  href={`/members/${award.handle}`}
+                  title={`${award.memberName} earned ${award.badgeName}`}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-apricot/15 px-2.5 py-1 text-[12px] font-semibold text-foreground no-underline transition hover:bg-apricot/25"
+                >
+                  <span aria-hidden>{award.icon}</span>
+                  <span className="max-w-[9rem] truncate">{award.badgeName}</span>
+                </Link>
+              ))}
+            </div>
+          </RailSection>
+        ) : null}
+      </div>
     </aside>
   );
 }
+
+/**
+ * A rail section. The divider between sections replaces what used to be a
+ * border and a shadow around each one.
+ */
+function RailSection({
+  title,
+  href,
+  cta,
+  children,
+}: {
+  title: string;
+  href?: string;
+  cta?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="border-b border-border/60 px-4 py-3.5 last:border-b-0">
+      <div className="mb-2.5 flex items-baseline justify-between gap-2">
+        <h2 className="text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
+          {title}
+        </h2>
+        {href && cta ? (
+          <Link
+            href={href}
+            className="shrink-0 text-[12px] font-bold text-brand no-underline hover:underline"
+          >
+            {cta}
+          </Link>
+        ) : null}
+      </div>
+      <div className="space-y-2">{children}</div>
+    </section>
+  );
+}
+
+/** Re-exported so callers keep one import for the rail's time formatting. */
+export { formatShortTime };

@@ -195,6 +195,8 @@
   --shadow-e2: var(--e2);
   --shadow-e3: var(--e3);
   --shadow-lift: var(--lift);
+  /* One motion scale, inside the 150-250ms band the blueprint asks for. */
+  --ease-out: cubic-bezier(0.2, 0, 0.2, 1);
 }
 
 html {
@@ -963,4 +965,26 @@ body:has([data-hero-dark])
   /* Accelerate out of the hold, then settle: a straight ease-out would put
      most of the growth in the first 150ms and crawl through the rest. */
   animation: vu-video-open 920ms cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+/* Command palette. Overlay and veil animate in together at the blueprint's
+   150-250ms band; the global reduced-motion rule collapses both. */
+@keyframes palette-in {
+  from {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.985);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes palette-veil {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
