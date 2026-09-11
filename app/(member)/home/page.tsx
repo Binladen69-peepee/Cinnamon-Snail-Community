@@ -12,6 +12,7 @@ import { parseFeedSort } from "@/lib/community/sort";
 import { recentRecognition } from "@/lib/social/badges";
 import { peopleYouShouldMeet } from "@/lib/social/suggestions";
 import { getContinueLearning } from "@/lib/learn/catalog";
+import { uploadsConfigured } from "@/lib/uploads/storage";
 
 export const metadata = { title: "Kitchen Table" };
 
@@ -90,6 +91,7 @@ export default async function HomePage({
           avatar={viewer.avatar}
           spaces={mySpaces}
           defaultSpaceId={kitchen?.id}
+          uploadsEnabled={uploadsConfigured()}
         />
 
         {/* Sticks under the app bar so the sort stays reachable in a long feed

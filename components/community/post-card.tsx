@@ -79,8 +79,10 @@ export function PostCard({
 }) {
   const name = post.author.profile?.displayName ?? post.author.handle;
   const stamp = post.publishedAt ?? post.createdAt;
-  const images = post.attachments.filter(
-    (file) => file.kind === "image" || file.kind === "gif",
+  // Uploaded video is an attachment too; filtering to images dropped it
+  // silently, so a member's video post rendered as an empty card.
+  const media = post.attachments.filter((file) =>
+    ["image", "gif", "video"].includes(file.kind),
   );
   const previewComments = post.comments?.slice(0, 2) ?? [];
   const isHost = post.author.handle === "adam";
@@ -182,7 +184,7 @@ export function PostCard({
             />
           ) : null}
 
-          <PostMedia items={images} postId={post.id} />
+          <PostMedia items={media} postId={post.id} />
 
           {post.type === "VIDEO" && webLink ? (
             <div className="mt-3 overflow-hidden rounded-ctl">

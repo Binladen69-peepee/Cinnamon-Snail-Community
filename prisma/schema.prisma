@@ -274,6 +274,9 @@ model Profile {
   links              Json?
   privacy            Json?
   dmPreference       DmPreference @default(EVERYONE)
+  /// Which notification categories reach this member, per channel. Null means
+  /// "everything in-app", which is the behaviour before this column existed.
+  notificationPrefs  Json?
   directoryVisible   Boolean      @default(true)
   matchingOptIn      Boolean      @default(true)
   matchingPausedUntil DateTime?

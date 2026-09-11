@@ -5,6 +5,9 @@ import { useRef, useState, useTransition } from "react";
 import { CalendarDays, ImagePlus, ListChecks, Loader2, Soup } from "lucide-react";
 import { createFeedPostAction } from "@/app/(member)/community-actions";
 import { Avatar } from "@/components/ui/avatar";
+import { UploadTray } from "@/components/community/upload-tray";
+import { useUploads } from "@/components/community/use-uploads";
+import { ACCEPT } from "@/lib/uploads/policy";
 import { cn } from "@/lib/utils";
 
 export type ComposerSpace = { id: string; name: string; slug: string };
@@ -29,11 +32,14 @@ export function FeedComposer({
   avatar,
   spaces,
   defaultSpaceId,
+  uploadsEnabled = false,
 }: {
   name: string;
   avatar: string | null;
   spaces: ComposerSpace[];
   defaultSpaceId?: string;
+  /** False when storage is not configured, so the control says so. */
+  uploadsEnabled?: boolean;
 }) {
   const [value, setValue] = useState("");
   const [spaceId, setSpaceId] = useState(defaultSpaceId ?? spaces[0]?.id ?? "");
@@ -41,16 +47,29 @@ export function FeedComposer({
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   const boxRef = useRef<HTMLTextAreaElement>(null);
+  const fileRef = useRef<HTMLInputElement>(null);
+  const uploads = useUploads();
 
   const body = value.trim();
-  const canPost = body.length > 0 && body.length <= MAX && Boolean(spaceId) && !pending;
+  // A photo on its own is a post. Typing is only required with nothing attached.
+  const hasContent = body.length > 0 || uploads.attachments.length > 0;
+  const canPost =
+    hasContent && body.length <= MAX && Boolean(spaceId) && !pending && !uploads.busy;
 
   function submit() {
     if (!canPost) return;
     const data = new FormData();
     data.set("body", body);
     data.set("spaceId", spaceId);
-    data.set("type", "SIMPLE");
+    // The type follows what is attached, so the feed can frame it correctly.
+    const hasVideo = uploads.attachments.some((file) => file.kind === "video");
+    data.set(
+      "type",
+      hasVideo ? "VIDEO" : uploads.attachments.length > 0 ? "IMAGE" : "SIMPLE",
+    );
+    if (uploads.attachments.length > 0) {
+      data.set("attachments", JSON.stringify(uploads.attachments));
+    }
 
     startTransition(async () => {
       const result = await createFeedPostAction(data);
@@ -58,6 +77,7 @@ export function FeedComposer({
         setValue("");
         setError(null);
         setOpen(false);
+        uploads.reset();
         // Give the height back, since the box grew with the text.
         if (boxRef.current) boxRef.current.style.height = "auto";
       } else {
@@ -117,6 +137,13 @@ export function FeedComposer({
             )}
           />
 
+          <UploadTray
+            items={uploads.items}
+            onRemove={uploads.remove}
+            onRetry={uploads.retry}
+            onAlt={uploads.setAlt}
+          />
+
           {error ? (
             <p className="mt-2 text-[13px] font-medium text-danger" role="alert">
               {error}
@@ -152,14 +179,35 @@ export function FeedComposer({
               ) : null}
 
               <div className="mt-3 flex items-center gap-0.5 border-t border-border/60 pt-2.5">
-                {/* Photos, polls and events still need the full editor. The
-                    upload pipeline lands next; until then these route rather
-                    than pretending to work here. */}
-                <Shortcut
-                  href="/compose?type=IMAGE"
-                  icon={ImagePlus}
-                  label="Photo"
+                {/* Photos and video upload from here. Recipes, polls and
+                    events still need the structured fields on /compose. */}
+                <input
+                  ref={fileRef}
+                  type="file"
+                  accept={ACCEPT}
+                  multiple
+                  className="hidden"
+                  onChange={(event) => {
+                    const picked = event.currentTarget.files;
+                    if (picked?.length) uploads.add(picked);
+                    // Reset so picking the same file twice still fires.
+                    event.currentTarget.value = "";
+                  }}
                 />
+                <button
+                  type="button"
+                  disabled={!uploadsEnabled}
+                  title={
+                    uploadsEnabled
+                      ? "Add photos or video"
+                      : "Uploads are not configured on this environment yet"
+                  }
+                  onClick={() => fileRef.current?.click()}
+                  className="group/sc inline-flex h-9 items-center gap-1.5 rounded-full px-2 text-[13px] font-semibold text-foreground-muted transition hover:bg-brand-wash hover:text-brand disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+                >
+                  <ImagePlus className="size-[1.15rem] text-brand" aria-hidden />
+                  <span className="hidden sm:inline">Photo</span>
+                </button>
                 <Shortcut href="/compose?type=RECIPE" icon={Soup} label="Recipe" />
                 <Shortcut href="/compose?type=POLL" icon={ListChecks} label="Poll" />
                 <Shortcut
@@ -169,6 +217,12 @@ export function FeedComposer({
                 />
 
                 <span className="flex-1" />
+
+                {uploads.busy ? (
+                  <span className="mr-2 text-[12px] font-semibold text-foreground-muted">
+                    Uploading…
+                  </span>
+                ) : null}
 
                 {body.length > MAX - 500 ? (
                   <span

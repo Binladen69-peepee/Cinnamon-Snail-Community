@@ -50,6 +50,9 @@ See `.env.example`. Never commit secrets. Never expose SamCart or Kit keys to th
 | `EMAIL_FROM` | From-address for magic links |
 | `RESEND_API_KEY` | Resend API key for transactional email |
 | `RESEND_API_KEY` | Transactional email (optional in development) |
+| `SUPABASE_URL` | Supabase project URL, for member uploads |
+| `SUPABASE_SERVICE_ROLE_KEY` | Mints signed upload URLs (server only, Sensitive) |
+| `SUPABASE_UPLOAD_BUCKET` | Upload bucket, defaults to `community-uploads` |
 | `UPSTASH_REDIS_REST_URL` / `TOKEN` | Rate limit (optional; in-memory fallback in development) |
 | `SAMCART_WEBHOOK_SECRET` | Verify Notify URL `api_key` or HMAC signature |
 | `SAMCART_API_KEY` | Passed as the `sc-api` header for cancel / list / refund |

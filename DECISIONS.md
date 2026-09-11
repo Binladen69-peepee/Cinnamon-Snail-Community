@@ -831,3 +831,94 @@ Date:
 
 Approved by:
 Engineering
+
+## DEC-028 — Phase 2 closed: member uploads and the notification inbox
+
+Status: ACCEPTED
+
+Question:
+What was left of the blueprint's Phase 2, and how do member uploads work now
+that the bucket policy is agreed?
+
+Decision:
+Two things were outstanding: uploads, and notifications as a single inbox.
+Both are done, so Phase 2's bar — "a member can create and consume community
+activity smoothly" — is met.
+
+### Uploads
+
+Signed-URL direct-to-storage on Supabase. Bytes go browser to bucket; nothing
+is proxied through a serverless function, which would mean body limits, double
+the transfer and a much slower upload.
+
+Policy as agreed: images jpg/png/webp/gif to 10 MB, video mp4/mov to 100 MB,
+keyed `community-uploads/{user_id}/{time}-{random}.{ext}`. Three decisions
+inside that are worth recording.
+
+**The user id is taken from the session, never from the request.** The client
+says what a file is; the server decides where it goes. A member cannot write
+under another member's prefix no matter what they send.
+
+**Declared size is re-checked after the fact.** Nothing stops a client asking
+for a URL for a 1 KB image and then PUTting 80 MB, so `verifyUploaded()` reads
+the stored object's own metadata before an attachment row is written and
+deletes anything outside policy. Attachment URLs sent back with a post are also
+matched against the bucket prefix, so the field cannot be used to hotlink an
+arbitrary host.
+
+**SVG is excluded**, even though it is an image format: it is an image to a
+browser and a script host to an attacker.
+
+The bucket is public-read, which is a trade — signing every image in a
+scrolling feed would cost a round trip per picture. What stops one member's
+uploads being enumerated from their user id is the random segment in the key.
+The RLS policies in `docs/member-uploads.md` restrict writes to a member's own
+prefix, but they are defence in depth rather than the primary control: they are
+written against `auth.uid()`, and this app authenticates with Auth.js, so
+members hold no Supabase JWT. The primary control is the server building the
+key. The policies matter if a Supabase-authenticated path is ever added.
+
+Client-side, images are downscaled to a 2000px edge and re-encoded to WebP
+before upload — a 6 MB phone photo becomes a few hundred KB, so the upload is
+roughly twenty times shorter and the image twenty times cheaper for every
+member who scrolls past it later. GIFs are exempt, because drawing one to a
+canvas keeps the first frame and discards the animation. Progress is via
+XMLHttpRequest, since fetch still cannot report upload progress. `width` and
+`height` are captured and stored, which is what lets the feed reserve exact
+space and never jump.
+
+Uploads are off until `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` exist. The
+Photo control is disabled with an explanation rather than failing after a file
+has been picked, and `lib/uploads/storage.ts` carries `import "server-only"` so
+a client component importing the key path fails the build.
+
+### Notifications
+
+One inbox with filters — All, Unread, Mentions, Replies, Events, System — rather
+than separate surfaces, plus per-channel preferences.
+
+**The page no longer marks everything read by rendering.** It previously called
+`markNotificationsRead` during render, so glancing at the inbox destroyed the
+unread state it existed to show. Reading is now an action: opening a
+notification, or pressing Mark all read.
+
+Preferences live in one nullable `Profile.notificationPrefs` JSON column, and
+`createNotification` honours them centrally — a preference respected at eleven
+of twelve call sites is not a preference. SYSTEM is deliberately not switchable:
+offering a control that the delivery path ignores is worse than offering none.
+
+### A migration note
+
+`prisma migrate dev` refused to add the column and demanded a database reset,
+because an earlier migration's checksum changed when its auto-generated FTS
+drops were stripped months ago. Resetting would have destroyed the local demo
+content. The migration was written by hand, applied with `prisma db execute` and
+recorded with `prisma migrate resolve --applied`; `migrate status` reports clean
+and all data survived. Any future migration on this history needs the same
+treatment until the checksum is reconciled.
+
+Date:
+2026-09-11
+
+Approved by:
+Engineering

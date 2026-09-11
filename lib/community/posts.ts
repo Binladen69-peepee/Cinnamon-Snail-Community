@@ -140,7 +140,15 @@ export async function createPost(input: {
   status?: PostStatus;
   scheduledAt?: Date | null;
   pollOptions?: string[];
-  attachmentUrls?: { url: string; alt?: string; kind?: string }[];
+  attachmentUrls?: {
+    url: string;
+    alt?: string;
+    kind?: string;
+    mimeType?: string;
+    /** Stored so the feed can reserve exact space before the file loads. */
+    width?: number | null;
+    height?: number | null;
+  }[];
 }) {
   const auth = await getUserAuth(input.userId);
   if (!auth) throw new Error("You need to sign in.");
@@ -179,6 +187,9 @@ export async function createPost(input: {
               url: file.url,
               alt: file.alt,
               kind: file.kind ?? "image",
+              mimeType: file.mimeType,
+              width: file.width ?? null,
+              height: file.height ?? null,
             })),
           }
         : undefined,
