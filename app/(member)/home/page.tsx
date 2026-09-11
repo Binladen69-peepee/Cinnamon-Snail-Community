@@ -1,20 +1,20 @@
-import { auth } from "@/auth";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { listFeed } from "@/lib/community/posts";
-import { PostCard } from "@/components/community/post-card";
-import { FeedSortBar } from "@/components/community/feed-sort-bar";
-import { FeedComposer } from "@/components/community/feed-composer";
-import { FeedHeader } from "@/components/community/feed-header";
-import { FeedEmpty } from "@/components/community/feed-empty";
-import { FeedRail } from "@/components/community/feed-rail";
 import { parseFeedSort } from "@/lib/community/sort";
-import { recentRecognition } from "@/lib/social/badges";
-import { peopleYouShouldMeet } from "@/lib/social/suggestions";
 import { getContinueLearning } from "@/lib/learn/catalog";
+import { peopleYouShouldMeet } from "@/lib/social/suggestions";
 import { uploadsConfigured } from "@/lib/uploads/storage";
+import { AppShell } from "@/components/app/app-shell";
+import { Composer } from "@/components/feed/composer";
+import { FeedToolbar, type Density } from "@/components/feed/feed-toolbar";
+import { PostCard } from "@/components/feed/post-card";
+import { FeedRail } from "@/components/feed/feed-rail";
+import { FeedEmpty } from "@/components/feed/feed-empty";
 
-export const metadata = { title: "Kitchen Table" };
+export const metadata = { title: "Home" };
 
 export default async function HomePage({
   searchParams,
@@ -23,200 +23,144 @@ export default async function HomePage({
 }) {
   const session = await auth();
   if (!session?.user.id) redirect("/login");
-  const sort = parseFeedSort((await searchParams).sort);
 
-  const {
-    posts,
-    spaces,
-    recognition,
-    suggestions,
-    newToday,
-    nextEvent,
-    mySpaces,
-    railEvents,
-    continueLearning,
-  } = await loadFeed(session.user.id, sort);
-  const kitchen = spaces.find((space) => space.slug === "kitchen-table") ?? spaces[0];
-  const currentName = session.user.name || session.user.handle;
-  const viewer = { name: currentName, avatar: session.user.image ?? null };
-  const isHost = session.user.roles.some(
+  const sort = parseFeedSort((await searchParams).sort);
+  const density = await readDensity();
+  const data = await loadFeed(session.user.id, sort);
+
+  const viewer = {
+    name: session.user.name || session.user.handle,
+    avatar: session.user.image ?? null,
+  };
+  const isStaff = session.user.roles.some(
     (role) => role === "ADMIN" || role === "SUPER_ADMIN" || role === "HOST",
   );
 
-  const railProps = {
-    // Already shaped by loadFeed: deciding what counts as "live" needs the
-    // clock, which is not something to read during render.
-    nextEvents: railEvents,
-    progress: continueLearning.map((item) => ({
-      courseSlug: item.course.slug,
-      courseTitle: item.course.title,
-      percent: item.percent,
-    })),
-    suggestions: suggestions.map((person) => ({
-      userId: person.userId,
-      displayName: person.displayName,
-      handle: person.handle,
-      avatarUrl: person.avatarUrl,
-      reason: person.reason,
-    })),
-    spaces: spaces.map((space) => ({
-      name: space.name,
-      slug: space.slug,
-      coverUrl: space.coverUrl,
-      memberCount: space._count.memberships,
-    })),
-    recognition: recognition.map((award) => ({
-      id: award.id,
-      icon: award.badge.icon ?? "🌱",
-      badgeName: award.badge.name,
-      memberName: award.user.profile?.displayName ?? award.user.handle,
-      handle: award.user.handle,
-    })),
-  };
-
   return (
-    <div className="flex gap-6">
-      <div className="min-w-0 flex-1 space-y-5">
-        <FeedHeader
-          firstName={currentName.split(" ")[0]}
-          spaceCount={spaces.length}
-          nextEvent={
-            nextEvent ? { title: nextEvent.title, when: nextEvent.startsAt } : null
-          }
-          newToday={newToday}
+    <AppShell
+      rail={
+        <FeedRail
+          events={data.events}
+          progress={data.progress.map((item) => ({
+            courseSlug: item.course.slug,
+            courseTitle: item.course.title,
+            percent: item.percent,
+          }))}
+          suggestions={data.suggestions}
+          spaces={data.joinable}
         />
-
-        <FeedComposer
-          name={currentName}
+      }
+    >
+      <div className="space-y-2.5">
+        <Composer
+          name={viewer.name}
           avatar={viewer.avatar}
-          spaces={mySpaces}
-          defaultSpaceId={kitchen?.id}
+          spaces={data.mySpaces}
+          defaultSpaceId={data.defaultSpaceId}
           uploadsEnabled={uploadsConfigured()}
         />
 
-        {/* Sticks under the app bar so the sort stays reachable in a long feed
-            without a jump-to-top trip. The rule is on this wrapper rather than
-            the tabs, so the active tab's indicator sits on top of it. */}
-        <div className="sticky top-[72px] z-20 -mx-1 border-b border-border/70 bg-background/90 px-1 pt-1 backdrop-blur-sm">
-          <FeedSortBar current={sort} basePath="/home" />
-        </div>
+        <FeedToolbar sort={sort} basePath="/home" density={density} />
 
-        <div className="space-y-4">
-          {posts.length === 0 ? (
-            <FeedEmpty sort={sort} />
-          ) : (
-            posts.map((post) => (
+        {data.posts.length === 0 ? (
+          <FeedEmpty sort={sort} hasSpaces={data.mySpaces.length > 0} />
+        ) : (
+          <div className="space-y-2.5">
+            {data.posts.map((post) => (
               <PostCard
                 key={post.id}
                 post={post}
                 viewer={viewer}
-                canPin={isHost}
+                density={density}
+                canPin={isStaff}
               />
-            ))
-          )}
-        </div>
-
-        <div className="space-y-5 xl:hidden">
-          <FeedRail stacked {...railProps} />
-        </div>
+            ))}
+          </div>
+        )}
       </div>
-
-      <div className="hidden xl:block">
-        <FeedRail {...railProps} />
-      </div>
-    </div>
+    </AppShell>
   );
 }
 
 /**
- * Everything the feed page needs, in one round of parallel queries.
+ * Density lives in a cookie rather than the URL, because it is a property of
+ * the member rather than of the page — it should follow them to every feed and
+ * survive a shared link.
+ */
+async function readDensity(): Promise<Density> {
+  const store = await cookies();
+  return store.get("vu-density")?.value === "compact" ? "compact" : "card";
+}
+
+/**
+ * Everything the page needs, in one round of parallel queries.
  *
- * Kept out of the component body so the timestamp maths is not an impure call
- * during render, and so the page reads as layout rather than data plumbing.
+ * Kept out of the component body so the clock is never read during render, and
+ * so the page reads as layout rather than data plumbing.
  */
 async function loadFeed(userId: string, sort: ReturnType<typeof parseFeedSort>) {
-  const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+  const runningSince = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
-  const [
-    feed,
-    spaces,
-    mySpaces,
-    recognition,
-    suggestions,
-    newToday,
-    nextEvent,
-    railEvents,
-    continueLearning,
-  ] = await Promise.all([
+  const [feed, mySpaces, joinable, events, progress, suggestions] = await Promise.all([
     listFeed({ userId, sort, take: 25 }),
-    prisma.space.findMany({
-      orderBy: { sortOrder: "asc" },
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        coverUrl: true,
-        description: true,
-        _count: { select: { memberships: true } },
-      },
-    }),
-    // Only the spaces this member belongs to, for the composer's picker.
+    // Only spaces this member can actually post in.
     prisma.space.findMany({
       where: { memberships: { some: { userId } } },
       orderBy: { sortOrder: "asc" },
       select: { id: true, name: true, slug: true },
     }),
-    recentRecognition(4),
-    peopleYouShouldMeet(userId, 3),
-    prisma.post.count({
-      where: { status: "PUBLISHED", publishedAt: { gte: dayAgo } },
-    }),
-    prisma.event.findFirst({
-      where: { startsAt: { gt: new Date() } },
-      orderBy: { startsAt: "asc" },
-      select: { title: true, startsAt: true },
-    }),
-    // Anything still running counts as upcoming, so a class in progress shows
-    // as live rather than disappearing the moment it starts.
-    prisma.event.findMany({
-      where: { startsAt: { gte: new Date(Date.now() - 2 * 60 * 60 * 1000) } },
-      orderBy: { startsAt: "asc" },
-      take: 3,
+    // Open rooms they have not joined, for the rail.
+    prisma.space.findMany({
+      where: {
+        visibility: { in: ["PUBLIC", "MEMBERS"] },
+        memberships: { none: { userId } },
+      },
+      orderBy: { sortOrder: "asc" },
+      take: 4,
       select: {
         id: true,
-        title: true,
-        startsAt: true,
-        endsAt: true,
-        space: { select: { name: true } },
+        name: true,
+        slug: true,
+        kind: true,
+        _count: { select: { memberships: true } },
       },
     }),
+    prisma.event.findMany({
+      where: { startsAt: { gte: runningSince } },
+      orderBy: { startsAt: "asc" },
+      take: 2,
+      select: { id: true, title: true, startsAt: true, endsAt: true },
+    }),
     getContinueLearning(userId),
+    peopleYouShouldMeet(userId, 3),
   ]);
 
-  // Live while the class is running, or for an hour after it starts when no end
-  // time was set - a class with no endsAt is still a class in progress.
   const now = Date.now();
-  const railEventsShaped = railEvents.map((event) => ({
-    id: event.id,
-    title: event.title,
-    startsAt: event.startsAt,
-    spaceName: event.space?.name ?? null,
-    live:
-      event.startsAt.getTime() <= now &&
-      (event.endsAt
-        ? event.endsAt.getTime() >= now
-        : now - event.startsAt.getTime() < 60 * 60 * 1000),
-  }));
 
   return {
     posts: feed.posts,
-    spaces,
-    recognition,
-    suggestions,
-    newToday,
-    nextEvent,
     mySpaces,
-    railEvents: railEventsShaped,
-    continueLearning,
+    defaultSpaceId:
+      mySpaces.find((space) => space.slug === "kitchen-table")?.id ?? mySpaces[0]?.id,
+    joinable: joinable.map((space) => ({
+      name: space.name,
+      slug: space.slug,
+      kind: space.kind,
+      memberCount: space._count.memberships,
+    })),
+    events: events.map((event) => ({
+      id: event.id,
+      title: event.title,
+      startsAt: event.startsAt,
+      // Live while running, or for an hour after it starts when no end time was
+      // set — a class with no endsAt is still a class in progress.
+      live:
+        event.startsAt.getTime() <= now &&
+        (event.endsAt
+          ? event.endsAt.getTime() >= now
+          : now - event.startsAt.getTime() < 60 * 60 * 1000),
+    })),
+    progress,
+    suggestions,
   };
 }

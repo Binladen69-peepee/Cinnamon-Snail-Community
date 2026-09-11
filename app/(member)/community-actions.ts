@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
+import { redirect } from "next/navigation";
+import { PostType } from "@prisma/client";
 import { auth } from "@/auth";
 import {
   addComment,
@@ -13,11 +15,9 @@ import {
   votePoll,
 } from "@/lib/community/posts";
 import { toggleVote } from "@/lib/community/votes";
-import { PostType } from "@prisma/client";
-import { redirect } from "next/navigation";
 import { awardBadges } from "@/lib/social/badges";
-import { objectPathFromUrl, verifyUploaded } from "@/lib/uploads/storage";
 import { kindOf } from "@/lib/uploads/policy";
+import { objectPathFromUrl, verifyUploaded } from "@/lib/uploads/storage";
 
 async function requireUserId() {
   const session = await auth();
@@ -26,23 +26,26 @@ async function requireUserId() {
 }
 
 /**
- * Post straight from the feed, with no navigation.
- *
- * `createPostAction` redirects when it is done, which is right for the full
- * compose page and wrong for the inline composer — a redirect throws the reader
- * back to the top of the feed and loses their scroll position. This one just
- * revalidates, so the new post appears in place.
- *
- * Returns a plain result rather than throwing, so the composer can show the
- * reason inline instead of tripping an error boundary over a typo.
+ * Paths that show post state. Kept in one place so a new surface cannot be
+ * added without its cache being considered.
  */
+function revalidateFeeds(postId?: string) {
+  revalidatePath("/home");
+  revalidatePath("/spaces", "layout");
+  if (postId) revalidatePath(`/posts/${postId}`);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Writing                                                                    */
+/* -------------------------------------------------------------------------- */
+
 /**
  * Check every claimed attachment against what is actually in the bucket.
  *
  * The client tells us a URL, a size and a type; none of that is evidence. This
- * re-reads each object's stored metadata, which is what catches a member who
- * asked for a URL for a 1 KB image and then uploaded an 80 MB file, and it
- * rejects any path that does not sit under their own user id.
+ * re-reads each object's stored metadata, which catches a client that asked for
+ * a URL for a 1 KB image and then uploaded 80 MB, and it rejects any path that
+ * does not sit under the member's own id.
  */
 async function verifyAttachments(
   userId: string,
@@ -95,7 +98,7 @@ async function verifyAttachments(
       url,
       kind,
       alt: alt || undefined,
-      // The stored type wins over whatever the client said it was.
+      // The stored type wins over whatever the client claimed.
       mimeType: verified.mimeType,
       width: Number.isFinite(width) && width > 0 ? width : null,
       height: Number.isFinite(height) && height > 0 ? height : null,
@@ -105,45 +108,57 @@ async function verifyAttachments(
   return { ok: true, files };
 }
 
-export async function createFeedPostAction(
+/**
+ * Post from the feed, with no navigation.
+ *
+ * Returns a result rather than throwing, so the composer shows the reason
+ * inline instead of tripping an error boundary over a typo.
+ */
+export async function createPostAction(
   formData: FormData,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   try {
     const userId = await requireUserId();
     const body = String(formData.get("body") ?? "").trim();
+    const title = String(formData.get("title") ?? "").trim();
 
     // Attachments arrive as JSON because FormData cannot carry a nested list.
-    // Every entry is re-verified against storage below, so this is a claim
-    // about what was uploaded, not a trusted record.
     let claimed: unknown[] = [];
-    const rawAttachments = String(formData.get("attachments") ?? "");
-    if (rawAttachments) {
+    const raw = String(formData.get("attachments") ?? "");
+    if (raw) {
       try {
-        const parsed = JSON.parse(rawAttachments);
+        const parsed = JSON.parse(raw);
         if (Array.isArray(parsed)) claimed = parsed.slice(0, 8);
       } catch {
         return { ok: false, error: "Those attachments could not be read." };
       }
     }
 
-    // A photo on its own is a perfectly good post; text is only required when
-    // there is nothing else.
-    if (!body && claimed.length === 0) {
+    // A photo on its own is a perfectly good post.
+    if (!body && !title && claimed.length === 0) {
       return { ok: false, error: "Write something or add a photo first." };
     }
 
     const spaceId = String(formData.get("spaceId") ?? "");
     if (!spaceId) return { ok: false, error: "Pick a space to post in." };
 
-    const rawType = String(formData.get("type") ?? "SIMPLE");
-    const type = (Object.values(PostType) as string[]).includes(rawType)
-      ? (rawType as PostType)
-      : "SIMPLE";
-
-    const title = String(formData.get("title") ?? "").trim();
-
     const attachments = await verifyAttachments(userId, claimed);
     if (!attachments.ok) return { ok: false, error: attachments.error };
+
+    const rawType = String(formData.get("type") ?? "");
+    const explicit = (Object.values(PostType) as string[]).includes(rawType)
+      ? (rawType as PostType)
+      : null;
+    // The type follows what was attached unless the composer said otherwise, so
+    // the feed can frame it correctly.
+    const hasVideo = attachments.files.some((file) => file.kind === "video");
+    const type: PostType =
+      explicit ??
+      (hasVideo ? "VIDEO" : attachments.files.length > 0 ? "IMAGE" : "SIMPLE");
+
+    const poll = [1, 2, 3, 4]
+      .map((n) => String(formData.get(`poll${n}`) ?? "").trim())
+      .filter(Boolean);
 
     await createPost({
       userId,
@@ -153,10 +168,10 @@ export async function createFeedPostAction(
       body,
       status: "PUBLISHED",
       attachmentUrls: attachments.files,
+      pollOptions: type === "POLL" ? poll : undefined,
     });
 
-    revalidatePath("/home");
-    revalidatePath("/spaces", "layout");
+    revalidateFeeds();
     // Recognition is checked off the request path so posting stays fast.
     after(() => awardBadges(userId));
     return { ok: true };
@@ -168,55 +183,24 @@ export async function createFeedPostAction(
   }
 }
 
-export async function createPostAction(formData: FormData) {
-  const userId = await requireUserId();
-  const type = String(formData.get("type") ?? "SIMPLE") as PostType;
-  const imageUrl = String(formData.get("imageUrl") ?? "").trim();
-  const gifUrl = String(formData.get("gifUrl") ?? "").trim();
-  const poll = [1, 2, 3, 4]
-    .map((index) => String(formData.get(`poll${index}`) ?? "").trim())
-    .filter(Boolean);
-  const status = String(formData.get("status") ?? "PUBLISHED");
-  const scheduled = String(formData.get("scheduledAt") ?? "");
-  const post = await createPost({
-    userId,
-    spaceId: String(formData.get("spaceId")),
-    type,
-    title: String(formData.get("title") ?? "") || undefined,
-    body: String(formData.get("body") ?? ""),
-    linkUrl: String(formData.get("linkUrl") ?? "") || undefined,
-    status: status === "DRAFT" ? "DRAFT" : scheduled ? "SCHEDULED" : "PUBLISHED",
-    scheduledAt: scheduled ? new Date(scheduled) : null,
-    pollOptions: type === "POLL" ? poll : undefined,
-    attachmentUrls: [
-      ...(imageUrl ? [{ url: imageUrl, kind: "image" }] : []),
-      ...(gifUrl ? [{ url: gifUrl, kind: "gif" }] : []),
-    ],
-  });
-  revalidatePath("/home");
-  revalidatePath("/spaces", "layout");
-  // Recognition is checked off the request path so posting stays fast.
-  after(() => awardBadges(userId));
-  if (post.status === "PUBLISHED") {
-    redirect(`/posts/${post.id}`);
-  }
-  redirect("/home");
-}
-
 export async function commentAction(formData: FormData) {
   const userId = await requireUserId();
-  const postId = String(formData.get("postId"));
+  const postId = String(formData.get("postId") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+  if (!postId || !body) return;
   await addComment({
     userId,
     postId,
-    body: String(formData.get("body") ?? ""),
+    body,
     parentId: String(formData.get("parentId") ?? "") || undefined,
   });
-  revalidatePath(`/posts/${postId}`);
-  revalidatePath("/home");
-  revalidatePath("/spaces", "layout");
+  revalidateFeeds(postId);
   after(() => awardBadges(userId));
 }
+
+/* -------------------------------------------------------------------------- */
+/* Reacting                                                                   */
+/* -------------------------------------------------------------------------- */
 
 export async function voteAction(formData: FormData) {
   const userId = await requireUserId();
@@ -224,49 +208,58 @@ export async function voteAction(formData: FormData) {
   const commentId = String(formData.get("commentId") ?? "") || undefined;
   const returnToPostId = String(formData.get("returnToPostId") ?? "") || postId;
   const raw = Number(formData.get("value"));
-  const value = raw === -1 ? -1 : 1;
-  await toggleVote({ userId, postId, commentId, value });
-  revalidatePath("/home");
-  revalidatePath("/spaces", "layout");
-  if (returnToPostId) revalidatePath(`/posts/${returnToPostId}`);
-}
-
-export async function saveAction(formData: FormData) {
-  const userId = await requireUserId();
-  await toggleBookmark(userId, String(formData.get("postId")));
-  revalidatePath("/home");
-  revalidatePath("/spaces", "layout");
-}
-
-export async function reportAction(formData: FormData) {
-  const userId = await requireUserId();
-  await reportPost(
-    userId,
-    String(formData.get("postId")),
-    String(formData.get("reason") ?? "unspecified"),
-  );
-}
-
-export async function pinAction(formData: FormData) {
-  const userId = await requireUserId();
-  await pinPost(userId, String(formData.get("postId")));
-  revalidatePath("/home");
-  revalidatePath("/spaces", "layout");
+  await toggleVote({ userId, postId, commentId, value: raw === -1 ? -1 : 1 });
+  revalidateFeeds(returnToPostId);
 }
 
 export async function reactAction(formData: FormData) {
   const userId = await requireUserId();
+  const postId = String(formData.get("postId") ?? "");
+  if (!postId) return;
   await setPostReaction({
     userId,
-    postId: String(formData.get("postId")),
+    postId,
     emoji: String(formData.get("emoji") ?? ""),
   });
-  revalidatePath("/home");
-  revalidatePath("/spaces", "layout");
+  revalidateFeeds(postId);
+}
+
+export async function saveAction(formData: FormData) {
+  const userId = await requireUserId();
+  const postId = String(formData.get("postId") ?? "");
+  if (!postId) return;
+  await toggleBookmark(userId, postId);
+  revalidateFeeds(postId);
 }
 
 export async function votePollAction(formData: FormData) {
   const userId = await requireUserId();
-  await votePoll(userId, String(formData.get("optionId")));
-  revalidatePath("/home");
+  await votePoll(userId, String(formData.get("optionId") ?? ""));
+  revalidateFeeds(String(formData.get("postId") ?? "") || undefined);
+}
+
+/* -------------------------------------------------------------------------- */
+/* Moderating                                                                 */
+/* -------------------------------------------------------------------------- */
+
+/** pinPost toggles on the server, so the caller does not pass a target state. */
+export async function pinPostAction(formData: FormData) {
+  const userId = await requireUserId();
+  const postId = String(formData.get("postId") ?? "");
+  if (!postId) return;
+  await pinPost(userId, postId);
+  revalidateFeeds(postId);
+}
+
+export async function reportPostAction(formData: FormData) {
+  const userId = await requireUserId();
+  const postId = String(formData.get("postId") ?? "");
+  if (!postId) return;
+  await reportPost(
+    userId,
+    postId,
+    String(formData.get("reason") ?? "").slice(0, 500),
+  );
+  revalidateFeeds(postId);
+  redirect(`/posts/${postId}`);
 }

@@ -1,8 +1,43 @@
 # Vegan University
 
-Premium community + cooking school platform. Mighty Networks is a capability reference only — this product has its own information architecture and visual identity.
+A community and cooking-school platform: a Reddit-shaped member app sitting on
+top of a paid membership, with courses, live cook-alongs and member discovery.
+Mighty Networks is a capability reference only — this product has its own
+information architecture and visual identity.
 
-`BUILD.md` is the master execution contract. Do not add a competing roadmap.
+**The member app is being rebuilt.** `docs/rebuild-roadmap.md` is the current
+plan of record and says what is done, what is next, and what was deliberately
+kept. `BUILD.md` remains the original execution contract for everything outside
+that rebuild. `DECISIONS.md` records why things are the way they are — read it
+before changing something that looks odd, because most of what looks odd is
+load-bearing.
+
+---
+
+## What is where
+
+```
+app/
+  (marketing)/      Public sales pages. Untouched by the rebuild, always live.
+  (member)/         The signed-in app. Being rebuilt; see the roadmap.
+  (auth)/           Magic-link sign in.
+  admin/            Staff tools, on their own plain chrome.
+  api/              Route handlers: search, media, community, messages, jobs.
+components/
+  app/              The member frame: header, rails, tabs.
+  feed/             Posts, composer, votes, comments, uploads.
+  marketing/        Sales-page components.
+  ui/               Primitives shared by both.
+lib/                Domain services. Business rules live here, not in pages.
+prisma/             Schema, migrations, seeds.
+docs/               Architecture notes, runbooks, the rebuild roadmap.
+```
+
+The rule that keeps this navigable: **pages are thin**. A route reads the
+session, calls into `lib/`, and lays out the result. Anything that decides
+something belongs in `lib/`.
+
+---
 
 ## Setup
 
@@ -19,7 +54,8 @@ cp .env.example .env
 openssl rand -base64 32
 ```
 
-4. Start Postgres (Docker maps to **5433** so it does not collide with a local install on 5432) and run migrations:
+4. Start Postgres (Docker maps to **5433** so it does not collide with a local
+   install on 5432) and run migrations:
 
 ```bash
 docker compose up -d
@@ -36,93 +72,221 @@ Seeded local accounts (password `vegan-local-dev`):
 - `adam@veganuniversity.test` (admin)
 - `member@veganuniversity.test` (member)
 
-Magic links are emailed through Resend when `RESEND_API_KEY` is set. The server console is only a development fallback if delivery is unavailable.
+Magic links are emailed through Resend when `RESEND_API_KEY` is set. The server
+console is only a development fallback if delivery is unavailable.
+
+### Optional: demo content
+
+The default seed produces a thin feed. To exercise the real thing — scores,
+reactions, threaded replies, and Adam's own photography at real dimensions:
+
+```bash
+npx tsx prisma/seed-feed-demo.ts   # local only; refuses a non-local DATABASE_URL
+npx tsx prisma/reindex-search.ts   # backfills the search index
+```
+
+The reindex matters more than it sounds: indexing only happens for content
+created through the app, so anything written by a seed script is invisible to
+search until this runs.
+
+---
 
 ## Environment variables
 
-See `.env.example`. Never commit secrets. Never expose SamCart or Kit keys to the client.
+See `.env.example`. Never commit secrets. Never expose SamCart, Kit or Supabase
+service keys to the client.
 
 | Variable | Purpose |
-|---|---|
-| `DATABASE_URL` | PostgreSQL connection |
-| `AUTH_SECRET` | Auth.js cookie signing |
-| `AUTH_URL` | Public origin |
-| `EMAIL_FROM` | From-address for magic links |
-| `RESEND_API_KEY` | Resend API key for transactional email |
+| --- | --- |
+| `DATABASE_URL` | Postgres connection string |
+| `AUTH_SECRET` | Auth.js signing secret |
+| `AUTH_URL` | Canonical app URL |
 | `RESEND_API_KEY` | Transactional email (optional in development) |
-| `SUPABASE_URL` | Supabase project URL, for member uploads |
-| `SUPABASE_SERVICE_ROLE_KEY` | Mints signed upload URLs (server only, Sensitive) |
+| `EMAIL_FROM` | Sender address for magic links |
+| `SAMCART_WEBHOOK_SECRET` | Verifies billing webhooks |
+| `KIT_API_KEY` | Kit (ConvertKit) list sync |
+| `SUPABASE_URL` | Supabase **project API** base, for member uploads |
+| `SUPABASE_SERVICE_ROLE_KEY` | Mints signed upload URLs. Server only, Sensitive. |
 | `SUPABASE_UPLOAD_BUCKET` | Upload bucket, defaults to `community-uploads` |
-| `UPSTASH_REDIS_REST_URL` / `TOKEN` | Rate limit (optional; in-memory fallback in development) |
-| `SAMCART_WEBHOOK_SECRET` | Verify Notify URL `api_key` or HMAC signature |
-| `SAMCART_API_KEY` | Passed as the `sc-api` header for cancel / list / refund |
-| `ACCOUNT_DELETION_GRACE_DAYS` | Days before purge after a deletion request (default 7, DEC-010) |
-| `KIT_API_KEY` / `KIT_API_SECRET` | Tag sync after entitlement changes |
-| `BILLING_JOB_SECRET` | Protects `POST /api/jobs/billing` |
-| `BILLING_ALERT_EMAIL` | Daily reconciliation email, including clean days |
+
+> `SUPABASE_URL` is **not** `DATABASE_URL`. They point at the same Supabase
+> project, but storage needs the `https://<ref>.supabase.co` API base, and a
+> `postgresql://` value there fails every upload silently. This has caught us
+> once already.
+
+Uploads stay disabled until `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` both
+exist; the composer's Photo control is disabled with a reason rather than
+failing after someone has picked a file. See `docs/member-uploads.md` for the
+bucket policy.
+
+---
 
 ## Database
 
-PostgreSQL 16 + Prisma. Schema: `prisma/schema.prisma`. Migrations: `prisma/migrations`.
+```bash
+pnpm db:generate     # regenerate the Prisma client
+pnpm db:migrate      # apply migrations
+pnpm db:seed         # baseline seed
+pnpm db:studio       # browse the data
+```
+
+### Migrations need care here
+
+Two traps, both real, both will bite:
+
+**`prisma migrate dev` demands a database reset.** An early migration's
+checksum changed when its raw-SQL full-text statements were stripped, so Prisma
+sees the history as tampered. Do not accept the reset — it destroys local data.
+Apply migrations by hand instead:
 
 ```bash
-pnpm db:migrate
-pnpm db:seed
-pnpm db:studio
+npx prisma migrate diff \
+  --from-schema-datasource prisma/schema.prisma \
+  --to-schema-datamodel prisma/schema.prisma \
+  --script > prisma/migrations/<timestamp>_<name>/migration.sql
+
+# STRIP the destructive statements — see below — then:
+npx prisma db execute --file prisma/migrations/<timestamp>_<name>/migration.sql \
+  --schema prisma/schema.prisma
+npx prisma migrate resolve --applied <timestamp>_<name>
 ```
+
+**Every generated diff tries to delete full-text search.** `SearchIndex.search_tsv`
+and its three FTS/trigram indexes are created by raw SQL and are absent from
+`schema.prisma`, so Prisma reads them as drift and emits:
+
+```sql
+DROP INDEX "search_index_trgm_body_idx";
+DROP INDEX "search_index_trgm_title_idx";
+DROP INDEX "search_index_tsv_idx";
+ALTER TABLE "SearchIndex" DROP COLUMN "search_tsv";
+```
+
+Strip all four from every migration before applying, and note in the migration
+header that you did. Then verify:
+
+```sql
+SELECT indexname FROM pg_indexes WHERE tablename = 'SearchIndex';
+```
+
+Representing those objects in the schema would end both problems and is worth
+doing.
+
+---
 
 ## Local development
 
 ```bash
-pnpm dev
+pnpm dev             # Next dev server (Turbopack)
+pnpm build           # production build
+pnpm start           # serve the production build
+pnpm lint            # ESLint
+pnpm typecheck       # tsc --noEmit
 ```
 
-Member app: `/home`  
-Public membership: `/membership`  
-Signed-in billing: `/billing`  
-Admin: `/admin` and `/admin/billing` (admin role required)  
-Health: `/api/health`  
-SamCart webhook: `POST /api/webhooks/samcart`
+If the dev server serves a stale or 404 page after moving routes around, clear
+the Turbopack cache — `rm -rf .next`. Generated route types linger and produce
+dozens of phantom type errors that vanish on a clean build.
+
+---
 
 ## Testing
 
 ```bash
-pnpm typecheck
-pnpm lint
-pnpm test
-pnpm build
+pnpm test            # Vitest
+pnpm test -- --watch
 ```
+
+Integration tests under `tests/*.integration.test.ts` need the Docker Postgres
+running; they fail with `Can't reach database server at 127.0.0.1:5433` if it is
+not, which is expected rather than a regression.
+
+What is covered on purpose: access control (space visibility, posting,
+editing), the upload policy (MIME allowlist, size caps, object-key scoping),
+billing and entitlement transitions, feed ranking and comment nesting, and the
+video-reveal behaviour. Those are the places where a silent mistake would be
+expensive.
+
+---
+
+## Architecture notes
+
+**Auth** is Auth.js v5 with a JWT strategy plus session rows. The JWT callback
+does database work on sign-in only and then revalidates at most every five
+minutes, and it **fails open** — an early version cleared the session id on any
+error, which logged people out at random.
+
+**Billing** is SamCart as the source of truth, with entitlements as the access
+source of truth. Webhooks are idempotent and the raw provider event is stored
+before processing. See `docs/billing-architecture.md`.
+
+**Uploads** go browser → Supabase directly via a signed URL minted server-side.
+The object key is built from the session's user id, never from the request, and
+the stored object's own metadata is re-checked before an attachment row is
+written. Reads go through `/api/media/...`, which checks the session and
+redirects to a short-lived signed URL — the bucket is private, and the bytes
+still come from the CDN. See `docs/member-uploads.md`.
+
+**Search** is Postgres full-text with a trigram fallback, over a `SearchIndex`
+table populated on write. `prisma/reindex-search.ts` backfills it.
+
+**Regions** — `vercel.json` pins functions to `sin1` to sit beside the Supabase
+database. Cross-region was costing roughly ten times the latency: the homepage
+went 4.1s → 0.39s when this was fixed.
+
+---
 
 ## Deployment
 
-Node-compatible host (Vercel or equivalent), managed Postgres, environment-based secrets. Cloudflare R2/Stream remain later adapters.
+Vercel, from `master`. Production environment variables are set in the Vercel
+project, not in any file.
+
+The member-app rebuild happens on `rebuild/member-app` so `master` stays
+deployable throughout.
+
+---
 
 ## Jobs
 
-Webhook processing runs after the SamCart response via Next.js `after()`. Retry failed events and nightly reconciliation with:
+Background work runs through route handlers under `app/api/jobs/`, invoked by
+schedule. Every job is idempotent and retry-safe; failures are observable
+rather than silent. Reconciliation exists for billing state so a missed webhook
+is eventually corrected.
 
-```bash
-POST /api/jobs/billing?job=retry
-POST /api/jobs/billing?job=reconcile
-```
-
-Send `Authorization: Bearer $BILLING_JOB_SECRET` in production. The same functions can be wrapped by Inngest later (`DEC-011`).
+---
 
 ## Integrations
 
-| System | Role | Status |
-|---|---|---|
-| Auth.js | Sessions, magic link, optional password | Phase 1 |
-| Resend | Email | Adapter ready |
-| SamCart | Money source of truth | Webhook + cancel API adapter |
-| Kit | Tags from entitlements | Attempted after entitlement changes |
-| Cloudflare R2 / Stream | Media / video | Phase 1 adapter / Phase 3 video |
+| Service | Role |
+| --- | --- |
+| SamCart | Checkout and billing source of truth |
+| Supabase | Postgres and member upload storage |
+| Resend | Transactional email |
+| Kit | Newsletter and audience sync |
+| Senja | Testimonial widgets on the sales pages |
+| Zoom | Live cook-along hosting |
 
-Access checks never query SamCart or Kit. They read entitlements.
+---
 
 ## Troubleshooting
 
-- **Magic link not arriving:** check the server console in development.
-- **Prisma client missing:** `pnpm db:generate`.
-- **Postgres connection refused:** `docker compose up -d` and confirm port **5433** (mapped away from any local Postgres on 5432).
-- **Signed-in but bounced to login:** cookie blocked, or `AUTH_URL`/`AUTH_SECRET` mismatch.
+**Everyone is being logged out.** Check the JWT callback in `auth.ts`. It must
+fail open; clearing `sessionId` on a transient database error signs people out.
+
+**The catalog or feed is empty in production.** Almost always unapplied
+migrations rather than a missing `DATABASE_URL`. Vercel marks Sensitive
+variables unreadable, so `vercel env pull` returning an empty value proves
+nothing.
+
+**Search finds nothing.** Run `prisma/reindex-search.ts`. Content created by
+seed scripts is never indexed.
+
+**Uploads fail immediately.** Check that `SUPABASE_URL` is the API base and not
+the Postgres connection string, and that the bucket's MIME allowlist includes
+the type being sent.
+
+**`vercel env add` appears to succeed but stores nothing.** Piping without a
+trailing newline silently stores an empty value and prints no warning. Feed it
+from a file; a real success prints `✓ Added`.
+
+**Phantom type errors after moving routes.** `rm -rf .next`.

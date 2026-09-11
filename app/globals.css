@@ -185,11 +185,14 @@
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-wash: var(--brand-wash);
-  /* Four radii and nothing else: the app had twelve arbitrary values. */
-  --radius-chip: 0.5rem;
-  --radius-ctl: 0.75rem;
-  --radius-card: 1rem;
-  --radius-modal: 1.25rem;
+  /* Four radii and nothing else: the app had twelve arbitrary values.
+     Retuned tighter for the rebuild. 16px cards read soft and consumer-app;
+     Reddit sits at 8px, which reads like a tool you work in. The marketing
+     pages keep their own generous radii through the vu-* classes. */
+  --radius-chip: 0.375rem;
+  --radius-ctl: 0.5rem;
+  --radius-card: 0.5rem;
+  --radius-modal: 0.75rem;
   --radius-lg: 1.25rem;
   --shadow-e1: var(--e1);
   --shadow-e2: var(--e2);
