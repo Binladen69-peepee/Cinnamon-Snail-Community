@@ -13,7 +13,7 @@ async function requireUserId() {
 export type UploadTicket = {
   signedUrl: string;
   path: string;
-  publicUrl: string;
+  readUrl: string;
 };
 
 /**

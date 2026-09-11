@@ -36,9 +36,24 @@ export type SignedUpload = {
   signedUrl: string;
   /** The object key, for the record we write afterwards. */
   path: string;
-  /** Where the object will be readable once the PUT succeeds. */
-  publicUrl: string;
+  /** Our own stable route for reading it back. See MEDIA_ROUTE. */
+  readUrl: string;
 };
+
+/**
+ * Reads go through us, not straight to storage.
+ *
+ * The bucket is private, which is the right posture for a paid community — a
+ * public bucket would put members' photos on the open internet behind nothing
+ * but an unguessable path. So an attachment's stored URL is this route, and the
+ * route checks the session before handing back a short-lived signed URL.
+ *
+ * It redirects rather than streaming: the bytes still come from Supabase's CDN
+ * straight to the browser, so we pay for a redirect per image rather than for
+ * the image itself. Storing our own path also means the record never contains
+ * an expiring URL.
+ */
+export const MEDIA_ROUTE = "/api/media";
 
 /**
  * Mint a one-object upload URL for this member.
@@ -76,14 +91,27 @@ export async function createSignedUpload(input: {
     upload: {
       signedUrl: data.signedUrl,
       path: data.path,
-      publicUrl: publicUrlFor(data.path),
+      readUrl: mediaRouteFor(data.path),
     },
   };
 }
 
-export function publicUrlFor(path: string): string {
-  const base = process.env.SUPABASE_URL ?? "";
-  return `${base}/storage/v1/object/public/${BUCKET}/${path}`;
+export function mediaRouteFor(path: string): string {
+  return `${MEDIA_ROUTE}/${path}`;
+}
+
+/**
+ * A short-lived direct URL for one object.
+ *
+ * An hour is long enough that a browser caches the image for a normal session
+ * and short enough that a leaked URL stops working the same day.
+ */
+export async function signedReadUrl(path: string): Promise<string | null> {
+  const { data, error } = await client()
+    .storage.from(BUCKET)
+    .createSignedUrl(path, 60 * 60);
+  if (error || !data) return null;
+  return data.signedUrl;
 }
 
 /**
@@ -130,19 +158,39 @@ export async function verifyUploaded(input: {
 }
 
 /**
- * Recover the object key from a public URL, or null if it is not ours.
+ * Recover the object key from an attachment URL, or null if it is not ours.
  *
- * This is the gate on attachment URLs a client sends back after uploading: any
- * URL that is not this bucket on this project is refused outright, so a post
- * cannot be made to hotlink an arbitrary host through the attachment field.
+ * This is the gate on URLs a client sends back after uploading: anything that
+ * is not an object in this bucket is refused, so the attachment field cannot be
+ * used to hang an arbitrary host's image on a post.
+ *
+ * Accepts our media route, which is what uploads now store, and the older
+ * public-object form, so any row written before the bucket went private still
+ * resolves.
  */
 export function objectPathFromUrl(url: string): string | null {
-  const base = process.env.SUPABASE_URL;
-  if (!base) return null;
-  const prefix = `${base}/storage/v1/object/public/${BUCKET}/`;
-  if (!url.startsWith(prefix)) return null;
-  const path = url.slice(prefix.length);
-  // No traversal, no empty key, and it must still look like `<id>/<name>`.
-  if (!path || path.includes("..") || !/^[^/]+\/[^/]+$/.test(path)) return null;
-  return path;
+  let path: string | null = null;
+
+  if (url.startsWith(`${MEDIA_ROUTE}/`)) {
+    path = url.slice(MEDIA_ROUTE.length + 1);
+  } else {
+    const base = process.env.SUPABASE_URL;
+    if (!base) return null;
+    for (const prefix of [
+      `${base}/storage/v1/object/public/${BUCKET}/`,
+      `${base}/storage/v1/object/${BUCKET}/`,
+    ]) {
+      if (url.startsWith(prefix)) {
+        path = url.slice(prefix.length);
+        break;
+      }
+    }
+  }
+
+  if (!path) return null;
+  // Strip any query string, then require exactly `<userId>/<name>`: one level
+  // deep, no traversal, nothing empty.
+  const clean = path.split("?")[0];
+  if (!clean || clean.includes("..") || !/^[^/]+\/[^/]+$/.test(clean)) return null;
+  return clean;
 }

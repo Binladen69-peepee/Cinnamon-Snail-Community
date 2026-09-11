@@ -87,7 +87,7 @@ export function useUploads() {
         patch(id, {
           status: "done",
           progress: 1,
-          url: ticket.ticket.publicUrl,
+          url: ticket.ticket.readUrl,
           width: prepared.width,
           height: prepared.height,
           mimeType: prepared.mimeType,

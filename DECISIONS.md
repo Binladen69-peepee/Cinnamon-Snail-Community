@@ -922,3 +922,66 @@ Date:
 
 Approved by:
 Engineering
+
+## DEC-029 — Uploads shipped: private bucket, signed reads, 50 MB video
+
+Status: ACCEPTED
+
+Question:
+With the service role key supplied, what did configuring the real bucket
+actually change from the agreed plan?
+
+Decision:
+Three corrections, all forced by what the platform and the existing bucket
+turned out to be.
+
+**`SUPABASE_URL` is the project API base, not the database URL.** The value
+handed over was the Postgres connection string. Storage needs
+`https://<ref>.supabase.co`; a `postgresql://` value there would have failed
+every upload. `DATABASE_URL` and `SUPABASE_URL` are different things pointing at
+the same project, and `.env.example` now says so.
+
+**Video is 50 MB, not 100 MB.** The Supabase project has a global upload ceiling
+on its current plan: the bucket refuses a `file_size_limit` above 50 MB with
+EntityTooLarge — confirmed by probing 100, 75 and 50. Keeping the app at 100 MB
+would have advertised a limit the storage layer rejects, so `VIDEO_MAX_BYTES`
+matches what can actually be accepted, with a test asserting the pair stay in
+step. Upgrading the plan raises the ceiling.
+
+**The bucket stays private, and reads go through us.** It was already private,
+and this is paywalled content — turning it public would put members' photos on
+the open internet behind nothing but an unguessable path. That is not a call to
+make on someone's behalf, and the private posture is the better one anyway.
+
+So an attachment stores `/api/media/{user_id}/{file}`, and that route checks the
+session and **redirects** to a one-hour signed URL. Redirecting rather than
+streaming means the bytes still come from Supabase's CDN straight to the
+browser: we pay for a redirect per image, not the image. Storing our own path
+also keeps expiring URLs out of the database, and `objectPathFromUrl` still
+accepts the older public-object form so nothing written earlier breaks.
+
+Verified against the real bucket rather than assumed: mint, PUT (200),
+unauthenticated public read (400 — it is genuinely private), signed read (200,
+correct byte count), delete. The bucket independently rejects `image/svg+xml`
+and `text/html` with `invalid_mime_type`, so the MIME allowlist holds even if
+the application's own check were bypassed. `/api/media/...` answers 401 without
+a session.
+
+The RLS policies in `docs/member-uploads.md` remain documented but grant nothing
+today: they match `auth.uid()`, members hold no Supabase JWT under Auth.js, and
+the app reads and writes with the service role. The real controls are the server
+building the object key from the session, and the bucket's own size and MIME
+limits. The read policy in those docs was corrected from public to
+authenticated, since it had been written for a public bucket.
+
+One operational note: the service role key was supplied in chat, so it exists in
+a transcript. It bypasses RLS entirely and should be rotated once the pipeline
+is confirmed working; `docs/member-uploads.md` has the steps. Set in Vercel
+production as SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY and
+SUPABASE_UPLOAD_BUCKET, all encrypted.
+
+Date:
+2026-09-11
+
+Approved by:
+Engineering

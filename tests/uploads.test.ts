@@ -41,14 +41,17 @@ describe("upload policy", () => {
     }
   });
 
-  it("caps images at 10MB and videos at 100MB", () => {
+  it("caps images at 10MB and videos at the project ceiling of 50MB", () => {
     expect(IMAGE_MAX_BYTES).toBe(10 * MB);
-    expect(VIDEO_MAX_BYTES).toBe(100 * MB);
+    // 50, not the 100 originally agreed: the Supabase project refuses a bucket
+    // limit above 50MB on the current plan, so anything higher here would be a
+    // promise storage breaks. These two must not drift apart.
+    expect(VIDEO_MAX_BYTES).toBe(50 * MB);
 
     expect(validateUpload({ mimeType: "image/png", size: 10 * MB }).ok).toBe(true);
     expect(validateUpload({ mimeType: "image/png", size: 10 * MB + 1 }).ok).toBe(false);
-    expect(validateUpload({ mimeType: "video/mp4", size: 100 * MB }).ok).toBe(true);
-    expect(validateUpload({ mimeType: "video/mp4", size: 100 * MB + 1 }).ok).toBe(false);
+    expect(validateUpload({ mimeType: "video/mp4", size: 50 * MB }).ok).toBe(true);
+    expect(validateUpload({ mimeType: "video/mp4", size: 50 * MB + 1 }).ok).toBe(false);
   });
 
   it("does not let a video-sized image through on the video limit", () => {

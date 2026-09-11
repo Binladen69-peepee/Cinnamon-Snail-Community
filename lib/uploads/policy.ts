@@ -25,7 +25,17 @@ export const VIDEO_TYPES: Record<string, string> = {
 export const ALLOWED_TYPES = { ...IMAGE_TYPES, ...VIDEO_TYPES };
 
 export const IMAGE_MAX_BYTES = 10 * 1024 * 1024;
-export const VIDEO_MAX_BYTES = 100 * 1024 * 1024;
+
+/**
+ * 50 MB, not the 100 MB originally agreed.
+ *
+ * That is the Supabase project's own global upload ceiling on the current plan:
+ * the bucket refuses a `file_size_limit` above it with EntityTooLarge, so a
+ * 100 MB limit here would be a promise the storage layer breaks. Raising the
+ * plan raises the project limit, and then this constant and the bucket's
+ * `file_size_limit` both move together.
+ */
+export const VIDEO_MAX_BYTES = 50 * 1024 * 1024;
 
 /** For the file input's accept attribute. */
 export const ACCEPT = Object.keys(ALLOWED_TYPES).join(",");
