@@ -4,5 +4,9 @@
 .vercel
 node_modules
 .next
-uploads
-tmp
+# Anchored to the repo root, exactly as .gitignore has it. Unanchored, this
+# matched lib/uploads/ at any depth and Vercel deleted the upload pipeline from
+# every deployment after cloning it — the build then failed on ten unresolved
+# imports while passing locally.
+/uploads
+/tmp
