@@ -718,3 +718,41 @@ Date:
 
 Approved by:
 Engineering
+
+## DEC-026 — Video hosting moved to Supabase Storage
+
+Status: ACCEPTED
+
+Question:
+Where do Adam's videos live, now that the Vercel Blob store that held them was
+suspended for hitting its usage limit?
+
+Decision:
+Supabase Storage, in the public `Adam's video Clips` bucket on the same project
+that already backs the database. `lib/marketing/assets.ts` holds the base in a
+single `MEDIA` constant, so a future move is one line.
+
+Paths are stored fully percent-encoded — `%27` for the apostrophe in the bucket
+name, `%20` for spaces, `%28`/`%2C`/`%29` in the filename. Browsers do fix up
+the raw forms, and the URLs as handed over worked unencoded, but a pre-encoded
+URL is not something to leave to client leniency. A test asserts no video src
+contains a space, apostrophe or parenthesis.
+
+Verified against the live bucket: both files return 206 to a range request with
+`Accept-Ranges: bytes`, are served from the Cloudflare edge with
+`Cache-Control: max-age=3600`, and decode to their real dimensions and
+durations — 1920x1080 / 107.3s for the landscape cut, 720x1280 / 78.1s for the
+reel — seeking correctly mid-file.
+
+The hero is the 35 MB original again, reversing the compressed-cut decision in
+DEC-025. Not a change of mind: the 8.6 MB cut existed only in the suspended
+Blob store, which will not release it, and it was not part of the migration.
+Re-encoding and uploading a compressed hero cut to this bucket remains the
+largest single performance win available on the homepage, since every visitor
+fetches this file to play it behind a scrim at background scale.
+
+Date:
+2026-09-11
+
+Approved by:
+Engineering

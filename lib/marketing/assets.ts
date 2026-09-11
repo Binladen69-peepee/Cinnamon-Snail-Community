@@ -27,7 +27,12 @@ export type AssetSlot = {
   orientation?: "landscape" | "portrait";
 };
 
-const BLOB = "https://yqcfew9eptifgesz.public.blob.vercel-storage.com";
+// Adam's footage moved off Vercel Blob, which hit its usage limit and was
+// suspended (every file started answering 403 "Your store is blocked").
+// The bucket name contains an apostrophe and spaces, so the path is kept
+// fully percent-encoded rather than relying on the browser to fix it up.
+const MEDIA =
+  "https://hbhvldprkiniibgfpbns.supabase.co/storage/v1/object/public/Adam%27s%20video%20Clips";
 const WP = "https://cinnamonsnail.com/wp-content/uploads";
 const KIT_CDN = "https://embed.filekitcdn.com/e";
 
@@ -39,11 +44,14 @@ export const ASSET_SLOTS: AssetSlot[] = [
     need:
       "Landscape footage that survives heavy cropping and reads as texture behind the headline.",
     // Adam to camera in his own kitchen, 1920x1080, 107s. Runs muted and
-    // looping behind the hero copy. The compressed cut, 8.6 MB against the
-    // original's 35 MB: every visitor fetches this, and the footage sits behind
-    // a heavy scrim at background scale, where a quick start is worth more than
-    // the last of the sharpness.
-    src: `${BLOB}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29_compressed.mp4`,
+    // looping behind the hero copy.
+    //
+    // This is the 35 MB original. The 8.6 MB compressed cut preferred for
+    // start-up speed was only ever in the old Vercel Blob store and did not
+    // come across to this bucket, and that store is suspended so it cannot be
+    // recovered from there. Re-encoding and uploading a compressed cut here is
+    // the single biggest win available on this page.
+    src: `${MEDIA}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29.mp4`,
     alt: "",
     kind: "video",
     orientation: "landscape",
@@ -102,7 +110,7 @@ export const ASSET_SLOTS: AssetSlot[] = [
     section: "From Adam's kitchen (reel)",
     need:
       "Portrait footage of Adam cooking and talking through what is inside. Shot vertically, so it is presented as a reel rather than cropped into a wide frame.",
-    src: `${BLOB}/Video-11882.mp4`,
+    src: `${MEDIA}/Video-11882.mp4`,
     alt: "",
     kind: "video",
     orientation: "portrait",
@@ -113,9 +121,9 @@ export const ASSET_SLOTS: AssetSlot[] = [
     section: "Top of page",
     need:
       'Adam talking straight to camera — the "Vegan Cooking Classes" landscape cut, which is the actual sales video the brief asks for near the top of this page.',
-    // Same compressed cut as the hero, so a visitor who has seen the homepage
-    // already has it cached.
-    src: `${BLOB}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29_compressed.mp4`,
+    // The same file as the hero, so a visitor who has seen the homepage has it
+    // cached already.
+    src: `${MEDIA}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29.mp4`,
     alt: "",
     kind: "video",
     orientation: "landscape",

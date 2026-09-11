@@ -179,12 +179,13 @@ describe("video slots", () => {
     expect(hero.src).toBeTruthy();
   });
 
-  it("serves the compressed encode to every autoplaying slot", () => {
-    // Start-up speed beats the last of the sharpness here: this plays behind a
-    // heavy scrim at background scale, and every visitor fetches it. 8.6 MB
-    // against the original's 35 MB.
-    expect(assetSlot("home-hero").src).toContain("_compressed");
-    expect(assetSlot("membership-sales-video").src).toContain("_compressed");
+  it("reuses one file for the hero and the sales video, so it downloads once", () => {
+    // Both slots are Adam's landscape cut. Keeping them on the same URL means a
+    // visitor who lands on the homepage first already has /membership's video
+    // in cache.
+    expect(assetSlot("membership-sales-video").src).toBe(
+      assetSlot("home-hero").src,
+    );
   });
 
   it("declares an orientation for every video so players can frame it", () => {
@@ -193,9 +194,22 @@ describe("video slots", () => {
     }
   });
 
-  it("serves both videos from blob storage, not a third-party embed", () => {
+  it("self-hosts every video rather than embedding a third party", () => {
+    // Hosted on Supabase Storage. The old Vercel Blob store hit its usage
+    // limit and was suspended, which took all three videos offline at once —
+    // so this asserts the host we are actually on, not merely "not YouTube".
     for (const slot of ASSET_SLOTS.filter((s) => s.kind === "video" && s.src)) {
-      expect(slot.src).toContain("blob.vercel-storage.com");
+      expect(slot.src).toContain(
+        "hbhvldprkiniibgfpbns.supabase.co/storage/v1/object/public",
+      );
+    }
+  });
+
+  it("keeps video paths percent-encoded, bucket apostrophe included", () => {
+    // The bucket is named "Adam's video Clips". An unencoded apostrophe or
+    // space survives most clients but is not something to rely on.
+    for (const slot of ASSET_SLOTS.filter((s) => s.kind === "video" && s.src)) {
+      expect(slot.src).not.toMatch(/[ '()]/);
     }
   });
 
