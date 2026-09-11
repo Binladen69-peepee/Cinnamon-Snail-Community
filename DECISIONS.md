@@ -985,3 +985,77 @@ Date:
 
 Approved by:
 Engineering
+
+## DEC-030 — Phase 3: spaces become places
+
+Status: ACCEPTED
+
+Question:
+What did "typed spaces, groups, visibility, unread states, pinned resources"
+require, given the schema already had `kind` and `visibility` columns?
+
+Decision:
+The types and visibilities already existed in the database and were invisible
+in the product — nothing read `kind`, and `visibility` was mostly inert. Phase 3
+is largely about making them mean something.
+
+**Visibility was broken, not merely unsurfaced.** `canEnterSpace` fell through
+to `membership !== null` for both MEMBERS and PRIVATE, so an "open to members"
+space was in practice invitation-only and nothing could ever be discovered and
+joined. MEMBERS now means any active member may walk in; PRIVATE means space
+members only. Two new rules join it: `canDiscoverSpace`, because being told a
+room exists but not what is in it is its own kind of leak — a private space now
+404s rather than saying "this exists but you may not see it" — and
+`canJoinSpace`, so only open spaces are self-serve. Six tests cover the matrix,
+including the suspended-member and staff cases.
+
+**Typed spaces drive the interface.** A space's kind picks its icon, its
+one-line description, and which tabs it opens with, so a chat room does not
+present an empty Lessons tab and a course room does. Every space keeps Posts,
+Members and About; Events and Lessons appear only where the kind warrants.
+
+**Groups and favourites are what make the rail scale**, which is the phase's
+own done-when. Spaces sit under collapsible group headings whose collapsed state
+persists per member, favourites pin to the top, and unread counts ride on each
+row so a long list still says where to look. A collapsed group still reports the
+unread waiting inside it, or folding one away would hide activity. Favourites
+are *moved* to the top rather than copied — listing a space in Favourites and
+again in its group read as a duplicate and spent the rail's scarcest resource,
+vertical room.
+
+**Unread is three queries regardless of space count**: one for spaces, one for
+memberships, one grouped count with per-space cutoffs. The obvious shape — count
+per space in a loop — is a query per space, which would make the rail slow
+exactly when a community grew big enough to need it. Unread only counts for
+spaces you have joined and never counts your own posts.
+
+**Pinned resources are a separate model from pinned posts.** A pinned post is a
+conversation; a resource is the recipe index or the equipment list, something
+you return to. `SpaceResource` carries a label, URL and blurb.
+
+Two bugs found and fixed while building:
+
+`markSpaceRead` was called inside `after()` through the server action, which
+re-checks auth and calls `revalidatePath`. Neither works in that context, so the
+write silently never happened and `.catch(() => {})` hid it — unread looked like
+it simply did not clear. It calls the domain function directly now and logs a
+failure. The lesson is the `.catch`, not the context: a swallowed error turned a
+five-minute bug into a hunt.
+
+Space cards in the directory had wildly unequal heights, because a space without
+cover art rendered a third as tall as its neighbour and left a hole in the grid.
+The cover band is now always present, with a tinted panel carrying the kind icon
+when there is no image, and footers align on a shared baseline.
+
+Also worth recording: `prisma migrate diff` again emitted drops for
+`SearchIndex.search_tsv` and its three FTS indexes, which live in raw SQL and
+are absent from schema.prisma, so Prisma reads them as drift. They were stripped
+before applying and the migration header says so. Verified afterwards: all three
+indexes, the column, and all 154 indexed rows survived. This will recur on every
+future diff until the FTS objects are represented in the schema.
+
+Date:
+2026-09-11
+
+Approved by:
+Engineering

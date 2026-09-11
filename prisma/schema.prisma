@@ -140,52 +140,52 @@ enum ReportStatus {
 }
 
 model User {
-  id            String     @id @default(cuid())
-  name          String?
-  email         String     @unique
-  emailVerified DateTime?
-  image         String?
-  passwordHash  String?
-  status        UserStatus @default(ACTIVE)
-  handle        String     @unique
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  lastLoginAt   DateTime?
-  deletedAt     DateTime?
+  id                  String     @id @default(cuid())
+  name                String?
+  email               String     @unique
+  emailVerified       DateTime?
+  image               String?
+  passwordHash        String?
+  status              UserStatus @default(ACTIVE)
+  handle              String     @unique
+  createdAt           DateTime   @default(now())
+  updatedAt           DateTime   @updatedAt
+  lastLoginAt         DateTime?
+  deletedAt           DateTime?
   deletionRequestedAt DateTime?
 
-  accounts      Account[]
-  sessions      Session[]
-  emails        UserEmail[]
-  profile       Profile?
-  roles         UserRole[]
-  spaceMemberships SpaceMembership[]
-  posts         Post[]
-  comments      Comment[]
-  reactions     Reaction[]
-  bookmarks     Bookmark[]
-  reports       Report[]   @relation("ReportReporter")
-  notifications Notification[]
-  pollVotes     PollVote[]
-  votes         Vote[]
-  eventRsvps    EventRsvp[]
-  conversationMembers ConversationMember[]
-  messages      Message[]
-  subscriptions Subscription[]
-  entitlements  Entitlement[]
-  auditLogs     AuditLog[]
-  memberRoadmaps MemberRoadmap[]
-  memberBadges  MemberBadge[]
-  lessonProgress LessonProgress[]
-  courseProgress CourseProgress[]
-  hostedSpaces  Space[] @relation("SpaceHost")
+  accounts             Account[]
+  sessions             Session[]
+  emails               UserEmail[]
+  profile              Profile?
+  roles                UserRole[]
+  spaceMemberships     SpaceMembership[]
+  posts                Post[]
+  comments             Comment[]
+  reactions            Reaction[]
+  bookmarks            Bookmark[]
+  reports              Report[]              @relation("ReportReporter")
+  notifications        Notification[]
+  pollVotes            PollVote[]
+  votes                Vote[]
+  eventRsvps           EventRsvp[]
+  conversationMembers  ConversationMember[]
+  messages             Message[]
+  subscriptions        Subscription[]
+  entitlements         Entitlement[]
+  auditLogs            AuditLog[]
+  memberRoadmaps       MemberRoadmap[]
+  memberBadges         MemberBadge[]
+  lessonProgress       LessonProgress[]
+  courseProgress       CourseProgress[]
+  hostedSpaces         Space[]               @relation("SpaceHost")
   cancellationRequests CancellationRequest[]
-  blocksMade    UserBlock[] @relation("BlocksMade")
-  blocksAgainst UserBlock[] @relation("BlocksAgainst")
-  reportsAbout  Report[]    @relation("ReportSubject")
-  cohortMemberships CohortMember[]
-  matchesOwned  MemberMatch[] @relation("MatchOwner")
-  matchesToward MemberMatch[] @relation("MatchTarget")
+  blocksMade           UserBlock[]           @relation("BlocksMade")
+  blocksAgainst        UserBlock[]           @relation("BlocksAgainst")
+  reportsAbout         Report[]              @relation("ReportSubject")
+  cohortMemberships    CohortMember[]
+  matchesOwned         MemberMatch[]         @relation("MatchOwner")
+  matchesToward        MemberMatch[]         @relation("MatchTarget")
 }
 
 model UserEmail {
@@ -243,120 +243,158 @@ model VerificationToken {
 }
 
 model Role {
-  id    String   @id @default(cuid())
-  name  RoleName @unique
+  id    String     @id @default(cuid())
+  name  RoleName   @unique
   users UserRole[]
 }
 
 model UserRole {
   userId String
   roleId String
-  user   User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
 
   @@id([userId, roleId])
 }
 
 model Profile {
-  id                 String       @id @default(cuid())
-  userId             String       @unique
-  displayName        String
-  avatarUrl          String?
-  bio                String?
-  city               String?
-  region             String?
-  country            String?
-  cityLatitude       Float?
-  cityLongitude      Float?
-  cookingInterests   Json?
-  skillLevel         String?
-  dietaryInterests   Json?
-  links              Json?
-  privacy            Json?
-  dmPreference       DmPreference @default(EVERYONE)
+  id                  String       @id @default(cuid())
+  userId              String       @unique
+  displayName         String
+  avatarUrl           String?
+  bio                 String?
+  city                String?
+  region              String?
+  country             String?
+  cityLatitude        Float?
+  cityLongitude       Float?
+  cookingInterests    Json?
+  skillLevel          String?
+  dietaryInterests    Json?
+  links               Json?
+  privacy             Json?
+  dmPreference        DmPreference @default(EVERYONE)
   /// Which notification categories reach this member, per channel. Null means
   /// "everything in-app", which is the behaviour before this column existed.
-  notificationPrefs  Json?
-  directoryVisible   Boolean      @default(true)
-  matchingOptIn      Boolean      @default(true)
+  notificationPrefs   Json?
+  directoryVisible    Boolean      @default(true)
+  matchingOptIn       Boolean      @default(true)
   matchingPausedUntil DateTime?
-  timezone           String?
-  cookVibe           String?
-  suckiestThing      String?
-  glutenFree         Boolean?
-  primaryBenefit     String?
-  createdAt          DateTime     @default(now())
-  updatedAt          DateTime     @updatedAt
-  user               User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  timezone            String?
+  cookVibe            String?
+  suckiestThing       String?
+  glutenFree          Boolean?
+  primaryBenefit      String?
+  createdAt           DateTime     @default(now())
+  updatedAt           DateTime     @updatedAt
+  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Space {
-  id                   String             @id @default(cuid())
-  slug                 String             @unique
+  id                   String            @id @default(cuid())
+  slug                 String            @unique
   name                 String
   description          String?
   coverUrl             String?
   icon                 String?
-  kind                 SpaceKind          @default(FEED)
-  visibility           SpaceVisibility    @default(MEMBERS)
-  postingPermission    PostingPermission  @default(ALL_MEMBERS)
-  approvalRequired     Boolean            @default(false)
+  kind                 SpaceKind         @default(FEED)
+  visibility           SpaceVisibility   @default(MEMBERS)
+  postingPermission    PostingPermission @default(ALL_MEMBERS)
+  approvalRequired     Boolean           @default(false)
   notificationDefaults Json?
-  sortOrder            Int                @default(0)
+  sortOrder            Int               @default(0)
+  /// Which nav group this space sits under. Null means ungrouped.
+  groupId              String?
   hostUserId           String?
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-  host                 User?              @relation("SpaceHost", fields: [hostUserId], references: [id])
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+  host                 User?             @relation("SpaceHost", fields: [hostUserId], references: [id])
+  group                SpaceGroup?       @relation(fields: [groupId], references: [id], onDelete: SetNull)
   memberships          SpaceMembership[]
   posts                Post[]
   events               Event[]
   courses              Course[]
   cohorts              Cohort[]
+  resources            SpaceResource[]
+
+  @@index([groupId, sortOrder])
+}
+
+/// A heading in the space navigation. Circle's "space groups": what keeps a
+/// rail readable once there are more spaces than fit on a screen.
+model SpaceGroup {
+  id        String   @id @default(cuid())
+  slug      String   @unique
+  name      String
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  spaces    Space[]
+}
+
+/// A pinned resource on a space: the recipe index, the equipment list, the
+/// Zoom link. Distinct from a pinned post, which is a conversation.
+model SpaceResource {
+  id          String   @id @default(cuid())
+  spaceId     String
+  label       String
+  url         String
+  description String?
+  sortOrder   Int      @default(0)
+  createdAt   DateTime @default(now())
+  space       Space    @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@index([spaceId, sortOrder])
 }
 
 model SpaceMembership {
-  id        String              @id @default(cuid())
-  spaceId   String
-  userId    String
-  role      SpaceMembershipRole @default(MEMBER)
-  createdAt DateTime            @default(now())
-  space     Space               @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id          String              @id @default(cuid())
+  spaceId     String
+  userId      String
+  role        SpaceMembershipRole @default(MEMBER)
+  /// Pinned to the top of the member's rail. Null means not a favourite.
+  favoritedAt DateTime?
+  /// Last time this member opened the space. Null means never, so everything
+  /// published counts as unread.
+  lastReadAt  DateTime?
+  createdAt   DateTime            @default(now())
+  space       Space               @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([spaceId, userId])
+  @@index([userId, favoritedAt])
 }
 
 model Post {
-  id           String     @id @default(cuid())
-  spaceId      String
-  authorId     String
-  type         PostType   @default(SIMPLE)
-  status       PostStatus @default(PUBLISHED)
-  title        String?
-  body         String
-  bodyHtml     String?
-  plainText    String
-  linkUrl      String?
-  recipeId     String?
-  eventId      String?
-  pinnedAt     DateTime?
-  publishedAt  DateTime?
-  scheduledAt  DateTime?
-  score        Int        @default(0)
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  space        Space      @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  author       User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  recipe       Recipe?    @relation(fields: [recipeId], references: [id])
-  event        Event?     @relation(fields: [eventId], references: [id])
-  attachments  PostAttachment[]
-  mentions     PostMention[]
-  comments     Comment[]
-  reactions    Reaction[]
-  votes        Vote[]
-  bookmarks    Bookmark[]
-  reports      Report[]
-  pollOptions  PollOption[]
+  id          String           @id @default(cuid())
+  spaceId     String
+  authorId    String
+  type        PostType         @default(SIMPLE)
+  status      PostStatus       @default(PUBLISHED)
+  title       String?
+  body        String
+  bodyHtml    String?
+  plainText   String
+  linkUrl     String?
+  recipeId    String?
+  eventId     String?
+  pinnedAt    DateTime?
+  publishedAt DateTime?
+  scheduledAt DateTime?
+  score       Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  space       Space            @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  author      User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  recipe      Recipe?          @relation(fields: [recipeId], references: [id])
+  event       Event?           @relation(fields: [eventId], references: [id])
+  attachments PostAttachment[]
+  mentions    PostMention[]
+  comments    Comment[]
+  reactions   Reaction[]
+  votes       Vote[]
+  bookmarks   Bookmark[]
+  reports     Report[]
+  pollOptions PollOption[]
 
   @@index([spaceId, publishedAt])
   @@index([authorId])
@@ -365,34 +403,34 @@ model Post {
 }
 
 model PostAttachment {
-  id        String @id @default(cuid())
-  postId    String
-  kind      String
-  url       String
-  alt       String?
-  mimeType  String?
-  width     Int?
-  height    Int?
-  post      Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  id       String  @id @default(cuid())
+  postId   String
+  kind     String
+  url      String
+  alt      String?
+  mimeType String?
+  width    Int?
+  height   Int?
+  post     Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model PostMention {
-  id         String @id @default(cuid())
-  postId     String
-  handle     String
+  id              String  @id @default(cuid())
+  postId          String
+  handle          String
   mentionedUserId String?
-  post       Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  post            Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@index([handle])
 }
 
 model PollOption {
-  id     String     @id @default(cuid())
-  postId String
-  label  String
-  sortOrder Int     @default(0)
-  post   Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
-  votes  PollVote[]
+  id        String     @id @default(cuid())
+  postId    String
+  label     String
+  sortOrder Int        @default(0)
+  post      Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  votes     PollVote[]
 }
 
 model PollVote {
@@ -407,20 +445,20 @@ model PollVote {
 }
 
 model Comment {
-  id        String    @id @default(cuid())
+  id        String           @id @default(cuid())
   postId    String
   authorId  String
   parentId  String?
   body      String
   bodyHtml  String?
   plainText String
-  score     Int       @default(0)
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-  post      Post      @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author    User      @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent    Comment?  @relation("CommentThread", fields: [parentId], references: [id])
-  replies   Comment[] @relation("CommentThread")
+  score     Int              @default(0)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  post      Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  parent    Comment?         @relation("CommentThread", fields: [parentId], references: [id])
+  replies   Comment[]        @relation("CommentThread")
   reactions Reaction[]
   votes     Vote[]
   mentions  CommentMention[]
@@ -429,10 +467,10 @@ model Comment {
 }
 
 model CommentMention {
-  id     String  @id @default(cuid())
+  id        String  @id @default(cuid())
   commentId String
-  handle String
-  comment Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  handle    String
+  comment   Comment @relation(fields: [commentId], references: [id], onDelete: Cascade)
 }
 
 model Reaction {
@@ -499,17 +537,17 @@ model Report {
 }
 
 model Notification {
-  id         String               @id @default(cuid())
-  userId     String
-  channel    NotificationChannel  @default(IN_APP)
-  category   NotificationCategory
-  title      String
-  body       String
-  href       String?
-  readAt     DateTime?
+  id          String               @id @default(cuid())
+  userId      String
+  channel     NotificationChannel  @default(IN_APP)
+  category    NotificationCategory
+  title       String
+  body        String
+  href        String?
+  readAt      DateTime?
   emailSentAt DateTime?
-  createdAt  DateTime             @default(now())
-  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt   DateTime             @default(now())
+  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId, readAt, createdAt])
 }
@@ -529,26 +567,26 @@ model SearchIndex {
 }
 
 model Course {
-  id          String          @id @default(cuid())
-  slug        String          @unique
-  title       String
-  description String?
-  coverUrl    String?
-  published   Boolean         @default(false)
-  spaceId     String?
+  id             String           @id @default(cuid())
+  slug           String           @unique
+  title          String
+  description    String?
+  coverUrl       String?
+  published      Boolean          @default(false)
+  spaceId        String?
   instructorName String?
   category       String?
-  categoryOrder  Int          @default(0)
-  catalogOrder   Int          @default(0)
+  categoryOrder  Int              @default(0)
+  catalogOrder   Int              @default(0)
   teaserVideoUrl String?
   liveAt         DateTime?
-  createdAt   DateTime        @default(now())
-  updatedAt   DateTime        @updatedAt
-  space       Space?          @relation(fields: [spaceId], references: [id])
-  sections    CourseSection[]
-  progress    CourseProgress[]
-  resources   Resource[]
-  cohorts     Cohort[]
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+  space          Space?           @relation(fields: [spaceId], references: [id])
+  sections       CourseSection[]
+  progress       CourseProgress[]
+  resources      Resource[]
+  cohorts        Cohort[]
 
   @@index([published, category, catalogOrder])
 }
@@ -580,14 +618,14 @@ model Lesson {
 }
 
 model LessonProgress {
-  id             String    @id @default(cuid())
-  lessonId       String
-  userId         String
-  positionSeconds Int      @default(0)
-  completedAt    DateTime?
-  updatedAt      DateTime  @updatedAt
-  lesson         Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id              String    @id @default(cuid())
+  lessonId        String
+  userId          String
+  positionSeconds Int       @default(0)
+  completedAt     DateTime?
+  updatedAt       DateTime  @updatedAt
+  lesson          Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([lessonId, userId])
 }
@@ -606,14 +644,14 @@ model CourseProgress {
 }
 
 model Resource {
-  id        String  @id @default(cuid())
-  courseId  String?
-  lessonId  String?
-  title     String
-  url       String
-  kind      String  @default("file")
-  course    Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lesson    Lesson? @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  id       String  @id @default(cuid())
+  courseId String?
+  lessonId String?
+  title    String
+  url      String
+  kind     String  @default("file")
+  course   Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson   Lesson? @relation(fields: [lessonId], references: [id], onDelete: Cascade)
 }
 
 model Event {
@@ -701,14 +739,14 @@ model UserBlock {
 }
 
 model Product {
-  id          String      @id @default(cuid())
-  slug        String      @unique
-  name        String
-  kind        ProductKind
-  description String?
-  active      Boolean     @default(true)
-  kitTag      String?
-  maps        SamcartProductMap[]
+  id            String              @id @default(cuid())
+  slug          String              @unique
+  name          String
+  kind          ProductKind
+  description   String?
+  active        Boolean             @default(true)
+  kitTag        String?
+  maps          SamcartProductMap[]
   subscriptions Subscription[]
   entitlements  Entitlement[]
   pendingGrants PendingGrant[]
@@ -722,27 +760,27 @@ model SamcartProductMap {
 }
 
 model Subscription {
-  id                   String             @id @default(cuid())
-  userId               String
-  productId            String
-  status               SubscriptionStatus
-  samcartSubscriptionId String?           @unique
-  samcartOrderId       String?
-  samcartCustomerId    String?
-  amountCents          Int?
-  currency             String?            @default("usd")
-  gateway              String?
-  interval             String?
-  periodEnd            DateTime?
-  cancelAt             DateTime?
-  canceledAt           DateTime?
-  createdAt            DateTime           @default(now())
-  updatedAt            DateTime           @updatedAt
-  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
-  product              Product            @relation(fields: [productId], references: [id])
-  entitlements         Entitlement[]
-  billingEvents        BillingEvent[]
-  cancellationRequests CancellationRequest[]
+  id                    String                @id @default(cuid())
+  userId                String
+  productId             String
+  status                SubscriptionStatus
+  samcartSubscriptionId String?               @unique
+  samcartOrderId        String?
+  samcartCustomerId     String?
+  amountCents           Int?
+  currency              String?               @default("usd")
+  gateway               String?
+  interval              String?
+  periodEnd             DateTime?
+  cancelAt              DateTime?
+  canceledAt            DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  product               Product               @relation(fields: [productId], references: [id])
+  entitlements          Entitlement[]
+  billingEvents         BillingEvent[]
+  cancellationRequests  CancellationRequest[]
 
   @@index([userId, status])
 }
@@ -766,18 +804,18 @@ model Entitlement {
 }
 
 model BillingEvent {
-  id              String   @id @default(cuid())
-  provider        String   @default("samcart")
-  providerEventId String   @unique
+  id              String        @id @default(cuid())
+  provider        String        @default("samcart")
+  providerEventId String        @unique
   type            String
   payload         Json
   processedAt     DateTime?
   failedAt        DateTime?
   error           String?
-  attempts        Int      @default(0)
+  attempts        Int           @default(0)
   deadLetteredAt  DateTime?
   subscriptionId  String?
-  createdAt       DateTime @default(now())
+  createdAt       DateTime      @default(now())
   subscription    Subscription? @relation(fields: [subscriptionId], references: [id])
 
   @@index([processedAt])
@@ -819,8 +857,8 @@ model CancellationRequest {
 }
 
 model ReconciliationRun {
-  id          String                   @id @default(cuid())
-  startedAt   DateTime                 @default(now())
+  id          String                  @id @default(cuid())
+  startedAt   DateTime                @default(now())
   finishedAt  DateTime?
   status      String
   summary     Json?
@@ -854,13 +892,13 @@ model KitSyncLog {
 }
 
 model AutomationRule {
-  id        String           @id @default(cuid())
-  name      String
-  trigger   String
+  id         String          @id @default(cuid())
+  name       String
+  trigger    String
   conditions Json
-  actions   Json
-  enabled   Boolean          @default(false)
-  createdAt DateTime         @default(now())
+  actions    Json
+  enabled    Boolean         @default(false)
+  createdAt  DateTime        @default(now())
   executions RuleExecution[]
 }
 
@@ -876,12 +914,12 @@ model RuleExecution {
 }
 
 model AiPromptSchedule {
-  id        String          @id @default(cuid())
-  spaceId   String?
-  timezone  String          @default("America/Los_Angeles")
-  config    Json
-  paused    Boolean         @default(true)
-  drafts    AiPromptDraft[]
+  id       String          @id @default(cuid())
+  spaceId  String?
+  timezone String          @default("America/Los_Angeles")
+  config   Json
+  paused   Boolean         @default(true)
+  drafts   AiPromptDraft[]
 }
 
 model AiPromptDraft {
@@ -905,39 +943,39 @@ model RoadmapTrack {
 }
 
 model RoadmapMilestone {
-  id          String   @id @default(cuid())
-  trackId     String
-  sortOrder   Int
-  topic       String
-  lessonId    String?
-  recipeId    String?
-  learningGoal String
+  id              String                    @id @default(cuid())
+  trackId         String
+  sortOrder       Int
+  topic           String
+  lessonId        String?
+  recipeId        String?
+  learningGoal    String
   communityAction String?
-  track       RoadmapTrack @relation(fields: [trackId], references: [id], onDelete: Cascade)
-  progress    MemberMilestoneProgress[]
+  track           RoadmapTrack              @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  progress        MemberMilestoneProgress[]
 }
 
 model MemberRoadmap {
-  id        String   @id @default(cuid())
-  userId    String
-  trackId   String
-  cadence   String   @default("weekly")
-  pausedAt  DateTime?
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  track     RoadmapTrack @relation(fields: [trackId], references: [id])
+  id         String                    @id @default(cuid())
+  userId     String
+  trackId    String
+  cadence    String                    @default("weekly")
+  pausedAt   DateTime?
+  createdAt  DateTime                  @default(now())
+  user       User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track      RoadmapTrack              @relation(fields: [trackId], references: [id])
   milestones MemberMilestoneProgress[]
 
   @@unique([userId, trackId])
 }
 
 model MemberMilestoneProgress {
-  id            String   @id @default(cuid())
+  id              String           @id @default(cuid())
   memberRoadmapId String
-  milestoneId   String
-  completedAt   DateTime?
-  memberRoadmap MemberRoadmap @relation(fields: [memberRoadmapId], references: [id], onDelete: Cascade)
-  milestone     RoadmapMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  milestoneId     String
+  completedAt     DateTime?
+  memberRoadmap   MemberRoadmap    @relation(fields: [memberRoadmapId], references: [id], onDelete: Cascade)
+  milestone       RoadmapMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
 
   @@unique([memberRoadmapId, milestoneId])
 }
@@ -954,27 +992,27 @@ model Badge {
 }
 
 model MemberBadge {
-  id       String   @id @default(cuid())
-  badgeId  String
-  userId   String
-  reason   String?
+  id        String   @id @default(cuid())
+  badgeId   String
+  userId    String
+  reason    String?
   awardedAt DateTime @default(now())
-  badge    Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  badge     Badge    @relation(fields: [badgeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([badgeId, userId])
   @@index([awardedAt])
 }
 
 model Challenge {
-  id          String                  @id @default(cuid())
-  slug        String                  @unique
-  title       String
-  theme       String?
-  coverUrl    String?
-  startsAt    DateTime
-  endsAt      DateTime
-  target      String?
+  id           String                 @id @default(cuid())
+  slug         String                 @unique
+  title        String
+  theme        String?
+  coverUrl     String?
+  startsAt     DateTime
+  endsAt       DateTime
+  target       String?
   participants ChallengeParticipant[]
 }
 
@@ -990,14 +1028,14 @@ model ChallengeParticipant {
 }
 
 model Recipe {
-  id          String             @id @default(cuid())
-  slug        String             @unique
-  title       String
-  body        String
-  coverUrl    String?
-  createdAt   DateTime           @default(now())
-  variations  RecipeVariation[]
-  posts       Post[]
+  id         String            @id @default(cuid())
+  slug       String            @unique
+  title      String
+  body       String
+  coverUrl   String?
+  createdAt  DateTime          @default(now())
+  variations RecipeVariation[]
+  posts      Post[]
 }
 
 model RecipeVariation {
@@ -1012,24 +1050,24 @@ model RecipeVariation {
 }
 
 model MemberCard {
-  id          String  @id @default(cuid())
-  userId      String  @unique
-  title       String
-  body        String
-  status      String  @default("pending")
+  id     String @id @default(cuid())
+  userId String @unique
+  title  String
+  body   String
+  status String @default("pending")
 }
 
 model Happening {
-  id          String          @id @default(cuid())
-  hostUserId  String
-  kind        String
-  title       String
-  city        String
-  region      String?
-  country     String?
+  id               String          @id @default(cuid())
+  hostUserId       String
+  kind             String
+  title            String
+  city             String
+  region           String?
+  country          String?
   encryptedAddress String?
-  startsAt    DateTime
-  rsvps       HappeningRsvp[]
+  startsAt         DateTime
+  rsvps            HappeningRsvp[]
 }
 
 model HappeningRsvp {
@@ -1043,13 +1081,13 @@ model HappeningRsvp {
 }
 
 model Place {
-  id            String              @id @default(cuid())
-  name          String
-  category      String
-  veganStatus   String
-  city          String
+  id              String             @id @default(cuid())
+  name            String
+  category        String
+  veganStatus     String
+  city            String
   providerPlaceId String?
-  testimonials  PlaceTestimonial[]
+  testimonials    PlaceTestimonial[]
 }
 
 model PlaceTestimonial {
@@ -1123,16 +1161,16 @@ model MemberMatch {
 }
 
 model MemberGeoPoint {
-  id        String   @id @default(cuid())
-  source    String   @default("mighty")
-  country   String
-  region    String?
-  city      String?
-  latitude  Float
-  longitude Float
+  id         String   @id @default(cuid())
+  source     String   @default("mighty")
+  country    String
+  region     String?
+  city       String?
+  latitude   Float
+  longitude  Float
   /// Density for the glow only. Never rendered as a number: the sales pages
   /// carry no member counts.
-  weight    Int      @default(1)
+  weight     Int      @default(1)
   importedAt DateTime @default(now())
 
   @@unique([source, country, region, city])

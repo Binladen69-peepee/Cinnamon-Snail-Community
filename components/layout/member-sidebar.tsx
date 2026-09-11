@@ -2,8 +2,9 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Avatar } from "@/components/ui/avatar";
 import { MEMBER_NAV_GROUPS } from "@/lib/navigation";
+import { SpaceNav } from "@/components/layout/space-nav";
+import type { NavSpace, SpaceGroupWithSpaces } from "@/lib/spaces";
 import { cn } from "@/lib/utils";
 
 /**
@@ -18,10 +19,12 @@ import { cn } from "@/lib/utils";
  * carrying the only fill, which stops it competing with the feed beside it.
  */
 export function MemberSidebar({
-  spaces,
+  favorites,
+  spaceGroups,
   unread,
 }: {
-  spaces: { name: string; slug: string; coverUrl: string | null; memberCount?: number }[];
+  favorites: NavSpace[];
+  spaceGroups: SpaceGroupWithSpaces[];
   /** Per-destination unread counts, keyed by href. */
   unread?: Record<string, number>;
 }) {
@@ -89,45 +92,7 @@ export function MemberSidebar({
           ))}
         </nav>
 
-        {spaces.length > 0 ? (
-          <div className="mt-5 border-t border-border/60 pt-4">
-            <div className="mb-1 flex items-baseline justify-between gap-2 px-3">
-              <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-                Your spaces
-              </p>
-              <Link
-                href="/spaces"
-                className="text-[11px] font-bold text-brand no-underline hover:underline"
-              >
-                All
-              </Link>
-            </div>
-            <ul className="space-y-0.5">
-              {spaces.map((space) => {
-                const href = `/spaces/${space.slug}`;
-                const active = pathname === href;
-                return (
-                  <li key={space.slug}>
-                    <Link
-                      href={href}
-                      aria-current={active ? "page" : undefined}
-                      className={cn(
-                        "flex min-h-10 items-center gap-2.5 rounded-ctl px-3 py-1.5 text-[13.5px] font-semibold no-underline transition",
-                        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-                        active
-                          ? "bg-brand-wash text-brand-strong"
-                          : "text-foreground-muted hover:bg-mint/70 hover:text-foreground",
-                      )}
-                    >
-                      <Avatar name={space.name} src={space.coverUrl} size="sm" />
-                      <span className="min-w-0 flex-1 truncate">{space.name}</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ) : null}
+        <SpaceNav favorites={favorites} groups={spaceGroups} />
       </div>
     </aside>
   );
