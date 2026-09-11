@@ -94,13 +94,40 @@ five places without ever defining, so those hover states were silently no-ops;
 and pinned resources moved from above the feed into the rail, because above the
 feed they pushed the first post down on every visit.
 
-### 3 — Post detail and comments (`/posts/[id]`) — next
+### 3 — Post detail and comments (`/posts/[id]`) — **done**
 
-Full post view, threaded conversation, comment sort, permalinks.
+Full post view rendered by the same card the feed uses, with `preview={false}`
+so nothing is clamped — one component, so a post cannot look like two different
+things depending on where you met it. Threaded conversation, comment sort,
+per-comment permalinks, a reply composer, and a rail carrying the room's About
+card plus more posts from it.
 
-*Done when:* a four-deep thread reads clearly on a phone.
+`lib/community/post-detail.ts` is new rather than an addition to `posts.ts`:
+`listPostComments` there is the contract the comment API and the inline panel
+depend on and it nests with a fixed order, so the page got its own path instead
+of a new argument on a function other callers rely on.
 
-### 4 — Discover and search (`/discover`, `/search`)
+*Done when — met.* A seven-deep chain was seeded specifically to test the depth
+cap, because the existing fixture only reached three levels and would have left
+that branch unexercised.
+
+| Check | Result |
+| --- | --- |
+| Depth cap | Fires exactly once, at the one chain deep enough. Five levels indent, then "Continue this thread (2 more)" in place. |
+| Phone legibility | Every line complete at phone width, no clipping. |
+| Indent cost | Measured at 34px a level, which left the deepest reply 275px — about 180px on a real phone. Trimmed to 22px, so the deepest now gets 329px. |
+| Overflow | `VW=485 SW=485` — none. |
+| Permalinks | 12 comment anchors and 12 matching hrefs. |
+| Comment sort | Best / Newest / Top / Rising, applied at every level rather than only the top. |
+| Access | A non-existent or unreachable post returns a real 404, not a message confirming it exists. |
+
+One thing worth recording: the clipping visible in the first phone screenshot
+was a headless artifact — `--window-size=440` lays out at 485 and captures 440 —
+not a layout bug. Measuring `scrollWidth` against `clientWidth` is what
+separated the two, and guessing from the screenshot would have sent me chasing a
+bug that was not there.
+
+### 4 — Discover and search (`/discover`, `/search`) — next
 
 People / Spaces / Courses / Events, plus the full search results page behind the
 command palette.
@@ -152,17 +179,17 @@ smoothly with a hundred posts.
 | 0 Foundation | done |
 | 1 Feed | done |
 | 2 Spaces | done, verified |
-| 3 Post detail | next |
-| 4 Discover and search | not started |
+| 3 Post detail | done, verified |
+| 4 Discover and search | next |
 | 5 People | not started |
 | 6 Messages | not started |
 | 7 Learning | not started |
 | 8 Local and notifications | not started |
 | 9 Hardening | not started |
 
-Routes still missing, and therefore 404 until their phase lands: `/posts/[id]`,
-`/discover`, `/search`, `/members`, `/connect`, `/messages`, `/learn`,
-`/calendar`, `/roadmap`, `/bulletin`, `/notifications`, `/compose`. Links to
+Routes still missing, and therefore 404 until their phase lands: `/discover`,
+`/search`, `/members`, `/connect`, `/messages`, `/learn`, `/calendar`,
+`/roadmap`, `/bulletin`, `/notifications`, `/compose`. Links to
 them exist in the rail and the cards, because building the navigation twice
 would be waste — but they are dead until rebuilt.
 
