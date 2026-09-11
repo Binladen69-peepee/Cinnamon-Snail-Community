@@ -98,7 +98,8 @@ service keys to the client.
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | Postgres connection string |
+| `DATABASE_URL` | Postgres connection string (pooled, transaction mode in production) |
+| `DIRECT_URL` | Session-mode connection, for migrations only |
 | `AUTH_SECRET` | Auth.js signing secret |
 | `AUTH_URL` | Canonical app URL |
 | `RESEND_API_KEY` | Transactional email (optional in development) |
@@ -130,14 +131,33 @@ pnpm db:seed         # baseline seed
 pnpm db:studio       # browse the data
 ```
 
-### Migrations need care here
+### Migrations are applied by the build
 
-Two traps, both real, both will bite:
+`pnpm build` runs `prisma migrate deploy` before `next build`, so a deployment
+cannot ship code whose migrations were never applied. That failure mode is not
+hypothetical: two migrations were hand-applied locally and never run against
+production, the build passed because it only generated the client, and every
+member page returned 500 while CI stayed green.
+
+**`migrate deploy` uses `DIRECT_URL`, not `DATABASE_URL`.** In production
+`DATABASE_URL` is the Supabase pooler in *transaction* mode, which is what
+serverless needs and which Prisma Migrate cannot run DDL through — and it does
+not error, it hangs. `prisma migrate status` against it ran for seven minutes
+and returned nothing, so a build using it would time out rather than report
+anything useful. `DIRECT_URL` is the same pooler in *session* mode, port 5432.
+Locally the two are identical, because there is no pooler.
+
+### Migrations still need care here
+
+Two traps, both real, both will bite when writing a new migration:
 
 **`prisma migrate dev` demands a database reset.** An early migration's
 checksum changed when its raw-SQL full-text statements were stripped, so Prisma
 sees the history as tampered. Do not accept the reset — it destroys local data.
-Apply migrations by hand instead:
+Create the migration by hand instead, locally:
+
+`migrate deploy` is unaffected by this and applies cleanly, which is why the
+build can rely on it. The dance below is only for authoring a new migration.
 
 ```bash
 npx prisma migrate diff \
