@@ -10,12 +10,20 @@ const ICONS: Record<string, typeof Flame> = {
   rising: ArrowUpRight,
 };
 
+const BLURB: Record<FeedSort, string> = {
+  hot: "Well-scored and recent",
+  new: "Newest first",
+  top: "Highest score",
+  rising: "Climbing fast",
+};
+
 /**
- * Feed sort as a segmented control.
+ * Reddit's sort tabs, sitting at the top of the feed where they can be seen.
  *
- * Was four separate pills, one of which was filled solid forest — which read as
- * a primary button competing with the actual call to action. A single track with
- * a light raised thumb reads as a filter, which is what it is.
+ * Underlined tabs rather than the pill group this replaced: a row of pills on a
+ * tinted track reads as a segmented filter control, and the one filled pill
+ * competed with the actual primary button on the page. An underline says
+ * "these are the views of this list", which is what they are.
  */
 export function FeedSortBar({
   current,
@@ -25,10 +33,7 @@ export function FeedSortBar({
   basePath: string;
 }) {
   return (
-    <nav
-      aria-label="Sort posts"
-      className="inline-flex items-center gap-0.5 rounded-full border border-sand/80 bg-mint/50 p-1"
-    >
+    <nav aria-label="Sort posts" className="flex items-stretch gap-1 overflow-x-auto">
       {FEED_SORTS.map((item) => {
         const href = `${basePath.split("?")[0]}?sort=${item.value}`;
         const active = current === item.value;
@@ -38,15 +43,29 @@ export function FeedSortBar({
             key={item.value}
             href={href}
             aria-current={active ? "page" : undefined}
+            title={BLURB[item.value]}
             className={cn(
-              "inline-flex h-9 items-center gap-1.5 rounded-full px-3.5 text-[13px] font-semibold no-underline transition",
-              active
-                ? "bg-surface text-forest shadow-[0_1px_3px_rgba(15,61,50,0.12)]"
-                : "text-foreground-muted hover:text-forest",
+              "group/tab relative inline-flex shrink-0 items-center gap-1.5 px-3 pb-2.5 pt-1.5",
+              "text-[14px] font-bold no-underline transition-colors",
+              "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+              active ? "text-brand" : "text-foreground-muted hover:text-foreground",
             )}
           >
-            <Icon className="size-3.5" aria-hidden />
+            <Icon
+              className="size-4"
+              fill={active && item.value === "hot" ? "currentColor" : "none"}
+              aria-hidden
+            />
             {item.label}
+            {/* The indicator is the tab's own bottom edge, so it lines up with
+                the rule under the whole bar. */}
+            <span
+              aria-hidden
+              className={cn(
+                "absolute inset-x-1.5 -bottom-px h-[3px] rounded-full transition-opacity",
+                active ? "bg-brand opacity-100" : "bg-foreground/25 opacity-0 group-hover/tab:opacity-100",
+              )}
+            />
           </Link>
         );
       })}

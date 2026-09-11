@@ -48,6 +48,21 @@
     --field-shadow: 0 0 0 0 transparent;
     --overlay-shadow: 0 20px 60px rgba(15, 61, 50, 0.08);
 
+    /* App elevation, derived from ink rather than forest. Every shadow in the
+       app used to be rgba(15,61,50,...) — literal forest — which painted a
+       green glow around cards on the dark ground. */
+    --e1: 0 1px 2px rgb(22 35 31 / 0.055);
+    --e2: 0 4px 14px rgb(22 35 31 / 0.10), 0 1px 3px rgb(22 35 31 / 0.05);
+    --e3: 0 18px 44px rgb(22 35 31 / 0.16), 0 2px 8px rgb(22 35 31 / 0.07);
+    --lift: 0 0 #0000;
+
+    /* Brand green that survives the dark theme. The existing --accent is
+       redefined to cream in dark, which loses the identity exactly where a
+       vote arrow or a like needs to read as "mine". */
+    --brand: #16a34a;
+    --brand-strong: #0f3d32;
+    --brand-wash: #e8f5e9;
+
     --forest: #0f3d32;
     --deep-forest: #0b513f;
     --olive: #66736d;
@@ -104,6 +119,17 @@
     --surface-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
     --overlay-shadow: 0 20px 60px rgba(0, 0, 0, 0.75);
 
+    --e1: 0 1px 2px rgb(0 0 0 / 0.5);
+    --e2: 0 4px 14px rgb(0 0 0 / 0.55);
+    --e3: 0 20px 50px rgb(0 0 0 / 0.7);
+    /* On a near-black ground a shadow is invisible, so elevation is carried by
+       a lit top edge instead. */
+    --lift: inset 0 1px 0 rgb(255 255 255 / 0.06);
+
+    --brand: #4ade80;
+    --brand-strong: #86efac;
+    --brand-wash: #10241a;
+
     --forest: #fff8ef;
     --deep-forest: #ebe2d4;
     --olive: #9a9084;
@@ -156,7 +182,19 @@
   --font-sans: var(--font-inter);
   --font-display: var(--font-poppins);
   --font-hand: var(--font-caveat);
+  --color-brand: var(--brand);
+  --color-brand-strong: var(--brand-strong);
+  --color-brand-wash: var(--brand-wash);
+  /* Four radii and nothing else: the app had twelve arbitrary values. */
+  --radius-chip: 0.5rem;
+  --radius-ctl: 0.75rem;
+  --radius-card: 1rem;
+  --radius-modal: 1.25rem;
   --radius-lg: 1.25rem;
+  --shadow-e1: var(--e1);
+  --shadow-e2: var(--e2);
+  --shadow-e3: var(--e3);
+  --shadow-lift: var(--lift);
 }
 
 html {

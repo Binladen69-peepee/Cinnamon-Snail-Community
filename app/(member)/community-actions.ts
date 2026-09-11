@@ -23,6 +23,57 @@ async function requireUserId() {
   return session.user.id;
 }
 
+/**
+ * Post straight from the feed, with no navigation.
+ *
+ * `createPostAction` redirects when it is done, which is right for the full
+ * compose page and wrong for the inline composer — a redirect throws the reader
+ * back to the top of the feed and loses their scroll position. This one just
+ * revalidates, so the new post appears in place.
+ *
+ * Returns a plain result rather than throwing, so the composer can show the
+ * reason inline instead of tripping an error boundary over a typo.
+ */
+export async function createFeedPostAction(
+  formData: FormData,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  try {
+    const userId = await requireUserId();
+    const body = String(formData.get("body") ?? "").trim();
+    if (!body) return { ok: false, error: "Write something first." };
+
+    const spaceId = String(formData.get("spaceId") ?? "");
+    if (!spaceId) return { ok: false, error: "Pick a space to post in." };
+
+    const rawType = String(formData.get("type") ?? "SIMPLE");
+    const type = (Object.values(PostType) as string[]).includes(rawType)
+      ? (rawType as PostType)
+      : "SIMPLE";
+
+    const title = String(formData.get("title") ?? "").trim();
+
+    await createPost({
+      userId,
+      spaceId,
+      type,
+      title: title || undefined,
+      body,
+      status: "PUBLISHED",
+    });
+
+    revalidatePath("/home");
+    revalidatePath("/spaces", "layout");
+    // Recognition is checked off the request path so posting stays fast.
+    after(() => awardBadges(userId));
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "That did not post.",
+    };
+  }
+}
+
 export async function createPostAction(formData: FormData) {
   const userId = await requireUserId();
   const type = String(formData.get("type") ?? "SIMPLE") as PostType;

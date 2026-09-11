@@ -1,5 +1,4 @@
-import Link from "next/link";
-import { CalendarDays, Flame, PenLine, Users } from "lucide-react";
+import { CalendarDays, Flame, Users } from "lucide-react";
 
 /**
  * Page header for the feed.
@@ -61,13 +60,9 @@ export function FeedHeader({
         </div>
       </div>
 
-      <Link
-        href="/compose"
-        className="vu-cta-fill vu-cta-glow inline-flex h-11 shrink-0 items-center gap-2 rounded-full px-5 text-sm font-semibold no-underline"
-      >
-        <PenLine className="size-4" aria-hidden />
-        New post
-      </Link>
+      {/* No "New post" button here any more: the composer sits directly below
+          this header, so a button that scrolls you to a different page to do
+          the same thing was competing with it. */}
     </header>
   );
 }

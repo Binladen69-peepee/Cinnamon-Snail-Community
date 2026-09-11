@@ -33,6 +33,7 @@ export default async function HomePage({
     newToday,
     nextEvent,
     memberCount,
+    mySpaces,
   } = await loadFeed(session.user.id, sort);
   const kitchen = spaces.find((space) => space.slug === "kitchen-table") ?? spaces[0];
   const currentName = session.user.name || session.user.handle;
@@ -97,15 +98,21 @@ export default async function HomePage({
           newToday={newToday}
         />
 
-        <FeedComposer name={currentName} avatar={viewer.avatar} />
+        <FeedComposer
+          name={currentName}
+          avatar={viewer.avatar}
+          spaces={mySpaces}
+          defaultSpaceId={kitchen?.id}
+        />
 
-        {/* Sticks under the app bar so the filter stays reachable in a long
-            feed without a jump-to-top trip. */}
-        <div className="sticky top-[72px] z-20 -mx-1 bg-background/85 px-1 py-2 backdrop-blur-sm">
+        {/* Sticks under the app bar so the sort stays reachable in a long feed
+            without a jump-to-top trip. The rule is on this wrapper rather than
+            the tabs, so the active tab's indicator sits on top of it. */}
+        <div className="sticky top-[72px] z-20 -mx-1 border-b border-border/70 bg-background/90 px-1 pt-1 backdrop-blur-sm">
           <FeedSortBar current={sort} basePath="/home" />
         </div>
 
-        <div className="space-y-5">
+        <div className="space-y-4">
           {posts.length === 0 ? (
             <FeedEmpty sort={sort} />
           ) : (
@@ -144,6 +151,7 @@ async function loadFeed(userId: string, sort: ReturnType<typeof parseFeedSort>) 
   const [
     feed,
     spaces,
+    mySpaces,
     eventPosts,
     recentComments,
     recognition,
@@ -156,12 +164,19 @@ async function loadFeed(userId: string, sort: ReturnType<typeof parseFeedSort>) 
     prisma.space.findMany({
       orderBy: { sortOrder: "asc" },
       select: {
+        id: true,
         name: true,
         slug: true,
         coverUrl: true,
         description: true,
         _count: { select: { memberships: true } },
       },
+    }),
+    // Only the spaces this member belongs to, for the composer's picker.
+    prisma.space.findMany({
+      where: { memberships: { some: { userId } } },
+      orderBy: { sortOrder: "asc" },
+      select: { id: true, name: true, slug: true },
     }),
     prisma.post.findMany({
       where: { type: "EVENT", status: "PUBLISHED" },
@@ -214,5 +229,6 @@ async function loadFeed(userId: string, sort: ReturnType<typeof parseFeedSort>) 
     newToday,
     nextEvent,
     memberCount,
+    mySpaces,
   };
 }

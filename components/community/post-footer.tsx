@@ -1,19 +1,21 @@
 "use client";
 
 import { useState } from "react";
-import { PostInteractions } from "@/components/community/post-interactions";
+import { PostEngagement } from "@/components/community/post-engagement";
 import { CommentPanel } from "@/components/community/comment-panel";
 
 /**
- * Owns the one piece of state the action bar and the comment panel share:
- * whether comments are open. Keeping it here lets PostCard stay a server
- * component while the interactive parts hydrate on their own.
+ * Owns the one piece of state the engagement row and the comment panel share:
+ * whether replies are open. Keeping it here lets PostCard stay a server
+ * component while only the interactive parts hydrate.
+ *
+ * Votes are not in here — they live in the rail on the left of the card and
+ * hold their own optimistic state, because nothing else on the card depends on
+ * the score.
  */
 export function PostFooter({
   postId,
   commentCount,
-  score,
-  myVote,
   myReaction,
   counts,
   saved,
@@ -21,8 +23,6 @@ export function PostFooter({
 }: {
   postId: string;
   commentCount: number;
-  score: number;
-  myVote: number;
   myReaction: string | null;
   counts: Record<string, number>;
   saved: boolean;
@@ -33,11 +33,9 @@ export function PostFooter({
 
   return (
     <>
-      <PostInteractions
+      <PostEngagement
         postId={postId}
         commentCount={count}
-        score={score}
-        myVote={myVote}
         myReaction={myReaction}
         counts={counts}
         saved={saved}

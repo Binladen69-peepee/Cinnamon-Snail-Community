@@ -74,19 +74,19 @@ export default async function PostPage({
         }}
         preview={false}
       />
+      {/* On the brand's own palette, and on the radius scale rather than an
+          inline borderRadius — this was a near-black button on cream. */}
       <form action={commentAction} className="flex gap-2">
         <input type="hidden" name="postId" value={post.id} />
         <input
           name="body"
           required
-          placeholder="Add a comment"
-          className="min-h-11 flex-1 border border-border bg-surface px-4 text-sm"
-          style={{ borderRadius: 12 }}
+          placeholder="Add a comment…"
+          className="min-h-11 min-w-0 flex-1 rounded-full border border-border bg-mint/40 px-4 text-[14.5px] text-foreground outline-none transition placeholder:text-foreground-muted focus:border-brand focus:bg-surface"
         />
         <button
           type="submit"
-          className="min-h-11 bg-foreground px-4 text-sm font-semibold text-primary-foreground"
-          style={{ borderRadius: 12 }}
+          className="inline-flex min-h-11 shrink-0 items-center rounded-full bg-forest px-5 text-[14px] font-bold text-paper transition hover:bg-deep-forest dark:bg-brand dark:text-[#06120d] dark:hover:bg-brand-strong"
         >
           Comment
         </button>
