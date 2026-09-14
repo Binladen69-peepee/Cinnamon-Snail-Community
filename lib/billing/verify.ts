@@ -30,3 +30,29 @@ function safeEqual(left: string, right: string) {
   if (a.length !== b.length) return false;
   return timingSafeEqual(a, b);
 }
+
+/**
+ * Where the shared secret actually arrives on a SamCart webhook.
+ *
+ * SamCart has no secret field: the merchant puts it on the Notify URL itself,
+ * as "…/api/webhooks/samcart?api_key=SECRET". So the query string is the real
+ * source. The JSON body is accepted as a fallback because hand-rolled test
+ * posts tend to put it there, and because a Notify URL configured that way
+ * earlier must keep working.
+ *
+ * Returns null when neither carries one, which `verifySamcartWebhook` then
+ * rejects.
+ */
+export function readSamcartApiKey(input: {
+  url: string;
+  body: Record<string, unknown>;
+}): string | null {
+  let fromQuery: string | null = null;
+  try {
+    fromQuery = new URL(input.url).searchParams.get("api_key");
+  } catch {
+    // A relative or malformed URL simply has no query to read.
+  }
+  if (fromQuery) return fromQuery;
+  return typeof input.body.api_key === "string" ? input.body.api_key : null;
+}

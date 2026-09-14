@@ -1,5 +1,5 @@
 import { after } from "next/server";
-import { verifySamcartWebhook } from "@/lib/billing/verify";
+import { readSamcartApiKey, verifySamcartWebhook } from "@/lib/billing/verify";
 import { ingestSamcartPayload, processBillingEvent } from "@/lib/billing/process-event";
 
 export async function POST(request: Request) {
@@ -12,10 +12,11 @@ export async function POST(request: Request) {
   }
 
   const body = payload && typeof payload === "object" ? (payload as Record<string, unknown>) : {};
+
   const verified = verifySamcartWebhook({
     rawBody,
     secret: process.env.SAMCART_WEBHOOK_SECRET,
-    apiKey: typeof body.api_key === "string" ? body.api_key : null,
+    apiKey: readSamcartApiKey({ url: request.url, body }),
     signature:
       request.headers.get("x-samcart-signature") ??
       request.headers.get("x-webhook-signature"),

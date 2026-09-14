@@ -1,6 +1,6 @@
 import { createHmac } from "node:crypto";
 import { describe, expect, it } from "vitest";
-import { verifySamcartWebhook } from "@/lib/billing/verify";
+import { readSamcartApiKey, verifySamcartWebhook } from "@/lib/billing/verify";
 import { mapSamcartType, normalizeSamcartPayload } from "@/lib/billing/normalize";
 import {
   entitlementEffect,
@@ -11,6 +11,57 @@ import { getDeletionGraceDays, MEMBERSHIP_SAMCART_PRODUCT_IDS } from "@/lib/bill
 import { detectLocalDrift } from "@/lib/billing/reconcile";
 import { canAccessPaidContent } from "@/lib/entitlements/check";
 import { readSamcartPeriodEnd } from "@/lib/billing/samcart-api";
+
+describe("where the SamCart secret arrives", () => {
+  const URL_BASE = "https://cinnamon-snail-community.vercel.app/api/webhooks/samcart";
+
+  it("reads the secret off the Notify URL query string", () => {
+    // This is the shape SamCart actually sends: the merchant pastes the secret
+    // into the Notify URL, and nothing carries it in the body. Reading only
+    // the body 401'd every real webhook.
+    expect(readSamcartApiKey({ url: `${URL_BASE}?api_key=s3cret`, body: {} })).toBe(
+      "s3cret",
+    );
+  });
+
+  it("still reads it from the body when the URL has none", () => {
+    expect(readSamcartApiKey({ url: URL_BASE, body: { api_key: "s3cret" } })).toBe(
+      "s3cret",
+    );
+  });
+
+  it("prefers the URL when both are present", () => {
+    expect(
+      readSamcartApiKey({ url: `${URL_BASE}?api_key=from-url`, body: { api_key: "from-body" } }),
+    ).toBe("from-url");
+  });
+
+  it("is null when neither carries one, so verification rejects", () => {
+    expect(readSamcartApiKey({ url: URL_BASE, body: {} })).toBeNull();
+    expect(readSamcartApiKey({ url: URL_BASE, body: { api_key: 42 } })).toBeNull();
+    expect(
+      verifySamcartWebhook({
+        rawBody: "{}",
+        secret: "shared",
+        apiKey: readSamcartApiKey({ url: URL_BASE, body: {} }),
+      }).ok,
+    ).toBe(false);
+  });
+
+  it("survives a malformed request url rather than throwing", () => {
+    expect(readSamcartApiKey({ url: "/api/webhooks/samcart", body: { api_key: "s" } })).toBe("s");
+  });
+
+  it("accepts a real query-string secret end to end", () => {
+    expect(
+      verifySamcartWebhook({
+        rawBody: '{"type":"ping"}',
+        secret: "shared",
+        apiKey: readSamcartApiKey({ url: `${URL_BASE}?api_key=shared`, body: {} }),
+      }).ok,
+    ).toBe(true);
+  });
+});
 
 describe("SamCart webhook verification", () => {
   it("rejects a missing secret", () => {
