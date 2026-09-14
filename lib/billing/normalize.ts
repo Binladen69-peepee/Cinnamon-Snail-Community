@@ -72,6 +72,7 @@ const TYPE_MAP: Record<string, CanonicalEventType> = {
   cancel: "canceled",
   "subscription canceled": "canceled",
   "subscription cancelled": "canceled",
+  "subscription cancellation": "canceled",
   "cancel scheduled": "cancel_scheduled",
   "subscription cancel scheduled": "cancel_scheduled",
   "cancel scheduled stopped": "restarted",

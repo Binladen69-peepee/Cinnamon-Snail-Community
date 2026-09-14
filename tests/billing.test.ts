@@ -101,6 +101,7 @@ describe("SamCart event mapping", () => {
     expect(mapSamcartType("Subscription Recovered")).toBe("recovered");
     expect(mapSamcartType("Product Refunded")).toBe("refund");
     expect(mapSamcartType("Cancel")).toBe("canceled");
+    expect(mapSamcartType("Subscription cancellation")).toBe("canceled");
     expect(mapSamcartType("Prospect created")).toBe("ignored");
   });
 
