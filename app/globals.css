@@ -652,6 +652,18 @@ body:has([data-hero-dark])
   text-wrap: balance;
 }
 
+/* Hero-only paint-brush face. Water Brush is a wet-ink brush script — not
+   the felt-tip Caveat used on section titles. Slightly looser leading so the
+   swashes on a long headline do not collide. */
+.vu-title-brush {
+  font-family: var(--font-brush), var(--font-caveat), "Segoe Script", cursive;
+  font-weight: 400;
+  font-size: clamp(2.45rem, 1.2rem + 3.9vw, 4.25rem);
+  line-height: 1.16;
+  letter-spacing: 0.012em;
+  text-wrap: balance;
+}
+
 .vu-title-script-sm {
   font-family: var(--font-caveat), "Segoe Script", cursive;
   font-weight: 700;
@@ -828,6 +840,21 @@ body:has([data-hero-dark])
 
 .vu-hero-photo {
   animation: hero-photo-settle 1700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* Compact social-proof chip under the hero CTA. Solid cream, no blur, no
+   drop shadow — the Senja widget used to sit in a feathered wash that read
+   as a glowing panel on the photograph. */
+.vu-hero-proof {
+  display: inline-block;
+  max-width: min(100%, 22.5rem);
+  padding: 0.45rem 0.7rem 0.35rem;
+  border-radius: 0.75rem;
+  background: #fff8ef;
+}
+
+.vu-hero-proof .senja-embed {
+  width: 100%;
 }
 
 @media (prefers-reduced-motion: reduce) {

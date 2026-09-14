@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Inter, Poppins, Caveat, Fraunces } from "next/font/google";
+import { Inter, Poppins, Caveat, Water_Brush, Fraunces } from "next/font/google";
 import { Providers } from "@/app/providers";
 import { BotanicalBackdrop } from "@/components/marketing/hero-decor";
 import { MediaRevealRuntime } from "@/components/ui/media-reveal-runtime";
@@ -39,6 +39,13 @@ const caveat = Caveat({
   display: "swap",
 });
 
+const waterBrush = Water_Brush({
+  variable: "--font-brush",
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   title: {
     default: "Vegan University",
@@ -58,7 +65,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${poppins.variable} ${caveat.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${inter.variable} ${poppins.variable} ${caveat.variable} ${waterBrush.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="relative min-h-full bg-background font-sans text-foreground">
         <Script src={SAMCART_SLIDE_SCRIPT} strategy="afterInteractive" />

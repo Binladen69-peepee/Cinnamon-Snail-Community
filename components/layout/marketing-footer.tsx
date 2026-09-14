@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { SocialLinks } from "@/components/marketing/social-links";
 
 const columns = [
   {
@@ -48,12 +47,6 @@ export function MarketingFooter() {
             A digital home for people learning to cook plants with confidence,
             community, and care — a school that still looks like a kitchen.
           </p>
-          <div className="mt-7">
-            <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">
-              Follow along
-            </p>
-            <SocialLinks variant="footer" className="mt-3" />
-          </div>
         </div>
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5">
           {columns.map((column) => (
