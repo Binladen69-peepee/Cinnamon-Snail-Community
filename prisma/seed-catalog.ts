@@ -10,56 +10,140 @@ import type { PrismaClient } from "@prisma/client";
  * different folder structure, re-run this with those names and the rows
  * re-group themselves.
  *
- * Cover photos come from Adam's own WordPress media library on
- * cinnamonsnail.com, matched dish-to-class where a real photo of that dish
- * exists (COVERS below). Classes with no matching photo stay null and the card
- * flags the gap rather than showing stock imagery. Teaser videos are still
- * pending from the Drive folder.
+ * Cover photos and teaser videos are Adam's own, from the class media sheet he
+ * maintains (COVERS and TEASERS below, mirroring data/class-media.csv). Two
+ * classes he has not supplied yet keep a dish-matched cover from his media
+ * library and no teaser; the card flags the gap rather than showing stock
+ * imagery.
+ *
+ * For an existing row these only *fill* — see seedCourseCatalog. The sheet is
+ * the authority and scripts/import-class-media.ts is how it is applied; a
+ * re-seed must never walk that back.
  */
 type SeedClass = { title: string; description: string };
 
 const WP = "https://cinnamonsnail.com/wp-content/uploads";
 
 /**
- * Class title -> real dish photo from Adam's media library. Only confident
- * matches: the photo is of the dish that class actually teaches. Anything
- * uncertain is left out so a card flags for a real photo instead of showing
- * something misleading.
+ * Class title -> dish photo, from Adam's class media sheet.
  */
 const COVERS: Record<string, string> = {
+  "2023 Vegan Christmas Dinner Class": `${WP}/2023/10/IMG_0849.jpg`,
+  "2023 Vegan Thanksgiving Cooking Class": `${WP}/2024/04/Vegan-Apple-Pie-02.jpg`,
+  "A Colosseum of Vegan Eggs": `${WP}/2025/06/vegan_breakfast_sandwich-15.jpg`,
+  "A Vegan Hanukkah Kitchen: Root Veggies & Rituals": `${WP}/2025/02/vegan_latkes-03.jpg`,
+  "Approachable Vegan Desserts": `${WP}/2023/06/banh-flan-feature-2.jpg`,
+  "Around the World in Vegan Donuts": `${WP}/2025/02/matcha-donuts-11.jpg`,
+  "Bangin' Tex-Mex Casseroles": `${WP}/2026/05/vegan_tamale_pie-2.jpg`,
+  "Eastern European Jewish Vegan Food": `${WP}/2023/10/vegan-Jewish-food.jpg`,
+  "Easy, Healthy Vegan Lunches": `${WP}/2023/10/easy-healthy-lunches.jpg`,
+  "Essential Mexican Salsas": `${WP}/2025/07/salsa_ranchera-05.jpg`,
+  "Gluten-Free Vegan Masterclass": `${WP}/2024/08/Cha-Ri-Chay-11.jpg`,
+  "Homestyle Moroccan Cooking": `${WP}/2025/04/zaalouk-04.jpg`,
+  "Legacy Vegan Cooking Class": `${WP}/2023/10/beastmode-burger-1.jpg`,
+  "Make Better Meat, Vegan": `${WP}/2024/03/Vegan-Drumsticks-19.jpg`,
+  "Make the Best Plant-Based Pizza": `${WP}/2023/10/Vegan-Pizza.jpg`,
+  "Malaysian Vegan Cuisine": `${WP}/2023/08/Tahu-Goreng-features.jpg`,
+  "Plant-Based Cheese School": `${WP}/2023/10/Vegan-Nacho-Cheese.jpg`,
+  "Punjabi Thali Cuisine": `${WP}/2024/08/Rajma-Chawal-02.jpg`,
+  "Saigon Flavor: Vegan Vietnamese Cooking Class": `${WP}/2023/11/banh-trang-cuon-04.jpg`,
+  "Sattvic Vegan Indian Cuisine": `${WP}/2024/08/Beerakaya-Sabji-02.jpg`,
+  "Seitan Masterclass": `${WP}/2023/03/seitan-in-a-white-bowl-feature.jpg`,
+  "Southern Vegan BBQ Class Pack": `${WP}/2023/10/Vegan-BBQ.jpg`,
+  "Spooky Vegan Halloween Party Prep": `${WP}/2025/07/vegan_halloween.jpg`,
+  "The Best Falafel and Vegan Mezze": `${WP}/2024/06/Bolani-02.jpg`,
+  "The Best Plant-Based Tacos": `${WP}/2024/02/Vegan-Fajitas-02.jpg`,
+  "The Green Reaper: Vegan Salad Bible": `${WP}/2025/08/butternut_squash_salad-07.jpg`,
+  "Vegan Cake Donut Mastery": `${WP}/2023/10/vegan-cake-donuts.jpg`,
+  "Vegan Christmas Bundle Of Yummy": `${WP}/2023/10/vegan-Christmas-bundle.jpg`,
+  "Vegan Dairy Crash Course": `${WP}/2024/04/Vegan-Cream-Cheese-Frosting-3.jpg`,
+  "Vegan Dim Sum and Then Some": `${WP}/2023/04/chee-cheong-fun-feature-1-of-1.jpg`,
+  "Vegan Easter Dinner Class": `${WP}/2024/02/Peep-cakes.jpeg`,
+  "Vegan Empanadas Made Easy": `${WP}/2023/10/Vegan-Empanadas.jpg`,
+  "Vegan Filipino Cooking Class": `${WP}/2023/04/Tofu-sisg-feature-1-of-1.jpg`,
+  "Vegan Freezer Meals": `${WP}/2025/07/1.jpg`,
+  "Vegan Indonesian BBQ": `${WP}/2025/02/Sambal-goreng-02.jpg`,
+  "Vegan Italian American Cooking Class": `${WP}/2024/01/Vegan-Meatballs-03.jpg`,
+  "Vegan Italian Desserts": `${WP}/2024/02/Vegan-Tiramisu-11.jpg`,
+  "Vegan Korean Fried Chicken Workshop": `${WP}/2025/02/vegan_korean_fried_chicken-02.jpg`,
+  "Vegan Mediterranean Cooking Class": `${WP}/2023/10/Mutabal-04.jpg`,
+  "Vegan Mexican Cooking": `${WP}/2024/02/Vegan-Tamales-02.jpg`,
+  "Vegan Mother's Day Cook-Along Brunch": `${WP}/2023/05/martabak-feature-2.jpg`,
+  "Vegan Passover Prep-Along": `${WP}/2025/02/passover-class.jpg`,
+  "Vegan Sandwich Hall of Fame Cooking Class": `${WP}/2023/10/thai-bbq-tempeh.jpg`,
+  "Vegan Shabbat Dinner": `${WP}/2025/02/vegan_cholent-04.jpg`,
+  "Vegan Soup Workshop": `${WP}/2025/07/Vegan_soup_class.jpg`,
+  "Vegan Thai Kitchen Adventures": `${WP}/2024/01/Thai-Basil-Eggplant-16.jpg`,
+  "Vegan Thanksgiving Training Camp": `${WP}/2024/09/Thanksgiving_Vegan_Stuffing-02.jpg`,
+  "Vegan Turkish Cuisine": `${WP}/2023/06/Ezogelin-feature.jpg`,
+  "Vegan Valentine's Treats": `${WP}/2025/01/vegan_valentines_class.jpg`,
+  "Veganized Chinese Takeout Classics": `${WP}/2023/10/Chinese-food.jpg`,
+
+  // Not in Adam's sheet. These two are dish-matched from his media library
+  // and are the only unconfirmed covers left; the teaser is still missing for
+  // both, so they are on the hand-back list either way.
   "Supreme Vegan Mexican Tortas": `${WP}/2026/01/vegan_torta_adobada-04.jpg`,
   "Insanely Yummy Vietnamese Soups": `${WP}/2025/12/vegan_bo_kho-03.jpg`,
-  "Saigon Flavor: Vegan Vietnamese Cooking Class": `${WP}/2024/01/Vegan-Banh-Mi-21-720x960.jpg`,
-  "Homestyle Moroccan Cooking": `${WP}/2026/08/Moroccan_sweet_potato_soup-2-2-720x960.jpg`,
-  "Vegan Filipino Cooking Class": `${WP}/2023/11/Ginataang-Kalabasa-5-720x960.jpg`,
-  "Punjabi Thali Cuisine": `${WP}/2024/08/Rajma-Chawal-02-300x300.jpg`,
-  "Vegan Mexican Cooking": `${WP}/2024/08/Adobo-Sauce-01-720x960.jpg`,
-  "Vegan Mediterranean Cooking Class": `${WP}/2025/05/Persian_rice-06-720x960.jpg`,
-  "Sattvic Vegan Indian Cuisine": `${WP}/2024/08/Aloo-Gobi-05-720x960.jpg`,
-  "Vegan Thai Kitchen Adventures": `${WP}/2024/01/Thai-Basil-Eggplant-16-720x960.jpg`,
-  "Vegan Turkish Cuisine": `${WP}/2023/10/Soslu-Patlican-06-720x960.jpg`,
-  "The Best Falafel and Vegan Mezze": `${WP}/2023/04/Bulgur-Pilavi-Feature-Alt-1-of-1-720x960.jpg`,
-  "Vegan Dim Sum and Then Some": `${WP}/2024/06/Vegan-Sushi-Bake-01-720x960.jpg`,
-  "Vegan Dairy Crash Course": `${WP}/2025/08/vegan_butternut_squash_mac_and_cheese-04-720x960.jpg`,
-  "Vegan Shabbat Dinner": `${WP}/2026/08/vegan_mukver-8-720x960.jpg`,
-  "Spooky Vegan Halloween Party Prep": `${WP}/2025/09/Vegan_pumpkin_cheesecake-02-720x960.jpg`,
-  "Vegan Mother's Day Cook-Along Brunch": `${WP}/2024/06/Vegan-Apple-Muffins-02-720x960.jpg`,
-  "Vegan Easter Dinner Class": `${WP}/2025/10/vegan_mushroom_wellington-01-720x960.jpg`,
-  "Vegan Thanksgiving Training Camp": `${WP}/2024/09/Vegan-Turkey-Roast-01-720x960.jpg`,
-  "2023 Vegan Thanksgiving Cooking Class": `${WP}/2024/09/Vegan_Cornbread_Stuffing-03-720x960.jpg`,
-  "Vegan Christmas Bundle Of Yummy": `${WP}/2024/10/Vegan-Christmas-Cookies-21-300x300.jpg`,
-  "2023 Vegan Christmas Dinner Class": `${WP}/2024/10/Vegan-ham-07-720x960.jpg`,
-  "The Green Reaper: Vegan Salad Bible": `${WP}/2025/08/butternut_squash_salad-07-720x960.jpg`,
-  "Essential Mexican Salsas": `${WP}/2024/05/Habanero-Salsa-04-720x960.jpg`,
-  "Vegan Soup Workshop": `${WP}/2025/09/vegan_mushroom_soup-04-720x960.jpg`,
-  "Vegan Freezer Meals": `${WP}/2025/08/vegan_shepherds_pie-06-720x960.jpg`,
-  "Vegan Italian American Cooking Class": `${WP}/2025/08/mushroom_bourguignon-02-720x960.jpg`,
-  "Vegan Korean Fried Chicken Workshop": `${WP}/2023/05/Korean-BBQ-Sauce-feature-2-720x960.jpg`,
-  "Easy, Healthy Vegan Lunches": `${WP}/2023/04/Korean-cucumber-salad-feature-1-of-1-720x960.jpg`,
-  "Approachable Vegan Desserts": `${WP}/2025/10/vegan_apple_crisp-01-720x960.jpg`,
-  "Vegan Empanadas Made Easy": `${WP}/2026/08/vegan_zucchini_muffins-8-720x960.jpg`,
-  "Legacy Vegan Cooking Class": `${WP}/2026/08/Chipotle_butternut_squash_soup-2-720x960.jpg`,
-  "Southern Vegan BBQ Class Pack": `${WP}/2026/08/kabocha_squash_soup-5-720x960.jpg`,
+};
+
+/**
+ * Class title -> teaser video, from the same sheet.
+ *
+ * `Bangin' Tex-Mex Casseroles` and `The Green Reaper: Vegan Salad Bible` carry
+ * the same embed id in the sheet (jU6Sasix5tY). Applied as given rather than
+ * guessed at, and raised with Adam — one of the two is likely a copy-paste.
+ */
+const TEASERS: Record<string, string> = {
+  "2023 Vegan Christmas Dinner Class": "https://www.youtube.com/embed/GuhyvG7W48c",
+  "2023 Vegan Thanksgiving Cooking Class": "https://www.youtube.com/embed/FueK_7bFyn4",
+  "A Colosseum of Vegan Eggs": "https://www.youtube.com/embed/_ArcS8qnsCc",
+  "A Vegan Hanukkah Kitchen: Root Veggies & Rituals": "https://www.youtube.com/embed/UfXxxL-8hFM",
+  "Approachable Vegan Desserts": "https://www.youtube.com/embed/rxc3Wf91nXw",
+  "Around the World in Vegan Donuts": "https://www.youtube.com/embed/0fVeU5ibqyQ",
+  "Bangin' Tex-Mex Casseroles": "https://www.youtube.com/embed/jU6Sasix5tY",
+  "Eastern European Jewish Vegan Food": "https://www.youtube.com/embed/DBOmecV7lC4",
+  "Easy, Healthy Vegan Lunches": "https://www.youtube.com/embed/5tcIieNpUFE",
+  "Essential Mexican Salsas": "https://www.youtube.com/embed/S5HbKiChalA",
+  "Gluten-Free Vegan Masterclass": "https://www.youtube.com/embed/jrvchgy0CsM",
+  "Homestyle Moroccan Cooking": "https://www.youtube.com/embed/JTOjiAqiPe8",
+  "Legacy Vegan Cooking Class": "https://www.youtube.com/embed/Cg9EDJHA8F8",
+  "Make Better Meat, Vegan": "https://www.youtube.com/embed/hsFe68tzVRQ",
+  "Make the Best Plant-Based Pizza": "https://www.youtube.com/embed/outoSPUMSJw",
+  "Malaysian Vegan Cuisine": "https://www.youtube.com/embed/tlrFaPvVfHc",
+  "Plant-Based Cheese School": "https://www.youtube.com/embed/Z5AIWleZF1w",
+  "Punjabi Thali Cuisine": "https://www.youtube.com/embed/dvCVZOU6Dc8",
+  "Saigon Flavor: Vegan Vietnamese Cooking Class": "https://www.youtube.com/embed/LY4N4Spyabo",
+  "Sattvic Vegan Indian Cuisine": "https://www.youtube.com/embed/gl_3FhDyOMw",
+  "Seitan Masterclass": "https://www.youtube.com/embed/Y1NjLeWWyRw",
+  "Southern Vegan BBQ Class Pack": "https://www.youtube.com/embed/1rLYukUcw6c",
+  "Spooky Vegan Halloween Party Prep": "https://www.youtube.com/embed/tRgZSWZDh14",
+  "The Best Falafel and Vegan Mezze": "https://www.youtube.com/embed/v-HHjWDLObk",
+  "The Best Plant-Based Tacos": "https://www.youtube.com/embed/R5tjAujpa8A",
+  "The Green Reaper: Vegan Salad Bible": "https://www.youtube.com/embed/jU6Sasix5tY",
+  "Vegan Cake Donut Mastery": "https://www.youtube.com/embed/P_ponW1ZU24",
+  "Vegan Christmas Bundle Of Yummy": "https://www.youtube.com/embed/cuIrnXG5EdU",
+  "Vegan Dairy Crash Course": "https://www.youtube.com/embed/EUiV2E_rd6k",
+  "Vegan Dim Sum and Then Some": "https://www.youtube.com/embed/IrGTvhAiYbo",
+  "Vegan Easter Dinner Class": "https://www.youtube.com/embed/Z14VDuqwLlE",
+  "Vegan Empanadas Made Easy": "https://www.youtube.com/embed/CNPbTEN2yjA",
+  "Vegan Filipino Cooking Class": "https://www.youtube.com/embed/SyhKhMBMoPY",
+  "Vegan Freezer Meals": "https://www.youtube.com/embed/d_2yTChyCn4",
+  "Vegan Indonesian BBQ": "https://www.youtube.com/embed/vaWImXb9DOQ",
+  "Vegan Italian American Cooking Class": "https://www.youtube.com/embed/l655gT87zuA",
+  "Vegan Italian Desserts": "https://www.youtube.com/embed/Sb2gHkoGtCc",
+  "Vegan Korean Fried Chicken Workshop": "https://www.youtube.com/embed/H8fPhH3Pv8s",
+  "Vegan Mediterranean Cooking Class": "https://www.youtube.com/embed/b_66I6UW8ew",
+  "Vegan Mexican Cooking": "https://www.youtube.com/embed/rFhEgXRaI9U",
+  "Vegan Mother's Day Cook-Along Brunch": "https://www.youtube.com/embed/qfx5N5kmCGs",
+  "Vegan Passover Prep-Along": "https://www.youtube.com/embed/9Lt4BckWON8",
+  "Vegan Sandwich Hall of Fame Cooking Class": "https://www.youtube.com/embed/ygK9AkyXkc0",
+  "Vegan Shabbat Dinner": "https://www.youtube.com/embed/kVk6mYpTeFY",
+  "Vegan Soup Workshop": "https://www.youtube.com/embed/ASw2RwIrLgI",
+  "Vegan Thai Kitchen Adventures": "https://www.youtube.com/embed/Jh8Ji0Mudwo",
+  "Vegan Thanksgiving Training Camp": "https://www.youtube.com/embed/H_0fD5O7jzA",
+  "Vegan Turkish Cuisine": "https://www.youtube.com/embed/E6cSjYttY30",
+  "Vegan Valentine's Treats": "https://www.youtube.com/embed/KPiSPgnHwqc",
+  "Veganized Chinese Takeout Classics": "https://www.youtube.com/embed/VWPN5tBAbFQ",
 };
 
 const CATALOG: { category: string; classes: SeedClass[] }[] = [
@@ -126,6 +210,7 @@ const CATALOG: { category: string; classes: SeedClass[] }[] = [
       { title: "The Best Plant-Based Tacos", description: "Taco fillings and technique." },
       { title: "Make the Best Plant-Based Pizza", description: "Dough, sauce, and toppings." },
       { title: "Vegan Korean Fried Chicken Workshop", description: "Crispy, saucy, Korean-style." },
+      { title: "The Perfect Vegan Brunch Cooking Class", description: "A full brunch spread, start to finish." },
     ],
   },
   {
@@ -164,6 +249,8 @@ export async function seedCourseCatalog(prisma: PrismaClient) {
     for (const [classIndex, entry] of group.classes.entries()) {
       const slug = slugify(entry.title);
       const existing = await prisma.course.findUnique({ where: { slug } });
+      const cover = COVERS[entry.title] ?? null;
+      const teaser = TEASERS[entry.title] ?? null;
       const data = {
         title: entry.title,
         description: entry.description,
@@ -172,27 +259,38 @@ export async function seedCourseCatalog(prisma: PrismaClient) {
         categoryOrder: categoryIndex,
         catalogOrder: classIndex,
         instructorName: "Adam Sobel",
-        coverUrl: COVERS[entry.title] ?? null,
       };
       if (existing) {
-        await prisma.course.update({ where: { slug }, data });
+        // Media fills, never overwrites. Adam's sheet is applied by
+        // scripts/import-class-media.ts and can be ahead of this file; a
+        // re-seed that reset coverUrl would silently undo his photos.
+        await prisma.course.update({
+          where: { slug },
+          data: {
+            ...data,
+            ...(existing.coverUrl ? {} : { coverUrl: cover }),
+            ...(existing.teaserVideoUrl ? {} : { teaserVideoUrl: teaser }),
+          },
+        });
         updated += 1;
       } else {
-        await prisma.course.create({ data: { slug, ...data } });
+        await prisma.course.create({
+          data: { slug, ...data, coverUrl: cover, teaserVideoUrl: teaser },
+        });
         created += 1;
       }
     }
   }
 
   const classCount = CATALOG.reduce((total, g) => total + g.classes.length, 0);
-  const withCovers = CATALOG.flatMap((g) => g.classes).filter(
-    (entry) => COVERS[entry.title],
-  ).length;
+  const entries = CATALOG.flatMap((g) => g.classes);
+  const withCovers = entries.filter((entry) => COVERS[entry.title]).length;
+  const withTeasers = entries.filter((entry) => TEASERS[entry.title]).length;
   console.log(
     `Catalog: ${classCount} classes in ${CATALOG.length} categories (${created} created, ${updated} updated).`,
   );
   console.log(
-    `Covers: ${withCovers} real dish photos matched, ${classCount - withCovers} still flagged.`,
+    `Covers: ${withCovers} of ${classCount}. Teasers: ${withTeasers} of ${classCount}.`,
   );
 }
 

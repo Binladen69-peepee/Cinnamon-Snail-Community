@@ -126,6 +126,7 @@ async function main() {
     select: {
       slug: true,
       title: true,
+      category: true,
       coverUrl: true,
       teaserVideoUrl: true,
     },
@@ -197,6 +198,11 @@ async function main() {
 
   const missingRows: string[][] = [];
   for (const course of courses) {
+    // Only classes in Adam's catalog belong on a list handed back to him.
+    // seed-learn.ts creates an uncategorised demo course with an Unsplash
+    // cover, which isFilled() correctly treats as unfilled — so without this
+    // it turns up as a class he needs to photograph, and it is not one.
+    if (!course.category) continue;
     const hasPhoto =
       isFilled(course.coverUrl) || appliedPhoto.has(course.slug);
     const hasTeaser =

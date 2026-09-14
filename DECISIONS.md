@@ -1268,3 +1268,31 @@ Date:
 
 Approved by:
 BLOCKED — needs the client
+
+---
+
+## DEC-036 — Membership access source: SamCart or Kit tags
+
+Status: PROPOSED — awaiting the client
+
+Question:
+The client described their live workflow as SamCart subscription → Kit tag ("Vegan University Monthly" / "Vegan University Annual"), tag removed on cancellation, and offered a SamCart API key as a fallback in case it is needed. Should Kit tags become the membership/access source, should SamCart remain it, or both?
+
+Impact:
+Authorization (`lib/entitlements`), the whole of `lib/billing`, the cancellation flow, reconciliation, account deletion gating (`DEC-010`), and cancellation timing (`DEC-001`).
+
+Findings:
+The described workflow already is the implemented architecture — SamCart is the truth, Kit reflects it. Kit is written outbound as a side effect of entitlement changes and is never read for authorization; there is no inbound Kit route and the Kit account has zero webhooks, so Kit cannot notify the platform of anything. Separately: `SAMCART_WEBHOOK_SECRET` is unset in every Vercel environment, so `/api/webhooks/samcart` has been answering 401 to every request and no purchase has ever granted an entitlement. This went unnoticed because entitlements gate only Learn playback (`DEC-008`).
+
+Decision:
+Keep SamCart as the access source; no architectural change. Fill in `SAMCART_WEBHOOK_SECRET` and the Notify URL. Kit is retained in its existing subordinate role — outbound tags for the client's email automations, plus a one-time backfill of the 156 existing Monthly/Annual members via `PendingGrant`, whose original webhooks will never be re-sent. Kit is not made an access authority: two writers to one access bit means access depends on which system spoke last.
+
+Contrary to the client's assumption, the SamCart credentials are required — the webhook secret is on the critical path, and the API key is needed for member cancellation, reconciliation and refunds. Nothing needs building to use them, only configuring.
+
+Full review, including three Kit defects found (revoke calls an account-level unsubscribe rather than removing a tag; the seeded `vu-*` tag names do not exist in the live account; one product cannot carry both Monthly and Annual tags): `docs/membership-access-review.md`.
+
+Date:
+2026-09-14
+
+Approved by:
+PROPOSED — needs the client
