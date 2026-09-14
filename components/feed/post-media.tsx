@@ -164,8 +164,12 @@ function Frame({
       height={item.height ?? undefined}
       loading={eager ? undefined : "lazy"}
       decoding="async"
+      // vu-media-zoom is the site-wide photo hover (see MediaFrame). The frame
+      // around this one is built by the surrounding grid rather than by
+      // MediaFrame, but the motion is deliberately the same class, so a photo
+      // in the feed behaves exactly like a photo on the sales pages.
       className={cn(
-        "size-full object-cover transition-transform duration-500 group-hover/media:scale-[1.02]",
+        "vu-media-zoom size-full object-cover",
         fill && "absolute inset-0",
       )}
     />

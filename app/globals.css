@@ -812,6 +812,84 @@ body:has([data-hero-dark])
   transform: scale(1.055);
 }
 
+/* Hero photograph: a slow settle on load, in place of the video's
+   open-from-a-dot reveal. Long and shallow enough to read as the page coming
+   to rest rather than as an effect. */
+@keyframes hero-photo-settle {
+  from {
+    transform: scale(1.06);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+.vu-hero-photo {
+  animation: hero-photo-settle 1700ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vu-hero-photo {
+    animation: none;
+  }
+}
+
+/* --- Shared photography treatment (MediaFrame) ----------------------- */
+
+/* Every content photo on the site renders inside `.vu-media`. The frame owns
+   the crop and the scroll reveal; the image inside owns the hover. Keeping the
+   two on separate elements means a photo can be mid-reveal and hovered at the
+   same time without the transforms fighting. */
+.vu-media {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+}
+
+.vu-media-img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* Hover: the same 1.055 and the same curve as .vu-zoom, so photos inside a
+   MediaFrame and the older hand-rolled ones read as one treatment. Triggered
+   by hovering the frame itself OR any `.group`/`.vu-lift` card around it,
+   because a photo inside a card should react to the whole card, not only to
+   the pixels it occupies. */
+.vu-media-zoom {
+  transition: transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: transform;
+}
+
+.vu-media:hover .vu-media-zoom,
+.group:hover .vu-media-zoom,
+.vu-lift:hover .vu-media-zoom,
+a:hover .vu-media-zoom,
+button:hover .vu-media-zoom {
+  transform: scale(1.055);
+}
+
+/* Reveal on scroll. Gated on the runtime being alive (see
+   MediaRevealRuntime) so photographs are never left invisible when the script
+   does not run. The frame lifts and settles; a hair of scale keeps it from
+   reading as a plain fade. */
+[data-media-runtime="on"] .vu-media[data-media-reveal] {
+  opacity: 0;
+  transform: translateY(14px) scale(0.985);
+  transition:
+    opacity 760ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 760ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+[data-media-runtime="on"] .vu-media[data-media-reveal][data-revealed="true"] {
+  opacity: 1;
+  transform: none;
+}
+
 /* "Featured in" ticker. */
 .vu-marquee-wrap {
   overflow: hidden;
@@ -931,8 +1009,15 @@ body:has([data-hero-dark])
     animation: none;
   }
   .vu-zoom,
+  .vu-media-zoom,
   .vu-spotlight::before,
   .vu-cta-glow .vu-cta-arrow {
+    transition: none;
+  }
+  /* Reduced motion keeps the photograph, drops the entrance. */
+  [data-media-runtime="on"] .vu-media[data-media-reveal] {
+    opacity: 1;
+    transform: none;
     transition: none;
   }
   .vu-scroll-progress {

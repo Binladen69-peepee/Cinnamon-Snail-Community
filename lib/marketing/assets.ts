@@ -25,6 +25,13 @@ export type AssetSlot = {
   kind: "image" | "video";
   /** Videos only: native aspect, so players frame them without letterboxing. */
   orientation?: "landscape" | "portrait";
+  /**
+   * Background imagery that carries no information of its own — a hero band
+   * behind the headline, say. These take an empty alt deliberately: a screen
+   * reader announcing "a bowl of beet hummus" before the headline is noise,
+   * not help. Content photography must never set this.
+   */
+  decorative?: boolean;
 };
 
 // Adam's footage moved off Vercel Blob, which hit its usage limit and was
@@ -42,19 +49,23 @@ export const ASSET_SLOTS: AssetSlot[] = [
     page: "homepage",
     section: "Hero background",
     need:
-      "Landscape footage that survives heavy cropping and reads as texture behind the headline.",
-    // Adam to camera in his own kitchen, 1920x1080, 107s. Runs muted and
-    // looping behind the hero copy.
+      "A dish photo dense enough to read as texture behind the headline. Flat-lays crop best here, because the hero band is much wider than Adam's photography is shot.",
+    // Client's pick, September 2026: the hero went back to a still after the
+    // background video was judged a regression from the earlier, cleaner
+    // direction. The 35 MB looping cut that used to sit here is gone with it —
+    // it was the heaviest thing on the page by an order of magnitude.
     //
-    // This is the 35 MB original. The 8.6 MB compressed cut preferred for
-    // start-up speed was only ever in the old Vercel Blob store and did not
-    // come across to this bucket, and that store is suspended so it cannot be
-    // recovered from there. Re-encoding and uploading a compressed cut here is
-    // the single biggest win available on this page.
-    src: `${MEDIA}/Vegan%20Cooking%20Classes%20-%20Adam%20Sobel%20%281080p%2C%20h264%29.mp4`,
+    // 1200x1800 overhead flat-lay. Every photo in Adam's library is portrait
+    // at 1200px wide (shot for recipe pages), so there is no landscape
+    // alternative to switch to; a flat-lay is the composition that survives
+    // the crop, which is why this one works where a plated hero shot would
+    // not. See HeroImage for the framing.
+    src: `${WP}/2026/07/beet_hummus-3.jpg`,
+    // Empty on purpose - see `decorative`. The headline directly beneath says
+    // what the page is; the photograph is the ground it is read against.
     alt: "",
-    kind: "video",
-    orientation: "landscape",
+    kind: "image",
+    decorative: true,
   },
   {
     id: "home-learn",

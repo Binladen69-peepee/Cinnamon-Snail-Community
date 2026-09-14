@@ -4,7 +4,7 @@ import { CheckoutButton } from "@/components/marketing/checkout-button";
 import { StickyCheckout } from "@/components/marketing/sticky-checkout";
 import { Reveal } from "@/components/marketing/reveal";
 import { PhotoSlot } from "@/components/marketing/photo-slot";
-import { HeroVideo } from "@/components/marketing/hero-video";
+import { HeroImage } from "@/components/marketing/hero-image";
 import { PressMarquee } from "@/components/marketing/press-marquee";
 import { SocialLinks } from "@/components/marketing/social-links";
 import { Reel } from "@/components/marketing/reel";
@@ -40,7 +40,7 @@ export default async function HomePage() {
     getNextLiveClass(),
     getGlobeMarkers(8),
   ]);
-  const heroVideo = assetSlot("home-hero");
+  const hero = assetSlot("home-hero");
   const reel = assetSlot("home-reel");
   const totalClasses = catalogRows.reduce(
     (total, row) => total + row.courses.length,
@@ -51,21 +51,19 @@ export default async function HomePage() {
     <div className="overflow-x-clip">
       <ScrollProgress />
 
-      {/* Hero — full-bleed video, text-forward ------------------------- */}
-      {/* Taller than 16:9 now, which costs a little horizontal crop on the
-          background video — acceptable for the extra vertical room.
-          data-hero-dark tells the nav to use light type while it is
+      {/* Hero — full-bleed photograph, text-forward --------------------- */}
+      {/* data-hero-dark tells the nav to use light type while it is
           transparent over this section. */}
       {/* -mt-18 pulls the hero up under the sticky app bar, which is 72px
           tall and would otherwise sit above it in normal flow — a transparent
-          bar would then show cream page background rather than this video. The
+          bar would then show cream page background rather than the photo. The
           inner column's pt-32 keeps the copy clear of the bar. */}
       <section
         data-hero-dark
         className="relative isolate -mt-18 flex min-h-[calc(clamp(38rem,92svh,54rem)+4.5rem)] items-end overflow-hidden"
       >
-        {heroVideo.src ? (
-          <HeroVideo src={heroVideo.src} />
+        {hero.src ? (
+          <HeroImage src={hero.src} alt={hero.alt} />
         ) : (
           <div className="absolute inset-0 bg-forest" />
         )}
@@ -102,16 +100,15 @@ export default async function HomePage() {
               </span>
             </div>
 
-            {/* Real testimonial proof, in place of the old avatar strip. */}
-            {/* Literal cream, not the warm-white token: the token inverts to
-                near-black in dark mode, and the Senja widget renders its own
-                light-themed content, so this card must stay light in both. */}
-            <div className="mt-10 max-w-2xl rounded-[1.5rem] bg-[#FFFCF8]/95 p-4 shadow-[0_18px_50px_rgba(6,26,21,0.35)] backdrop-blur-sm">
-              <SenjaEmbed
-                widgetId={SENJA_HOMEPAGE_WIDGET}
-                title="What members say"
-              />
-            </div>
+            {/* Real testimonial proof, in place of the old avatar strip.
+                No card around it any more — SenjaEmbed carries its own soft
+                wash, so the testimonials sit on the photograph rather than in
+                a panel floating above it. */}
+            <SenjaEmbed
+              widgetId={SENJA_HOMEPAGE_WIDGET}
+              title="What members say"
+              className="mt-12 max-w-2xl"
+            />
           </div>
         </div>
       </section>
@@ -139,7 +136,7 @@ export default async function HomePage() {
               >
                 <Spotlight className="vu-card vu-lift group h-full overflow-hidden rounded-[1.5rem] p-4">
                   <div className="relative overflow-hidden rounded-[1.15rem]">
-                    <PhotoSlot id={pillar.slotId} className="vu-zoom" />
+                    <PhotoSlot id={pillar.slotId} />
                     <span className="absolute left-3 top-3 grid size-9 place-items-center rounded-full bg-forest/85 font-display text-xs font-bold text-paper backdrop-blur-sm">
                       {String(index + 1).padStart(2, "0")}
                     </span>
@@ -166,7 +163,6 @@ export default async function HomePage() {
                 id="home-kitchen-table"
                 aspect="absolute inset-0 size-full"
                 rounded="rounded-none"
-                className="vu-zoom"
               />
             </div>
             <div className="flex flex-col justify-center px-7 py-12 md:px-11 lg:px-14">
@@ -298,7 +294,7 @@ export default async function HomePage() {
                   id="home-membership-teaser"
                   aspect="min-h-[21rem]"
                   rounded="rounded-none"
-                  className="vu-zoom h-full"
+                  className="h-full"
                 />
               </div>
             </div>

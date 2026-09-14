@@ -3,6 +3,8 @@
 import { useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, Play } from "lucide-react";
 import { Reveal } from "@/components/marketing/reveal";
+import { MediaFrame } from "@/components/ui/media-frame";
+import { youTubeEmbed } from "@/lib/marketing/teasers";
 import { cn } from "@/lib/utils";
 
 export type CatalogCardView = {
@@ -118,29 +120,47 @@ function CatalogRail({ row }: { row: CatalogRowView }) {
 
 function CatalogCard({ course }: { course: CatalogCardView }) {
   const [playing, setPlaying] = useState(false);
+  // Adam's teasers live on YouTube, so the player is an iframe. A self-hosted
+  // file would still work through the <video> branch below.
+  const embed = youTubeEmbed(course.teaserVideoUrl);
 
   return (
     <article className="vu-card vu-lift group flex h-full flex-col overflow-hidden rounded-[1.25rem] p-3">
       <div className="relative aspect-[16/10] overflow-hidden rounded-[1rem] bg-mint/60">
         {playing && course.teaserVideoUrl ? (
-          <video
-            src={course.teaserVideoUrl}
-            controls
-            autoPlay
-            playsInline
-            className="size-full object-cover"
-            onEnded={() => setPlaying(false)}
-          />
+          embed ? (
+            <iframe
+              // autoplay only fires because the click that set `playing` was
+              // the user gesture; muted keeps it allowed on mobile Safari.
+              src={`${embed}?autoplay=1&rel=0&modestbranding=1&playsinline=1`}
+              title={`Teaser for ${course.title}`}
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              allowFullScreen
+              className="absolute inset-0 size-full border-0"
+            />
+          ) : (
+            <video
+              src={course.teaserVideoUrl}
+              controls
+              autoPlay
+              playsInline
+              className="size-full object-cover"
+              onEnded={() => setPlaying(false)}
+            />
+          )
         ) : (
           <>
             {course.coverUrl ? (
-              // Media-library URLs are arbitrary hosts, not optimizer inputs.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+              <MediaFrame
                 src={course.coverUrl}
                 alt=""
-                loading="lazy"
-                className="vu-zoom size-full object-cover"
+                aspect="absolute inset-0 size-full"
+                rounded="rounded-none"
+                // The card is the reveal unit here — CatalogRail already wraps
+                // each row in <Reveal>, and a second fade on the photo inside
+                // a horizontally-scrolling rail just makes cards flicker as
+                // they come past.
+                reveal={false}
               />
             ) : (
               <div

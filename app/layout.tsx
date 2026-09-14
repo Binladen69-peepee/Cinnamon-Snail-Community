@@ -3,6 +3,7 @@ import Script from "next/script";
 import { Inter, Poppins, Caveat, Fraunces } from "next/font/google";
 import { Providers } from "@/app/providers";
 import { BotanicalBackdrop } from "@/components/marketing/hero-decor";
+import { MediaRevealRuntime } from "@/components/ui/media-reveal-runtime";
 import { SAMCART_SLIDE_SCRIPT } from "@/lib/marketing/checkout";
 import "./globals.css";
 
@@ -61,6 +62,8 @@ export default function RootLayout({
     >
       <body className="relative min-h-full bg-background font-sans text-foreground">
         <Script src={SAMCART_SLIDE_SCRIPT} strategy="afterInteractive" />
+        {/* One observer drives the reveal for every MediaFrame on the page. */}
+        <MediaRevealRuntime />
         <div className="relative min-h-full">
           <BotanicalBackdrop />
           <div className="relative z-10">

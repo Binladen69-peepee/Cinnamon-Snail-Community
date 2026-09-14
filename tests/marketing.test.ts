@@ -172,20 +172,24 @@ describe("stock imagery guard", () => {
 });
 
 describe("video slots", () => {
-  it("uses a landscape clip for the hero, since it is cropped to a wide band", () => {
+  it("keeps the hero a still, not a video", () => {
+    // The background video was reverted in September 2026: the client judged
+    // it a regression from the earlier, cleaner hero. This is the guard that
+    // stops it drifting back - it was also the heaviest asset on the page.
     const hero = assetSlot("home-hero");
-    expect(hero.kind).toBe("video");
-    expect(hero.orientation).toBe("landscape");
+    expect(hero.kind).toBe("image");
     expect(hero.src).toBeTruthy();
+    expect(hero.src).toContain("cinnamonsnail.com/wp-content/uploads");
   });
 
-  it("reuses one file for the hero and the sales video, so it downloads once", () => {
-    // Both slots are Adam's landscape cut. Keeping them on the same URL means a
-    // visitor who lands on the homepage first already has /membership's video
-    // in cache.
-    expect(assetSlot("membership-sales-video").src).toBe(
-      assetSlot("home-hero").src,
-    );
+  it("still has the sales video on /membership", () => {
+    // It used to share a URL with the hero so the file downloaded once. The
+    // hero is a photograph now, so this slot stands on its own and is the
+    // only place that clip is fetched.
+    const sales = assetSlot("membership-sales-video");
+    expect(sales.kind).toBe("video");
+    expect(sales.orientation).toBe("landscape");
+    expect(sales.src).toBeTruthy();
   });
 
   it("declares an orientation for every video so players can frame it", () => {
@@ -241,9 +245,21 @@ describe("real photography", () => {
     }
   });
 
-  it("gives every filled photo real alt text", () => {
-    for (const slot of ASSET_SLOTS.filter((s) => s.kind === "image" && s.src)) {
-      expect(slot.alt.length).toBeGreaterThan(3);
+  it("gives every filled content photo real alt text", () => {
+    for (const slot of ASSET_SLOTS.filter(
+      (s) => s.kind === "image" && s.src && !s.decorative,
+    )) {
+      expect(slot.alt.length, slot.id).toBeGreaterThan(3);
+    }
+  });
+
+  it("gives decorative background imagery an empty alt", () => {
+    // The opposite rule, and just as load-bearing: describing a hero backdrop
+    // makes a screen reader read scenery before it reaches the headline.
+    const decorative = ASSET_SLOTS.filter((s) => s.decorative);
+    expect(decorative.length).toBeGreaterThan(0);
+    for (const slot of decorative) {
+      expect(slot.alt, slot.id).toBe("");
     }
   });
 

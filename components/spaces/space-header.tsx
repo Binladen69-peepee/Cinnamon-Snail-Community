@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Globe, Lock, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { MediaFrame } from "@/components/ui/media-frame";
 import {
   SPACE_KIND_ICON,
   SPACE_KIND_LABEL,
@@ -63,11 +64,12 @@ export function SpaceHeader({
   return (
     <header className="overflow-hidden rounded-card border border-border bg-surface">
       {space.coverUrl ? (
-        <div className="relative h-20 sm:h-24">
-          {/* Space art is an arbitrary host, not an optimizer input. */}
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={space.coverUrl} alt="" className="size-full object-cover" />
-        </div>
+        <MediaFrame
+          src={space.coverUrl}
+          alt=""
+          aspect="h-20 sm:h-24"
+          rounded="rounded-none"
+        />
       ) : null}
 
       <div className="p-3 sm:p-4">
