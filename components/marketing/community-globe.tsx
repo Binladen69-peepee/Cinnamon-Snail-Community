@@ -19,16 +19,18 @@ export function CommunityGlobe({ data }: { data: GlobeData }) {
       aria-labelledby="community-globe-title"
       className="relative overflow-hidden rounded-[2rem]"
     >
-      {/* Deep teal ground, so the globe's glow has something to sit against. */}
+      {/* Deep forest ground rather than the old teal. The globe is warm paper
+          now, so what it needs behind it is the brand's own dark green — teal
+          pushed the whole section blue, which was half of why it read cold. */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-[radial-gradient(120%_90%_at_50%_-10%,#0d3b36_0%,#07211f_55%,#041413_100%)]"
+        className="absolute inset-0 bg-[radial-gradient(125%_95%_at_50%_-10%,#14493c_0%,#0f3d32_46%,#092a22_100%)]"
       />
-      <div aria-hidden className="vu-grain absolute inset-0 opacity-30" />
+      <div aria-hidden className="vu-grain absolute inset-0 opacity-20" />
 
       <div className="relative px-6 py-14 md:px-10 md:py-18">
         <div className="mx-auto max-w-2xl text-center">
-          <p className="text-xs font-bold uppercase tracking-[0.22em] text-cyan-300/80">
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-sand/80">
             The community
           </p>
           <h2
@@ -51,7 +53,7 @@ export function CommunityGlobe({ data }: { data: GlobeData }) {
           <MemberGlobe markers={data.markers} placeholder={data.placeholder} />
         </div>
 
-        <div className="mx-auto mt-12 grid max-w-3xl gap-6 border-t border-cyan-300/10 pt-8 text-center sm:grid-cols-3">
+        <div className="mx-auto mt-12 grid max-w-3xl gap-6 border-t border-sand/15 pt-8 text-center sm:grid-cols-3">
           <div>
             <p className="font-display text-2xl font-bold text-paper">
               {data.placeholder ? "—" : data.countries}
@@ -77,7 +79,7 @@ export function CommunityGlobe({ data }: { data: GlobeData }) {
         {data.placeholder ? (
           <p
             data-asset-needed="member-geo-import"
-            className="mx-auto mt-8 max-w-xl rounded-2xl border border-cyan-300/15 bg-black/20 px-5 py-4 text-center text-xs leading-relaxed text-paper/70"
+            className="mx-auto mt-8 max-w-xl rounded-2xl border border-sand/15 bg-black/20 px-5 py-4 text-center text-xs leading-relaxed text-paper/70"
           >
             The pins are stand-ins. This map draws from the real Mighty Networks
             membership export — import it with{" "}

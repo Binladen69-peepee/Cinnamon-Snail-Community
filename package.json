@@ -31,7 +31,6 @@
     "@supabase/supabase-js": "^2.116.0",
     "bcryptjs": "^3.0.3",
     "clsx": "^2.1.1",
-    "cobe": "^2.0.1",
     "lucide-react": "^1.42.0",
     "marked": "^18.0.11",
     "nanoid": "^6.0.1",
