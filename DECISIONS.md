@@ -1059,3 +1059,212 @@ Date:
 
 Approved by:
 Engineering
+
+---
+
+## DEC-031 — The hero is a photograph again, and photo motion lives in one place
+
+Status: ACCEPTED
+
+Question:
+The client judged the current homepage a regression from an earlier, cleaner
+version, naming the background video specifically. What replaces it, and how do
+images behave across the rest of the site?
+
+Decision:
+The hero is a still: the client's beet hummus flat-lay from his own media
+library. Every photograph on cinnamonsnail.com is shot portrait at 1200px wide
+for recipe pages, so there is no landscape frame to switch to and a wide hero
+band is always a crop. A flat-lay is the one composition where that costs
+nothing — no subject to cut in half, food edge to edge — which is why this photo
+works where a plated shot would not. The crop sits at `50% 45%`, chosen against
+renders at 22%, 45% and 62%: it puts quiet stone behind the headline and the
+bowl out to the top right.
+
+The scrim was rebuilt rather than inherited. The video's treatment existed to
+cope with not knowing which frame the type would land on — four stops of forest
+green at 0.8, film grain against flat compressed areas, a saturation bump to
+undo the codec. None of that applies to a photograph we can look at, and a green
+scrim over magenta mixes to brown. It is now two directional gradients in a
+near-black forest, placed where the copy is. The hero is a server component with
+no JavaScript at all, and being the LCP element it loads eagerly.
+
+Photo motion moved into `MediaFrame`: one component owning the crop, the hover
+and the scroll reveal, with a single observer in the root layout driving every
+frame on the page. The reveal's hidden state is gated on that runtime being
+alive, so photographs are never left invisible if the script does not run.
+Sections no longer opt in by remembering a class name.
+
+The Senja widget lost its card. It still needs a light ground — Senja renders
+its own dark type and we do not control it — but that ground is now a soft wash
+behind the widget, feathered on both axes. A single radial gradient cannot do
+this on a wide short band: sized to fade across the width it collapses the
+height, sized to the height it stays flat across the width and simply redraws
+the rectangle. So the horizontal fade is the background and the vertical fade is
+a mask over it. The same component fixes /membership, where that dark type sat
+on a near-black page in dark mode.
+
+Date:
+2026-09-14
+
+Approved by:
+Engineering (allowed by BUILD.md §5)
+
+---
+
+## DEC-032 — The globe is drawn from coastlines, not plotted from dots
+
+Status: ACCEPTED
+
+Question:
+The client found the community globe too "techie" — a glowing dot-matrix with a
+data-viz feel — and asked for something illustrated and warm. Can cobe be
+restyled, or does the renderer have to change?
+
+Decision:
+The renderer changed. cobe draws land as a grid of dots and lights them like a
+hologram, and that grid is its shader with no setting to disable it. Three ways
+of hiding it were tried, and all three are recorded here because they look
+plausible and are not: inverting `mapBrightness` below 1 so land is darker than
+the sphere, raising `mapSamples` until dots touch, and rendering at a fraction
+of display size so the upscale blurs them together. Each produced moire rather
+than coastlines — swirling concentric rings resembling a fingerprint — because
+what was being smoothed was the sampling pattern and not a map.
+
+Land is now geometry: Natural Earth 1:110m coastlines, simplified to 30 rings
+and 900 points in `lib/marketing/land-rings.ts`, projected orthographically and
+filled as paths on a 2D canvas. Having the shapes is the precondition for any
+painterly treatment — an edge can only be softened if there is an edge. Outlines
+are drawn as quadratic curves through their own vertices so nothing has a
+corner, displaced by a hash of their index so each coast is slightly off true;
+that displacement is deterministic in the vertex, not in time, or it would boil
+as the globe turned. Land is laid down twice at a slight offset so overlaps
+darken the way pigment does, over warm paper lit from the upper left.
+
+It is also cheaper: ~4KB gzipped of coastline against cobe's ~30KB, no WebGL
+context, and 900 points of trigonometry per frame instead of tens of thousands
+of instanced quads. cobe is removed from the dependencies. Drag-to-rotate,
+auto-spin, the lazy start, the offscreen pause and the photo pins are unchanged,
+and drag was verified against the running page.
+
+The regenerator is `scripts/build-land-rings.mjs`; its output is committed, so a
+normal build never runs it.
+
+Date:
+2026-09-14
+
+Approved by:
+Engineering (allowed by BUILD.md §5)
+
+---
+
+## DEC-033 — Welcome DM settings live in a table, not the environment
+
+Status: ACCEPTED
+
+Question:
+Every operational setting so far is an environment variable read through a
+`config.ts`. The welcome DM needs an editable message and delay. Where do they
+live, and how is a double-send made impossible?
+
+Decision:
+A single settings row, `WelcomeMessageSetting`, because the requirement is that
+an admin edits them in the UI — copy to reword and a delay to tune without a
+deploy, which an environment variable cannot do. Defaults live in code and stand
+in until the row is first saved, and the feature ships off.
+
+Double-sending is prevented by a constraint, not by checking first, which two
+concurrent sign-ins would both pass. `WelcomeMessageJob.userId` is unique, so
+scheduling is an insert the database rejects the second time; the sweep then
+claims each job with a guarded update inside a transaction, so overlapping cron
+runs cannot both deliver. First login is `User.firstLoginAt`, written by an
+`updateMany` filtered on `firstLoginAt: null` — a fact on the row rather than an
+inference from session state, so it survives new devices and cleared cookies.
+
+The delay is captured and the text is not, deliberately. The delay becomes an
+absolute `dueAt` at scheduling, so lengthening it does not move sends already
+waiting; the body is read fresh at send time, so fixing a typo fixes everyone
+still queued.
+
+Sending bypasses `sendMessage`. That path enforces the member-to-member gate —
+DM preferences, shared spaces, prior conversation — and a new member set to
+"messages from people I follow" would have the one message meant to greet them
+rejected. This is transactional, so the conversation and message are written
+directly.
+
+Per DEC-011 the sweep is `POST|GET /api/jobs/welcome` on a five-minute cron. It
+answers GET because Vercel Cron issues GET; the existing `/api/jobs/billing`
+route is POST-only, which matters before anything is scheduled against it. That
+route's inline auth check moved to `lib/jobs/auth.ts` and is now shared.
+
+Date:
+2026-09-14
+
+Approved by:
+Engineering (allowed by BUILD.md §5)
+
+---
+
+## DEC-034 — The SamCart webhook secret arrives in the query string
+
+Status: ACCEPTED
+
+Question:
+The client is configuring a SamCart Notify URL with the shared secret appended
+as `?api_key=...`. Does the endpoint accept that?
+
+Decision:
+It did not, and now does. SamCart has no secret field — the merchant puts the
+secret on the Notify URL itself — so the query string is where it actually
+arrives. `/api/webhooks/samcart` only ever read `api_key` from the JSON body, so
+the moment the Notify URL was configured the way SamCart asks for, every webhook
+would have been rejected 401 and no order would have provisioned.
+
+`readSamcartApiKey` now reads the query string first and falls back to the body,
+so a Notify URL configured either way works, and the body form is kept because
+hand-rolled test posts use it. Verified against the running route: query-string
+secret 200, body secret 200, wrong secret 401, absent secret 401.
+
+The endpoint to give the client is
+`https://cinnamon-snail-community.vercel.app/api/webhooks/samcart`, confirmed
+reachable in production.
+
+Date:
+2026-09-14
+
+Approved by:
+Engineering
+
+---
+
+## DEC-035 — Magic-link email is wired but capped at one recipient
+
+Status: BLOCKED
+
+Question:
+Does sign-in email actually work in production?
+
+Decision:
+Blocked on the client verifying a sending domain. The pipeline itself is
+correct and was tested end to end, not merely configured: a magic link
+requested through the real login form was accepted by Resend and reported
+`last_event: "delivered"`. `RESEND_API_KEY` (sensitive) and `EMAIL_FROM` are now
+set in Vercel production, where both were previously absent — so before this,
+sign-in email in production could not have worked at all.
+
+The cap is the blocker. The Resend account has no verified domain, so it can
+only send from `onboarding@resend.dev`, and Resend restricts that sender to the
+account owner's own address: every other recipient is refused with a 403 naming
+it. That means no member other than the account owner can receive a sign-in
+link. DEC-009 anticipated this ("until a Vegan University domain is verified");
+what is new is that it is now the single thing standing between the build and
+members being able to sign in at all.
+
+Unblocking is the client verifying a domain at resend.com/domains and
+`EMAIL_FROM` moving to an address on it.
+
+Date:
+2026-09-14
+
+Approved by:
+BLOCKED — needs the client
