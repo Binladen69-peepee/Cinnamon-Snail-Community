@@ -20,64 +20,9 @@
  */
 import { readFileSync } from "node:fs";
 import { PrismaClient } from "@prisma/client";
+import { parseCsv, pickColumn, toNumberCell, type CsvRow } from "../lib/csv";
 
 const prisma = new PrismaClient();
-
-type Row = Record<string, string>;
-
-function splitCsvLine(line: string): string[] {
-  const cells: string[] = [];
-  let current = "";
-  let quoted = false;
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    if (quoted) {
-      if (char === '"') {
-        if (line[index + 1] === '"') {
-          current += '"';
-          index += 1;
-        } else {
-          quoted = false;
-        }
-      } else {
-        current += char;
-      }
-    } else if (char === '"') {
-      quoted = true;
-    } else if (char === ",") {
-      cells.push(current);
-      current = "";
-    } else {
-      current += char;
-    }
-  }
-  cells.push(current);
-  return cells.map((cell) => cell.trim());
-}
-
-function parseCsv(text: string): Row[] {
-  const lines = text
-    .split(/\r?\n/)
-    .filter((line) => line.trim().length > 0);
-  if (lines.length < 2) return [];
-  const headers = splitCsvLine(lines[0]).map((header) => header.toLowerCase());
-  return lines.slice(1).map((line) => {
-    const cells = splitCsvLine(line);
-    const row: Row = {};
-    headers.forEach((header, index) => {
-      row[header] = cells[index] ?? "";
-    });
-    return row;
-  });
-}
-
-function pick(row: Row, candidates: string[]): string {
-  for (const candidate of candidates) {
-    const value = row[candidate];
-    if (value) return value;
-  }
-  return "";
-}
 
 async function main() {
   const file = process.argv[2];
@@ -86,7 +31,7 @@ async function main() {
     process.exit(1);
   }
 
-  const rows = parseCsv(readFileSync(file, "utf8"));
+  const rows: CsvRow[] = parseCsv(readFileSync(file, "utf8"));
   if (rows.length === 0) {
     console.error("No data rows found in that file.");
     process.exit(1);
@@ -106,16 +51,18 @@ async function main() {
   let skipped = 0;
 
   for (const row of rows) {
-    const country = pick(row, ["country", "country_name"]);
-    const region = pick(row, ["region", "state", "province"]) || null;
-    const city = pick(row, ["city", "town", "locality"]) || null;
-    const latitude = Number(pick(row, ["latitude", "lat"]));
-    const longitude = Number(pick(row, ["longitude", "lng", "lon", "long"]));
+    const country = pickColumn(row, ["country", "country_name"]);
+    const region = pickColumn(row, ["region", "state", "province"]) || null;
+    const city = pickColumn(row, ["city", "town", "locality"]) || null;
+    const latitude = toNumberCell(pickColumn(row, ["latitude", "lat"]));
+    const longitude = toNumberCell(
+      pickColumn(row, ["longitude", "lng", "lon", "long"]),
+    );
 
     if (
       !country ||
-      !Number.isFinite(latitude) ||
-      !Number.isFinite(longitude) ||
+      latitude === null ||
+      longitude === null ||
       Math.abs(latitude) > 90 ||
       Math.abs(longitude) > 180
     ) {

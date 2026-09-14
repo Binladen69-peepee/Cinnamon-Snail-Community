@@ -99,3 +99,19 @@ export function toCsv(headers: string[], rows: string[][]): string {
   for (const row of rows) lines.push(row.map(toCsvCell).join(","));
   return `${lines.join("\n")}\n`;
 }
+
+/**
+ * A numeric cell, or null when the cell does not hold a number.
+ *
+ * The reason this exists rather than `Number(cell)` at the call site: an empty
+ * cell becomes 0, and 0 passes every range and finiteness check you would
+ * think to write. For a coordinate that is the Gulf of Guinea, so a member
+ * with no location recorded lands as a pin in the Atlantic. Blank, whitespace
+ * and non-numeric all have to become null *before* any range check.
+ */
+export function toNumberCell(raw: string | undefined | null): number | null {
+  const trimmed = (raw ?? "").trim();
+  if (!trimmed) return null;
+  const value = Number(trimmed);
+  return Number.isFinite(value) ? value : null;
+}

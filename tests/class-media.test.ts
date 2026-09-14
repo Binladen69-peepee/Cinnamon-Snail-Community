@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
-import { parseCsv, splitCsvLine, toCsv } from "@/lib/csv";
+import { parseCsv, splitCsvLine, toCsv, toNumberCell } from "@/lib/csv";
 import {
   matchClassMedia,
   normalizeClassName,
@@ -34,6 +34,29 @@ describe("CSV reading", () => {
   it("round-trips cells that need quoting", () => {
     const text = toCsv(["a", "b"], [['x,y', 'he said "no"']]);
     expect(parseCsv(text)[0]).toEqual({ a: "x,y", b: 'he said "no"' });
+  });
+});
+
+describe("numeric cells", () => {
+  it("reads a real number", () => {
+    expect(toNumberCell("40.6782")).toBe(40.6782);
+    expect(toNumberCell(" -73.9442 ")).toBe(-73.9442);
+    expect(toNumberCell("0")).toBe(0);
+  });
+
+  it("treats an empty cell as missing, not as zero", () => {
+    // The bug this guards: Number("") is 0, which is finite and in range, so
+    // a member with no location imported as a pin at 0,0 in the Atlantic.
+    expect(toNumberCell("")).toBeNull();
+    expect(toNumberCell("   ")).toBeNull();
+    expect(toNumberCell(undefined)).toBeNull();
+    expect(toNumberCell(null)).toBeNull();
+  });
+
+  it("rejects text and non-finite values", () => {
+    expect(toNumberCell("n/a")).toBeNull();
+    expect(toNumberCell("Infinity")).toBeNull();
+    expect(toNumberCell("NaN")).toBeNull();
   });
 });
 
