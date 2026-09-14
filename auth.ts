@@ -99,20 +99,39 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         await hydrateFromDatabase(token, user.id);
         token.checkedAt = Date.now();
 
-        // Neither of these gates the sign-in response.
+        // None of these gate the sign-in response.
         after(async () => {
+          const now = new Date();
           await prisma.user
             .update({
               where: { id: user.id! },
-              data: { lastLoginAt: new Date() },
+              data: { lastLoginAt: now },
             })
             .catch(() => undefined);
+
+          // First sign-in ever: stamps the row and queues the welcome DM. The
+          // stamp is a guarded update inside noteFirstLogin, so signing in on
+          // two devices at once still produces exactly one welcome. Failure
+          // here must never cost someone their session, hence the catch.
+          const { noteFirstLogin } = await import("@/lib/messages/welcome");
+          const outcome = await noteFirstLogin(user.id!, now).catch(() => null);
+
           await writeAuditLog({
             actorId: user.id,
             action: "auth.session.created",
             targetType: "session",
             targetId: session.id,
           }).catch(() => undefined);
+
+          if (outcome?.firstLogin) {
+            await writeAuditLog({
+              actorId: user.id,
+              action: "auth.first_login",
+              targetType: "user",
+              targetId: user.id!,
+              metadata: { welcomeDmScheduled: outcome.scheduled },
+            }).catch(() => undefined);
+          }
         });
         return token;
       }

@@ -4,6 +4,7 @@ import { isPayingStatus } from "@/lib/billing/types";
 import { confirmCancellation, startCancellation } from "@/lib/billing/cancel";
 import { getDeletionGraceDays } from "@/lib/billing/config";
 import { sendTransactionalEmail } from "@/lib/email/send";
+import { cancelWelcomeDm } from "@/lib/messages/welcome";
 import { deletionRequestedHtml } from "@/lib/email/templates/billing";
 
 export async function requestAccountDeletion(userId: string, reason?: string) {
@@ -47,6 +48,13 @@ export async function requestAccountDeletion(userId: string, reason?: string) {
       deletionRequestedAt: new Date(),
     },
   });
+
+  // A member who signs up and closes the account inside the delay window must
+  // not be greeted afterwards. The sweep would also refuse to send to a
+  // non-ACTIVE user, but cancelling here means the queue reflects reality
+  // rather than carrying a send that can never happen.
+  await cancelWelcomeDm(userId, "account-deletion-requested").catch(() => 0);
+
   await writeAuditLog({
     actorId: userId,
     action: "account.deletion.requested",
@@ -76,6 +84,7 @@ export async function purgeDueDeletions(graceDays: number, now = new Date()) {
     },
   });
   for (const user of due) {
+    await cancelWelcomeDm(user.id, "account-purged").catch(() => 0);
     await prisma.user.update({
       where: { id: user.id },
       data: {

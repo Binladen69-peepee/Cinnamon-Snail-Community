@@ -20,6 +20,7 @@ export const metadata = {
 
 const ADMIN_LINKS = [
   { href: "/admin/billing", label: "Billing" },
+  { href: "/admin/welcome", label: "Welcome DM" },
   { href: "/admin/members", label: "Members" },
   { href: "/admin/moderation", label: "Moderation" },
 ];

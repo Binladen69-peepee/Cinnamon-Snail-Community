@@ -10,6 +10,10 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname),
+      // See tests/stubs/server-only.ts: the real package throws on import
+      // outside a server build, which would make every database-backed module
+      // untestable.
+      "server-only": path.resolve(__dirname, "tests/stubs/server-only.ts"),
     },
   },
 });

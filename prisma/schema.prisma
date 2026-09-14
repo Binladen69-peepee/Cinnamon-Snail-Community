@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
   /// Runtime connection. In production this is the Supabase pooler in
   /// transaction mode, which is what serverless needs.
   url       = env("DATABASE_URL")
@@ -158,6 +158,11 @@ model User {
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
   lastLoginAt         DateTime?
+  /// Set once, on the first successful sign-in ever, and never updated again.
+  /// The welcome DM hangs off this: it is a fact on the row rather than
+  /// something inferred from session state, so it survives new devices,
+  /// cleared cookies and a second browser.
+  firstLoginAt        DateTime?
   deletedAt           DateTime?
   deletionRequestedAt DateTime?
 
@@ -171,7 +176,7 @@ model User {
   comments             Comment[]
   reactions            Reaction[]
   bookmarks            Bookmark[]
-  reports              Report[]              @relation("ReportReporter")
+  reports              Report[]                @relation("ReportReporter")
   notifications        Notification[]
   pollVotes            PollVote[]
   votes                Vote[]
@@ -185,14 +190,16 @@ model User {
   memberBadges         MemberBadge[]
   lessonProgress       LessonProgress[]
   courseProgress       CourseProgress[]
-  hostedSpaces         Space[]               @relation("SpaceHost")
+  hostedSpaces         Space[]                 @relation("SpaceHost")
   cancellationRequests CancellationRequest[]
-  blocksMade           UserBlock[]           @relation("BlocksMade")
-  blocksAgainst        UserBlock[]           @relation("BlocksAgainst")
-  reportsAbout         Report[]              @relation("ReportSubject")
+  blocksMade           UserBlock[]             @relation("BlocksMade")
+  blocksAgainst        UserBlock[]             @relation("BlocksAgainst")
+  reportsAbout         Report[]                @relation("ReportSubject")
   cohortMemberships    CohortMember[]
-  matchesOwned         MemberMatch[]         @relation("MatchOwner")
-  matchesToward        MemberMatch[]         @relation("MatchTarget")
+  matchesOwned         MemberMatch[]           @relation("MatchOwner")
+  matchesToward        MemberMatch[]           @relation("MatchTarget")
+  welcomeMessageJob    WelcomeMessageJob?
+  welcomeMessagesSent  WelcomeMessageSetting[] @relation("WelcomeSender")
 }
 
 model UserEmail {
@@ -731,6 +738,67 @@ model Message {
   reports        Report[]
 
   @@index([conversationId, createdAt])
+}
+
+/// Admin-editable settings for the welcome DM, as a single row keyed "default".
+///
+/// A table rather than environment variables, which is where the other
+/// operational settings live, because this one has to be editable by an admin
+/// in the UI — copy that Adam wants to reword without a deploy.
+model WelcomeMessageSetting {
+  id String @id @default("default")
+
+  /// Off until an admin turns it on, so installing this never surprises
+  /// anyone with a message they did not write.
+  enabled Boolean @default(false)
+
+  /// Read fresh at send time, never copied onto the queued job: editing the
+  /// wording is meant to affect sends that are already in flight.
+  body String
+
+  /// Minutes between a member's first sign-in and the DM landing. Captured
+  /// onto the job as an absolute `dueAt` when the send is scheduled, so
+  /// changing it later does not move sends that are already waiting.
+  delayMinutes Int @default(10)
+
+  /// Who the DM comes from. Null falls back to the most senior admin at send
+  /// time; if that user is later deleted this returns to null rather than
+  /// pointing at a missing row.
+  senderId String?
+
+  updatedAt   DateTime @updatedAt
+  updatedById String?
+
+  sender User? @relation("WelcomeSender", fields: [senderId], references: [id], onDelete: SetNull)
+}
+
+/// One queued welcome DM per member.
+///
+/// `userId` is unique, and that single constraint is what makes a double-send
+/// impossible: scheduling is an insert, so a race between two concurrent first
+/// sign-ins loses on the database rather than on application logic.
+model WelcomeMessageJob {
+  id     String @id @default(cuid())
+  userId String @unique
+
+  /// Absolute send time, fixed when the job was created.
+  dueAt DateTime
+
+  sentAt       DateTime?
+  messageId    String?
+  canceledAt   DateTime?
+  cancelReason String?
+
+  attempts  Int       @default(0)
+  failedAt  DateTime?
+  lastError String?
+
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// The sweep's query: everything still pending and now due.
+  @@index([sentAt, canceledAt, dueAt])
 }
 
 model UserBlock {

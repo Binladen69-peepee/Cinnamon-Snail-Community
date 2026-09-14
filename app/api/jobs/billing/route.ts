@@ -2,16 +2,10 @@ import { retryFailedBillingEvents } from "@/lib/billing/process-event";
 import { runNightlyReconciliation } from "@/lib/billing/reconcile";
 import { getDeletionGraceDays } from "@/lib/billing/config";
 import { purgeDueDeletions } from "@/lib/billing/deletion";
-
-function authorized(request: Request) {
-  const secret = process.env.BILLING_JOB_SECRET ?? process.env.CRON_SECRET;
-  if (!secret) return process.env.NODE_ENV !== "production";
-  const header = request.headers.get("authorization") ?? request.headers.get("x-job-secret");
-  return header === `Bearer ${secret}` || header === secret;
-}
+import { jobRequestAuthorized } from "@/lib/jobs/auth";
 
 export async function POST(request: Request) {
-  if (!authorized(request)) {
+  if (!jobRequestAuthorized(request)) {
     return Response.json({ ok: false }, { status: 401 });
   }
   const url = new URL(request.url);
