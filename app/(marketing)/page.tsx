@@ -8,13 +8,14 @@ import { HeroImage } from "@/components/marketing/hero-image";
 import { PressMarquee } from "@/components/marketing/press-marquee";
 import { Reel } from "@/components/marketing/reel";
 import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
-import { CourseCatalog } from "@/components/marketing/course-catalog";
+import { ClassLibrary } from "@/components/marketing/class-library";
 import { CommunityGlobe } from "@/components/marketing/community-globe";
 import {
   SenjaEmbed,
   SENJA_HOMEPAGE_WIDGET,
 } from "@/components/marketing/senja-embed";
-import { getCatalogRows, getNextLiveClass } from "@/lib/marketing/catalog";
+import { getNextLiveClass } from "@/lib/marketing/catalog";
+import { CLASS_LIBRARY, libraryShelves } from "@/lib/marketing/class-library";
 import { getGlobeMarkers } from "@/lib/marketing/globe-markers";
 import { CANCEL_REASSURANCE } from "@/lib/marketing/checkout";
 import {
@@ -34,17 +35,14 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [catalogRows, nextLive, globe] = await Promise.all([
-    getCatalogRows(),
+  const [nextLive, globe] = await Promise.all([
     getNextLiveClass(),
     getGlobeMarkers(8),
   ]);
   const hero = assetSlot("home-hero");
   const reel = assetSlot("home-reel");
-  const totalClasses = catalogRows.reduce(
-    (total, row) => total + row.courses.length,
-    0,
-  );
+  const totalClasses = CLASS_LIBRARY.length;
+  const shelfCount = libraryShelves().length;
 
   return (
     <div className="overflow-x-clip">
@@ -216,39 +214,29 @@ export default async function HomePage() {
       </section>
 
       {/* Course catalog ------------------------------------------------ */}
-      <section className="vu-gutter vu-section">
+      <section className="vu-gutter vu-section" aria-labelledby="class-library-heading">
         <div className="vu-shell">
           <Reveal>
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="vu-kicker">The classes</p>
-                <h2 className="vu-title-script-sm vu-headline mt-3 text-forest">
+                <h2
+                  id="class-library-heading"
+                  className="vu-title-script-sm vu-headline mt-3 text-forest"
+                >
                   <span className="vu-title-anim">Every class, one library.</span>
                 </h2>
               </div>
               {totalClasses > 0 ? (
                 <p className="text-sm text-foreground-muted">
-                  {totalClasses} classes across {catalogRows.length}{" "}
-                  {catalogRows.length === 1 ? "shelf" : "shelves"} — and more
-                  every month.
+                  {totalClasses} classes across {shelfCount}{" "}
+                  {shelfCount === 1 ? "shelf" : "shelves"}
                 </p>
               ) : null}
             </div>
           </Reveal>
           <div className="mt-11">
-            <CourseCatalog
-              rows={catalogRows.map((row) => ({
-                category: row.category,
-                courses: row.courses.map((course) => ({
-                  slug: course.slug,
-                  title: course.title,
-                  description: course.description,
-                  coverUrl: course.coverUrl,
-                  teaserVideoUrl: course.teaserVideoUrl,
-                  liveAt: course.liveAt ? course.liveAt.toISOString() : null,
-                })),
-              }))}
-            />
+            <ClassLibrary />
           </div>
         </div>
       </section>
