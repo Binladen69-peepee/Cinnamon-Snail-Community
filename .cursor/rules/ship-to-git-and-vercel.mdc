@@ -1,0 +1,20 @@
+---
+description: After implementing a change, commit, push Git, and promote Vercel without being asked.
+alwaysApply: true
+---
+
+# Ship to Git and Vercel
+
+Once a change is implemented, ship it in the same turn. Do not wait to be asked to push.
+
+1. Commit the relevant files (never `.env` or secrets). Follow the repo commit style: one or two sentences on why.
+2. `git push origin HEAD` on the current branch (`rebuild/member-app` unless told otherwise).
+3. Wait until the new Vercel Preview is Ready, then promote it:
+
+```
+npx vercel promote <preview-url> --yes --scope cinnamon-snail
+```
+
+Production is https://cinnamon-snail-community.vercel.app. A git push only creates Preview; live traffic needs promote.
+
+Skip this loop only when the user asked for a local-only experiment, or there is nothing to commit.

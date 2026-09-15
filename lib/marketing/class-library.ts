@@ -3,8 +3,9 @@
  *
  * Source of truth is `data/class_thumbnails_and_teasers.xlsx` (Class Name,
  * Thumbnail Image URL, Teaser Video YouTube Embed URL), exported as
- * `data/class-library.json`. The homepage slider must not substitute Prisma
- * covers, stock photos, or generated media.
+ * `data/class-library.json`. Teaser lengths (`durationSeconds`) are read from
+ * YouTube for those embed ids — never invented. The homepage slider must not
+ * substitute Prisma covers, stock photos, or generated media.
  */
 
 import rows from "@/data/class-library.json";
@@ -25,6 +26,7 @@ export type LibraryClass = {
   thumbnailUrl: string;
   teaserUrl: string;
   slug: string;
+  durationSeconds: number | null;
 };
 
 export type LibraryShelf = {
@@ -95,13 +97,37 @@ export function classSlug(title: string): string {
 }
 
 export const CLASS_LIBRARY: LibraryClass[] = (
-  rows as Array<{ title: string; thumbnailUrl: string; teaserUrl: string }>
+  rows as Array<{
+    title: string;
+    thumbnailUrl: string;
+    teaserUrl: string;
+    durationSeconds?: number | null;
+  }>
 ).map((row) => ({
   title: row.title,
   thumbnailUrl: row.thumbnailUrl,
   teaserUrl: row.teaserUrl,
   slug: classSlug(row.title),
+  durationSeconds:
+    typeof row.durationSeconds === "number" &&
+    Number.isFinite(row.durationSeconds) &&
+    row.durationSeconds > 0
+      ? Math.round(row.durationSeconds)
+      : null,
 }));
+
+/** Real teaser length from YouTube, or null when the sheet has no duration. */
+export function formatClassLength(
+  seconds: number | null | undefined,
+): string | null {
+  if (seconds == null || !Number.isFinite(seconds) || seconds < 1) return null;
+  if (seconds < 60) return `${Math.round(seconds)} sec`;
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const rest = minutes % 60;
+  return rest === 0 ? `${hours} hr` : `${hours} hr ${rest} min`;
+}
 
 export function shelfForTitle(title: string): ShelfName {
   const shelf = SHELF_BY_TITLE[title];

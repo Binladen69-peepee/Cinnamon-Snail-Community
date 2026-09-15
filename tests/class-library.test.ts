@@ -7,6 +7,7 @@ import {
   classesOnShelf,
   classSlug,
   featuredPool,
+  formatClassLength,
   libraryShelves,
   playingEmbedSrc,
   resolveClassPhoto,
@@ -34,7 +35,16 @@ describe("spreadsheet class library", () => {
         /^https:\/\/www\.youtube\.com\/embed\/[A-Za-z0-9_-]{11}$/,
       );
       expect(youTubeId(cls.teaserUrl)).toHaveLength(11);
+      expect(cls.durationSeconds).toBeGreaterThan(0);
     }
+  });
+
+  it("formats teaser lengths without inventing minutes", () => {
+    expect(formatClassLength(null)).toBeNull();
+    expect(formatClassLength(0)).toBeNull();
+    expect(formatClassLength(32)).toBe("32 sec");
+    expect(formatClassLength(73)).toBe("1 min");
+    expect(formatClassLength(223)).toBe("4 min");
   });
 
   it("plays the spreadsheet embed without rewriting the host", () => {

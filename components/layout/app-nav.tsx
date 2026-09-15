@@ -50,7 +50,7 @@ export async function AppNav() {
     }
   }
   const isAdmin = Boolean(
-    session?.user.roles.some((role) => role === "ADMIN" || role === "SUPER_ADMIN"),
+    session?.user.roles?.some((role) => role === "ADMIN" || role === "SUPER_ADMIN"),
   );
 
   return (

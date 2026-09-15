@@ -14,16 +14,17 @@ import {
   ArrowRight,
   CalendarDays,
   ChefHat,
+  Clock,
   Cookie,
   Globe,
   LayoutGrid,
   Leaf,
   Play,
-  Search,
   Soup,
   Sparkles,
   Star,
   User,
+  Video,
   X,
   ChevronLeft,
   ChevronRight,
@@ -32,8 +33,9 @@ import { MediaFrame } from "@/components/ui/media-frame";
 import {
   CLASS_LIBRARY,
   classDetailHref,
+  classesOnShelf,
   featuredPool,
-  filterLibrary,
+  formatClassLength,
   libraryShelves,
   playingEmbedSrc,
   resolveClassPhoto,
@@ -47,6 +49,7 @@ const FOCUSABLE =
   'a[href], button:not([disabled]), textarea, input, select, iframe, [tabindex]:not([tabindex="-1"])';
 
 const INSTRUCTOR = "Adam Sobel";
+const ROTATE_MS = 5200;
 
 const SHELF_ICON: Record<ShelfName, ComponentType<{ className?: string }>> = {
   "Regional & World Cuisine": Globe,
@@ -57,188 +60,108 @@ const SHELF_ICON: Record<ShelfName, ComponentType<{ className?: string }>> = {
 };
 
 export function ClassLibrary() {
-  const shelves = libraryShelves();
-  const [shelf, setShelf] = useState<ShelfName | null>(null);
-  const [query, setQuery] = useState("");
-  const [featuredIndex, setFeaturedIndex] = useState(0);
+  const allPool = useMemo(() => featuredPool(CLASS_LIBRARY), []);
+  const popular = useMemo(
+    () =>
+      CLASS_LIBRARY.filter(
+        (cls) => !allPool.some((item) => item.slug === cls.slug),
+      ).slice(0, 4),
+    [allPool],
+  );
+
+  const [activeIndex, setActiveIndex] = useState(0);
   const [open, setOpen] = useState<LibraryClass | null>(null);
-  const [showAll, setShowAll] = useState(false);
-  const [allCategories, setAllCategories] = useState(false);
+  const [popupShelf, setPopupShelf] = useState<ShelfName | null>(null);
+  const pauseRef = useRef(false);
 
-  const visible = useMemo(() => filterLibrary(shelf, query), [shelf, query]);
-  const pool = useMemo(() => featuredPool(visible), [visible]);
-  const safeFeaturedIndex =
-    pool.length === 0 ? 0 : Math.min(featuredIndex, pool.length - 1);
-  const featured = pool[safeFeaturedIndex] ?? visible[0] ?? null;
-  const popular = visible
-    .filter((cls) => cls.slug !== featured?.slug)
-    .slice(0, 4);
-  const shownShelves = allCategories ? shelves : shelves.slice(0, 3);
-
-  function selectShelf(next: ShelfName | null) {
-    setShelf(next);
-    setFeaturedIndex(0);
-    setShowAll(false);
-  }
+  const rotateCount = allPool.length;
+  const safeIndex =
+    rotateCount === 0 ? 0 : Math.min(activeIndex, rotateCount - 1);
+  const featured = allPool[safeIndex] ?? null;
 
   function cycle(direction: -1 | 1) {
-    if (pool.length === 0) return;
-    setFeaturedIndex((index) => (index + direction + pool.length) % pool.length);
+    if (rotateCount === 0) return;
+    setActiveIndex((index) => (index + direction + rotateCount) % rotateCount);
   }
 
+  function openClass(cls: LibraryClass, shelf: ShelfName | null = null) {
+    setPopupShelf(shelf);
+    setOpen(cls);
+  }
+
+  useEffect(() => {
+    if (open || rotateCount < 2) return;
+    const media = window.matchMedia("(prefers-reduced-motion: reduce)");
+    if (media.matches) return;
+    const timer = window.setInterval(() => {
+      if (pauseRef.current) return;
+      setActiveIndex((index) => (index + 1) % rotateCount);
+    }, ROTATE_MS);
+    return () => window.clearInterval(timer);
+  }, [open, rotateCount]);
+
   return (
-    <div>
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-        <CategoryNav
-          shelves={shelves}
-          active={shelf}
-          onChange={selectShelf}
-        />
-        <label className="relative block w-full shrink-0 lg:w-64">
-          <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-olive" aria-hidden />
-          <span className="sr-only">Search classes</span>
-          <input
-            type="search"
-            value={query}
-            onChange={(event) => {
-              setQuery(event.target.value);
-              setFeaturedIndex(0);
-              setShowAll(false);
-            }}
-            placeholder="Search classes..."
-            className="h-11 w-full rounded-full border border-sand bg-surface pl-10 pr-4 text-sm text-forest outline-none placeholder:text-olive focus-visible:border-accent"
-          />
-        </label>
+    <div
+      onMouseEnter={() => {
+        pauseRef.current = true;
+      }}
+      onMouseLeave={() => {
+        pauseRef.current = false;
+      }}
+    >
+      <div className="flex flex-wrap items-center gap-3">
+        <button
+          type="button"
+          onClick={() => {
+            if (featured) openClass(featured, null);
+          }}
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-foreground transition hover:border-foreground"
+        >
+          <LayoutGrid className="size-4" aria-hidden />
+          Browse categories
+        </button>
       </div>
 
-      {visible.length === 0 ? (
-        <p className="mt-10 text-sm text-foreground-muted">
-          No classes match that search.
-        </p>
-      ) : (
-        <>
-          <div className="mt-8 grid items-stretch gap-6 lg:grid-cols-12">
-            <div className="lg:col-span-5">
-              {featured ? (
-                <FeaturedCard
-                  cls={featured}
-                  index={safeFeaturedIndex}
-                  total={pool.length}
-                  onOpen={() => setOpen(featured)}
-                  onPrev={() => cycle(-1)}
-                  onNext={() => cycle(1)}
-                  onDot={setFeaturedIndex}
-                />
-              ) : null}
-            </div>
-
-            <div className="flex min-w-0 flex-col lg:col-span-4">
-              <div className="mb-4 flex items-end justify-between gap-3">
-                <h3 className="font-display text-2xl text-forest">Popular This Week</h3>
-                <button
-                  type="button"
-                  onClick={() => setShowAll(true)}
-                  className="inline-flex items-center gap-1 text-sm font-semibold text-olive transition hover:text-forest"
-                >
-                  View all
-                  <ArrowRight className="size-3.5" aria-hidden />
-                </button>
-              </div>
-              <ul className="grid grid-cols-2 gap-3">
-                {popular.map((cls) => (
-                  <li key={cls.slug}>
-                    <PopularCard cls={cls} onOpen={() => setOpen(cls)} />
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="flex min-w-0 flex-col lg:col-span-3">
-              <h3 className="font-display text-2xl text-forest">Explore by Category</h3>
-              <p className="mt-1 text-sm leading-relaxed text-foreground-muted">
-                Find the perfect class for your mood, season, or skill level.
-              </p>
-              <ul className="mt-4 space-y-3">
-                {shownShelves.map((row) => (
-                  <li key={row.name}>
-                    <CategoryCard
-                      name={row.name}
-                      count={row.classes.length}
-                      cover={row.classes[0]?.thumbnailUrl ?? null}
-                      onClick={() => selectShelf(row.name)}
-                    />
-                  </li>
-                ))}
-              </ul>
-              {shelves.length > 3 && !allCategories ? (
-                <button
-                  type="button"
-                  onClick={() => setAllCategories(true)}
-                  className="mt-4 inline-flex items-center gap-1 self-start text-sm font-semibold text-olive transition hover:text-forest"
-                >
-                  View all categories
-                  <ArrowRight className="size-3.5" aria-hidden />
-                </button>
-              ) : null}
-            </div>
+      <div className="mt-8 grid items-stretch gap-5 lg:grid-cols-2">
+        {featured ? (
+          <FeaturedCard
+            cls={featured}
+            index={safeIndex}
+            total={allPool.length}
+            onOpen={() => openClass(featured)}
+            onPrev={() => cycle(-1)}
+            onNext={() => cycle(1)}
+            onDot={setActiveIndex}
+          />
+        ) : null}
+        <div className="flex min-w-0 flex-col">
+          <div className="mb-4 flex items-end justify-between gap-3">
+            <h3 className="font-display text-2xl text-foreground">
+              Popular This Week
+            </h3>
           </div>
-
-          {showAll ? (
-            <ClassSlider
-              classes={visible}
-              onOpen={setOpen}
-            />
-          ) : null}
-        </>
-      )}
+          <ul className="grid flex-1 grid-cols-2 gap-3">
+            {popular.map((cls) => (
+              <li key={cls.slug} className="min-h-0">
+                <LibraryCard cls={cls} onOpen={() => openClass(cls)} compact />
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
 
       {open ? (
         <ClassViewer
           current={open}
-          classes={visible.length > 0 ? visible : CLASS_LIBRARY}
+          shelf={popupShelf}
+          onShelf={setPopupShelf}
           onSelect={setOpen}
-          onClose={() => setOpen(null)}
+          onClose={() => {
+            setOpen(null);
+            setPopupShelf(null);
+          }}
         />
       ) : null}
-    </div>
-  );
-}
-
-function CategoryNav({
-  shelves,
-  active,
-  onChange,
-}: {
-  shelves: ReturnType<typeof libraryShelves>;
-  active: ShelfName | null;
-  onChange: (shelf: ShelfName | null) => void;
-}) {
-  return (
-    <div
-      role="tablist"
-      aria-label="Class shelves"
-      className="flex min-w-0 flex-1 gap-2 overflow-x-auto pb-1"
-    >
-      <CategoryTab
-        selected={active === null}
-        icon={LayoutGrid}
-        onClick={() => onChange(null)}
-      >
-        All Classes
-      </CategoryTab>
-      {shelves.map((row) => {
-        const Icon = SHELF_ICON[row.name];
-        return (
-          <CategoryTab
-            key={row.name}
-            selected={active === row.name}
-            icon={Icon}
-            onClick={() => onChange(row.name)}
-          >
-            {row.name}
-          </CategoryTab>
-        );
-      })}
     </div>
   );
 }
@@ -261,13 +184,13 @@ function CategoryTab({
       aria-selected={selected}
       onClick={onClick}
       className={cn(
-        "inline-flex shrink-0 items-center gap-2 rounded-full px-4 py-2.5 text-sm font-semibold transition",
+        "inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition",
         selected
-          ? "bg-sage text-forest"
-          : "bg-transparent text-olive hover:bg-mint hover:text-forest",
+          ? "border-foreground bg-sage text-foreground"
+          : "border-border bg-transparent text-olive hover:border-foreground hover:text-foreground",
       )}
     >
-      <Icon className="size-4" aria-hidden />
+      <Icon className="size-4 shrink-0" aria-hidden />
       {children}
     </button>
   );
@@ -290,50 +213,37 @@ function FeaturedCard({
   onNext: () => void;
   onDot: (index: number) => void;
 }) {
-  const photo = resolveClassPhoto(cls.thumbnailUrl);
-  const shelf = shelfForTitle(cls.title);
-
   return (
-    <article className="relative isolate min-h-[28rem] overflow-hidden rounded-[1.75rem] bg-forest lg:min-h-[32rem]">
-      {photo ? (
-        <MediaFrame
-          src={photo}
-          alt=""
-          aspect="absolute inset-0 size-full"
-          rounded="rounded-none"
-          reveal={false}
-          loading="eager"
-          fetchPriority="high"
-        />
-      ) : (
-        <div className="absolute inset-0 bg-mint" />
-      )}
-      <div className="absolute inset-0 bg-gradient-to-t from-forest via-forest/55 to-forest/10" />
-      <div className="relative flex h-full min-h-[28rem] flex-col justify-end p-6 lg:min-h-[32rem] lg:p-8">
-        <p className="inline-flex w-fit items-center rounded-full bg-sage/90 px-3 py-1 text-[10px] font-bold tracking-[0.16em] text-forest">
-          Featured class
-        </p>
-        <p className="mt-6 text-[11px] font-semibold tracking-[0.18em] text-terracotta">
-          {shelf}
-        </p>
-        <h3 className="font-display mt-2 max-w-[16ch] text-3xl leading-tight text-paper md:text-4xl">
-          {cls.title}
-        </h3>
+    <article className="relative isolate aspect-[4/5] max-h-[22rem] overflow-hidden rounded-[1.75rem] bg-surface sm:max-h-[24rem] lg:aspect-auto lg:h-full lg:max-h-none lg:min-h-[22rem]">
+      <div key={cls.slug} className="vu-copy-fade absolute inset-0">
+        <ClassPhoto url={cls.thumbnailUrl} eager />
+      </div>
+      <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/40 to-black/10" />
+      <div className="absolute inset-0 z-10 flex flex-col justify-end p-5 lg:p-7">
+        <div key={`copy-${cls.slug}`} className="vu-copy-fade">
+          <p className="inline-flex w-fit items-center rounded-full bg-white/15 px-3 py-1 text-[10px] font-bold tracking-[0.16em] text-white backdrop-blur-sm">
+            Featured class
+          </p>
+          <ClassMeta cls={cls} onPhoto className="mt-5" />
+          <h3 className="font-display vu-on-media mt-2 max-w-[18ch] text-3xl leading-tight text-white md:text-4xl">
+            {cls.title}
+          </h3>
+        </div>
         <button
           type="button"
           onClick={onOpen}
-          className="vu-cta-fill mt-6 inline-flex w-fit items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold"
+          className="mt-5 inline-flex w-fit items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black transition hover:bg-white/90"
         >
           View class
           <ArrowRight className="size-4" aria-hidden />
         </button>
         {total > 1 ? (
-          <div className="mt-8 flex items-center gap-3">
+          <div className="mt-6 flex items-center gap-3">
             <button
               type="button"
               onClick={onPrev}
               aria-label="Previous featured class"
-              className="grid size-8 place-items-center rounded-full border border-paper/30 text-paper"
+              className="grid size-8 place-items-center rounded-full border border-white/35 text-white"
             >
               <ChevronLeft className="size-4" aria-hidden />
             </button>
@@ -346,7 +256,7 @@ function FeaturedCard({
                   onClick={() => onDot(dot)}
                   className={cn(
                     "size-1.5 rounded-full",
-                    dot === index ? "bg-paper" : "bg-paper/35",
+                    dot === index ? "bg-white" : "bg-white/35",
                   )}
                 />
               ))}
@@ -355,7 +265,7 @@ function FeaturedCard({
               type="button"
               onClick={onNext}
               aria-label="Next featured class"
-              className="grid size-8 place-items-center rounded-full border border-paper/30 text-paper"
+              className="grid size-8 place-items-center rounded-full border border-white/35 text-white"
             >
               <ChevronRight className="size-4" aria-hidden />
             </button>
@@ -366,42 +276,32 @@ function FeaturedCard({
   );
 }
 
-function PopularCard({
+function LibraryCard({
   cls,
   onOpen,
+  compact = false,
 }: {
   cls: LibraryClass;
   onOpen: () => void;
+  compact?: boolean;
 }) {
-  const photo = resolveClassPhoto(cls.thumbnailUrl);
-  const shelf = shelfForTitle(cls.title);
-
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="group flex h-full w-full flex-col overflow-hidden rounded-[1.25rem] bg-surface text-left shadow-[var(--surface-shadow)] ring-1 ring-sand"
+      className="group flex h-full w-full flex-col overflow-hidden rounded-[1.25rem] border border-border bg-surface text-left transition hover:border-foreground/50"
     >
-      <span className="relative block aspect-[16/10] overflow-hidden bg-mint">
-        {photo ? (
-          <MediaFrame
-            src={photo}
-            alt=""
-            aspect="absolute inset-0 size-full"
-            rounded="rounded-none"
-            reveal={false}
-          />
-        ) : (
-          <span className="flex size-full items-end px-3 py-2 text-[10px] font-semibold text-olive">
-            Photo coming soon
-          </span>
+      <span
+        className={cn(
+          "relative block overflow-hidden bg-mint",
+          compact ? "aspect-[16/10]" : "aspect-[16/9]",
         )}
+      >
+        <ClassPhoto url={cls.thumbnailUrl} />
       </span>
       <span className="flex flex-1 flex-col p-3">
-        <span className="text-[10px] font-semibold tracking-[0.16em] text-terracotta">
-          {shelf}
-        </span>
-        <span className="font-display mt-1 line-clamp-2 text-sm leading-snug text-forest">
+        <ClassMeta cls={cls} />
+        <span className="font-display mt-1 line-clamp-2 text-sm leading-snug text-foreground">
           {cls.title}
         </span>
       </span>
@@ -409,121 +309,97 @@ function PopularCard({
   );
 }
 
-function CategoryCard({
-  name,
-  count,
-  cover,
-  onClick,
+function ClassMeta({
+  cls,
+  onPhoto = false,
+  className,
 }: {
-  name: ShelfName;
-  count: number;
-  cover: string | null;
-  onClick: () => void;
+  cls: LibraryClass;
+  onPhoto?: boolean;
+  className?: string;
 }) {
-  const photo = resolveClassPhoto(cover);
+  const shelf = shelfForTitle(cls.title);
+  const length = formatClassLength(cls.durationSeconds);
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      className="group relative flex min-h-[5.5rem] w-full overflow-hidden rounded-[1.25rem] text-left"
-    >
-      {photo ? (
-        <MediaFrame
-          src={photo}
-          alt=""
-          aspect="absolute inset-0 size-full"
-          rounded="rounded-none"
-          reveal={false}
-        />
-      ) : (
-        <span className="absolute inset-0 bg-mint" />
+    <p
+      className={cn(
+        "flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px] font-semibold tracking-[0.04em]",
+        onPhoto ? "text-white/90" : "text-olive",
+        className,
       )}
-      <span className="absolute inset-0 bg-forest/55" />
-      <span className="relative flex w-full items-end justify-between gap-3 p-4">
-        <span>
-          <span className="block font-display text-lg leading-tight text-paper">
-            {name}
-          </span>
-          <span className="mt-0.5 block text-xs text-paper/80">
-            {count} {count === 1 ? "class" : "classes"}
-          </span>
+    >
+      {length ? (
+        <span className="inline-flex items-center gap-1">
+          <Clock className="size-3" aria-hidden />
+          {length}
         </span>
-        <ArrowRight className="size-4 text-paper" aria-hidden />
-      </span>
-    </button>
+      ) : null}
+      <span>{shelf}</span>
+    </p>
   );
 }
 
-function ClassSlider({
-  classes,
-  onOpen,
+function ClassPhoto({
+  url,
+  eager = false,
 }: {
-  classes: LibraryClass[];
-  onOpen: (cls: LibraryClass) => void;
+  url: string;
+  eager?: boolean;
 }) {
-  const railRef = useRef<HTMLUListElement>(null);
+  const photo = resolveClassPhoto(url);
 
-  function nudge(direction: -1 | 1) {
-    const rail = railRef.current;
-    if (!rail) return;
-    rail.scrollBy({ left: direction * rail.clientWidth * 0.85, behavior: "smooth" });
+  if (!photo) {
+    return <span className="absolute inset-0 bg-mint" />;
   }
 
   return (
-    <div className="relative mt-10">
-      <div className="mb-3 flex items-end justify-between gap-3">
-        <h3 className="font-display text-2xl text-forest">All in this shelf</h3>
-        <div className="hidden gap-2 md:flex">
-          <button
-            type="button"
-            onClick={() => nudge(-1)}
-            aria-label="Scroll classes left"
-            className="grid size-9 place-items-center rounded-full border border-sand bg-surface text-forest transition hover:border-accent"
-          >
-            <ChevronLeft className="size-4" aria-hidden />
-          </button>
-          <button
-            type="button"
-            onClick={() => nudge(1)}
-            aria-label="Scroll classes right"
-            className="grid size-9 place-items-center rounded-full border border-sand bg-surface text-forest transition hover:border-accent"
-          >
-            <ChevronRight className="size-4" aria-hidden />
-          </button>
-        </div>
-      </div>
-      <ul
-        ref={railRef}
-        className="vu-rail flex gap-4 overflow-x-auto pb-2"
-        tabIndex={0}
-        aria-label="Class slider"
-      >
-        {classes.map((cls) => (
-          <li key={cls.slug} className="w-[16.5rem] shrink-0">
-            <PopularCard cls={cls} onOpen={() => onOpen(cls)} />
-          </li>
-        ))}
-      </ul>
-    </div>
+    <span className="absolute inset-0">
+      <MediaFrame
+        src={photo}
+        alt=""
+        aspect="size-full"
+        className="size-full"
+        rounded="rounded-none"
+        reveal={false}
+        loading={eager ? "eager" : "lazy"}
+        fetchPriority={eager ? "high" : "auto"}
+      />
+    </span>
   );
 }
 
 function ClassViewer({
   current,
-  classes,
+  shelf,
+  onShelf,
   onSelect,
   onClose,
 }: {
   current: LibraryClass;
-  classes: LibraryClass[];
+  shelf: ShelfName | null;
+  onShelf: (shelf: ShelfName | null) => void;
   onSelect: (cls: LibraryClass) => void;
   onClose: () => void;
 }) {
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
-  const shelf = shelfForTitle(current.title);
+  const shelves = libraryShelves();
+  const visible = classesOnShelf(shelf);
+  const currentShelf = shelfForTitle(current.title);
+  const length = formatClassLength(current.durationSeconds);
+
+  function selectShelf(next: ShelfName | null) {
+    onShelf(next);
+    const nextClasses = classesOnShelf(next);
+    if (
+      nextClasses.length > 0 &&
+      !nextClasses.some((cls) => cls.slug === current.slug)
+    ) {
+      onSelect(nextClasses[0]!);
+    }
+  }
 
   const trap = useCallback(
     (event: KeyboardEvent) => {
@@ -572,7 +448,7 @@ function ClassViewer({
     <div className="fixed inset-0 z-50 grid place-items-center p-3 md:p-6">
       <button
         type="button"
-        className="absolute inset-0 bg-forest/60"
+        className="vu-dialog-veil absolute inset-0 bg-black/60"
         aria-label="Close class video"
         onClick={onClose}
       />
@@ -581,10 +457,10 @@ function ClassViewer({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="relative z-10 grid max-h-[min(46rem,92vh)] w-full max-w-6xl overflow-hidden rounded-[1.75rem] shadow-[var(--overlay-shadow)] lg:grid-cols-[minmax(0,1fr)_20rem]"
+        className="vu-dialog-in relative z-10 grid max-h-[min(46rem,92vh)] w-full max-w-6xl overflow-hidden rounded-[1.75rem] border border-border shadow-[var(--overlay-shadow)] lg:grid-cols-[minmax(0,1fr)_22rem]"
       >
-        <div className="min-w-0 overflow-y-auto bg-forest text-paper">
-          <div className="px-6 pb-3 pt-6 md:px-8 md:pt-8">
+        <div className="min-w-0 overflow-y-auto bg-[#0f3d32] text-white dark:bg-black">
+          <div key={current.slug} className="vu-copy-fade px-6 pb-3 pt-6 md:px-8 md:pt-8">
             <p className="text-[11px] font-bold tracking-[0.22em] text-terracotta">
               Vegan University
             </p>
@@ -594,19 +470,29 @@ function ClassViewer({
             >
               {current.title}
             </h3>
-            <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-paper/80">
+            <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/80">
               <span className="inline-flex items-center gap-1.5">
                 <User className="size-3.5" aria-hidden />
                 {INSTRUCTOR}
               </span>
               <span className="inline-flex items-center gap-1.5">
                 <Leaf className="size-3.5" aria-hidden />
-                {shelf}
+                {currentShelf}
+              </span>
+              {length ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Clock className="size-3.5" aria-hidden />
+                  {length}
+                </span>
+              ) : null}
+              <span className="inline-flex items-center gap-1.5">
+                <Video className="size-3.5" aria-hidden />
+                Class teaser
               </span>
             </p>
           </div>
           <div className="px-6 md:px-8">
-            <div className="relative aspect-video overflow-hidden rounded-[1.1rem] bg-ink">
+            <div className="relative aspect-video overflow-hidden rounded-[1.1rem] bg-black">
               {current.teaserUrl ? (
                 <iframe
                   key={current.teaserUrl}
@@ -624,7 +510,7 @@ function ClassViewer({
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-6 md:px-8">
-            <ul className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-paper/80">
+            <ul className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-white/80">
               <li className="inline-flex items-center gap-1.5">
                 <Leaf className="size-3.5" aria-hidden />
                 100% Plant-Based
@@ -640,7 +526,7 @@ function ClassViewer({
             </ul>
             <Link
               href={classDetailHref(current.slug)}
-              className="inline-flex items-center gap-2 rounded-full bg-sage px-5 py-2.5 text-sm font-semibold text-forest no-underline"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black no-underline"
             >
               View Class Details
               <ArrowRight className="size-4" aria-hidden />
@@ -648,22 +534,90 @@ function ClassViewer({
           </div>
         </div>
 
-        <aside className="flex max-h-64 min-h-0 flex-col bg-cream lg:max-h-none">
+        <aside className="flex max-h-64 min-h-0 flex-col border-t border-border bg-surface lg:max-h-none lg:border-l lg:border-t-0">
           <div className="flex items-center justify-between px-4 pb-2 pt-5">
-            <p className="font-display text-xl text-forest">More classes</p>
+            <p className="font-display text-xl text-foreground">Class details</p>
             <button
               ref={closeRef}
               type="button"
-              className="grid size-8 place-items-center rounded-full text-olive hover:bg-mint hover:text-forest"
+              className="grid size-8 place-items-center rounded-full text-olive hover:bg-mint hover:text-foreground"
               aria-label="Close"
               onClick={onClose}
             >
               <X className="size-4" aria-hidden />
             </button>
           </div>
-          <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto px-2 pb-4">
-            {classes.map((cls) => {
+
+          <div
+            role="tablist"
+            aria-label="Class shelves"
+            className="flex flex-wrap gap-2 px-4 pb-3"
+          >
+            <CategoryTab
+              selected={shelf === null}
+              icon={LayoutGrid}
+              onClick={() => selectShelf(null)}
+            >
+              All Classes
+            </CategoryTab>
+            {shelves.map((row) => {
+              const Icon = SHELF_ICON[row.name];
+              return (
+                <CategoryTab
+                  key={row.name}
+                  selected={shelf === row.name}
+                  icon={Icon}
+                  onClick={() => selectShelf(row.name)}
+                >
+                  {row.name}
+                </CategoryTab>
+              );
+            })}
+          </div>
+
+          <div
+            key={current.slug}
+            className="vu-copy-fade mx-4 mb-3 rounded-2xl border border-border bg-mint p-3"
+          >
+            <p className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.16em] text-olive">
+              <Video className="size-3.5" aria-hidden />
+              Now playing
+            </p>
+            <p className="font-display mt-1.5 text-base leading-snug text-foreground">
+              {current.title}
+            </p>
+            <ul className="mt-2 space-y-1 text-[12px] text-olive">
+              <li className="flex items-center gap-2">
+                <User className="size-3.5 shrink-0" aria-hidden />
+                {INSTRUCTOR}
+              </li>
+              <li className="flex items-center gap-2">
+                <Leaf className="size-3.5 shrink-0" aria-hidden />
+                {currentShelf}
+              </li>
+              {length ? (
+                <li className="flex items-center gap-2">
+                  <Clock className="size-3.5 shrink-0" aria-hidden />
+                  {length}
+                </li>
+              ) : null}
+              <li className="flex items-center gap-2">
+                <Video className="size-3.5 shrink-0" aria-hidden />
+                {current.teaserUrl ? "Teaser video" : "No teaser in the sheet"}
+              </li>
+            </ul>
+          </div>
+
+          <p className="px-4 pb-1 text-[11px] font-semibold tracking-[0.14em] text-olive">
+            {shelf ? shelf : "All classes"} · {visible.length}
+          </p>
+          <ul
+            key={shelf ?? "all"}
+            className="vu-copy-fade min-h-0 flex-1 space-y-1 overflow-y-auto px-2 pb-4"
+          >
+            {visible.map((cls) => {
               const selected = cls.slug === current.slug;
+              const itemLength = formatClassLength(cls.durationSeconds);
               return (
                 <li key={cls.slug}>
                   <button
@@ -675,18 +629,28 @@ function ClassViewer({
                       selected ? "bg-sage" : "hover:bg-mint",
                     )}
                   >
-                    <ClassThumb cls={cls} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block line-clamp-2 text-sm font-semibold leading-snug text-forest">
-                        {cls.title}
-                      </span>
-                      <span className="mt-0.5 block text-[11px] text-olive">
-                        {shelfForTitle(cls.title)}
+                    <span className="relative block size-12 shrink-0 overflow-hidden rounded-xl bg-mint">
+                      <ClassThumb cls={cls} />
+                      <span className="absolute inset-0 grid place-items-center bg-black/35">
+                        <Video className="size-4 text-white" aria-hidden />
                       </span>
                     </span>
-                    {selected ? (
-                      <Play className="size-4 shrink-0 text-forest" aria-hidden />
-                    ) : null}
+                    <span className="min-w-0 flex-1">
+                      <span className="block line-clamp-2 text-sm font-semibold leading-snug text-foreground">
+                        {cls.title}
+                      </span>
+                      <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-olive">
+                        <span>{shelfForTitle(cls.title)}</span>
+                        {itemLength ? <span>{itemLength}</span> : null}
+                      </span>
+                    </span>
+                    <Play
+                      className={cn(
+                        "size-4 shrink-0",
+                        selected ? "text-foreground" : "text-olive",
+                      )}
+                      aria-hidden
+                    />
                   </button>
                 </li>
               );
@@ -699,19 +663,5 @@ function ClassViewer({
 }
 
 function ClassThumb({ cls }: { cls: LibraryClass }) {
-  const photo = resolveClassPhoto(cls.thumbnailUrl);
-  return (
-    <span className="relative block size-12 shrink-0 overflow-hidden rounded-xl bg-mint">
-      {photo ? (
-        <MediaFrame
-          src={photo}
-          alt=""
-          aspect="absolute inset-0 size-full"
-          rounded="rounded-none"
-          reveal={false}
-          hover={false}
-        />
-      ) : null}
-    </span>
-  );
+  return <ClassPhoto url={cls.thumbnailUrl} />;
 }
