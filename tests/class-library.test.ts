@@ -8,6 +8,7 @@ import {
   classSlug,
   featuredPool,
   formatClassLength,
+  heroDishes,
   libraryShelves,
   playingEmbedSrc,
   resolveClassPhoto,
@@ -96,6 +97,21 @@ describe("shelf grouping", () => {
     expect(pool[0]?.title).toBe("The Green Reaper: Vegan Salad Bible");
     for (const cls of pool) {
       expect(CLASS_LIBRARY.some((row) => row.slug === cls.slug)).toBe(true);
+    }
+  });
+
+  it("fills the hero slider with eight real spreadsheet stills", () => {
+    const dishes = heroDishes();
+    expect(dishes).toHaveLength(8);
+    expect(new Set(dishes.map((dish) => dish.title)).size).toBe(8);
+    for (const dish of dishes) {
+      const cls = CLASS_LIBRARY.find((row) => row.title === dish.title);
+      expect(cls).toBeTruthy();
+      expect(dish.photo).toBe(cls?.thumbnailUrl);
+      expect(dish.photo).toMatch(
+        /^https:\/\/cinnamonsnail\.com\/wp-content\/uploads\//,
+      );
+      expect(isStockImageUrl(dish.photo)).toBe(false);
     }
   });
 });

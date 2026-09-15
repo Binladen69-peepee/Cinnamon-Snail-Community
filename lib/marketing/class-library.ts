@@ -169,6 +169,38 @@ export function filterLibrary(
   return searchClasses(classesOnShelf(shelf), query);
 }
 
+/**
+ * Hero filmstrip: eight plated stills from the spreadsheet, picked for colour
+ * and appetite rather than inventing a second photo set. Titles must exist in
+ * `CLASS_LIBRARY` — `heroDishes()` throws if a row or its still is missing.
+ */
+export const HERO_DISH_TITLES = [
+  "The Green Reaper: Vegan Salad Bible",
+  "Around the World in Vegan Donuts",
+  "Vegan Korean Fried Chicken Workshop",
+  "Make the Best Plant-Based Pizza",
+  "Vegan Italian Desserts",
+  "A Colosseum of Vegan Eggs",
+  "Bangin' Tex-Mex Casseroles",
+  "The Perfect Vegan Brunch Cooking Class",
+] as const;
+
+export type HeroDish = {
+  title: string;
+  photo: string;
+};
+
+export function heroDishes(classes: LibraryClass[] = CLASS_LIBRARY): HeroDish[] {
+  return HERO_DISH_TITLES.map((title) => {
+    const cls = classes.find((row) => row.title === title);
+    const photo = resolveClassPhoto(cls?.thumbnailUrl);
+    if (!cls || !photo) {
+      throw new Error(`Hero dish missing from the class library: ${title}`);
+    }
+    return { title: cls.title, photo };
+  });
+}
+
 /** First five of the current filter, with the Green Reaper up front when it is in the set. */
 export const DEFAULT_FEATURED_TITLE = "The Green Reaper: Vegan Salad Bible";
 

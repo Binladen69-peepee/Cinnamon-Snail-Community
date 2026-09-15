@@ -5,6 +5,7 @@ import { StickyCheckout } from "@/components/marketing/sticky-checkout";
 import { Reveal } from "@/components/marketing/reveal";
 import { PhotoSlot } from "@/components/marketing/photo-slot";
 import { HeroImage } from "@/components/marketing/hero-image";
+import { HeroDishSlider } from "@/components/marketing/hero-dish-slider";
 import { PressMarquee } from "@/components/marketing/press-marquee";
 import { Reel } from "@/components/marketing/reel";
 import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
@@ -17,7 +18,7 @@ import {
   SENJA_HOMEPAGE_WIDGET,
 } from "@/components/marketing/senja-embed";
 import { getNextLiveClass } from "@/lib/marketing/catalog";
-import { CLASS_LIBRARY, libraryShelves } from "@/lib/marketing/class-library";
+import { CLASS_LIBRARY, heroDishes, libraryShelves } from "@/lib/marketing/class-library";
 import { getGlobeMarkers } from "@/lib/marketing/globe-markers";
 import {
   REEL_KICKER,
@@ -41,6 +42,7 @@ export default async function HomePage() {
   ]);
   const hero = assetSlot("home-hero");
   const reel = assetSlot("home-reel");
+  const dishes = heroDishes();
   const totalClasses = CLASS_LIBRARY.length;
   const shelfCount = libraryShelves().length;
 
@@ -64,8 +66,9 @@ export default async function HomePage() {
         ) : (
           <div className="absolute inset-0 bg-forest" />
         )}
+        <HeroDishSlider dishes={dishes} />
 
-        <div className="vu-gutter relative z-10 w-full pb-14 pt-32 md:pb-20 md:pt-36">
+        <div className="vu-gutter relative z-10 w-full pb-32 pt-32 md:pb-20 md:pt-36">
           <div className="vu-shell hero-copy-reveal">
             <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-md">
               <Leaf className="size-3.5 vu-leaf-drift" aria-hidden />
