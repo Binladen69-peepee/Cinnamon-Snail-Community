@@ -24,3 +24,23 @@ export const PRICING = {
   yearly: "$599",
   yearlyNote: "that's 2 months free",
 } as const;
+
+/** The two SamCart billing periods. Same membership, two ways to pay. */
+export const MEMBERSHIP_PLANS = [
+  {
+    id: "monthly",
+    name: "Monthly",
+    price: PRICING.monthly.replace(/\/.*$/, ""),
+    period: "per month",
+    note: null,
+    featured: false,
+  },
+  {
+    id: "yearly",
+    name: "Yearly",
+    price: PRICING.yearly,
+    period: "per year",
+    note: PRICING.yearlyNote,
+    featured: true,
+  },
+] as const;

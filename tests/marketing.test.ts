@@ -4,6 +4,7 @@ import {
   CHECKOUT_LABEL,
   CHECKOUT_URL,
   PRICING,
+  MEMBERSHIP_PLANS,
   SAMCART_SLIDE_SCRIPT,
 } from "@/lib/marketing/checkout";
 import {
@@ -44,6 +45,11 @@ describe("the single call to action", () => {
   it("states the prices the page must show without starting checkout", () => {
     expect(PRICING.monthly).toBe("$59/month");
     expect(PRICING.yearly).toBe("$599");
+    expect(PRICING.yearlyNote).toBe("that's 2 months free");
+    expect(MEMBERSHIP_PLANS.map((plan) => plan.id)).toEqual(["monthly", "yearly"]);
+    expect(MEMBERSHIP_PLANS[0]?.price).toBe("$59");
+    expect(MEMBERSHIP_PLANS[1]?.price).toBe("$599");
+    expect(MEMBERSHIP_PLANS[1]?.note).toBe(PRICING.yearlyNote);
   });
 
   it("promises no hoops on cancellation", () => {

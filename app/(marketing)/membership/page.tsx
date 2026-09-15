@@ -10,7 +10,7 @@ import {
   SENJA_MEMBERSHIP_WIDGET,
 } from "@/components/marketing/senja-embed";
 import { getGlobeMarkers } from "@/lib/marketing/globe-markers";
-import { PRICING } from "@/lib/marketing/checkout";
+import { MembershipPlans } from "@/components/marketing/membership-plans";
 import { MEMBERSHIP_PAGE } from "@/lib/marketing/copy";
 
 export const dynamic = "force-dynamic";
@@ -163,24 +163,13 @@ export default async function MembershipPage() {
       </section>
 
       {/* Pricing -------------------------------------------------------- */}
-      <section className="vu-gutter vu-section-tight">
+      <section className="vu-gutter vu-section">
         <Reveal>
-          <div className="vu-panel-dark mx-auto max-w-2xl rounded-[1.75rem] px-8 py-14 text-center">
-            <h2 className="vu-kicker">Pricing</h2>
-            <p className="mt-4 font-display text-5xl font-bold tracking-tight text-paper">
-              {PRICING.monthly}
-            </p>
-            <p className="mt-2 text-paper/70">cancel whenever you want.</p>
-            <p className="mt-7 text-lg text-paper/90">
-              Or pay yearly at{" "}
-              <span className="font-display font-bold text-paper">
-                {PRICING.yearly}
-              </span>
-              , {PRICING.yearlyNote}.
-            </p>
-            <div className="mt-9">
-              <CheckoutButton size="lg" tone="onDark" withArrow />
-            </div>
+          <div className="vu-feed-shell">
+            <MembershipPlans
+              heading="Monthly or yearly."
+              showInclusions={false}
+            />
           </div>
         </Reveal>
       </section>

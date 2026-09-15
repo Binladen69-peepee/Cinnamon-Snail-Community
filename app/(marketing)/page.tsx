@@ -10,6 +10,7 @@ import { Reel } from "@/components/marketing/reel";
 import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
 import { ClassLibrary } from "@/components/marketing/class-library";
 import { CommunityGlobe } from "@/components/marketing/community-globe";
+import { MembershipPlans } from "@/components/marketing/membership-plans";
 import {
   SenjaEmbed,
   SENJA_HOMEPAGE_WIDGET,
@@ -17,7 +18,6 @@ import {
 import { getNextLiveClass } from "@/lib/marketing/catalog";
 import { CLASS_LIBRARY, libraryShelves } from "@/lib/marketing/class-library";
 import { getGlobeMarkers } from "@/lib/marketing/globe-markers";
-import { CANCEL_REASSURANCE } from "@/lib/marketing/checkout";
 import {
   REEL_KICKER,
   REEL_QUOTE,
@@ -253,30 +253,13 @@ export default async function HomePage() {
       {/* Membership teaser -------------------------------------------- */}
       <section className="vu-gutter vu-section">
         <Reveal>
-          <Spotlight className="vu-card vu-shell grid items-center overflow-hidden rounded-[1.75rem] lg:grid-cols-2">
-            <div className="px-7 py-12 md:px-11 lg:px-14">
-              <h2 className="vu-kicker">Membership</h2>
-              <p className="vu-measure mt-5 text-lg leading-relaxed text-foreground md:text-xl">
-                {MEMBERSHIP_TEASER.body}
-              </p>
-              <div className="mt-9">
-                <CheckoutButton size="lg" withArrow />
-              </div>
-              <p className="mt-4 text-sm text-foreground-muted">
-                {CANCEL_REASSURANCE}
-              </p>
-            </div>
-            <div className="group p-4">
-              <div className="overflow-hidden rounded-[1.4rem]">
-                <PhotoSlot
-                  id="home-membership-teaser"
-                  aspect="min-h-[21rem]"
-                  rounded="rounded-none"
-                  className="h-full"
-                />
-              </div>
-            </div>
-          </Spotlight>
+          <div className="vu-feed-shell">
+            <MembershipPlans
+              heading="Monthly or yearly."
+              body={MEMBERSHIP_TEASER.body}
+              photoId="home-membership-teaser"
+            />
+          </div>
         </Reveal>
       </section>
 
