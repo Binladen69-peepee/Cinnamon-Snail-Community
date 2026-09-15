@@ -115,7 +115,7 @@ export function ClassLibrary() {
           onClick={() => {
             if (featured) openClass(featured, null);
           }}
-          className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2.5 text-sm font-semibold text-foreground transition hover:border-foreground"
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-surface px-4 py-2.5 text-sm font-normal text-foreground transition hover:border-foreground"
         >
           <LayoutGrid className="size-4" aria-hidden />
           Browse categories
@@ -184,7 +184,7 @@ function CategoryTab({
       aria-selected={selected}
       onClick={onClick}
       className={cn(
-        "inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-sm font-semibold transition",
+        "inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-sm font-normal transition",
         selected
           ? "border-foreground bg-sage text-foreground"
           : "border-border bg-transparent text-olive hover:border-foreground hover:text-foreground",
@@ -385,10 +385,12 @@ function ClassViewer({
   const titleId = useId();
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeRef = useRef<HTMLButtonElement>(null);
+  const listRef = useRef<HTMLUListElement>(null);
   const shelves = libraryShelves();
   const visible = classesOnShelf(shelf);
   const currentShelf = shelfForTitle(current.title);
   const length = formatClassLength(current.durationSeconds);
+  const playingInFilter = visible.some((cls) => cls.slug === current.slug);
 
   function selectShelf(next: ShelfName | null) {
     onShelf(next);
@@ -444,6 +446,11 @@ function ClassViewer({
     };
   }, [trap]);
 
+  useEffect(() => {
+    const selected = listRef.current?.querySelector("[aria-current='true']");
+    selected?.scrollIntoView({ block: "nearest" });
+  }, [current.slug, shelf]);
+
   return (
     <div className="fixed inset-0 z-50 grid place-items-center p-3 md:p-6">
       <button
@@ -457,9 +464,9 @@ function ClassViewer({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="vu-dialog-in relative z-10 grid max-h-[min(46rem,92vh)] w-full max-w-6xl overflow-hidden rounded-[1.75rem] border border-border shadow-[var(--overlay-shadow)] lg:grid-cols-[minmax(0,1fr)_22rem]"
+        className="vu-dialog-in relative z-10 grid h-[min(88vh,56rem)] w-[70%] max-w-none grid-rows-[minmax(0,1fr)_minmax(14rem,42%)] overflow-hidden rounded-[1.75rem] border border-border shadow-[var(--overlay-shadow)] lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-none"
       >
-        <div className="min-w-0 overflow-y-auto bg-[#0f3d32] text-white dark:bg-black">
+        <div className="flex min-h-0 min-w-0 flex-col overflow-y-auto bg-[#0f3d32] text-white dark:bg-black">
           <div key={current.slug} className="vu-copy-fade px-6 pb-3 pt-6 md:px-8 md:pt-8">
             <p className="text-[11px] font-bold tracking-[0.22em] text-terracotta">
               Vegan University
@@ -492,7 +499,7 @@ function ClassViewer({
             </p>
           </div>
           <div className="px-6 md:px-8">
-            <div className="relative aspect-video overflow-hidden rounded-[1.1rem] bg-black">
+            <div className="relative aspect-video overflow-hidden rounded-[12px] bg-black">
               {current.teaserUrl ? (
                 <iframe
                   key={current.teaserUrl}
@@ -534,8 +541,8 @@ function ClassViewer({
           </div>
         </div>
 
-        <aside className="flex max-h-64 min-h-0 flex-col border-t border-border bg-surface lg:max-h-none lg:border-l lg:border-t-0">
-          <div className="flex items-center justify-between px-4 pb-2 pt-5">
+        <aside className="flex min-h-0 flex-col overflow-hidden border-t border-border bg-surface lg:border-l lg:border-t-0">
+          <div className="flex shrink-0 items-center justify-between px-4 pb-2 pt-5">
             <p className="font-display text-xl text-foreground">Class details</p>
             <button
               ref={closeRef}
@@ -551,7 +558,7 @@ function ClassViewer({
           <div
             role="tablist"
             aria-label="Class shelves"
-            className="flex flex-wrap gap-2 px-4 pb-3"
+            className="flex shrink-0 flex-wrap gap-2 px-4 pb-3"
           >
             <CategoryTab
               selected={shelf === null}
@@ -575,48 +582,17 @@ function ClassViewer({
             })}
           </div>
 
-          <div
-            key={current.slug}
-            className="vu-copy-fade mx-4 mb-3 rounded-2xl border border-border bg-mint p-3"
-          >
-            <p className="inline-flex items-center gap-1.5 text-[10px] font-bold tracking-[0.16em] text-olive">
-              <Video className="size-3.5" aria-hidden />
-              Now playing
-            </p>
-            <p className="font-display mt-1.5 text-base leading-snug text-foreground">
-              {current.title}
-            </p>
-            <ul className="mt-2 space-y-1 text-[12px] text-olive">
-              <li className="flex items-center gap-2">
-                <User className="size-3.5 shrink-0" aria-hidden />
-                {INSTRUCTOR}
-              </li>
-              <li className="flex items-center gap-2">
-                <Leaf className="size-3.5 shrink-0" aria-hidden />
-                {currentShelf}
-              </li>
-              {length ? (
-                <li className="flex items-center gap-2">
-                  <Clock className="size-3.5 shrink-0" aria-hidden />
-                  {length}
-                </li>
-              ) : null}
-              <li className="flex items-center gap-2">
-                <Video className="size-3.5 shrink-0" aria-hidden />
-                {current.teaserUrl ? "Teaser video" : "No teaser in the sheet"}
-              </li>
-            </ul>
-          </div>
-
-          <p className="px-4 pb-1 text-[11px] font-semibold tracking-[0.14em] text-olive">
+          <p className="shrink-0 px-4 pb-1 text-[11px] font-normal tracking-[0.14em] text-olive">
             {shelf ? shelf : "All classes"} · {visible.length}
           </p>
           <ul
+            ref={listRef}
             key={shelf ?? "all"}
-            className="vu-copy-fade min-h-0 flex-1 space-y-1 overflow-y-auto px-2 pb-4"
+            className="vu-copy-fade min-h-0 flex-1 space-y-1 overflow-y-auto overscroll-contain px-2 pb-4"
           >
             {visible.map((cls) => {
-              const selected = cls.slug === current.slug;
+              const selected =
+                playingInFilter && cls.slug === current.slug;
               const itemLength = formatClassLength(cls.durationSeconds);
               return (
                 <li key={cls.slug}>
@@ -625,26 +601,33 @@ function ClassViewer({
                     onClick={() => onSelect(cls)}
                     aria-current={selected ? "true" : undefined}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-2xl p-2 text-left transition",
-                      selected ? "bg-sage" : "hover:bg-mint",
+                      "flex w-full items-center gap-3 p-2 text-left transition",
+                      selected ? "rounded-[12px] bg-sage" : "rounded-2xl hover:bg-mint",
                     )}
                   >
-                    <span className="relative block size-12 shrink-0 overflow-hidden rounded-xl bg-mint">
+                    <span className="relative block size-12 shrink-0 overflow-hidden rounded-[12px] bg-mint">
                       <ClassThumb cls={cls} />
-                      <span className="absolute inset-0 grid place-items-center bg-black/35">
-                        <Video className="size-4 text-white" aria-hidden />
-                      </span>
+                      {selected ? (
+                        <span className="absolute inset-0 grid place-items-center bg-black/55">
+                          <span className="flex flex-col items-center gap-0.5 text-white">
+                            <Play className="size-4 fill-white" aria-hidden />
+                            <span className="text-[8px] font-normal uppercase tracking-[0.12em]">
+                              Playing
+                            </span>
+                          </span>
+                        </span>
+                      ) : null}
                     </span>
                     <span className="min-w-0 flex-1">
-                      <span className="block line-clamp-2 text-sm font-semibold leading-snug text-foreground">
+                      <span className="block line-clamp-2 text-sm font-normal leading-snug text-foreground">
                         {cls.title}
                       </span>
-                      <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] text-olive">
+                      <span className="mt-0.5 flex flex-wrap items-center gap-x-2 text-[11px] font-normal text-olive">
                         <span>{shelfForTitle(cls.title)}</span>
                         {itemLength ? <span>{itemLength}</span> : null}
                       </span>
                     </span>
-                    <Play
+                    <Video
                       className={cn(
                         "size-4 shrink-0",
                         selected ? "text-foreground" : "text-olive",

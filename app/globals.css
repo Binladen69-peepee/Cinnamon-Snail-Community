@@ -244,8 +244,52 @@ h2,
 h3,
 .font-display {
   font-family: var(--ui-display);
-  font-weight: var(--ui-display-weight);
   letter-spacing: var(--ui-display-tracking);
+}
+
+/* Bold Momo only on large type. h4–h6 and other small copy stay regular so
+   the display face is not faux-bolded at caption size. */
+h4,
+h5,
+h6,
+[role="tab"] {
+  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+}
+
+.font-medium,
+.font-semibold,
+.font-bold,
+.font-extrabold,
+.font-black,
+b,
+strong {
+  font-weight: 400;
+}
+
+h1,
+h2,
+h3,
+h1.font-bold,
+h2.font-bold,
+h3.font-bold,
+.text-2xl,
+.text-3xl,
+.text-4xl,
+.text-5xl,
+.text-6xl,
+.text-7xl,
+.text-8xl,
+.text-9xl,
+.text-2xl.font-bold,
+.text-3xl.font-bold,
+.text-4xl.font-bold,
+.text-5xl.font-bold,
+.text-6xl.font-bold,
+.text-7xl.font-bold,
+.text-8xl.font-bold,
+.text-9xl.font-bold {
+  font-weight: 700;
 }
 
 .font-hand {
@@ -936,7 +980,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 /* Section titles use the site primary face. */
 .vu-title-script {
   font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 400;
+  font-weight: 700;
   font-size: clamp(2.15rem, 1.1rem + 3.4vw, 3.75rem);
   line-height: 1.08;
   letter-spacing: -0.02em;
@@ -953,7 +997,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 
 .vu-title-script-sm {
   font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 400;
+  font-weight: 700;
   font-size: clamp(1.85rem, 1.25rem + 1.8vw, 2.85rem);
   line-height: 1.08;
   letter-spacing: -0.02em;
@@ -1034,7 +1078,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 /* Fluid display scale. Large sizes need tighter tracking to stay elegant. */
 .vu-display {
   font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 400;
+  font-weight: 700;
   font-size: clamp(2.25rem, 1.15rem + 4.4vw, 4.75rem);
   line-height: 1.06;
   letter-spacing: -0.03em;
@@ -1043,7 +1087,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 
 .vu-display-sm {
   font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 400;
+  font-weight: 700;
   font-size: clamp(1.75rem, 1.2rem + 1.9vw, 2.85rem);
   line-height: 1.1;
   letter-spacing: -0.025em;
@@ -1061,7 +1105,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 /* Section eyebrow. */
 .vu-kicker {
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 400;
   text-transform: uppercase;
   letter-spacing: 0.22em;
   color: var(--accent);
