@@ -4,7 +4,7 @@ import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/db";
 import { totalUnreadForUser } from "@/lib/messages/conversations";
 import { BrandMark } from "@/components/brand/brand-mark";
-import { CommandPalette } from "@/components/layout/command-palette";
+import { NavSearch } from "@/components/layout/nav-search";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar } from "@/components/ui/avatar";
 import { AccountMenu } from "@/components/app/account-menu";
@@ -42,7 +42,7 @@ export async function AppHeader() {
         <BrandMark href="/home" className="shrink-0" />
 
         <div className="mx-auto hidden min-w-0 max-w-xl flex-1 md:block">
-          <CommandPalette />
+          <NavSearch />
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1">

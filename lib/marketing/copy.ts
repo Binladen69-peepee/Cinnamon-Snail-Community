@@ -9,6 +9,7 @@
 export const HOMEPAGE_HERO = {
   headline:
     "The vegan cooking school that helps you turn your skeptical non-veg friends and family into second-helping regulars.",
+  liveTitle: "Live cook-alongs",
   subhead:
     "Live cook-alongs, recipes people actually adore, and a chef in your corner to help you master plant cooking.",
 } as const;

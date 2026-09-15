@@ -74,11 +74,23 @@ export default async function HomePage() {
               A vegan cooking school
             </p>
 
-            <h1 className="vu-title-brush vu-headline-invert vu-on-media mt-6 max-w-[26ch] text-white">
-              <span className="vu-title-anim">{HOMEPAGE_HERO.headline}</span>
+            <h1 className="vu-title-brush vu-title-caps vu-headline-invert vu-on-media mt-6 max-w-[22ch] text-white">
+              {HOMEPAGE_HERO.headline.split(/\s+/).map((word, index) => (
+                <span
+                  key={`${word}-${index}`}
+                  className="vu-write-word"
+                  style={{ ["--i" as string]: index }}
+                >
+                  {word}
+                </span>
+              ))}
             </h1>
 
-            <p className="vu-measure vu-on-media mt-6 text-lg leading-relaxed text-white/90 md:text-xl">
+            <p className="vu-hero-live-title vu-on-media mt-5 text-white">
+              {HOMEPAGE_HERO.liveTitle}
+            </p>
+
+            <p className="vu-measure vu-on-media mt-3 text-lg leading-relaxed text-white/90 md:text-xl">
               {HOMEPAGE_HERO.subhead}
             </p>
 

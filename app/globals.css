@@ -478,6 +478,116 @@ body:has([data-hero-dark])
   color: var(--cta-fill-foreground);
 }
 
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search-shell {
+  border-color: rgba(255, 248, 239, 0.42);
+  background: transparent;
+}
+
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search {
+  color: #fff8ef;
+}
+
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search::placeholder {
+  color: rgba(255, 248, 239, 0.62);
+}
+
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search-icon,
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search-status {
+  color: rgba(255, 248, 239, 0.72);
+}
+
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-tag {
+  color: rgba(255, 248, 239, 0.72);
+}
+
+.vu-wordmark-name {
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.98rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.vu-wordmark-tag {
+  margin-top: 0.15rem;
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--olive);
+}
+
+.vu-nav-search-shell {
+  display: flex;
+  height: 2.5rem;
+  align-items: center;
+  gap: 0.55rem;
+  border-radius: 0.7rem;
+  border: 1px solid var(--border);
+  background: transparent;
+  padding: 0 0.8rem;
+  box-shadow: none;
+  transition: border-color 160ms ease;
+  --field-background: transparent;
+}
+
+.vu-nav-search-shell:focus-within {
+  border-color: color-mix(in oklab, var(--foreground) 38%, var(--border));
+}
+
+.vu-nav-search-icon,
+.vu-nav-search-status {
+  width: 1rem;
+  height: 1rem;
+  flex-shrink: 0;
+  color: var(--foreground-muted);
+}
+
+.vu-nav-search {
+  min-width: 0;
+  flex: 1;
+  height: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--foreground);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.875rem;
+  outline: none;
+  box-shadow: none;
+  appearance: none;
+}
+
+.vu-nav-search:focus,
+.vu-nav-search:focus-visible {
+  outline: none;
+  box-shadow: none;
+}
+
+.vu-nav-search::placeholder {
+  color: var(--foreground-muted);
+}
+
+.dark .vu-nav-search-shell,
+[data-theme="dark"] .vu-nav-search-shell {
+  background: transparent;
+  border-color: var(--border);
+}
+
+.vu-nav-suggest {
+  position: absolute;
+  z-index: 60;
+  top: calc(100% + 6px);
+  right: 0;
+  left: 0;
+  max-height: min(22rem, 70vh);
+  overflow-x: hidden;
+  overflow-y: auto;
+  border-radius: 0.75rem;
+  border: 1px solid var(--border);
+  background: var(--overlay);
+  box-shadow: var(--e3);
+}
+
 /* Headline glow. Block-level: the speckle lives on the inner
    .vu-title-anim span, which shrink-wraps the text on its own. */
 .vu-headline {
@@ -653,8 +763,8 @@ body:has([data-hero-dark])
 }
 
 /* Hero-only paint-brush face. Water Brush is a wet-ink brush script — not
-   the felt-tip Caveat used on section titles. Slightly looser leading so the
-   swashes on a long headline do not collide. */
+   the felt-tip Caveat used on section titles. Caps are wider than the mixed
+   case setting, so the size is a step down and tracking opens up. */
 .vu-title-brush {
   font-family: var(--font-brush), var(--font-caveat), "Segoe Script", cursive;
   font-weight: 400;
@@ -662,6 +772,46 @@ body:has([data-hero-dark])
   line-height: 1.16;
   letter-spacing: 0.012em;
   text-wrap: balance;
+}
+
+.vu-title-caps {
+  text-transform: uppercase;
+  font-size: clamp(1.95rem, 1rem + 3.1vw, 3.45rem);
+  letter-spacing: 0.045em;
+  line-height: 1.2;
+}
+
+/* Each word is clipped from the right so the headline draws in the way a
+   loaded brush would write it. The underline stroke that used to sit under
+   the title is gone — this clip is the writing. */
+.vu-write-word {
+  display: inline-block;
+}
+
+.vu-write-word + .vu-write-word {
+  margin-left: 0.32em;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .hero-copy-reveal .vu-write-word {
+    clip-path: inset(0 100% 0 -0.08em);
+    animation: vu-pen-write 0.58s cubic-bezier(0.22, 1, 0.36, 1)
+      calc(var(--i) * 72ms) forwards;
+  }
+}
+
+@keyframes vu-pen-write {
+  to {
+    clip-path: inset(0 -0.14em 0 -0.08em);
+  }
+}
+
+.vu-hero-live-title {
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 600;
+  font-size: clamp(1.2rem, 0.95rem + 0.9vw, 1.65rem);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
 }
 
 .vu-title-script-sm {
@@ -723,6 +873,11 @@ body:has([data-hero-dark])
 [data-revealed="true"] .vu-title-anim::after,
 .hero-copy-reveal .vu-title-anim::after {
   animation: title-underline 900ms cubic-bezier(0.22, 1, 0.36, 1) 560ms forwards;
+}
+
+/* Hero headline no longer uses the drawn underline. */
+.hero-copy-reveal h1 .vu-title-anim::after {
+  content: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -847,8 +1002,8 @@ body:has([data-hero-dark])
    as a glowing panel on the photograph. */
 .vu-hero-proof {
   display: inline-block;
-  max-width: min(100%, 22.5rem);
-  padding: 0.45rem 0.7rem 0.35rem;
+  max-width: min(100%, 24rem);
+  padding: 5px 22px;
   border-radius: 0.75rem;
   background: #fff8ef;
 }
