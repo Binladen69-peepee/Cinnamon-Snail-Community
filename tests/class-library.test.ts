@@ -6,9 +6,11 @@ import {
   SHELF_ORDER,
   classesOnShelf,
   classSlug,
+  featuredPool,
   libraryShelves,
   playingEmbedSrc,
   resolveClassPhoto,
+  searchClasses,
   shelfForTitle,
 } from "@/lib/marketing/class-library";
 
@@ -70,5 +72,20 @@ describe("shelf grouping", () => {
     expect(classSlug("Bangin' Tex-Mex Casseroles")).toBe(
       "bangin-tex-mex-casseroles",
     );
+  });
+
+  it("searches only real spreadsheet titles", () => {
+    const hits = searchClasses(CLASS_LIBRARY, "seitan");
+    expect(hits.map((cls) => cls.title)).toEqual(["Seitan Masterclass"]);
+    expect(searchClasses(CLASS_LIBRARY, "buddha bowls")).toEqual([]);
+  });
+
+  it("puts the Green Reaper first in the featured pool when it is in the set", () => {
+    const pool = featuredPool(CLASS_LIBRARY, 5);
+    expect(pool).toHaveLength(5);
+    expect(pool[0]?.title).toBe("The Green Reaper: Vegan Salad Bible");
+    for (const cls of pool) {
+      expect(CLASS_LIBRARY.some((row) => row.slug === cls.slug)).toBe(true);
+    }
   });
 });

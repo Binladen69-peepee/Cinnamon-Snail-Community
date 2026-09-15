@@ -215,7 +215,7 @@ export default async function HomePage() {
 
       {/* Course catalog ------------------------------------------------ */}
       <section className="vu-gutter vu-section" aria-labelledby="class-library-heading">
-        <div className="vu-shell">
+        <div className="vu-feed-shell">
           <Reveal>
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>

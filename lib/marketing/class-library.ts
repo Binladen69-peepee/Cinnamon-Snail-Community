@@ -127,6 +127,36 @@ export function classesOnShelf(name: ShelfName | null): LibraryClass[] {
   return libraryShelves().find((shelf) => shelf.name === name)?.classes ?? [];
 }
 
+export function searchClasses(
+  classes: LibraryClass[],
+  query: string,
+): LibraryClass[] {
+  const needle = query.trim().toLowerCase();
+  if (!needle) return classes;
+  return classes.filter((cls) => cls.title.toLowerCase().includes(needle));
+}
+
+export function filterLibrary(
+  shelf: ShelfName | null,
+  query: string,
+): LibraryClass[] {
+  return searchClasses(classesOnShelf(shelf), query);
+}
+
+/** First five of the current filter, with the Green Reaper up front when it is in the set. */
+export const DEFAULT_FEATURED_TITLE = "The Green Reaper: Vegan Salad Bible";
+
+export function featuredPool(classes: LibraryClass[], size = 5): LibraryClass[] {
+  const preferred = classes.find((cls) => cls.title === DEFAULT_FEATURED_TITLE);
+  const rest = classes.filter((cls) => cls.title !== DEFAULT_FEATURED_TITLE);
+  const ordered = preferred ? [preferred, ...rest] : classes;
+  return ordered.slice(0, Math.min(size, ordered.length));
+}
+
+export function classDetailHref(slug: string): string {
+  return `/learn/${slug}`;
+}
+
 /** Spreadsheet stills only. Stock or empty URLs become the designed empty state. */
 export function resolveClassPhoto(url: string | null | undefined): string | null {
   if (!url?.trim()) return null;
