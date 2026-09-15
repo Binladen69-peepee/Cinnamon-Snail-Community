@@ -242,13 +242,13 @@ export default async function HomePage() {
       </section>
 
       {/* The community — globe as centrepiece --------------------------- */}
-      <section className="vu-gutter vu-section-tight">
+      <div className="vu-gutter vu-section">
         <Reveal>
-          <div className="vu-shell">
+          <div className="vu-feed-shell">
             <CommunityGlobe data={globe} />
           </div>
         </Reveal>
-      </section>
+      </div>
 
       {/* Membership teaser -------------------------------------------- */}
       <section className="vu-gutter vu-section">

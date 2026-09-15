@@ -955,6 +955,20 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
      whole visit. An animating element is promoted while it animates anyway. */
 }
 
+@keyframes vu-postcard-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -9px;
+  }
+}
+
+.vu-postcard-float {
+  animation: vu-postcard-float 5.8s ease-in-out infinite;
+}
+
 /* Stagger them so the backdrop breathes rather than pulsing in unison. */
 .vu-leaf-float:nth-of-type(3n) {
   animation-duration: 25s;
@@ -972,7 +986,8 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .vu-leaf-float {
+  .vu-leaf-float,
+  .vu-postcard-float {
     animation: none;
   }
 }

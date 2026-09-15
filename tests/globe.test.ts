@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import { getGlobeMarkers } from "@/lib/marketing/globe-markers";
+import { communityPostcards } from "@/lib/marketing/community-stories";
+import { CLASS_LIBRARY } from "@/lib/marketing/class-library";
+import { isStockImageUrl } from "@/lib/marketing/stock-hosts";
 import { LAND_RINGS } from "@/lib/marketing/land-rings";
 
 describe("community globe data", () => {
@@ -60,6 +63,28 @@ describe("community globe data", () => {
         expect(marker.weight).toBeGreaterThan(0);
         expect(Math.abs(marker.lat)).toBeLessThanOrEqual(90);
         expect(Math.abs(marker.lng)).toBeLessThanOrEqual(180);
+      }
+    } finally {
+      if (previous !== undefined) process.env.DATABASE_URL = previous;
+    }
+  });
+
+  it("pins real spreadsheet classes to real map places, never stock photos", async () => {
+    const previous = process.env.DATABASE_URL;
+    delete process.env.DATABASE_URL;
+    try {
+      const { markers } = await getGlobeMarkers(8);
+      const cards = communityPostcards(markers);
+      expect(cards).toHaveLength(4);
+      const titles = new Set(CLASS_LIBRARY.map((cls) => cls.title));
+      const places = new Set(markers.map((marker) => marker.place));
+      for (const card of cards) {
+        expect(titles.has(card.title)).toBe(true);
+        expect(places.has(card.place)).toBe(true);
+        expect(isStockImageUrl(card.photo)).toBe(false);
+        expect(card.photo).toMatch(
+          /^https:\/\/cinnamonsnail\.com\/wp-content\/uploads\//,
+        );
       }
     } finally {
       if (previous !== undefined) process.env.DATABASE_URL = previous;

@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useId, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { GlobeMarker } from "@/lib/marketing/globe-markers";
 import { LAND_RINGS } from "@/lib/marketing/land-rings";
+import { cn } from "@/lib/utils";
 
 /**
  * Rotating, draggable globe of member geography — drawn, not plotted.
@@ -51,9 +52,11 @@ import { LAND_RINGS } from "@/lib/marketing/land-rings";
 export function MemberGlobe({
   markers,
   placeholder,
+  captionClassName,
 }: {
   markers: GlobeMarker[];
   placeholder: boolean;
+  captionClassName?: string;
 }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapRef = useRef<HTMLDivElement>(null);
@@ -255,12 +258,12 @@ export function MemberGlobe({
             }}
             className="absolute left-0 top-0 opacity-0 will-change-transform"
           >
-            <MapPin avatarUrl={marker.avatarUrl} place={marker.place} />
+            <MapPin place={marker.place} />
           </div>
         ))}
       </div>
 
-      <p className="mt-5 text-center text-xs text-paper/50">
+      <p className={cn("mt-5 text-center text-xs", captionClassName ?? "text-olive")}>
         {placeholder
           ? "Drag to spin. Pins are stand-ins until the member map is imported."
           : "Drag to spin. Regions only — no names, no exact locations."}
@@ -308,9 +311,9 @@ const PALETTE = {
   paperMid: "#f2e6d2",
   paperEdge: "#e2d0b6",
   limb: "rgba(120, 92, 62, 0.26)",
-  landFill: "rgba(31, 82, 66, 0.52)",
-  landFillDeep: "rgba(16, 56, 44, 0.42)",
-  landEdge: "rgba(13, 48, 38, 0.5)",
+  landFill: "rgba(22, 92, 64, 0.72)",
+  landFillDeep: "rgba(12, 58, 42, 0.55)",
+  landEdge: "rgba(10, 46, 34, 0.55)",
 };
 
 /**
@@ -436,56 +439,25 @@ function drawGlobe(
 }
 
 /**
- * A teardrop map pin with the member's photo set into its head.
- *
- * Drawn as SVG rather than a rotated CSS square so the point is genuinely
- * pointed and the photo can be clipped to a true circle without having to be
- * counter-rotated.
+ * A small forest teardrop pin. Faces live on the polaroid cards around the
+ * globe, from real class stills — not a repeated crew photo on every pin.
  */
-function MapPin({ avatarUrl, place }: { avatarUrl: string; place: string }) {
-  const clipId = useId();
-
+function MapPin({ place }: { place: string }) {
   return (
     <span className="relative block" title={place}>
       <svg
-        viewBox="0 0 44 58"
-        className="h-[3.25rem] w-auto drop-shadow-[0_6px_10px_rgba(60,40,28,0.45)]"
+        viewBox="0 0 24 32"
+        className="h-7 w-auto drop-shadow-[0_4px_8px_rgba(15,61,50,0.35)]"
         role="img"
         aria-label={place}
       >
-        <defs>
-          <clipPath id={clipId}>
-            <circle cx="22" cy="20" r="13.5" />
-          </clipPath>
-        </defs>
-
-        {/* Teardrop body: round head tapering to a point at the bottom. */}
         <path
-          d="M22 57C22 57 3 34.6 3 20.6A19 19 0 0 1 41 20.6C41 34.6 22 57 22 57Z"
+          d="M12 31C12 31 2 18.8 2 11.2A10 10 0 0 1 22 11.2C22 18.8 12 31 12 31Z"
           fill="#0f3d32"
           stroke="#fff8ef"
-          strokeWidth="2"
+          strokeWidth="1.4"
         />
-        {/* Photo well, so a transparent avatar never shows the body through. */}
-        <circle cx="22" cy="20" r="13.5" fill="#0b2a22" />
-        <image
-          href={avatarUrl}
-          x="8.5"
-          y="6.5"
-          width="27"
-          height="27"
-          clipPath={`url(#${clipId})`}
-          preserveAspectRatio="xMidYMid slice"
-        />
-        {/* Frame ring over the photo edge. */}
-        <circle
-          cx="22"
-          cy="20"
-          r="13.5"
-          fill="none"
-          stroke="#fff8ef"
-          strokeWidth="1.6"
-        />
+        <circle cx="12" cy="11" r="3.4" fill="#fff8ef" />
       </svg>
     </span>
   );
