@@ -166,10 +166,7 @@ export default async function MembershipPage() {
       <section className="vu-gutter vu-section">
         <Reveal>
           <div className="vu-feed-shell">
-            <MembershipPlans
-              heading="Monthly or yearly."
-              showInclusions={false}
-            />
+            <MembershipPlans heading="Monthly or yearly." />
           </div>
         </Reveal>
       </section>

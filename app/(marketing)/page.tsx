@@ -11,6 +11,7 @@ import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
 import { ClassLibrary } from "@/components/marketing/class-library";
 import { CommunityGlobe } from "@/components/marketing/community-globe";
 import { MembershipPlans } from "@/components/marketing/membership-plans";
+import { WhatYouGet } from "@/components/marketing/what-you-get";
 import {
   SenjaEmbed,
   SENJA_HOMEPAGE_WIDGET,
@@ -29,7 +30,6 @@ import {
   HOMEPAGE_HERO,
   KITCHEN_TABLE_BLOCK,
   MEMBERSHIP_TEASER,
-  PILLAR_CARDS,
 } from "@/lib/marketing/copy";
 
 export const dynamic = "force-dynamic";
@@ -104,41 +104,10 @@ export default async function HomePage() {
       <PressMarquee />
       <StickyCheckout />
 
-      {/* Learn / Cook / Belong — editorial, staggered ------------------ */}
+      {/* Learn / Cook / Belong ----------------------------------------- */}
       <section className="vu-gutter vu-section">
-        <div className="vu-shell">
-          <Reveal>
-            <p className="vu-kicker">What you get</p>
-            <h2 className="vu-title-script-sm vu-headline mt-3 text-forest">
-              <span className="vu-title-anim">Learn. Cook. Belong.</span>
-            </h2>
-          </Reveal>
-
-          <div className="mt-12 grid items-start gap-6 md:grid-cols-3 md:gap-7">
-            {PILLAR_CARDS.map((pillar, index) => (
-              <Reveal
-                key={pillar.title}
-                as="article"
-                delay={index * 110}
-                className={index === 1 ? "md:mt-10" : index === 2 ? "md:mt-20" : ""}
-              >
-                <Spotlight className="vu-card vu-lift group h-full overflow-hidden rounded-[1.5rem] p-4">
-                  <div className="relative overflow-hidden rounded-[1.15rem]">
-                    <PhotoSlot id={pillar.slotId} />
-                    <span className="absolute left-3 top-3 grid size-9 place-items-center rounded-full bg-forest/85 font-display text-xs font-bold text-paper backdrop-blur-sm">
-                      {String(index + 1).padStart(2, "0")}
-                    </span>
-                  </div>
-                  <h3 className="mt-5 px-2 font-display text-2xl font-bold tracking-tight text-forest">
-                    {pillar.title}
-                  </h3>
-                  <p className="mt-2.5 px-2 pb-3 text-sm leading-relaxed text-foreground-muted">
-                    {pillar.body}
-                  </p>
-                </Spotlight>
-              </Reveal>
-            ))}
-          </div>
+        <div className="vu-feed-shell">
+          <WhatYouGet />
         </div>
       </section>
 
