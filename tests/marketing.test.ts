@@ -185,7 +185,9 @@ describe("video slots", () => {
     const hero = assetSlot("home-hero");
     expect(hero.kind).toBe("image");
     expect(hero.src).toBeTruthy();
-    expect(hero.src).toContain("cinnamonsnail.com/wp-content/uploads");
+    expect(hero.src).toBe(
+      "https://cinnamonsnail.com/wp-content/uploads/2025/02/matcha-donuts-11.jpg",
+    );
   });
 
   it("still has the sales video on /membership", () => {

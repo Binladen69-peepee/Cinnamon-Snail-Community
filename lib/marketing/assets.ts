@@ -28,7 +28,7 @@ export type AssetSlot = {
   /**
    * Background imagery that carries no information of its own — a hero band
    * behind the headline, say. These take an empty alt deliberately: a screen
-   * reader announcing "a bowl of beet hummus" before the headline is noise,
+    * reader announcing the dish before the headline is noise,
    * not help. Content photography must never set this.
    */
   decorative?: boolean;
@@ -50,17 +50,10 @@ export const ASSET_SLOTS: AssetSlot[] = [
     section: "Hero background",
     need:
       "A dish photo dense enough to read as texture behind the headline. Flat-lays crop best here, because the hero band is much wider than Adam's photography is shot.",
-    // Client's pick, September 2026: the hero went back to a still after the
-    // background video was judged a regression from the earlier, cleaner
-    // direction. The 35 MB looping cut that used to sit here is gone with it —
-    // it was the heaviest thing on the page by an order of magnitude.
-    //
-    // 1200x1800 overhead flat-lay. Every photo in Adam's library is portrait
-    // at 1200px wide (shot for recipe pages), so there is no landscape
-    // alternative to switch to; a flat-lay is the composition that survives
-    // the crop, which is why this one works where a plated hero shot would
-    // not. See HeroImage for the framing.
-    src: `${WP}/2026/07/beet_hummus-3.jpg`,
+    // Client's pick: a single still (matcha donuts, from Adam's library).
+    // The background video was judged a regression; a slider of plates was
+    // taken out the same way. Flat-lay overheads survive the wide crop.
+    src: `${WP}/2025/02/matcha-donuts-11.jpg`,
     // Empty on purpose - see `decorative`. The headline directly beneath says
     // what the page is; the photograph is the ground it is read against.
     alt: "",

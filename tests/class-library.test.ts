@@ -8,8 +8,6 @@ import {
   classSlug,
   featuredPool,
   formatClassLength,
-  heroDishes,
-  heroSlides,
   libraryShelves,
   playingEmbedSrc,
   resolveClassPhoto,
@@ -99,28 +97,5 @@ describe("shelf grouping", () => {
     for (const cls of pool) {
       expect(CLASS_LIBRARY.some((row) => row.slug === cls.slug)).toBe(true);
     }
-  });
-
-  it("fills the hero slider with the opening still plus real spreadsheet plates", () => {
-    const dishes = heroDishes();
-    expect(dishes).toHaveLength(7);
-    expect(new Set(dishes.map((dish) => dish.title)).size).toBe(7);
-    for (const dish of dishes) {
-      const cls = CLASS_LIBRARY.find((row) => row.title === dish.title);
-      expect(cls).toBeTruthy();
-      expect(dish.photo).toBe(cls?.thumbnailUrl);
-      expect(dish.photo).toMatch(
-        /^https:\/\/cinnamonsnail\.com\/wp-content\/uploads\//,
-      );
-      expect(isStockImageUrl(dish.photo)).toBe(false);
-    }
-
-    const opening = "https://cinnamonsnail.com/wp-content/uploads/hero.jpg";
-    const slides = heroSlides(opening);
-    expect(slides).toHaveLength(8);
-    expect(slides[0]?.photo).toBe(opening);
-    expect(slides.slice(1).map((slide) => slide.photo)).toEqual(
-      dishes.map((dish) => dish.photo),
-    );
   });
 });
