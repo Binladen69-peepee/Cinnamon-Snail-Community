@@ -1,6 +1,36 @@
 import { cn } from "@/lib/utils";
 
 /**
+ * Dark forest wash over the hero photograph. Extracted so the slideshow can
+ * sit the same scrim *above* every slide — the copy stays readable while
+ * plates swap underneath.
+ */
+export function HeroScrim() {
+  return (
+    <>
+      {/* Scrim, in two directions, because the copy sits bottom-left.
+          Bottom-weighted for the headline and CTA, left-weighted for the
+          column, and both fade out well before the top right so the bowl of
+          hummus stays a photograph rather than a texture. The tone is a very
+          dark forest rather than the brand's mid green: over magenta and
+          radicchio a lighter green mixes to brown. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[linear-gradient(to_top,rgba(7,27,23,0.92)_0%,rgba(7,27,23,0.74)_24%,rgba(7,27,23,0.34)_56%,rgba(7,27,23,0.12)_100%)]"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[linear-gradient(to_right,rgba(7,27,23,0.74)_0%,rgba(7,27,23,0.52)_34%,rgba(7,27,23,0.2)_62%,rgba(7,27,23,0)_84%)]"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 bg-[radial-gradient(125%_100%_at_62%_18%,transparent_44%,rgba(4,18,14,0.42)_100%)]"
+      />
+    </>
+  );
+}
+
+/**
  * Full-bleed hero photograph.
  *
  * This replaces the background video, and deliberately does not inherit its
@@ -50,26 +80,7 @@ export function HeroImage({
         className="vu-hero-photo size-full object-cover object-[50%_45%]"
       />
 
-      {/* Scrim, in two directions, because the copy sits bottom-left.
-          Bottom-weighted for the headline and CTA, left-weighted for the
-          column, and both fade out well before the top right so the bowl of
-          hummus stays a photograph rather than a texture. The tone is a very
-          dark forest rather than the brand's mid green: over magenta and
-          radicchio a lighter green mixes to brown. */}
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-[linear-gradient(to_top,rgba(7,27,23,0.92)_0%,rgba(7,27,23,0.74)_24%,rgba(7,27,23,0.34)_56%,rgba(7,27,23,0.12)_100%)]"
-      />
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-[linear-gradient(to_right,rgba(7,27,23,0.74)_0%,rgba(7,27,23,0.52)_34%,rgba(7,27,23,0.2)_62%,rgba(7,27,23,0)_84%)]"
-      />
-      {/* Softens the corners so the band reads as a photograph that was placed,
-          not one that ran out. */}
-      <div
-        aria-hidden
-        className="absolute inset-0 bg-[radial-gradient(125%_100%_at_62%_18%,transparent_44%,rgba(4,18,14,0.42)_100%)]"
-      />
+      <HeroScrim />
     </div>
   );
 }

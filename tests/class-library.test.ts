@@ -9,6 +9,7 @@ import {
   featuredPool,
   formatClassLength,
   heroDishes,
+  heroSlides,
   libraryShelves,
   playingEmbedSrc,
   resolveClassPhoto,
@@ -100,10 +101,10 @@ describe("shelf grouping", () => {
     }
   });
 
-  it("fills the hero slider with eight real spreadsheet stills", () => {
+  it("fills the hero slider with the opening still plus real spreadsheet plates", () => {
     const dishes = heroDishes();
-    expect(dishes).toHaveLength(8);
-    expect(new Set(dishes.map((dish) => dish.title)).size).toBe(8);
+    expect(dishes).toHaveLength(7);
+    expect(new Set(dishes.map((dish) => dish.title)).size).toBe(7);
     for (const dish of dishes) {
       const cls = CLASS_LIBRARY.find((row) => row.title === dish.title);
       expect(cls).toBeTruthy();
@@ -113,5 +114,13 @@ describe("shelf grouping", () => {
       );
       expect(isStockImageUrl(dish.photo)).toBe(false);
     }
+
+    const opening = "https://cinnamonsnail.com/wp-content/uploads/hero.jpg";
+    const slides = heroSlides(opening);
+    expect(slides).toHaveLength(8);
+    expect(slides[0]?.photo).toBe(opening);
+    expect(slides.slice(1).map((slide) => slide.photo)).toEqual(
+      dishes.map((dish) => dish.photo),
+    );
   });
 });

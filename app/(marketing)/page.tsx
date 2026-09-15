@@ -4,8 +4,7 @@ import { CheckoutButton } from "@/components/marketing/checkout-button";
 import { StickyCheckout } from "@/components/marketing/sticky-checkout";
 import { Reveal } from "@/components/marketing/reveal";
 import { PhotoSlot } from "@/components/marketing/photo-slot";
-import { HeroImage } from "@/components/marketing/hero-image";
-import { HeroDishSlider } from "@/components/marketing/hero-dish-slider";
+import { HeroSlideshow } from "@/components/marketing/hero-dish-slider";
 import { PressMarquee } from "@/components/marketing/press-marquee";
 import { Reel } from "@/components/marketing/reel";
 import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
@@ -18,7 +17,7 @@ import {
   SENJA_HOMEPAGE_WIDGET,
 } from "@/components/marketing/senja-embed";
 import { getNextLiveClass } from "@/lib/marketing/catalog";
-import { CLASS_LIBRARY, heroDishes, libraryShelves } from "@/lib/marketing/class-library";
+import { CLASS_LIBRARY, heroSlides, libraryShelves } from "@/lib/marketing/class-library";
 import { getGlobeMarkers } from "@/lib/marketing/globe-markers";
 import {
   REEL_KICKER,
@@ -42,7 +41,7 @@ export default async function HomePage() {
   ]);
   const hero = assetSlot("home-hero");
   const reel = assetSlot("home-reel");
-  const dishes = heroDishes();
+  const slides = heroSlides(hero.src);
   const totalClasses = CLASS_LIBRARY.length;
   const shelfCount = libraryShelves().length;
 
@@ -61,12 +60,11 @@ export default async function HomePage() {
         data-hero-dark
         className="relative isolate -mt-18 flex min-h-[calc(clamp(38rem,92svh,54rem)+4.5rem)] items-end overflow-hidden"
       >
-        {hero.src ? (
-          <HeroImage src={hero.src} alt={hero.alt} />
+        {slides.length > 0 ? (
+          <HeroSlideshow slides={slides} />
         ) : (
           <div className="absolute inset-0 bg-forest" />
         )}
-        <HeroDishSlider dishes={dishes} />
 
         <div className="vu-gutter relative z-10 w-full pb-32 pt-32 md:pb-20 md:pt-36">
           <div className="vu-shell hero-copy-reveal">
