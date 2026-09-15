@@ -6,7 +6,6 @@ import {
   BookOpen,
   Calendar,
   Compass,
-  CornerDownLeft,
   Loader2,
   Search,
   Users,
@@ -35,11 +34,8 @@ const GROUP_ICON = {
 } as const;
 
 /**
- * Navbar search: a real field with a transparent ground, a visible border,
- * and a dropdown of suggestions (live classes, sections, then index hits).
- *
- * It used to be a cream pill that opened a full-screen overlay. The field
- * itself is now the input, so autosuggest sits under it the way people expect.
+ * Navbar search, modelled on a command palette: a real field, ⌘K, and a
+ * results list with a thumbnail, a name, and a page/section detail.
  */
 export function CommandPalette({
   suggestions = NAV_SECTION_SUGGESTIONS,
@@ -131,6 +127,8 @@ export function CommandPalette({
             href: hit.href,
             group: group.label,
             snippet: hit.snippet,
+            detail: hit.detail,
+            imageUrl: hit.imageUrl,
           })),
         )
       : [];
@@ -185,7 +183,7 @@ export function CommandPalette({
   }
 
   return (
-    <div ref={rootRef} className="relative">
+    <div ref={rootRef} className={cn("vu-nav-palette", open && "is-open")}>
       <label className="sr-only" htmlFor="vu-nav-search">
         Search
       </label>
@@ -213,15 +211,18 @@ export function CommandPalette({
         />
         {loading ? (
           <Loader2 className="vu-nav-search-status animate-spin" aria-hidden />
-        ) : null}
+        ) : (
+          <kbd className="vu-nav-search-kbd hidden sm:inline" aria-hidden>
+            ⌘K
+          </kbd>
+        )}
       </div>
 
       {open ? (
-        <div
-          id={listId}
-          role="listbox"
-          className="vu-nav-suggest"
-        >
+        <div id={listId} role="listbox" className="vu-nav-suggest">
+          <p className="vu-nav-suggest-count">
+            {searching ? `Search results (${rows.length})` : "Suggestions"}
+          </p>
           {rows.length === 0 ? (
             <p className="px-3 py-6 text-center text-[13px] text-foreground-muted">
               {loading
@@ -231,54 +232,48 @@ export function CommandPalette({
                   : "Try a class name, a member, or a section."}
             </p>
           ) : (
-            rows.map((row, index) => {
-              const Icon =
-                GROUP_ICON[row.group as keyof typeof GROUP_ICON] ?? Search;
-              return (
-                <button
-                  key={`${row.href}-${row.label}-${index}`}
-                  id={`${listId}-${index}`}
-                  type="button"
-                  role="option"
-                  aria-selected={index === cursor}
-                  onMouseEnter={() => setCursor(index)}
-                  onMouseDown={(event) => event.preventDefault()}
-                  onClick={() => go(row)}
-                  className={cn(
-                    "flex w-full items-center gap-3 px-3 py-2.5 text-left transition",
-                    index === cursor ? "bg-brand-wash" : "hover:bg-mint/60",
-                  )}
-                >
-                  <Icon
-                    className={cn(
-                      "size-4 shrink-0",
-                      index === cursor ? "text-brand" : "text-foreground-muted",
-                    )}
-                    aria-hidden
-                  />
-                  <span className="min-w-0 flex-1">
-                    <span
-                      className={cn(
-                        "block truncate text-[14px] font-semibold",
-                        index === cursor ? "text-brand-strong" : "text-foreground",
+            <div className="max-h-[min(18rem,50vh)] overflow-y-auto pb-1">
+              {rows.map((row, index) => {
+                const Icon =
+                  GROUP_ICON[row.group as keyof typeof GROUP_ICON] ?? Search;
+                const selected = index === cursor;
+                return (
+                  <button
+                    key={`${row.href}-${row.label}-${index}`}
+                    id={`${listId}-${index}`}
+                    type="button"
+                    role="option"
+                    aria-selected={selected}
+                    onMouseEnter={() => setCursor(index)}
+                    onMouseDown={(event) => event.preventDefault()}
+                    onClick={() => go(row)}
+                    className="vu-nav-suggest-row"
+                  >
+                    <span className="vu-nav-suggest-thumb">
+                      {row.imageUrl ? (
+                        // Course covers and member photos are remote or local files.
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={row.imageUrl} alt="" />
+                      ) : (
+                        <Icon className="size-4" aria-hidden />
                       )}
-                    >
-                      {row.label}
                     </span>
-                    <span className="block truncate text-[12px] text-foreground-muted">
-                      {row.snippet || row.group}
+                    <span className="vu-nav-suggest-copy">
+                      <span className="vu-nav-suggest-name">{row.label}</span>
+                      <span className="vu-nav-suggest-detail">
+                        {row.detail || row.group}
+                      </span>
                     </span>
-                  </span>
-                  {index === cursor ? (
-                    <CornerDownLeft
-                      className="size-3.5 shrink-0 text-brand"
-                      aria-hidden
-                    />
-                  ) : null}
-                </button>
-              );
-            })
+                  </button>
+                );
+              })}
+            </div>
           )}
+          <div className="vu-nav-suggest-keys" aria-hidden>
+            <kbd>↑↓ navigate</kbd>
+            <kbd>↵ open</kbd>
+            <kbd>esc close</kbd>
+          </div>
         </div>
       ) : null}
     </div>

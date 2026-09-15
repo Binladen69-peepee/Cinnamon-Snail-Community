@@ -3,7 +3,7 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Vegan University identity: cream ground, forest branding, Poppins + Inter. */
+/* Vegan University identity: cream ground, forest branding, Momo Trust Display. */
 @layer theme {
   :root,
   .light,
@@ -194,8 +194,8 @@
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-info: var(--accent);
-  --font-sans: var(--font-inter);
-  --font-display: var(--font-poppins);
+  --font-sans: var(--font-momo);
+  --font-display: var(--font-momo);
   --font-hand: var(--font-caveat);
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
@@ -227,16 +227,16 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
 }
 
 :root {
   /* Type roles, so a candidate look can repoint them. Defaults are today's
      faces, which is why the marketing pages are unaffected. */
-  --ui-display: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
-  --ui-display-weight: 700;
-  --ui-display-tracking: -0.03em;
+  --ui-display: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  --ui-display-weight: 400;
+  --ui-display-tracking: -0.02em;
 }
 
 h1,
@@ -492,8 +492,31 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search:
 }
 
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search-icon,
-body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search-status {
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search-status,
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search-kbd {
   color: rgba(255, 248, 239, 0.72);
+}
+
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search-kbd {
+  border-color: rgba(255, 248, 239, 0.28);
+  background: transparent;
+}
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-suggest,
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-suggest button,
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-palette.is-open .vu-nav-search {
+  color: var(--foreground);
+}
+
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-palette.is-open .vu-nav-search-shell {
+  background: var(--overlay);
+  border-color: var(--border);
+}
+
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-palette.is-open .vu-nav-search::placeholder,
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-palette.is-open .vu-nav-search-icon,
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-palette.is-open .vu-nav-search-status,
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-palette.is-open .vu-nav-search-kbd {
+  color: var(--foreground-muted);
 }
 
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-tag {
@@ -501,20 +524,24 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 }
 
 .vu-wordmark-name {
-  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
   font-size: 0.98rem;
-  font-weight: 700;
-  letter-spacing: -0.03em;
+  font-weight: 400;
+  letter-spacing: -0.02em;
 }
 
 .vu-wordmark-tag {
   margin-top: 0.15rem;
-  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
   font-size: 9px;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--olive);
+}
+
+.vu-nav-palette {
+  position: relative;
 }
 
 .vu-nav-search-shell {
@@ -522,17 +549,29 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
   height: 2.5rem;
   align-items: center;
   gap: 0.55rem;
-  border-radius: 0.7rem;
+  border-radius: 0.85rem;
   border: 1px solid var(--border);
   background: transparent;
-  padding: 0 0.8rem;
+  padding: 0 0.7rem 0 0.85rem;
   box-shadow: none;
-  transition: border-color 160ms ease;
+  transition:
+    border-color 160ms ease,
+    background-color 160ms ease,
+    box-shadow 160ms ease;
   --field-background: transparent;
 }
 
+.vu-nav-palette.is-open .vu-nav-search-shell {
+  border-color: var(--border);
+  background: var(--overlay);
+  box-shadow: none;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+}
+
 .vu-nav-search-shell:focus-within {
-  border-color: color-mix(in oklab, var(--foreground) 38%, var(--border));
+  border-color: color-mix(in oklab, var(--foreground) 28%, var(--border));
 }
 
 .vu-nav-search-icon,
@@ -543,6 +582,17 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
   color: var(--foreground-muted);
 }
 
+.vu-nav-search-kbd {
+  flex-shrink: 0;
+  border-radius: 0.4rem;
+  border: 1px solid var(--border);
+  background: var(--background);
+  padding: 0.12rem 0.4rem;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--foreground-muted);
+}
+
 .vu-nav-search {
   min-width: 0;
   flex: 1;
@@ -550,8 +600,8 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
   border: 0;
   background: transparent;
   color: var(--foreground);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
-  font-size: 0.875rem;
+  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-size: 0.9rem;
   outline: none;
   box-shadow: none;
   appearance: none;
@@ -576,16 +626,105 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 .vu-nav-suggest {
   position: absolute;
   z-index: 60;
-  top: calc(100% + 6px);
+  top: 100%;
   right: 0;
   left: 0;
-  max-height: min(22rem, 70vh);
-  overflow-x: hidden;
-  overflow-y: auto;
-  border-radius: 0.75rem;
+  overflow: hidden;
   border: 1px solid var(--border);
+  border-top: 0;
+  border-radius: 0 0 0.85rem 0.85rem;
   background: var(--overlay);
   box-shadow: var(--e3);
+  color: var(--foreground);
+}
+
+.vu-nav-suggest-count {
+  padding: 0.55rem 0.9rem 0.25rem;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--foreground-muted);
+}
+
+.vu-nav-suggest-row {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.9rem;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  color: inherit;
+}
+
+.vu-nav-suggest-row[aria-selected="true"],
+.vu-nav-suggest-row:hover {
+  background: color-mix(in oklab, var(--foreground) 5%, var(--overlay));
+}
+
+.vu-nav-suggest-thumb {
+  display: grid;
+  width: 2.15rem;
+  height: 2.15rem;
+  flex-shrink: 0;
+  place-items: center;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--sage);
+  color: var(--forest);
+}
+
+.vu-nav-suggest-thumb img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.vu-nav-suggest-copy {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.35rem 0.65rem;
+}
+
+.vu-nav-suggest-name {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--foreground);
+}
+
+.vu-nav-suggest-detail {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.8rem;
+  color: var(--foreground-muted);
+}
+
+.vu-nav-suggest-keys {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  border-top: 1px solid var(--border);
+  padding: 0.5rem 0.75rem 0.55rem;
+  color: var(--foreground-muted);
+}
+
+.vu-nav-suggest-keys kbd {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--background);
+  padding: 0.18rem 0.5rem;
+  font-size: 10px;
+  font-weight: 600;
 }
 
 /* Headline glow. Block-level: the speckle lives on the inner
@@ -750,76 +889,30 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
   }
 }
 
-/* Section titles are set entirely in the handwritten face.
-   Caveat runs small and narrow against Poppins, so the scale is raised and the
-   leading tightened to keep long titles compact and readable. */
+/* Section titles use the site primary face. */
 .vu-title-script {
-  font-family: var(--font-caveat), "Segoe Script", cursive;
-  font-weight: 700;
-  font-size: clamp(2.15rem, 1.1rem + 3.4vw, 3.75rem);
-  line-height: 1.02;
-  letter-spacing: 0.004em;
-  text-wrap: balance;
-}
-
-/* Hero-only paint-brush face. Water Brush is a wet-ink brush script — not
-   the felt-tip Caveat used on section titles. Caps are wider than the mixed
-   case setting, so the size is a step down and tracking opens up. */
-.vu-title-brush {
-  font-family: var(--font-brush), var(--font-caveat), "Segoe Script", cursive;
+  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
-  font-size: clamp(2.45rem, 1.2rem + 3.9vw, 4.25rem);
-  line-height: 1.16;
-  letter-spacing: 0.012em;
+  font-size: clamp(2.15rem, 1.1rem + 3.4vw, 3.75rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
   text-wrap: balance;
-}
-
-.vu-title-caps {
-  text-transform: uppercase;
-  font-size: clamp(1.95rem, 1rem + 3.1vw, 3.45rem);
-  letter-spacing: 0.045em;
-  line-height: 1.2;
-}
-
-/* Each word is clipped from the right so the headline draws in the way a
-   loaded brush would write it. The underline stroke that used to sit under
-   the title is gone — this clip is the writing. */
-.vu-write-word {
-  display: inline-block;
-}
-
-.vu-write-word + .vu-write-word {
-  margin-left: 0.32em;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .hero-copy-reveal .vu-write-word {
-    clip-path: inset(0 100% 0 -0.08em);
-    animation: vu-pen-write 0.58s cubic-bezier(0.22, 1, 0.36, 1)
-      calc(var(--i) * 72ms) forwards;
-  }
-}
-
-@keyframes vu-pen-write {
-  to {
-    clip-path: inset(0 -0.14em 0 -0.08em);
-  }
 }
 
 .vu-hero-live-title {
-  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 600;
-  font-size: clamp(1.2rem, 0.95rem + 0.9vw, 1.65rem);
-  letter-spacing: -0.02em;
-  line-height: 1.2;
+  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
+  font-size: clamp(1.15rem, 0.95rem + 0.7vw, 1.45rem);
+  letter-spacing: -0.015em;
+  line-height: 1.45;
 }
 
 .vu-title-script-sm {
-  font-family: var(--font-caveat), "Segoe Script", cursive;
-  font-weight: 700;
+  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
   font-size: clamp(1.85rem, 1.25rem + 1.8vw, 2.85rem);
-  line-height: 1.04;
-  letter-spacing: 0.004em;
+  line-height: 1.08;
+  letter-spacing: -0.02em;
   text-wrap: balance;
 }
 
@@ -896,20 +989,20 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 
 /* Fluid display scale. Large sizes need tighter tracking to stay elegant. */
 .vu-display {
-  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 700;
+  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
   font-size: clamp(2.25rem, 1.15rem + 4.4vw, 4.75rem);
-  line-height: 1.03;
-  letter-spacing: -0.038em;
+  line-height: 1.06;
+  letter-spacing: -0.03em;
   text-wrap: balance;
 }
 
 .vu-display-sm {
-  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
-  font-weight: 700;
+  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-weight: 400;
   font-size: clamp(1.75rem, 1.2rem + 1.9vw, 2.85rem);
-  line-height: 1.08;
-  letter-spacing: -0.03em;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
   text-wrap: balance;
 }
 
@@ -1350,9 +1443,9 @@ button:hover .vu-media-zoom {
   --danger: #a93a29;
 
   /* The real departure here is the type, not the palette. */
-  --ui-display: var(--font-fraunces), "Iowan Old Style", Georgia, serif;
-  --ui-display-weight: 600;
-  --ui-display-tracking: -0.015em;
+  --ui-display: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  --ui-display-weight: 400;
+  --ui-display-tracking: -0.02em;
 
   color-scheme: light;
 }

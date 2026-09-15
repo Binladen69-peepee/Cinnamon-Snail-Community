@@ -20,7 +20,7 @@ export async function getNavSuggestions(): Promise<SearchSuggestion[]> {
         where: { published: true },
         orderBy: [{ liveAt: "asc" }, { title: "asc" }],
         take: 8,
-        select: { slug: true, title: true, liveAt: true },
+        select: { slug: true, title: true, liveAt: true, coverUrl: true },
       }),
     ]);
 
@@ -29,6 +29,13 @@ export async function getNavSuggestions(): Promise<SearchSuggestion[]> {
         label: nextLive.title,
         href: `/learn/${nextLive.slug}`,
         group: "Live classes",
+        detail: nextLive.liveAt
+          ? `Live class · ${nextLive.liveAt.toLocaleDateString(undefined, {
+              month: "long",
+              day: "numeric",
+            })}`
+          : "Live class",
+        imageUrl: courses.find((course) => course.slug === nextLive.slug)?.coverUrl,
         snippet: nextLive.liveAt
           ? `Live ${nextLive.liveAt.toLocaleDateString(undefined, {
               month: "long",
@@ -44,6 +51,8 @@ export async function getNavSuggestions(): Promise<SearchSuggestion[]> {
         label: course.title,
         href: `/learn/${course.slug}`,
         group: course.liveAt ? "Live classes" : "Classes",
+        detail: course.liveAt ? "Live class" : "Course",
+        imageUrl: course.coverUrl,
       });
     }
   } catch {
