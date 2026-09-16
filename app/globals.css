@@ -194,8 +194,10 @@
   --color-warning: var(--warning);
   --color-danger: var(--danger);
   --color-info: var(--accent);
-  --font-sans: var(--font-momo);
-  --font-display: var(--font-momo);
+  --font-sans: var(--font-poppins);
+  /* Tailwind `font-display` must not paint Momo onto prices, stats, or labels.
+     Major headings pick Momo up from the h1–h3 rules below. */
+  --font-display: var(--font-poppins);
   --font-hand: var(--font-caveat);
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
@@ -227,34 +229,51 @@ html {
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
   font-weight: 400;
+  font-synthesis: none;
 }
 
 :root {
   /* Type roles, so a candidate look can repoint them. Defaults are today's
      faces, which is why the marketing pages are unaffected. */
   --ui-display: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
-  --ui-display-weight: 400;
+  --ui-display-weight: 700;
   --ui-display-tracking: -0.02em;
+  --ui-copy: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
 }
 
+/* Momo bold only on major headings. Everything smaller — including h4–h6,
+   kickers, buttons, and body copy — is Poppins at regular weight. */
 h1,
 h2,
-h3,
-.font-display {
+h3 {
   font-family: var(--ui-display);
+  font-weight: 700;
+  font-synthesis: weight;
   letter-spacing: var(--ui-display-tracking);
 }
 
-/* Bold Momo only on large type. h4–h6 and other small copy stay regular so
-   the display face is not faux-bolded at caption size. */
 h4,
 h5,
 h6,
 [role="tab"] {
-  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--ui-copy);
   font-weight: 400;
+}
+
+.font-display {
+  font-family: var(--ui-copy);
+  font-weight: 400;
+}
+
+h1.font-display,
+h2.font-display,
+h3.font-display {
+  font-family: var(--ui-display);
+  font-weight: 700;
+  font-synthesis: weight;
+  letter-spacing: var(--ui-display-tracking);
 }
 
 .font-medium,
@@ -267,28 +286,18 @@ strong {
   font-weight: 400;
 }
 
-h1,
-h2,
-h3,
 h1.font-bold,
 h2.font-bold,
 h3.font-bold,
-.text-2xl,
-.text-3xl,
-.text-4xl,
-.text-5xl,
-.text-6xl,
-.text-7xl,
-.text-8xl,
-.text-9xl,
-.text-2xl.font-bold,
-.text-3xl.font-bold,
-.text-4xl.font-bold,
-.text-5xl.font-bold,
-.text-6xl.font-bold,
-.text-7xl.font-bold,
-.text-8xl.font-bold,
-.text-9xl.font-bold {
+h1.font-semibold,
+h2.font-semibold,
+h3.font-semibold,
+h1 b,
+h2 b,
+h3 b,
+h1 strong,
+h2 strong,
+h3 strong {
   font-weight: 700;
 }
 
@@ -612,7 +621,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 }
 
 .vu-wordmark-name {
-  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--ui-copy);
   font-size: 0.98rem;
   font-weight: 400;
   letter-spacing: -0.02em;
@@ -620,7 +629,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 
 .vu-wordmark-tag {
   margin-top: 0.15rem;
-  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--ui-copy);
   font-size: 9px;
   font-weight: 400;
   letter-spacing: 0.2em;
@@ -677,7 +686,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
   background: var(--background);
   padding: 0.12rem 0.4rem;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--foreground-muted);
 }
 
@@ -688,7 +697,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
   border: 0;
   background: transparent;
   color: var(--foreground);
-  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--ui-copy);
   font-size: 0.9rem;
   outline: none;
   box-shadow: none;
@@ -729,7 +738,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 .vu-nav-suggest-count {
   padding: 0.55rem 0.9rem 0.25rem;
   font-size: 11px;
-  font-weight: 600;
+  font-weight: 400;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--foreground-muted);
@@ -781,7 +790,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 
 .vu-nav-suggest-name {
   font-size: 0.92rem;
-  font-weight: 600;
+  font-weight: 400;
   color: var(--foreground);
 }
 
@@ -812,7 +821,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
   background: var(--background);
   padding: 0.18rem 0.5rem;
   font-size: 10px;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 /* Headline glow. Block-level: the speckle lives on the inner
@@ -994,8 +1003,9 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 
 /* Section titles use the site primary face. */
 .vu-title-script {
-  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--ui-display);
   font-weight: 700;
+  font-synthesis: weight;
   font-size: clamp(2.15rem, 1.1rem + 3.4vw, 3.75rem);
   line-height: 1.08;
   letter-spacing: -0.02em;
@@ -1003,7 +1013,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 }
 
 .vu-hero-live-title {
-  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--ui-copy);
   font-weight: 400;
   font-size: clamp(1.15rem, 0.95rem + 0.7vw, 1.45rem);
   letter-spacing: -0.015em;
@@ -1011,8 +1021,9 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 }
 
 .vu-title-script-sm {
-  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--ui-display);
   font-weight: 700;
+  font-synthesis: weight;
   font-size: clamp(1.85rem, 1.25rem + 1.8vw, 2.85rem);
   line-height: 1.08;
   letter-spacing: -0.02em;
@@ -1092,8 +1103,9 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 
 /* Fluid display scale. Large sizes need tighter tracking to stay elegant. */
 .vu-display {
-  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--ui-display);
   font-weight: 700;
+  font-synthesis: weight;
   font-size: clamp(2.25rem, 1.15rem + 4.4vw, 4.75rem);
   line-height: 1.06;
   letter-spacing: -0.03em;
@@ -1101,8 +1113,9 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 }
 
 .vu-display-sm {
-  font-family: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--ui-display);
   font-weight: 700;
+  font-synthesis: weight;
   font-size: clamp(1.75rem, 1.2rem + 1.9vw, 2.85rem);
   line-height: 1.1;
   letter-spacing: -0.025em;
@@ -1119,6 +1132,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 
 /* Section eyebrow. */
 .vu-kicker {
+  font-family: var(--ui-copy);
   font-size: 0.75rem;
   font-weight: 400;
   text-transform: uppercase;
@@ -1552,8 +1566,9 @@ button:hover .vu-media-zoom {
 
   /* The real departure here is the type, not the palette. */
   --ui-display: var(--font-momo), ui-sans-serif, system-ui, sans-serif;
-  --ui-display-weight: 400;
+  --ui-display-weight: 700;
   --ui-display-tracking: -0.02em;
+  --ui-copy: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
 
   color-scheme: light;
 }

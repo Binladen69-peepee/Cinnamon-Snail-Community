@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import {
   CANCEL_REASSURANCE,
@@ -310,5 +312,21 @@ describe("the reel", () => {
   it("does not sneak a member count into the reel copy", () => {
     const copy = `${REEL_QUOTE} ${REEL_SUPPORT} ${REEL_KICKER}`;
     expect(copy).not.toMatch(/\d[\d,]*\s*\+?\s*(members|students|cooks)\b/i);
+  });
+});
+
+describe("site typography", () => {
+  it("loads Poppins at 400 and Momo at the only Google weight", () => {
+    const layout = readFileSync(resolve(process.cwd(), "app/layout.tsx"), "utf8");
+    expect(layout).toMatch(/const poppins = Poppins\(\{[\s\S]*?weight:\s*\["400"\]/);
+    expect(layout).toMatch(/const momo = Momo_Trust_Display\(\{[\s\S]*?weight:\s*"400"/);
+  });
+
+  it("keeps Momo on h1–h3 and Poppins on everything smaller", () => {
+    const css = readFileSync(resolve(process.cwd(), "app/globals.css"), "utf8");
+    expect(css).toContain("--ui-copy: var(--font-poppins)");
+    expect(css).toMatch(/h1,\s*\n?h2,\s*\n?h3 \{[\s\S]*?font-family: var\(--ui-display\)/);
+    expect(css).toMatch(/h4,\s*\n?h5,\s*\n?h6,[\s\S]*?font-family: var\(--ui-copy\)/);
+    expect(css).toMatch(/body \{[\s\S]*?font-family: var\(--font-poppins\)/);
   });
 });

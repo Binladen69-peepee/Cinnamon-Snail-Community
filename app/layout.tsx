@@ -16,7 +16,7 @@ const inter = Inter({
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
-  weight: ["600", "700"],
+  weight: ["400"],
   display: "swap",
 });
 
@@ -42,6 +42,8 @@ const caveat = Caveat({
 const momo = Momo_Trust_Display({
   variable: "--font-momo",
   subsets: ["latin"],
+  // Google ships Display at 400 only. Headings still request 700 in CSS so
+  // the browser synthesizes the bold cut at h1–h3 size.
   weight: "400",
   display: "swap",
 });
