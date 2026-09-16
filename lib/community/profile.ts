@@ -66,6 +66,9 @@ export async function getMemberProfile(viewerId: string, handle: string) {
     lessonActivity,
     courseActivity,
     mySpaces,
+    followers,
+    following,
+    viewerFollow,
   ] = await Promise.all([
     prisma.post.count({
       where: { authorId: user.id, status: "PUBLISHED", publishedAt: { not: null } },
@@ -106,6 +109,19 @@ export async function getMemberProfile(viewerId: string, handle: string) {
             space: { id: string; name: string; slug: string };
           }[],
         ),
+    prisma.follow.count({ where: { followingId: user.id } }),
+    prisma.follow.count({ where: { followerId: user.id } }),
+    isOwner
+      ? Promise.resolve(null)
+      : prisma.follow.findUnique({
+          where: {
+            followerId_followingId: {
+              followerId: viewerId,
+              followingId: user.id,
+            },
+          },
+          select: { id: true },
+        }),
   ]);
 
   const interests = privacy.showInterests
@@ -175,7 +191,10 @@ export async function getMemberProfile(viewerId: string, handle: string) {
       courses: courseCount,
       posts: postCount,
       badges: user.memberBadges.length,
+      followers,
+      following,
     },
+    viewerIsFollowing: Boolean(viewerFollow),
     badges: user.memberBadges.map((row) => ({
       id: row.id,
       name: row.badge.name,

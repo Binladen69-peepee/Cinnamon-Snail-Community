@@ -32,7 +32,7 @@ export default async function MemberProfilePage({
   };
 
   return (
-    <AppShell wide>
+    <AppShell wide flush>
       <ProfileView
         profile={profile}
         viewer={viewer}

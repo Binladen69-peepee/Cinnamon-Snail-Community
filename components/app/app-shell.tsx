@@ -16,11 +16,14 @@ export async function AppShell({
   children,
   rail,
   wide = false,
+  flush = false,
 }: {
   children: React.ReactNode;
   rail?: React.ReactNode;
   /** Profile and other multi-column pages need more than the feed column. */
   wide?: boolean;
+  /** Edge-to-edge content (profile cover sits flush under the header). */
+  flush?: boolean;
 }) {
   const session = await auth();
   if (!session?.sessionId) redirect("/login");
@@ -52,21 +55,26 @@ export async function AppShell({
         <div
           className={cn(
             "mx-auto flex w-full",
-            wide ? "max-w-[1200px]" : rail ? "max-w-[1400px]" : "max-w-[1100px]",
+            wide || flush ? "max-w-none" : rail ? "max-w-[1400px]" : "max-w-[1100px]",
           )}
         >
-          <main className="min-w-0 flex-1 px-3 py-5 pb-24 sm:px-6 md:pb-6">
+          <main
+            className={cn(
+              "min-w-0 flex-1 pb-24 md:pb-6",
+              flush ? "px-0 pt-0" : "px-3 py-5 sm:px-6",
+            )}
+          >
             <div
               className={cn(
                 "mx-auto w-full",
-                wide ? "max-w-none" : "max-w-[680px]",
+                wide || flush ? "max-w-none" : "max-w-[680px]",
               )}
             >
               {children}
             </div>
           </main>
 
-          {rail && !wide ? (
+          {rail && !wide && !flush ? (
             <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[300px] shrink-0 overflow-y-auto py-5 pr-4 xl:block">
               {rail}
             </aside>

@@ -194,6 +194,8 @@ model User {
   cancellationRequests CancellationRequest[]
   blocksMade           UserBlock[]             @relation("BlocksMade")
   blocksAgainst        UserBlock[]             @relation("BlocksAgainst")
+  followsMade          Follow[]                @relation("FollowsMade")
+  followsReceived      Follow[]                @relation("FollowsReceived")
   reportsAbout         Report[]                @relation("ReportSubject")
   cohortMemberships    CohortMember[]
   matchesOwned         MemberMatch[]           @relation("MatchOwner")
@@ -811,6 +813,20 @@ model UserBlock {
 
   @@unique([blockerId, blockedId])
   @@index([blockedId])
+}
+
+/// Member A follows member B. Used for profile counts and the Follow button.
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String
+  followingId String
+  createdAt   DateTime @default(now())
+  follower    User     @relation("FollowsMade", fields: [followerId], references: [id], onDelete: Cascade)
+  following   User     @relation("FollowsReceived", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@index([followingId, createdAt])
+  @@index([followerId, createdAt])
 }
 
 model Product {
