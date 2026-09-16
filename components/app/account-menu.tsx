@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CreditCard, LogOut, Settings, User } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const LINKS = [
   { href: "/settings", label: "Settings", icon: Settings },
@@ -93,6 +94,8 @@ export function AccountMenu({
               {link.label}
             </Link>
           ))}
+
+          <ThemeToggle variant="menu" />
 
           <form action={signOutAction} className="border-t border-border">
             <button

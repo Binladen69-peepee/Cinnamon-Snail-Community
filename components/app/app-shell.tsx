@@ -5,11 +5,12 @@ import { totalUnreadForUser } from "@/lib/messages/conversations";
 import { AppHeader } from "@/components/app/app-header";
 import { SideRail } from "@/components/app/side-rail";
 import { MobileTabs } from "@/components/app/mobile-tabs";
+import { ThemeFab } from "@/components/app/theme-fab";
 import { cn } from "@/lib/utils";
 
 /**
  * Member frame: fixed left destinations, scrolling feed, optional discovery
- * rail. Theme comes from next-themes on <html> (system light/dark).
+ * rail. Theme is toggled from the account menu / FAB (not the top navbar).
  */
 export async function AppShell({
   children,
@@ -64,6 +65,7 @@ export async function AppShell({
       </div>
 
       <MobileTabs />
+      <ThemeFab />
     </div>
   );
 }

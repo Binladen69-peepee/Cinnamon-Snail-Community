@@ -669,6 +669,59 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
   min-width: 1px;
 }
 
+/* Reddit-style reply graph: vertical spine + curved L into each child avatar. */
+.vu-thread-replies {
+  position: relative;
+  margin: 0.35rem 0 0;
+  padding: 0;
+  list-style: none;
+  /* Align the spine with the center of the 2rem (w-8) parent avatar column. */
+  margin-left: 0.95rem;
+}
+
+.vu-thread-node {
+  position: relative;
+  padding-left: 1.35rem;
+  padding-top: 0.55rem;
+}
+
+.vu-thread-curve {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 1.1rem;
+  /* Reach the vertical center of the child avatar (32px / 2 + padding). */
+  height: calc(0.55rem + 1rem);
+  border-left: 1px solid color-mix(in oklab, var(--foreground) 22%, transparent);
+  border-bottom: 1px solid color-mix(in oklab, var(--foreground) 22%, transparent);
+  border-bottom-left-radius: 0.7rem;
+  pointer-events: none;
+}
+
+.vu-thread-spine {
+  position: absolute;
+  left: 0;
+  top: calc(0.55rem + 1rem);
+  bottom: 0;
+  width: 0;
+  border-left: 1px solid color-mix(in oklab, var(--foreground) 22%, transparent);
+  pointer-events: none;
+}
+
+.vu-thread-node.is-last > .vu-thread-spine {
+  display: none;
+}
+
+.vu-thread-node:hover > .vu-thread-curve,
+.vu-thread-node:hover > .vu-thread-spine {
+  border-color: color-mix(in oklab, var(--brand) 70%, transparent);
+}
+
+.dark .vu-thread-curve,
+.dark .vu-thread-spine {
+  border-color: color-mix(in oklab, var(--foreground) 28%, transparent);
+}
+
 [data-app-header] .vu-nav-search-shell {
   height: 2.5rem;
   border-radius: 999px;

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const columns = [
   {
@@ -69,6 +70,13 @@ export function MarketingFooter() {
             </div>
           ))}
         </div>
+        </div>
+        <div className="vu-shell flex items-center justify-between gap-3 border-t border-white/10 py-5">
+          <p className="text-xs text-white/55">Theme follows your choice — light or dark.</p>
+          <ThemeToggle
+            variant="icon"
+            className="text-white/80 hover:bg-white/10 hover:text-white"
+          />
         </div>
       </div>
     </footer>

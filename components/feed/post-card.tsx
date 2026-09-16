@@ -82,6 +82,23 @@ export function PostCard({
   const SpaceIcon =
     SPACE_KIND_ICON[(post.space.kind ?? "FEED") as keyof typeof SPACE_KIND_ICON];
 
+  const galleryPayload = {
+    id: post.id,
+    title: post.title,
+    bodyHtml: post.bodyHtml,
+    plainText: post.plainText,
+    score: post.score,
+    myVote: post.myVote,
+    myReaction: post.myReaction,
+    reactionCounts: post.reactionCounts,
+    myBookmark: post.myBookmark,
+    publishedAt: post.publishedAt,
+    createdAt: post.createdAt,
+    author: post.author,
+    space: { name: post.space.name, slug: post.space.slug },
+    _count: { comments: post._count.comments },
+  };
+
   return (
     <article
       className={cn(
@@ -195,10 +212,25 @@ export function PostCard({
               ) : null}
             </div>
 
-            {compact ? <PostMedia items={media} postId={post.id} compact /> : null}
+            {compact ? (
+              <PostMedia
+                items={media}
+                postId={post.id}
+                compact
+                galleryPost={galleryPayload}
+                viewer={viewer}
+              />
+            ) : null}
           </div>
 
-          {!compact ? <PostMedia items={media} postId={post.id} /> : null}
+          {!compact ? (
+            <PostMedia
+              items={media}
+              postId={post.id}
+              galleryPost={galleryPayload}
+              viewer={viewer}
+            />
+          ) : null}
 
           {!compact && webLink ? (
             <a

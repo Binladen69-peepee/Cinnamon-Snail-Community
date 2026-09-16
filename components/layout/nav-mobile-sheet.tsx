@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Menu, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { CHECKOUT_LABEL, CHECKOUT_URL } from "@/lib/marketing/checkout";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 /**
  * Mobile navigation as a slide-down sheet.
@@ -99,6 +100,10 @@ export function NavMobileSheet({
             </ul>
 
             <div className="mt-5 border-t border-sand pt-5">
+              <div className="mb-3 flex items-center justify-between rounded-card px-4 py-2">
+                <span className="text-sm font-semibold text-foreground">Appearance</span>
+                <ThemeToggle variant="icon" />
+              </div>
               {signedIn ? (
                 <Link
                   href="/settings"
