@@ -39,6 +39,8 @@ export const VIDEO_MAX_BYTES = 50 * 1024 * 1024;
 
 /** For the file input's accept attribute. */
 export const ACCEPT = Object.keys(ALLOWED_TYPES).join(",");
+export const IMAGE_ACCEPT = Object.keys(IMAGE_TYPES).join(",");
+export const VIDEO_ACCEPT = Object.keys(VIDEO_TYPES).join(",");
 
 export type UploadKind = "image" | "video";
 

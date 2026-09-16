@@ -4,6 +4,7 @@ import { formatShortTime } from "@/lib/community/format-count";
 import { PostFooter } from "@/components/feed/post-footer";
 import { PostMedia } from "@/components/feed/post-media";
 import { PostMenu } from "@/components/feed/post-menu";
+import { SaveMark } from "@/components/feed/save-mark";
 import { VoteRail } from "@/components/feed/vote-rail";
 import { SPACE_KIND_ICON } from "@/lib/spaces/kinds";
 import type { Density } from "@/components/feed/feed-toolbar";
@@ -109,8 +110,11 @@ export function PostCard({
         </p>
       ) : null}
 
-      <div className={cn("flex gap-1.5", compact ? "p-2" : "p-2.5")}>
-        <VoteRail postId={post.id} score={post.score} myVote={post.myVote ?? 0} />
+      <div className={cn("flex gap-1", compact ? "p-2.5" : "p-3")}>
+        <div className="flex shrink-0 flex-col items-center gap-1">
+          <VoteRail postId={post.id} score={post.score} myVote={post.myVote ?? 0} />
+          <SaveMark postId={post.id} saved={post.myBookmark ?? false} />
+        </div>
 
         <div className="min-w-0 flex-1">
           {/* Meta line: room, then person, then when. */}
@@ -160,9 +164,9 @@ export function PostCard({
           <div className={cn(compact && "flex items-start gap-2.5")}>
             <div className="min-w-0 flex-1">
               {post.title ? (
-                <h2
+                <p
                   className={cn(
-                    "mt-0.5 font-display font-bold leading-[1.25] tracking-[-0.015em] text-foreground",
+                    "mt-0.5 leading-[1.3] tracking-[-0.015em] text-foreground",
                     compact ? "text-[15px]" : "text-[17px]",
                   )}
                 >
@@ -172,7 +176,7 @@ export function PostCard({
                   >
                     {post.title}
                   </Link>
-                </h2>
+                </p>
               ) : null}
 
               {post.plainText ? (

@@ -37,7 +37,10 @@ export async function AppHeader() {
   const name = session.user.name || session.user.handle;
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-surface">
+    <header
+      data-app-header
+      className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-md"
+    >
       <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-3 px-3 sm:gap-4 sm:px-4">
         <BrandMark href="/home" className="shrink-0" />
 
@@ -46,11 +49,9 @@ export async function AppHeader() {
         </div>
 
         <div className="ml-auto flex shrink-0 items-center gap-1">
-          {/* Create is a first-class action in the bar, not something you find
-              inside a page. */}
           <Link
             href="/compose"
-            className="mr-1 hidden h-9 items-center gap-1.5 rounded-full bg-forest px-3.5 text-[13.5px] font-bold text-paper no-underline transition hover:bg-deep-forest sm:inline-flex dark:bg-brand dark:text-on-brand dark:hover:bg-brand-strong"
+            className="mr-1 hidden h-9 items-center gap-1.5 rounded-full bg-forest px-3.5 text-[13.5px] text-paper no-underline transition hover:bg-deep-forest sm:inline-flex dark:bg-[#fff8ef] dark:text-[#0f3d32] dark:hover:bg-white"
           >
             <Plus className="size-4" aria-hidden />
             Create

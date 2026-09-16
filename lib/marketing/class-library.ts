@@ -214,6 +214,19 @@ export function resolveClassPhoto(url: string | null | undefined): string | null
   return url;
 }
 
+/** A real still for a live class or event, only when the title matches the sheet. */
+export function photoForKnownClass(
+  title: string,
+  coverUrl?: string | null,
+): string | null {
+  const cover = resolveClassPhoto(coverUrl);
+  if (cover) return cover;
+  const match = CLASS_LIBRARY.find(
+    (cls) => cls.title.toLowerCase() === title.trim().toLowerCase(),
+  );
+  return resolveClassPhoto(match?.thumbnailUrl);
+}
+
 /** Play the spreadsheet embed after a click, without rewriting the host or id. */
 export function playingEmbedSrc(embedUrl: string): string {
   const joiner = embedUrl.includes("?") ? "&" : "?";

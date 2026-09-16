@@ -9,32 +9,33 @@ import {
   ChevronDown,
   ClipboardList,
   Compass,
-  Handshake,
   Hash,
   Home,
+  Leaf,
   Map,
   MessageSquare,
-  Star,
+  UserRound,
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { LeafCluster } from "@/components/marketing/hero-decor";
 import { SPACE_KIND_ICON } from "@/lib/spaces/kinds";
 import type { NavSpace, SpaceGroupWithSpaces } from "@/lib/spaces";
 import { cn } from "@/lib/utils";
 
-type Link = { href: string; label: string; icon: LucideIcon };
+type Dest = { href: string; label: string; icon: LucideIcon };
 
-const PRIMARY: Link[] = [
+const PRIMARY: Dest[] = [
   { href: "/home", label: "Home", icon: Home },
   { href: "/discover", label: "Discover", icon: Compass },
 ];
 
-const SECTIONS: { label: string; links: Link[] }[] = [
+const SECTIONS: { label: string; links: Dest[] }[] = [
   {
     label: "Community",
     links: [
       { href: "/spaces", label: "Spaces", icon: Users },
-      { href: "/members", label: "Members", icon: Handshake },
+      { href: "/members", label: "Members", icon: UserRound },
       { href: "/messages", label: "Messages", icon: MessageSquare },
     ],
   },
@@ -53,16 +54,9 @@ const SECTIONS: { label: string; links: Link[] }[] = [
 ];
 
 /**
- * The left rail.
- *
- * Reddit's arrangement: a short list of destinations, then your communities,
- * grouped and collapsible. Denser than the old rail — 32px rows rather than
- * 40 — because the rail's job is to be scannable, and a taller row means fewer
- * rooms visible before you have to scroll.
- *
- * Everything below the destinations comes from `lib/spaces`, which survived the
- * rebuild: favourites pinned, groups collapsible and remembered, unread counts
- * on every row, and a collapsed group still reporting what is waiting inside it.
+ * Member destinations, in the shadcn sidebar shape: grouped labels, quiet
+ * rows, a filled pill for the page you are on. Spaces sit under one heading
+ * so the rail matches the feed mock without a second "Favourites" block.
  */
 export function SideRail({
   favorites,
@@ -100,90 +94,117 @@ export function SideRail({
       ? pathname === "/home"
       : pathname === href || pathname.startsWith(`${href}/`);
 
+  const favoriteIds = new Set(favorites.map((space) => space.id));
+  const spaceGroups: { id: string | null; name: string; spaces: NavSpace[] }[] =
+    favorites.length > 0
+      ? [
+          { id: "favorites", name: "Spaces", spaces: favorites },
+          ...groups
+            .map((group) => ({
+              id: group.id,
+              name: group.name,
+              spaces: group.spaces.filter((space) => !favoriteIds.has(space.id)),
+            }))
+            .filter((group) => group.spaces.length > 0),
+        ]
+      : groups.map((group) => ({
+          id: group.id,
+          name: group.name,
+          spaces: group.spaces,
+        }));
+
   return (
-    <nav aria-label="Main" className="space-y-4 pb-8 text-[13.5px]">
-      <ul className="space-y-0.5">
-        {PRIMARY.map((link) => (
-          <Row
-            key={link.href}
-            href={link.href}
-            label={link.label}
-            icon={link.icon}
-            active={active(link.href)}
-            count={unread[link.href] ?? 0}
-          />
-        ))}
-      </ul>
+    <div className="flex h-full min-h-0 flex-col">
+      <nav aria-label="Main" className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-2 py-1">
+        <ul className="flex flex-col gap-0.5">
+          {PRIMARY.map((link) => (
+            <Row
+              key={link.href}
+              href={link.href}
+              label={link.label}
+              icon={link.icon}
+              active={active(link.href)}
+              count={unread[link.href] ?? 0}
+            />
+          ))}
+        </ul>
 
-      {SECTIONS.map((section) => (
-        <div key={section.label} className="border-t border-border/60 pt-3">
-          <p className="px-2.5 pb-1 text-[10.5px] font-bold uppercase tracking-[0.14em] text-foreground-muted">
-            {section.label}
-          </p>
-          <ul className="space-y-0.5">
-            {section.links.map((link) => (
-              <Row
-                key={link.href}
-                href={link.href}
-                label={link.label}
-                icon={link.icon}
-                active={active(link.href)}
-                count={unread[link.href] ?? 0}
-              />
-            ))}
-          </ul>
-        </div>
-      ))}
-
-      {favorites.length > 0 ? (
-        <div className="border-t border-border/60 pt-3">
-          <p className="flex items-center gap-1.5 px-2.5 pb-1 text-[10.5px] font-bold uppercase tracking-[0.14em] text-foreground-muted">
-            <Star className="size-2.5 fill-current" aria-hidden />
-            Favourites
-          </p>
-          <ul className="space-y-0.5">
-            {favorites.map((space) => (
-              <SpaceRow key={space.id} space={space} pathname={pathname} />
-            ))}
-          </ul>
-        </div>
-      ) : null}
-
-      {groups.map((group) => {
-        const key = group.id ?? "ungrouped";
-        const isCollapsed = collapsed[key] ?? false;
-        const groupUnread = group.spaces.reduce((sum, s) => sum + s.unread, 0);
-        return (
-          <div key={key} className="border-t border-border/60 pt-3">
-            <button
-              type="button"
-              onClick={() => toggle(key)}
-              aria-expanded={!isCollapsed}
-              className="flex w-full items-center gap-1 px-2.5 pb-1 text-[10.5px] font-bold uppercase tracking-[0.14em] text-foreground-muted transition hover:text-foreground"
-            >
-              <ChevronDown
-                className={cn(
-                  "size-2.5 shrink-0 transition-transform",
-                  isCollapsed && "-rotate-90",
-                )}
-                aria-hidden
-              />
-              <span className="min-w-0 truncate">{group.name}</span>
-              {isCollapsed && groupUnread > 0 ? (
-                <Badge count={groupUnread} className="ml-auto" />
-              ) : null}
-            </button>
-            {!isCollapsed ? (
-              <ul className="space-y-0.5">
-                {group.spaces.map((space) => (
-                  <SpaceRow key={space.id} space={space} pathname={pathname} />
-                ))}
-              </ul>
-            ) : null}
+        {SECTIONS.map((section) => (
+          <div key={section.label} className="flex flex-col gap-1">
+            <p className="px-2 text-[11px] uppercase tracking-[0.14em] text-sidebar-foreground/45">
+              {section.label}
+            </p>
+            <ul className="flex flex-col gap-0.5">
+              {section.links.map((link) => (
+                <Row
+                  key={link.href}
+                  href={link.href}
+                  label={link.label}
+                  icon={link.icon}
+                  active={active(link.href)}
+                  count={unread[link.href] ?? 0}
+                />
+              ))}
+            </ul>
           </div>
-        );
-      })}
-    </nav>
+        ))}
+
+        {spaceGroups.map((group, index) => {
+          const key = group.id ?? "ungrouped";
+          const heading = index === 0 ? "Spaces" : group.name;
+          const isCollapsed = collapsed[key] ?? false;
+          const groupUnread = group.spaces.reduce((sum, space) => sum + space.unread, 0);
+          const collapsible = spaceGroups.length > 1 && key !== "favorites";
+
+          return (
+            <div key={key} className="flex flex-col gap-1">
+              {collapsible ? (
+                <button
+                  type="button"
+                  onClick={() => toggle(key)}
+                  aria-expanded={!isCollapsed}
+                  className="flex w-full items-center gap-1 px-2 text-[11px] uppercase tracking-[0.14em] text-sidebar-foreground/45 transition hover:text-sidebar-foreground"
+                >
+                  <ChevronDown
+                    className={cn(
+                      "size-3 shrink-0 transition-transform",
+                      isCollapsed && "-rotate-90",
+                    )}
+                    aria-hidden
+                  />
+                  <span className="min-w-0 truncate">{heading}</span>
+                  {isCollapsed && groupUnread > 0 ? (
+                    <Badge count={groupUnread} className="ml-auto" />
+                  ) : null}
+                </button>
+              ) : (
+                <p className="px-2 text-[11px] uppercase tracking-[0.14em] text-sidebar-foreground/45">
+                  {heading}
+                </p>
+              )}
+              {!isCollapsed ? (
+                <ul className="flex flex-col gap-0.5">
+                  {group.spaces.map((space) => (
+                    <SpaceRow key={space.id} space={space} pathname={pathname} />
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+          );
+        })}
+      </nav>
+
+      <p className="relative mt-auto overflow-hidden px-3 pb-4 pt-8 text-[13px] leading-snug text-sidebar-foreground/40">
+        <LeafCluster className="pointer-events-none absolute -left-6 bottom-1 w-24 rotate-[-18deg] text-brand/25" />
+        <LeafCluster className="pointer-events-none absolute -right-4 top-2 w-20 rotate-[22deg] text-brand/20" />
+        <span className="relative inline-flex items-center gap-1.5 font-hand text-[1.05rem] text-sidebar-foreground/70">
+          <Leaf className="size-3.5" aria-hidden />
+          Better food.
+          <br />
+          Kinder planet.
+        </span>
+      </p>
+    </div>
   );
 }
 
@@ -206,17 +227,14 @@ function Row({
         href={href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex min-h-8 items-center gap-2.5 rounded-ctl px-2.5 py-1.5 no-underline transition",
-          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+          "flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] no-underline transition",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring",
           active
-            ? "bg-brand-wash font-bold text-brand-strong"
-            : "font-semibold text-foreground-muted hover:bg-mint hover:text-foreground",
+            ? "bg-sidebar-accent text-sidebar-accent-foreground"
+            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
         )}
       >
-        <Icon
-          className={cn("size-[1.05rem] shrink-0", active && "text-brand")}
-          aria-hidden
-        />
+        <Icon className="size-4 shrink-0" aria-hidden />
         <span className="min-w-0 flex-1 truncate">{label}</span>
         {count > 0 ? <Badge count={count} /> : null}
       </Link>
@@ -235,19 +253,16 @@ function SpaceRow({ space, pathname }: { space: NavSpace; pathname: string }) {
         href={href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex min-h-8 items-center gap-2.5 rounded-ctl px-2.5 py-1.5 no-underline transition",
-          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+          "flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] no-underline transition",
+          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring",
           active
-            ? "bg-brand-wash font-bold text-brand-strong"
+            ? "bg-sidebar-accent text-sidebar-accent-foreground"
             : space.unread > 0
-              ? "font-bold text-foreground hover:bg-mint"
-              : "font-semibold text-foreground-muted hover:bg-mint hover:text-foreground",
+              ? "text-sidebar-foreground hover:bg-sidebar-accent/60"
+              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
         )}
       >
-        <Icon
-          className={cn("size-[0.95rem] shrink-0", active && "text-brand")}
-          aria-hidden
-        />
+        <Icon className="size-4 shrink-0 opacity-80" aria-hidden />
         <span className="min-w-0 flex-1 truncate">{space.name}</span>
         {space.unread > 0 ? <Badge count={space.unread} /> : null}
       </Link>
@@ -259,7 +274,7 @@ function Badge({ count, className }: { count: number; className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex min-w-[1.1rem] shrink-0 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold tabular-nums text-on-brand",
+        "inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-brand text-[10px] tabular-nums text-on-brand",
         className,
       )}
     >

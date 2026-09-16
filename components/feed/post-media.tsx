@@ -41,9 +41,19 @@ export function PostMedia({
       <Link
         href={`/posts/${postId}`}
         aria-label={first.alt || "View post media"}
-        className="relative block size-[72px] shrink-0 overflow-hidden rounded-ctl border border-border bg-mint no-underline"
+        className="relative block size-[7rem] shrink-0 overflow-hidden rounded-xl border border-border bg-mint no-underline"
       >
         <Frame item={first} fill />
+        {first.kind === "video" ? (
+          <span
+            className="pointer-events-none absolute inset-0 grid place-items-center bg-[rgba(9,20,16,0.28)]"
+            aria-hidden
+          >
+            <span className="grid size-8 place-items-center rounded-full bg-white/90 text-forest">
+              <Play className="size-3.5 translate-x-px" />
+            </span>
+          </span>
+        ) : null}
         {items.length > 1 ? (
           <span className="absolute bottom-0 right-0 bg-[rgba(9,20,16,0.7)] px-1 text-[10px] font-bold text-white">
             {items.length}

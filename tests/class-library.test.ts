@@ -11,6 +11,7 @@ import {
   membershipGallery,
   libraryShelves,
   playingEmbedSrc,
+  photoForKnownClass,
   resolveClassPhoto,
   searchClasses,
   shelfForTitle,
@@ -38,6 +39,15 @@ describe("spreadsheet class library", () => {
       expect(youTubeId(cls.teaserUrl)).toHaveLength(11);
       expect(cls.durationSeconds).toBeGreaterThan(0);
     }
+  });
+
+  it("only attaches a still to a live class whose title is on the sheet", () => {
+    const known = CLASS_LIBRARY[0]!;
+    expect(photoForKnownClass(known.title)).toBe(known.thumbnailUrl);
+    expect(photoForKnownClass("Seeded potluck 6")).toBeNull();
+    expect(photoForKnownClass(known.title, "https://images.unsplash.com/x.jpg")).toBe(
+      known.thumbnailUrl,
+    );
   });
 
   it("formats teaser lengths without inventing minutes", () => {

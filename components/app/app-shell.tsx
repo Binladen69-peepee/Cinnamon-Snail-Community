@@ -13,18 +13,9 @@ import { LookSwitcher } from "@/components/app/look-switcher";
 /**
  * The member app frame.
  *
- * Reddit's three columns: a rail of destinations and communities, the content,
- * and a discovery rail the page fills in itself. The content column is capped
- * rather than elastic — a feed line that runs 1200px wide is unreadable, and
- * the extra width is better spent on the rails.
- *
- * The right rail is a slot rather than a fixed component, because what belongs
- * beside a page depends on the page: a space shows its About card, the feed
- * shows what to do next, and a settings screen wants nothing there at all.
- *
- * The candidate look is read here and stamped on this element, not on <html>:
- * the marketing site keeps its own identity and must never inherit the
- * attribute. Reading it on the server means no flash of the previous theme.
+ * Three columns: a shadcn-style destination sidebar docked on the left, the
+ * feed, and a discovery rail the page fills in. The sidebar is a real column
+ * (full remaining viewport, own scroll) so it stays put while the feed moves.
  */
 export async function AppShell({
   children,
@@ -53,33 +44,25 @@ export async function AppShell({
     >
       <AppHeader />
 
-      <div className="mx-auto flex max-w-[1600px] gap-5 px-3 sm:px-4">
-        {/* Sticks under the 56px bar and scrolls on its own, so a long list of
-            spaces never pushes the destinations out of reach. */}
-        <aside className="hidden w-[232px] shrink-0 lg:block">
-          <div className="sticky top-14 max-h-[calc(100vh-3.5rem)] overflow-y-auto py-4 pr-1">
-            <SideRail
-              favorites={nav.favorites}
-              groups={nav.groups}
-              unread={{
-                "/messages": unreadMessages,
-                "/spaces": nav.totalUnread,
-              }}
-            />
-          </div>
+      <div className="mx-auto flex max-w-[1600px]">
+        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
+          <SideRail
+            favorites={nav.favorites}
+            groups={nav.groups}
+            unread={{
+              "/messages": unreadMessages,
+              "/spaces": nav.totalUnread,
+            }}
+          />
         </aside>
 
-        <main className="min-w-0 flex-1 py-4 pb-24 md:pb-4">
-          {/* 720px: comfortable for a feed line at 15px, and the width Reddit
-              settles on for its own content column. */}
+        <main className="min-w-0 flex-1 px-3 py-4 pb-24 sm:px-5 md:pb-4">
           <div className="mx-auto w-full max-w-[720px]">{children}</div>
         </main>
 
         {rail ? (
-          <aside className="hidden w-[300px] shrink-0 xl:block">
-            <div className="sticky top-14 max-h-[calc(100vh-3.5rem)] overflow-y-auto py-4">
-              {rail}
-            </div>
+          <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[320px] shrink-0 overflow-y-auto border-l border-border/60 px-4 py-4 xl:block">
+            {rail}
           </aside>
         ) : null}
       </div>

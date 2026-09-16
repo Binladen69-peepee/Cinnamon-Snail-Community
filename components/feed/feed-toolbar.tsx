@@ -54,10 +54,10 @@ export function FeedToolbar({
               href={`${basePath.split("?")[0]}?sort=${item.value}`}
               aria-current={active ? "page" : undefined}
               className={cn(
-                "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] font-bold no-underline transition",
+                "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] no-underline transition",
                 "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
                 active
-                  ? "bg-brand-wash text-brand"
+                  ? "bg-forest text-paper dark:bg-brand dark:text-on-brand"
                   : "text-foreground-muted hover:bg-mint hover:text-foreground",
               )}
             >

@@ -4,8 +4,10 @@ import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { listFeed } from "@/lib/community/posts";
 import { parseFeedSort } from "@/lib/community/sort";
-import { getContinueLearning } from "@/lib/learn/catalog";
 import { peopleYouShouldMeet } from "@/lib/social/suggestions";
+import { trendingSpaces } from "@/lib/community/trending";
+import { photoForKnownClass } from "@/lib/marketing/class-library";
+import { getNextLiveClass } from "@/lib/marketing/catalog";
 import { uploadsConfigured } from "@/lib/uploads/storage";
 import { AppShell } from "@/components/app/app-shell";
 import { Composer } from "@/components/feed/composer";
@@ -41,13 +43,8 @@ export default async function HomePage({
       rail={
         <FeedRail
           events={data.events}
-          progress={data.progress.map((item) => ({
-            courseSlug: item.course.slug,
-            courseTitle: item.course.title,
-            percent: item.percent,
-          }))}
           suggestions={data.suggestions}
-          spaces={data.joinable}
+          trending={data.trending}
         />
       }
     >
@@ -89,7 +86,7 @@ export default async function HomePage({
  */
 async function readDensity(): Promise<Density> {
   const store = await cookies();
-  return store.get("vu-density")?.value === "compact" ? "compact" : "card";
+  return store.get("vu-density")?.value === "card" ? "card" : "compact";
 }
 
 /**
@@ -101,66 +98,68 @@ async function readDensity(): Promise<Density> {
 async function loadFeed(userId: string, sort: ReturnType<typeof parseFeedSort>) {
   const runningSince = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
-  const [feed, mySpaces, joinable, events, progress, suggestions] = await Promise.all([
+  const [feed, mySpaces, events, suggestions, trending, nextLive] = await Promise.all([
     listFeed({ userId, sort, take: 25 }),
-    // Only spaces this member can actually post in.
     prisma.space.findMany({
       where: { memberships: { some: { userId } } },
       orderBy: { sortOrder: "asc" },
       select: { id: true, name: true, slug: true },
     }),
-    // Open rooms they have not joined, for the rail.
-    prisma.space.findMany({
-      where: {
-        visibility: { in: ["PUBLIC", "MEMBERS"] },
-        memberships: { none: { userId } },
-      },
-      orderBy: { sortOrder: "asc" },
-      take: 4,
-      select: {
-        id: true,
-        name: true,
-        slug: true,
-        kind: true,
-        _count: { select: { memberships: true } },
-      },
-    }),
     prisma.event.findMany({
       where: { startsAt: { gte: runningSince } },
       orderBy: { startsAt: "asc" },
       take: 2,
-      select: { id: true, title: true, startsAt: true, endsAt: true },
+      select: {
+        id: true,
+        title: true,
+        startsAt: true,
+        endsAt: true,
+        coverUrl: true,
+        space: { select: { slug: true } },
+      },
     }),
-    getContinueLearning(userId),
     peopleYouShouldMeet(userId, 3),
+    trendingSpaces(userId, 5),
+    getNextLiveClass().catch(() => null),
   ]);
 
   const now = Date.now();
+  const fromEvents = events.map((event) => ({
+    id: event.id,
+    title: event.title,
+    startsAt: event.startsAt,
+    live:
+      event.startsAt.getTime() <= now &&
+      (event.endsAt
+        ? event.endsAt.getTime() >= now
+        : now - event.startsAt.getTime() < 60 * 60 * 1000),
+    href: event.space?.slug ? `/spaces/${event.space.slug}` : "/calendar",
+    coverUrl: photoForKnownClass(event.title, event.coverUrl),
+  }));
+
+  const liveClass =
+    fromEvents.length > 0
+      ? fromEvents
+      : nextLive?.liveAt
+        ? [
+            {
+              id: nextLive.slug,
+              title: nextLive.title,
+              startsAt: nextLive.liveAt,
+              live: false,
+              href: `/learn/${nextLive.slug}`,
+              coverUrl: photoForKnownClass(nextLive.title),
+            },
+          ]
+        : [];
 
   return {
     posts: feed.posts,
     mySpaces,
     defaultSpaceId:
       mySpaces.find((space) => space.slug === "kitchen-table")?.id ?? mySpaces[0]?.id,
-    joinable: joinable.map((space) => ({
-      name: space.name,
-      slug: space.slug,
-      kind: space.kind,
-      memberCount: space._count.memberships,
-    })),
-    events: events.map((event) => ({
-      id: event.id,
-      title: event.title,
-      startsAt: event.startsAt,
-      // Live while running, or for an hour after it starts when no end time was
-      // set — a class with no endsAt is still a class in progress.
-      live:
-        event.startsAt.getTime() <= now &&
-        (event.endsAt
-          ? event.endsAt.getTime() >= now
-          : now - event.startsAt.getTime() < 60 * 60 * 1000),
-    })),
-    progress,
+    events: liveClass,
     suggestions,
+    trending,
   };
 }
