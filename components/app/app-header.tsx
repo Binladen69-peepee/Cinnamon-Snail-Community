@@ -10,15 +10,8 @@ import { Avatar } from "@/components/ui/avatar";
 import { AccountMenu } from "@/components/app/account-menu";
 
 /**
- * The member app bar.
- *
- * Separate from the marketing `AppNav`, which serves the sales pages and has to
- * be transparent over a hero video. This one is a fixed, opaque band: the app
- * is a tool, and its chrome should not animate or get out of the way.
- *
- * Three tracks, Reddit's arrangement — brand, a wide command field, then
- * actions. The field is the widest thing in the bar because search is how you
- * get anywhere in a community once it has more than a few rooms.
+ * Member app bar — brand, command search, create + account actions.
+ * docs/feed-home-redesign.md · Step 3
  */
 export async function AppHeader() {
   const session = await auth();
@@ -39,19 +32,19 @@ export async function AppHeader() {
   return (
     <header
       data-app-header
-      className="sticky top-0 z-50 border-b border-border bg-background/95 backdrop-blur-md"
+      className="sticky top-0 z-50 border-b border-border bg-background/92 backdrop-blur-md"
     >
-      <div className="mx-auto flex h-14 max-w-[1600px] items-center gap-3 px-3 sm:gap-4 sm:px-4">
+      <div className="flex h-14 w-full items-center gap-3 px-3 sm:gap-4 sm:px-5">
         <BrandMark href="/home" className="shrink-0" />
 
         <div className="mx-auto hidden min-w-0 max-w-xl flex-1 md:block">
           <NavSearch />
         </div>
 
-        <div className="ml-auto flex shrink-0 items-center gap-1">
+        <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
           <Link
             href="/compose"
-            className="mr-1 hidden h-9 items-center gap-1.5 rounded-full bg-forest px-3.5 text-[13.5px] text-paper no-underline transition hover:bg-deep-forest sm:inline-flex dark:bg-[#fff8ef] dark:text-[#0f3d32] dark:hover:bg-white"
+            className="mr-1.5 hidden h-9 items-center gap-1.5 rounded-full bg-[#fff8ef] px-3.5 text-[13.5px] text-[#0f3d32] no-underline shadow-e1 transition hover:bg-white sm:inline-flex"
           >
             <Plus className="size-4" aria-hidden />
             Create
@@ -116,7 +109,7 @@ function IconLink({
       <span className="sr-only">{label}</span>
       {count > 0 ? (
         <span
-          className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-terracotta px-1 text-[10px] font-bold tabular-nums text-white ring-2 ring-surface"
+          className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-terracotta px-1 text-[10px] tabular-nums text-white ring-2 ring-background"
           aria-label={`${count} unread`}
         >
           {count > 9 ? "9+" : count}

@@ -54,9 +54,9 @@ const SECTIONS: { label: string; links: Dest[] }[] = [
 ];
 
 /**
- * Member destinations, in the shadcn sidebar shape: grouped labels, quiet
- * rows, a filled pill for the page you are on. Spaces sit under one heading
- * so the rail matches the feed mock without a second "Favourites" block.
+ * Fixed left destinations. Quiet group labels, soft active pill, unread
+ * badges. Spaces keep a # prefix so rooms read like channels.
+ * docs/feed-home-redesign.md · Step 2
  */
 export function SideRail({
   favorites,
@@ -83,7 +83,7 @@ export function SideRail({
       try {
         sessionStorage.setItem("vu-rail-groups", JSON.stringify(next));
       } catch {
-        // Private mode; remembering is a convenience, not a requirement.
+        // Private mode; remembering is optional.
       }
       return next;
     });
@@ -115,7 +115,10 @@ export function SideRail({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <nav aria-label="Main" className="flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto px-2 py-1">
+      <nav
+        aria-label="Main"
+        className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-3 py-4"
+      >
         <ul className="flex flex-col gap-0.5">
           {PRIMARY.map((link) => (
             <Row
@@ -130,8 +133,8 @@ export function SideRail({
         </ul>
 
         {SECTIONS.map((section) => (
-          <div key={section.label} className="flex flex-col gap-1">
-            <p className="px-2 text-[11px] uppercase tracking-[0.14em] text-sidebar-foreground/45">
+          <div key={section.label} className="flex flex-col gap-1.5">
+            <p className="px-2.5 text-[10.5px] uppercase tracking-[0.16em] text-sidebar-foreground/40">
               {section.label}
             </p>
             <ul className="flex flex-col gap-0.5">
@@ -157,13 +160,13 @@ export function SideRail({
           const collapsible = spaceGroups.length > 1 && key !== "favorites";
 
           return (
-            <div key={key} className="flex flex-col gap-1">
+            <div key={key} className="flex flex-col gap-1.5">
               {collapsible ? (
                 <button
                   type="button"
                   onClick={() => toggle(key)}
                   aria-expanded={!isCollapsed}
-                  className="flex w-full items-center gap-1 px-2 text-[11px] uppercase tracking-[0.14em] text-sidebar-foreground/45 transition hover:text-sidebar-foreground"
+                  className="flex w-full items-center gap-1 px-2.5 text-[10.5px] uppercase tracking-[0.16em] text-sidebar-foreground/40 transition hover:text-sidebar-foreground"
                 >
                   <ChevronDown
                     className={cn(
@@ -178,7 +181,7 @@ export function SideRail({
                   ) : null}
                 </button>
               ) : (
-                <p className="px-2 text-[11px] uppercase tracking-[0.14em] text-sidebar-foreground/45">
+                <p className="px-2.5 text-[10.5px] uppercase tracking-[0.16em] text-sidebar-foreground/40">
                   {heading}
                 </p>
               )}
@@ -194,16 +197,16 @@ export function SideRail({
         })}
       </nav>
 
-      <p className="relative mt-auto overflow-hidden px-3 pb-4 pt-8 text-[13px] leading-snug text-sidebar-foreground/40">
-        <LeafCluster className="pointer-events-none absolute -left-6 bottom-1 w-24 rotate-[-18deg] text-brand/25" />
-        <LeafCluster className="pointer-events-none absolute -right-4 top-2 w-20 rotate-[22deg] text-brand/20" />
-        <span className="relative inline-flex items-center gap-1.5 font-hand text-[1.05rem] text-sidebar-foreground/70">
-          <Leaf className="size-3.5" aria-hidden />
+      <div className="relative mt-auto overflow-hidden border-t border-sidebar-border/60 px-4 pb-5 pt-6">
+        <LeafCluster className="pointer-events-none absolute -left-5 bottom-0 w-[7.5rem] rotate-[-14deg] text-brand/20" />
+        <LeafCluster className="pointer-events-none absolute -right-3 top-1 w-[5.5rem] rotate-[20deg] text-brand/15" />
+        <p className="relative font-hand text-[1.15rem] leading-snug text-sidebar-foreground/65">
+          <Leaf className="mr-1.5 inline size-3.5 -translate-y-0.5 text-brand/70" aria-hidden />
           Better food.
           <br />
           Kinder planet.
-        </span>
-      </p>
+        </p>
+      </div>
     </div>
   );
 }
@@ -227,14 +230,14 @@ function Row({
         href={href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] no-underline transition",
+          "flex h-10 items-center gap-2.5 rounded-xl px-2.5 text-[13.5px] no-underline transition",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring",
           active
-            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-            : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+            ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--brand)_18%,transparent)]"
+            : "text-sidebar-foreground/68 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground",
         )}
       >
-        <Icon className="size-4 shrink-0" aria-hidden />
+        <Icon className="size-[1.05rem] shrink-0 opacity-90" aria-hidden />
         <span className="min-w-0 flex-1 truncate">{label}</span>
         {count > 0 ? <Badge count={count} /> : null}
       </Link>
@@ -246,6 +249,8 @@ function SpaceRow({ space, pathname }: { space: NavSpace; pathname: string }) {
   const href = `/spaces/${space.slug}`;
   const active = pathname === href || pathname.startsWith(`${href}/`);
   const Icon = SPACE_KIND_ICON[space.kind] ?? Hash;
+  const hashLabel =
+    space.kind === "FEED" || space.kind === "CHAT" ? `# ${space.name}` : space.name;
 
   return (
     <li>
@@ -253,17 +258,17 @@ function SpaceRow({ space, pathname }: { space: NavSpace; pathname: string }) {
         href={href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex h-9 items-center gap-2.5 rounded-lg px-2.5 text-[13.5px] no-underline transition",
+          "flex h-9 items-center gap-2.5 rounded-xl px-2.5 text-[13px] no-underline transition",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring",
           active
             ? "bg-sidebar-accent text-sidebar-accent-foreground"
             : space.unread > 0
-              ? "text-sidebar-foreground hover:bg-sidebar-accent/60"
-              : "text-sidebar-foreground/70 hover:bg-sidebar-accent/60 hover:text-sidebar-foreground",
+              ? "text-sidebar-foreground hover:bg-sidebar-accent/55"
+              : "text-sidebar-foreground/65 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground",
         )}
       >
-        <Icon className="size-4 shrink-0 opacity-80" aria-hidden />
-        <span className="min-w-0 flex-1 truncate">{space.name}</span>
+        <Icon className="size-3.5 shrink-0 opacity-70" aria-hidden />
+        <span className="min-w-0 flex-1 truncate">{hashLabel}</span>
         {space.unread > 0 ? <Badge count={space.unread} /> : null}
       </Link>
     </li>
@@ -274,7 +279,7 @@ function Badge({ count, className }: { count: number; className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex size-5 shrink-0 items-center justify-center rounded-full bg-brand text-[10px] tabular-nums text-on-brand",
+        "inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#fff8ef] px-1.5 text-[10px] tabular-nums text-[#0f3d32] dark:bg-[#fff8ef] dark:text-[#0f3d32]",
         className,
       )}
     >

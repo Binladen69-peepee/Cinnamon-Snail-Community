@@ -85,7 +85,7 @@ export function PostCard({
   const media = post.attachments.filter((file) =>
     ["image", "gif", "video"].includes(file.kind),
   );
-  const previewComments = compact ? [] : (post.comments?.slice(0, 2) ?? []);
+  const previewComments = post.comments?.slice(0, 2) ?? [];
   const isHost = post.author.handle === "adam";
   // Lesson discussion posts hold an internal "vu:lesson:<id>" reference here,
   // which is not something to show a member as a link.
@@ -96,35 +96,33 @@ export function PostCard({
   return (
     <article
       className={cn(
-        "group/post overflow-hidden rounded-card border bg-surface transition-colors",
+        "group/post overflow-hidden rounded-2xl border bg-surface transition-colors",
         post.pinnedAt ? "border-brand/40" : "border-border hover:border-hairline-firm",
-        // The browser skips layout and paint for cards that are offscreen.
         "[content-visibility:auto]",
-        compact ? "[contain-intrinsic-size:auto_7rem]" : "[contain-intrinsic-size:auto_24rem]",
+        compact ? "[contain-intrinsic-size:auto_8rem]" : "[contain-intrinsic-size:auto_24rem]",
       )}
     >
       {post.pinnedAt ? (
-        <p className="flex items-center gap-1.5 border-b border-brand/20 bg-brand-wash px-3 py-1 text-[10.5px] font-bold uppercase tracking-[0.12em] text-brand-strong">
+        <p className="flex items-center gap-1.5 border-b border-brand/20 bg-brand-wash px-3 py-1 text-[10.5px] uppercase tracking-[0.12em] text-brand-strong">
           <Pin className="size-2.5" aria-hidden />
           Pinned by a host
         </p>
       ) : null}
 
-      <div className={cn("flex gap-1", compact ? "p-2.5" : "p-3")}>
-        <div className="flex shrink-0 flex-col items-center gap-1">
+      <div className={cn("flex gap-1.5", compact ? "p-3" : "p-3.5")}>
+        <div className="flex shrink-0 flex-col items-center gap-1 pt-0.5">
           <VoteRail postId={post.id} score={post.score} myVote={post.myVote ?? 0} />
           <SaveMark postId={post.id} saved={post.myBookmark ?? false} />
         </div>
 
         <div className="min-w-0 flex-1">
-          {/* Meta line: room, then person, then when. */}
           <div className="flex items-start gap-2">
             <p className="min-w-0 flex-1 text-[12.5px] leading-tight text-foreground-muted">
               {showSpace ? (
                 <>
                   <Link
                     href={`/spaces/${post.space.slug}`}
-                    className="inline-flex items-center gap-1 font-bold text-foreground no-underline hover:text-brand hover:underline"
+                    className="inline-flex items-center gap-1 text-foreground no-underline hover:text-brand hover:underline"
                   >
                     {SpaceIcon ? <SpaceIcon className="size-3" aria-hidden /> : null}
                     {post.space.name}
@@ -134,7 +132,7 @@ export function PostCard({
               ) : null}
               <Link
                 href={`/members/${post.author.handle}`}
-                className="font-semibold text-foreground-muted no-underline hover:underline"
+                className="text-foreground-muted no-underline hover:underline"
               >
                 {name}
               </Link>
@@ -161,13 +159,13 @@ export function PostCard({
             />
           </div>
 
-          <div className={cn(compact && "flex items-start gap-2.5")}>
+          <div className={cn(compact && "mt-1 flex items-start gap-3")}>
             <div className="min-w-0 flex-1">
               {post.title ? (
                 <p
                   className={cn(
                     "mt-0.5 leading-[1.3] tracking-[-0.015em] text-foreground",
-                    compact ? "text-[15px]" : "text-[17px]",
+                    compact ? "text-[15.5px]" : "text-[17px]",
                   )}
                 >
                   <Link
@@ -202,7 +200,7 @@ export function PostCard({
               href={webLink}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 block truncate rounded-ctl border border-border bg-mint/40 px-3 py-2 text-[13px] font-semibold text-brand-strong no-underline transition hover:border-brand"
+              className="mt-2 block truncate rounded-xl border border-border bg-mint/40 px-3 py-2 text-[13px] text-brand-strong no-underline transition hover:border-brand"
             >
               {webLink}
             </a>

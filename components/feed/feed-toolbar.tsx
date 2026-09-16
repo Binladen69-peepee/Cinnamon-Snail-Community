@@ -16,13 +16,9 @@ const ICONS: Record<string, typeof Flame> = {
 };
 
 /**
- * The strip above the feed: how it is sorted, and how densely it is drawn.
- *
- * Reddit puts both in one bar in its own card, which is the arrangement that
- * makes them feel like properties of the list rather than page navigation. Sort
- * is a link so it survives without JavaScript and can be shared; density is a
- * cookie, because it is a preference about this member rather than about this
- * URL and should follow them to every feed.
+ * Sort pills + density toggle above the feed.
+ * Active Hot uses cream fill so it reads on both light and dark.
+ * docs/feed-home-redesign.md · Step 4
  */
 export function FeedToolbar({
   sort,
@@ -36,14 +32,12 @@ export function FeedToolbar({
   const router = useRouter();
 
   function setDensity(next: Density) {
-    // A year, path-wide. Not localStorage: the server renders the feed, so it
-    // has to be able to read this before the first paint.
     document.cookie = `vu-density=${next}; path=/; max-age=31536000; samesite=lax`;
     router.refresh();
   }
 
   return (
-    <div className="flex items-center gap-1 rounded-card border border-border bg-surface px-2 py-1.5">
+    <div className="flex items-center gap-1 rounded-2xl border border-border bg-surface px-2 py-1.5">
       <nav aria-label="Sort posts" className="flex min-w-0 items-center gap-0.5">
         {FEED_SORTS.map((item) => {
           const active = sort === item.value;
@@ -57,7 +51,7 @@ export function FeedToolbar({
                 "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] no-underline transition",
                 "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
                 active
-                  ? "bg-forest text-paper dark:bg-brand dark:text-on-brand"
+                  ? "bg-[#fff8ef] text-[#0f3d32] shadow-e1"
                   : "text-foreground-muted hover:bg-mint hover:text-foreground",
               )}
             >

@@ -662,15 +662,27 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
   position: relative;
 }
 
+/* Member shell: fixed left destinations + pill search in the app bar. */
+.vu-app-sidebar {
+  background: var(--sidebar);
+}
+
 [data-app-header] .vu-nav-search-shell {
   height: 2.5rem;
   border-radius: 999px;
-  background: var(--mint);
+  background: color-mix(in oklab, var(--mint) 88%, var(--surface));
+  border-color: color-mix(in oklab, var(--border) 80%, transparent);
 }
 
 [data-app-header] .vu-nav-palette.is-open .vu-nav-search-shell {
-  border-bottom-left-radius: 1.1rem;
-  border-bottom-right-radius: 1.1rem;
+  border-bottom-left-radius: 1.15rem;
+  border-bottom-right-radius: 1.15rem;
+  background: var(--overlay);
+}
+
+.dark [data-app-header] .vu-nav-search-shell,
+[data-theme="dark"] [data-app-header] .vu-nav-search-shell {
+  background: color-mix(in oklab, var(--surface) 70%, #111);
 }
 
 .vu-nav-search-shell {

@@ -105,11 +105,11 @@ export function Composer({
   return (
     <section
       className={cn(
-        "rounded-card border bg-surface transition-colors",
-        open ? "border-brand/50" : "border-border",
+        "rounded-2xl border bg-surface transition-colors",
+        open ? "border-brand/40" : "border-border",
       )}
     >
-      <div className="flex gap-2.5 p-2.5">
+      <div className="flex gap-3 p-3.5">
         <Avatar name={name} src={avatar} size="sm" />
 
         <div className="min-w-0 flex-1">

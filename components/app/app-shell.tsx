@@ -11,11 +11,8 @@ import { cn } from "@/lib/utils";
 import { LookSwitcher } from "@/components/app/look-switcher";
 
 /**
- * The member app frame.
- *
- * Three columns: a shadcn-style destination sidebar docked on the left, the
- * feed, and a discovery rail the page fills in. The sidebar is a real column
- * (full remaining viewport, own scroll) so it stays put while the feed moves.
+ * Member frame: fixed left destinations, scrolling feed, optional discovery
+ * rail. See docs/feed-home-redesign.md.
  */
 export async function AppShell({
   children,
@@ -37,6 +34,7 @@ export async function AppShell({
   return (
     <div
       data-look={look}
+      data-app-shell
       className={cn(
         "min-h-screen bg-background text-foreground",
         look === DARK_LOOK && "dark",
@@ -44,27 +42,38 @@ export async function AppShell({
     >
       <AppHeader />
 
-      <div className="mx-auto flex max-w-[1600px]">
-        <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-64 shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex">
-          <SideRail
-            favorites={nav.favorites}
-            groups={nav.groups}
-            unread={{
-              "/messages": unreadMessages,
-              "/spaces": nav.totalUnread,
-            }}
-          />
-        </aside>
+      {/* Fixed left destinations — never scrolls with the feed. */}
+      <aside
+        aria-label="Destinations"
+        className="vu-app-sidebar fixed bottom-0 left-0 top-14 z-40 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar lg:flex"
+      >
+        <SideRail
+          favorites={nav.favorites}
+          groups={nav.groups}
+          unread={{
+            "/messages": unreadMessages,
+            "/spaces": nav.totalUnread,
+          }}
+        />
+      </aside>
 
-        <main className="min-w-0 flex-1 px-3 py-4 pb-24 sm:px-5 md:pb-4">
-          <div className="mx-auto w-full max-w-[720px]">{children}</div>
-        </main>
+      <div className="lg:pl-64">
+        <div
+          className={cn(
+            "mx-auto flex w-full",
+            rail ? "max-w-[1400px]" : "max-w-[1100px]",
+          )}
+        >
+          <main className="min-w-0 flex-1 px-3 py-5 pb-24 sm:px-6 md:pb-6">
+            <div className="mx-auto w-full max-w-[680px]">{children}</div>
+          </main>
 
-        {rail ? (
-          <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[320px] shrink-0 overflow-y-auto border-l border-border/60 px-4 py-4 xl:block">
-            {rail}
-          </aside>
-        ) : null}
+          {rail ? (
+            <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[300px] shrink-0 overflow-y-auto py-5 pr-4 xl:block">
+              {rail}
+            </aside>
+          ) : null}
+        </div>
       </div>
 
       <MobileTabs />

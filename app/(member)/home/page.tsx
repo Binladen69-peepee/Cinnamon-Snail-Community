@@ -48,7 +48,7 @@ export default async function HomePage({
         />
       }
     >
-      <div className="space-y-2.5">
+      <div className="space-y-3">
         <Composer
           name={viewer.name}
           avatar={viewer.avatar}
@@ -62,7 +62,7 @@ export default async function HomePage({
         {data.posts.length === 0 ? (
           <FeedEmpty sort={sort} hasSpaces={data.mySpaces.length > 0} />
         ) : (
-          <div className="space-y-2.5">
+          <div className="space-y-3">
             {data.posts.map((post) => (
               <PostCard
                 key={post.id}
