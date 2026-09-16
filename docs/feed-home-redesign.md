@@ -103,4 +103,4 @@ never slides under it.
 - [x] Step 3 header — cream Create, pill search
 - [x] Step 4 feed — composer, cream Hot pill, circular compact stills
 - [x] Step 5 rail — Create Post, live class, people, trending
-- [ ] Step 6 ship
+- [x] Step 6 ship
