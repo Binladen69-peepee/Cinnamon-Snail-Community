@@ -105,7 +105,7 @@ export function Composer({
   return (
     <section
       className={cn(
-        "rounded-2xl border bg-surface transition-colors",
+        "rounded-card border bg-surface shadow-e1 transition-colors",
         open ? "border-brand/40" : "border-border",
       )}
     >

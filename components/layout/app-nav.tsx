@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { auth, signOut } from "@/auth";
 import { prisma } from "@/lib/db";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar } from "@/components/ui/avatar";
 import { NavIconLink, NavIconSubmit, NavProfileLink } from "@/components/layout/nav-icon";
 import { MEMBER_NAV_LINKS } from "@/lib/navigation";
@@ -95,7 +94,6 @@ export async function AppNav() {
                 <span className="md:hidden">
                   <NavIconLink href="/search" label="Search" icon="search" />
                 </span>
-                <ThemeToggle />
                 <span className="mx-1 hidden h-6 w-px bg-sand sm:block" aria-hidden />
                 <NavIconLink
                   href="/notifications"
@@ -133,7 +131,6 @@ export async function AppNav() {
               </>
             ) : (
               <>
-                <ThemeToggle />
                 <Link
                   href="/login"
                   className="hidden rounded-full px-4 py-2 text-sm font-semibold text-foreground/80 no-underline transition hover:text-forest sm:inline-flex"

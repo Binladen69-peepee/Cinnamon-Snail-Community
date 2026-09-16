@@ -1,10 +1,10 @@
 import Link from "next/link";
 import { BadgeCheck, Pin } from "lucide-react";
 import { formatShortTime } from "@/lib/community/format-count";
+import { Avatar } from "@/components/ui/avatar";
 import { PostFooter } from "@/components/feed/post-footer";
 import { PostMedia } from "@/components/feed/post-media";
 import { PostMenu } from "@/components/feed/post-menu";
-import { SaveMark } from "@/components/feed/save-mark";
 import { VoteRail } from "@/components/feed/vote-rail";
 import { SPACE_KIND_ICON } from "@/lib/spaces/kinds";
 import type { Density } from "@/components/feed/feed-toolbar";
@@ -53,16 +53,7 @@ export type FeedPost = {
 };
 
 /**
- * A feed post.
- *
- * Reddit's anatomy: the vote rail down the left, then a meta line naming the
- * space before the author, then the title as the loudest thing in the card.
- * Space before author is deliberate and is the opposite of Twitter — in a
- * community you are reading a room first and a person second.
- *
- * Compact density drops the media to a right-hand thumbnail and tightens the
- * padding, which roughly doubles what fits on a screen. Card density gives the
- * photograph its full width, which is what a plate of food deserves.
+ * Modern social-style feed post: avatar header, 12px card, vote rail, actions.
  */
 export function PostCard({
   post,
@@ -87,8 +78,6 @@ export function PostCard({
   );
   const previewComments = post.comments?.slice(0, 2) ?? [];
   const isHost = post.author.handle === "adam";
-  // Lesson discussion posts hold an internal "vu:lesson:<id>" reference here,
-  // which is not something to show a member as a link.
   const webLink = /^https?:\/\//.test(post.linkUrl ?? "") ? post.linkUrl : null;
   const SpaceIcon =
     SPACE_KIND_ICON[(post.space.kind ?? "FEED") as keyof typeof SPACE_KIND_ICON];
@@ -96,76 +85,93 @@ export function PostCard({
   return (
     <article
       className={cn(
-        "group/post overflow-hidden rounded-2xl border bg-surface transition-colors",
-        post.pinnedAt ? "border-brand/40" : "border-border hover:border-hairline-firm",
+        "group/post overflow-hidden rounded-card border bg-surface shadow-e1 transition-[border-color,box-shadow]",
+        post.pinnedAt
+          ? "border-brand/40"
+          : "border-border hover:border-hairline-firm hover:shadow-e2",
         "[content-visibility:auto]",
         compact ? "[contain-intrinsic-size:auto_8rem]" : "[contain-intrinsic-size:auto_24rem]",
       )}
     >
       {post.pinnedAt ? (
-        <p className="flex items-center gap-1.5 border-b border-brand/20 bg-brand-wash px-3 py-1 text-[10.5px] uppercase tracking-[0.12em] text-brand-strong">
+        <p className="flex items-center gap-1.5 border-b border-brand/20 bg-brand-wash px-3.5 py-1.5 text-[10.5px] uppercase tracking-[0.12em] text-brand-strong">
           <Pin className="size-2.5" aria-hidden />
           Pinned by a host
         </p>
       ) : null}
 
-      <div className={cn("flex gap-1.5", compact ? "p-3" : "p-3.5")}>
-        <div className="flex shrink-0 flex-col items-center gap-1 pt-0.5">
-          <VoteRail postId={post.id} score={post.score} myVote={post.myVote ?? 0} />
-          <SaveMark postId={post.id} saved={post.myBookmark ?? false} />
-        </div>
+      <div className={cn("flex", compact ? "gap-2 p-3" : "gap-3 p-3.5")}>
+        <VoteRail postId={post.id} score={post.score} myVote={post.myVote ?? 0} />
 
         <div className="min-w-0 flex-1">
-          <div className="flex items-start gap-2">
-            <p className="min-w-0 flex-1 text-[12.5px] leading-tight text-foreground-muted">
-              {showSpace ? (
-                <>
-                  <Link
-                    href={`/spaces/${post.space.slug}`}
-                    className="inline-flex items-center gap-1 text-foreground no-underline hover:text-brand hover:underline"
-                  >
-                    {SpaceIcon ? <SpaceIcon className="size-3" aria-hidden /> : null}
-                    {post.space.name}
-                  </Link>
-                  <span aria-hidden> · </span>
-                </>
-              ) : null}
-              <Link
-                href={`/members/${post.author.handle}`}
-                className="text-foreground-muted no-underline hover:underline"
-              >
-                {name}
-              </Link>
-              {isHost ? (
-                <BadgeCheck
-                  className="ml-0.5 inline size-3.5 -translate-y-px text-brand"
-                  aria-label="Host"
+          <div className="flex items-start gap-2.5">
+            <Link
+              href={`/members/${post.author.handle}`}
+              className="shrink-0 no-underline"
+              aria-label={name}
+            >
+              <Avatar
+                name={name}
+                src={post.author.profile?.avatarUrl}
+                size="sm"
+                className={cn(compact ? "size-8 text-[10px]" : "size-9 text-[11px]")}
+              />
+            </Link>
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start gap-2">
+                <div className="min-w-0 flex-1 leading-tight">
+                  <p className="flex flex-wrap items-center gap-x-1.5 text-[13.5px] text-foreground">
+                    <Link
+                      href={`/members/${post.author.handle}`}
+                      className="truncate no-underline hover:underline"
+                    >
+                      {name}
+                    </Link>
+                    {isHost ? (
+                      <BadgeCheck
+                        className="size-3.5 shrink-0 text-brand"
+                        aria-label="Host"
+                      />
+                    ) : null}
+                    <span className="text-foreground-muted">·</span>
+                    <Link
+                      href={`/posts/${post.id}`}
+                      className="shrink-0 text-[12.5px] text-foreground-muted no-underline hover:underline"
+                    >
+                      <time dateTime={stamp.toISOString()} title={stamp.toLocaleString()}>
+                        {formatShortTime(stamp)}
+                      </time>
+                    </Link>
+                  </p>
+                  {showSpace ? (
+                    <Link
+                      href={`/spaces/${post.space.slug}`}
+                      className="mt-0.5 inline-flex items-center gap-1 text-[12px] text-foreground-muted no-underline hover:text-brand hover:underline"
+                    >
+                      {SpaceIcon ? <SpaceIcon className="size-3" aria-hidden /> : null}
+                      {post.space.name.startsWith("#")
+                        ? post.space.name
+                        : `# ${post.space.name}`}
+                    </Link>
+                  ) : null}
+                </div>
+                <PostMenu
+                  postId={post.id}
+                  pinned={Boolean(post.pinnedAt)}
+                  canPin={canPin}
                 />
-              ) : null}
-              <span aria-hidden> · </span>
-              <Link
-                href={`/posts/${post.id}`}
-                className="text-foreground-muted no-underline hover:underline"
-              >
-                <time dateTime={stamp.toISOString()} title={stamp.toLocaleString()}>
-                  {formatShortTime(stamp)}
-                </time>
-              </Link>
-            </p>
-            <PostMenu
-              postId={post.id}
-              pinned={Boolean(post.pinnedAt)}
-              canPin={canPin}
-            />
+              </div>
+            </div>
           </div>
 
-          <div className={cn(compact && "mt-1 flex items-start gap-3")}>
+          <div className={cn("mt-2", compact && "flex items-start gap-3")}>
             <div className="min-w-0 flex-1">
               {post.title ? (
                 <p
                   className={cn(
-                    "mt-0.5 leading-[1.3] tracking-[-0.015em] text-foreground",
-                    compact ? "text-[15.5px]" : "text-[17px]",
+                    "leading-[1.3] tracking-[-0.015em] text-foreground",
+                    compact ? "text-[15px]" : "text-[16.5px]",
                   )}
                 >
                   <Link
@@ -180,17 +186,16 @@ export function PostCard({
               {post.plainText ? (
                 <div
                   className={cn(
-                    "prose-vu mt-1 text-[14px] leading-[1.55] text-foreground-muted [&_a]:text-brand",
-                    preview ? (compact ? "line-clamp-2" : "line-clamp-4") : "[&_p]:mb-3",
+                    "prose-vu text-[14.5px] leading-[1.55] text-foreground [&_a]:text-brand",
+                    post.title ? "mt-1" : null,
+                    preview ? (compact ? "line-clamp-2" : "line-clamp-5") : "[&_p]:mb-3",
                   )}
                   dangerouslySetInnerHTML={{ __html: post.bodyHtml || post.plainText }}
                 />
               ) : null}
             </div>
 
-            {compact ? (
-              <PostMedia items={media} postId={post.id} compact />
-            ) : null}
+            {compact ? <PostMedia items={media} postId={post.id} compact /> : null}
           </div>
 
           {!compact ? <PostMedia items={media} postId={post.id} /> : null}
@@ -200,7 +205,7 @@ export function PostCard({
               href={webLink}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 block truncate rounded-xl border border-border bg-mint/40 px-3 py-2 text-[13px] text-brand-strong no-underline transition hover:border-brand"
+              className="mt-2.5 block truncate rounded-card border border-border bg-mint/40 px-3 py-2.5 text-[13px] text-brand-strong no-underline transition hover:border-brand"
             >
               {webLink}
             </a>

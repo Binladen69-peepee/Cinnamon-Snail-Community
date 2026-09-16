@@ -65,7 +65,7 @@ export function PostMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+0.35rem)] z-30 w-44 overflow-hidden rounded-2xl border border-sand bg-surface py-1.5 shadow-[0_16px_40px_rgba(15,61,50,0.16)]"
+          className="absolute right-0 top-[calc(100%+0.35rem)] z-30 w-44 overflow-hidden rounded-card border border-border bg-surface py-1.5 shadow-e2"
         >
           {canPin ? (
             <MenuItem

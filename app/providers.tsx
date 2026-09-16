@@ -1,23 +1,34 @@
 "use client";
 
-import { ThemeProvider } from "next-themes";
+import { useEffect } from "react";
+import { ThemeProvider, useTheme } from "next-themes";
 
 /**
- * HeroUI v3 has no runtime HeroUIProvider — theming is CSS variables.
- * This wrapper is the app-level provider the ticket asked for: next-themes
- * with a class strategy so `.dark` lands on `<html>`.
+ * App theme follows the OS light/dark preference via next-themes.
+ * `.dark` lands on <html> so every page (member + marketing) shares one switch.
  */
 export function HeroUIProvider({ children }: { children: React.ReactNode }) {
   return (
     <ThemeProvider
       attribute="class"
-      defaultTheme="light"
-      enableSystem={false}
+      defaultTheme="system"
+      enableSystem
+      storageKey="vu-theme"
       disableTransitionOnChange
     >
+      <ForceSystemTheme />
       {children}
     </ThemeProvider>
   );
+}
+
+/** Clear any saved light/dark override so the OS preference always wins. */
+function ForceSystemTheme() {
+  const { theme, setTheme } = useTheme();
+  useEffect(() => {
+    if (theme !== "system") setTheme("system");
+  }, [theme, setTheme]);
+  return null;
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {

@@ -181,7 +181,7 @@ export function FeedRail({
         </Panel>
       ) : null}
 
-      <p className="relative mt-1 overflow-hidden rounded-2xl px-3 py-5 text-center text-[13px] text-foreground-muted">
+      <p className="relative mt-1 overflow-hidden rounded-card px-3 py-5 text-center text-[13px] text-foreground-muted">
         <LeafCluster className="pointer-events-none absolute -left-4 bottom-0 w-20 rotate-[-16deg] text-brand/20" />
         <LeafCluster className="pointer-events-none absolute -right-3 top-0 w-16 rotate-[18deg] text-brand/20" />
         <span className="relative inline-flex items-center gap-1.5">
@@ -205,7 +205,7 @@ function Panel({
   children: React.ReactNode;
 }) {
   return (
-    <section className="rounded-2xl border border-border bg-surface p-3.5">
+    <section className="rounded-card border border-border bg-surface p-3.5 shadow-e1">
       {title ? (
         <div className="mb-3 flex items-baseline justify-between gap-2 px-0.5">
           <p className="text-[11px] uppercase tracking-[0.14em] text-foreground-muted">

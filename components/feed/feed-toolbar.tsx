@@ -37,7 +37,7 @@ export function FeedToolbar({
   }
 
   return (
-    <div className="flex items-center gap-1 rounded-2xl border border-border bg-surface px-2 py-1.5">
+    <div className="flex items-center gap-1 rounded-card border border-border bg-surface px-2 py-1.5 shadow-e1">
       <nav aria-label="Sort posts" className="flex min-w-0 items-center gap-0.5">
         {FEED_SORTS.map((item) => {
           const active = sort === item.value;

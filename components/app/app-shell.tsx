@@ -1,18 +1,15 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { listNavSpaces } from "@/lib/spaces";
 import { totalUnreadForUser } from "@/lib/messages/conversations";
-import { DARK_LOOK, LOOK_COOKIE, parseLook } from "@/lib/looks";
 import { AppHeader } from "@/components/app/app-header";
 import { SideRail } from "@/components/app/side-rail";
 import { MobileTabs } from "@/components/app/mobile-tabs";
 import { cn } from "@/lib/utils";
-import { LookSwitcher } from "@/components/app/look-switcher";
 
 /**
  * Member frame: fixed left destinations, scrolling feed, optional discovery
- * rail. See docs/feed-home-redesign.md.
+ * rail. Theme comes from next-themes on <html> (system light/dark).
  */
 export async function AppShell({
   children,
@@ -24,25 +21,15 @@ export async function AppShell({
   const session = await auth();
   if (!session?.sessionId) redirect("/login");
 
-  const [nav, unreadMessages, store] = await Promise.all([
+  const [nav, unreadMessages] = await Promise.all([
     listNavSpaces(session.user.id),
     totalUnreadForUser(session.user.id).catch(() => 0),
-    cookies(),
   ]);
-  const look = parseLook(store.get(LOOK_COOKIE)?.value);
 
   return (
-    <div
-      data-look={look}
-      data-app-shell
-      className={cn(
-        "min-h-screen bg-background text-foreground",
-        look === DARK_LOOK && "dark",
-      )}
-    >
+    <div data-app-shell className="min-h-screen bg-background text-foreground">
       <AppHeader />
 
-      {/* Fixed left destinations — never scrolls with the feed. */}
       <aside
         aria-label="Destinations"
         className="vu-app-sidebar fixed bottom-0 left-0 top-14 z-40 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar lg:flex"
@@ -77,7 +64,6 @@ export async function AppShell({
       </div>
 
       <MobileTabs />
-      <LookSwitcher current={look} />
     </div>
   );
 }

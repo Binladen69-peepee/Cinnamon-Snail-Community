@@ -2,7 +2,7 @@
 
 import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { CornerDownLeft, Plus } from "lucide-react";
+import { CornerDownLeft, Minus, Plus } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { VoteRail } from "@/components/feed/vote-rail";
 import { formatShortTime } from "@/lib/community/format-count";
@@ -24,17 +24,11 @@ export type ThreadComment = {
   replies: ThreadComment[];
 };
 
-/** Past this depth the indent would eat the text column on a phone. */
 const MAX_INDENT = 5;
 
 /**
- * A threaded comment, Reddit-style.
- *
- * Each reply used to be its own bordered card, which meant a four-deep thread
- * rendered four nested boxes and the text column shrank to nothing. Nesting is
- * carried by a single hairline thread line instead — the line is also the
- * collapse target, which is how Reddit does it and is a much larger hit area
- * than the old toggle.
+ * Reddit-style threaded comment: avatar beside the name, nesting shown by a
+ * thin vertical line (not a thick bar). The line is also the collapse control.
  */
 export function CommentThread({
   comment,
@@ -52,6 +46,7 @@ export function CommentThread({
   const name = comment.author.profile?.displayName ?? comment.author.handle;
   const hidden = countDescendants(comment);
   const isHost = comment.author.handle === "adam";
+  const hasReplies = comment.replies.length > 0;
 
   async function submitReply(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -82,49 +77,55 @@ export function CommentThread({
           type="button"
           onClick={() => setCollapsed(false)}
           aria-label="Expand thread"
-          className="grid size-6 shrink-0 place-items-center rounded-chip border border-border text-foreground-muted transition hover:border-brand hover:text-brand"
+          className="grid size-5 shrink-0 place-items-center rounded-full border border-border text-foreground-muted transition hover:border-brand hover:text-brand"
         >
-          <Plus className="size-3.5" aria-hidden />
+          <Plus className="size-3" aria-hidden />
         </button>
         <p className="truncate text-[13px] text-foreground-muted">
-          <span className="font-bold text-foreground">{name}</span>
-          {hidden > 0 ? ` and ${hidden} more ${hidden === 1 ? "reply" : "replies"}` : ""}
+          <span className="text-foreground">{name}</span>
+          {hidden > 0 ? ` · ${hidden} more` : ""}
         </p>
       </div>
     );
   }
 
   return (
-    <div className="flex gap-2">
-      {/* The thread line. Clicking it collapses the branch. */}
-      <button
-        type="button"
-        onClick={() => setCollapsed(true)}
-        aria-label={`Collapse ${name}'s thread`}
-        className="group/line relative flex w-5 shrink-0 justify-center"
-      >
+    <div className="relative flex gap-2.5">
+      <div className="flex w-8 shrink-0 flex-col items-center">
         <Avatar
           name={name}
           src={comment.author.profile?.avatarUrl}
           size="sm"
-          className="absolute top-0 size-6 text-[10px]"
+          className="size-8 text-[10px]"
         />
-        <span
-          aria-hidden
-          className="mt-7 w-px flex-1 rounded-full bg-border transition-colors group-hover/line:bg-brand"
-        />
-      </button>
+        {hasReplies ? (
+          <button
+            type="button"
+            onClick={() => setCollapsed(true)}
+            aria-label={`Collapse ${name}'s thread`}
+            className="group/line relative mt-1 flex min-h-4 w-full flex-1 flex-col items-center"
+          >
+            <span
+              aria-hidden
+              className="vu-thread-line w-px flex-1 bg-foreground/20 transition-colors group-hover/line:bg-brand"
+            />
+            <span className="mt-0.5 grid size-4 place-items-center rounded-full border border-border bg-background text-foreground-muted transition group-hover/line:border-brand group-hover/line:text-brand">
+              <Minus className="size-2.5" aria-hidden />
+            </span>
+          </button>
+        ) : null}
+      </div>
 
       <div className="min-w-0 flex-1 pb-1">
         <p className="flex flex-wrap items-center gap-x-1.5 text-[13px] leading-tight">
-          <span className="font-bold text-foreground">{name}</span>
+          <span className="text-foreground">{name}</span>
           {isHost ? (
-            <span className="rounded-full bg-brand-wash px-1.5 py-px text-[10px] font-bold uppercase tracking-[0.08em] text-brand-strong">
+            <span className="rounded-full bg-brand-wash px-1.5 py-px text-[10px] uppercase tracking-[0.08em] text-brand-strong">
               Host
             </span>
           ) : null}
           <span className="text-foreground-muted">
-            {formatShortTime(new Date(comment.createdAt))}
+            · {formatShortTime(new Date(comment.createdAt))}
           </span>
         </p>
 
@@ -146,10 +147,10 @@ export function CommentThread({
             onClick={() => setReplyOpen((open) => !open)}
             aria-expanded={replyOpen}
             className={cn(
-              "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-semibold transition",
+              "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] transition",
               replyOpen
                 ? "bg-brand-wash text-brand"
-                : "text-foreground-muted hover:bg-brand-wash hover:text-brand",
+                : "text-foreground-muted hover:bg-mint hover:text-foreground",
             )}
           >
             <CornerDownLeft className="size-3.5" aria-hidden />
@@ -165,25 +166,23 @@ export function CommentThread({
               autoFocus
               placeholder={`Reply to ${name}…`}
               disabled={replyPending}
-              className="h-9 min-w-0 flex-1 rounded-full border border-border bg-mint/40 px-3.5 text-[14px] text-foreground outline-none transition focus:border-brand focus:bg-surface disabled:opacity-60"
+              className="h-9 min-w-0 flex-1 rounded-[12px] border border-border bg-mint/40 px-3.5 text-[14px] text-foreground outline-none transition focus:border-brand focus:bg-surface disabled:opacity-60"
             />
             <button
               type="submit"
               disabled={replyPending}
-              className="inline-flex h-9 shrink-0 items-center rounded-full bg-forest px-3.5 text-[13px] font-bold text-paper transition hover:bg-deep-forest disabled:opacity-50 dark:bg-brand dark:text-on-brand"
+              className="inline-flex h-9 shrink-0 items-center rounded-[12px] bg-forest px-3.5 text-[13px] text-paper transition hover:bg-deep-forest disabled:opacity-50 dark:bg-[#fff8ef] dark:text-[#0f3d32]"
             >
               {replyPending ? "Posting…" : "Reply"}
             </button>
           </form>
         ) : null}
 
-        {comment.replies.length > 0 ? (
+        {hasReplies ? (
           <div
             className={cn(
-              "mt-2 space-y-2",
-              // Stop indenting once it would squeeze the text; deeper replies
-              // still read in order, they just stop stepping right.
-              depth < MAX_INDENT ? "pl-1" : "pl-0",
+              "mt-2 space-y-3 border-l border-foreground/15 pl-3",
+              depth < MAX_INDENT ? "ml-0" : "ml-0 border-l-transparent pl-0",
             )}
           >
             {comment.replies.map((reply) => (

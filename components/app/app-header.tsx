@@ -5,7 +5,6 @@ import { prisma } from "@/lib/db";
 import { totalUnreadForUser } from "@/lib/messages/conversations";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { NavSearch } from "@/components/layout/nav-search";
-import { ThemeToggle } from "@/components/theme-toggle";
 import { Avatar } from "@/components/ui/avatar";
 import { AccountMenu } from "@/components/app/account-menu";
 
@@ -69,8 +68,6 @@ export async function AppHeader() {
               icon={<Shield className="size-[1.15rem]" aria-hidden />}
             />
           ) : null}
-
-          <ThemeToggle />
 
           <AccountMenu
             name={name}
