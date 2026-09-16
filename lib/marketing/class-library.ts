@@ -179,6 +179,30 @@ export function featuredPool(classes: LibraryClass[], size = 5): LibraryClass[] 
   return ordered.slice(0, Math.min(size, ordered.length));
 }
 
+export type MembershipSlide = {
+  title: string;
+  photo: string;
+};
+
+/**
+ * Fifteen plated stills for the membership gallery. Order is the featured
+ * pool (Green Reaper first, then spreadsheet order) so this is not a second
+ * invented ranking. Photos stay on Adam's WordPress host.
+ */
+export function membershipGallery(
+  classes: LibraryClass[] = CLASS_LIBRARY,
+  size = 15,
+): MembershipSlide[] {
+  const slides: MembershipSlide[] = [];
+  for (const cls of featuredPool(classes, classes.length)) {
+    if (slides.length >= size) break;
+    const photo = resolveClassPhoto(cls.thumbnailUrl);
+    if (!photo) continue;
+    slides.push({ title: cls.title, photo });
+  }
+  return slides;
+}
+
 export function classDetailHref(slug: string): string {
   return `/learn/${slug}`;
 }

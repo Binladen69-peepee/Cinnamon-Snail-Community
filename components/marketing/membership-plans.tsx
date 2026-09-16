@@ -1,6 +1,7 @@
 import { Check, Sparkles } from "lucide-react";
 import { CheckoutButton } from "@/components/marketing/checkout-button";
 import { PhotoSlot } from "@/components/marketing/photo-slot";
+import { MembershipGallery } from "@/components/marketing/membership-gallery";
 import { LeafCluster } from "@/components/marketing/hero-decor";
 import { Spotlight } from "@/components/marketing/spotlight";
 import {
@@ -8,6 +9,7 @@ import {
   MEMBERSHIP_PLANS,
 } from "@/lib/marketing/checkout";
 import { MEMBERSHIP_PAGE } from "@/lib/marketing/copy";
+import type { MembershipSlide } from "@/lib/marketing/class-library";
 import { cn } from "@/lib/utils";
 
 /**
@@ -19,11 +21,15 @@ export function MembershipPlans({
   heading,
   body,
   photoId,
+  slides,
 }: {
   heading: string;
   body?: string;
   photoId?: string;
+  slides?: MembershipSlide[];
 }) {
+  const gallery = Boolean(slides && slides.length > 0);
+  const media = gallery || Boolean(photoId);
   return (
     <section aria-labelledby="membership-plans-heading" className="relative">
       <div
@@ -36,7 +42,7 @@ export function MembershipPlans({
       <div
         className={cn(
           "relative grid grid-cols-1 gap-6",
-          photoId &&
+          media &&
             "lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:grid-rows-[auto_minmax(0,1fr)_auto] lg:items-stretch lg:gap-x-10 lg:gap-y-5",
         )}
       >
@@ -58,35 +64,39 @@ export function MembershipPlans({
         <div
           className={cn(
             "order-3 grid items-stretch gap-3 sm:grid-cols-2",
-            photoId
+            media
               ? "lg:col-start-1 lg:row-start-2"
               : "mt-2 md:gap-4",
           )}
         >
           {MEMBERSHIP_PLANS.map((plan) => (
-            <PlanCard key={plan.id} plan={plan} compact={Boolean(photoId)} />
+            <PlanCard key={plan.id} plan={plan} compact={media} />
           ))}
         </div>
 
         <p
           className={cn(
             "order-4 text-sm leading-relaxed text-foreground-muted",
-            photoId ? "lg:col-start-1 lg:row-start-3" : "mt-5",
+            media ? "lg:col-start-1 lg:row-start-3" : "mt-5",
           )}
         >
           {`Note: ${CANCEL_REASSURANCE}`}
         </p>
 
-        {photoId ? (
+        {media ? (
           <div className="order-2 min-h-[18rem] overflow-hidden rounded-[1.75rem] sm:min-h-[22rem] lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:h-full lg:min-h-0">
             <div className="relative size-full min-h-[18rem] lg:min-h-full">
-              <div className="absolute inset-0">
-                <PhotoSlot
-                  id={photoId}
-                  aspect="h-full w-full"
-                  rounded="rounded-none"
-                />
-              </div>
+              {gallery && slides ? (
+                <MembershipGallery slides={slides} />
+              ) : photoId ? (
+                <div className="absolute inset-0">
+                  <PhotoSlot
+                    id={photoId}
+                    aspect="h-full w-full"
+                    rounded="rounded-none"
+                  />
+                </div>
+              ) : null}
             </div>
           </div>
         ) : null}

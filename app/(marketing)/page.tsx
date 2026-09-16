@@ -17,7 +17,7 @@ import {
   SENJA_HOMEPAGE_WIDGET,
 } from "@/components/marketing/senja-embed";
 import { getNextLiveClass } from "@/lib/marketing/catalog";
-import { CLASS_LIBRARY, libraryShelves } from "@/lib/marketing/class-library";
+import { CLASS_LIBRARY, libraryShelves, membershipGallery } from "@/lib/marketing/class-library";
 import { getGlobeMarkers } from "@/lib/marketing/globe-markers";
 import {
   REEL_KICKER,
@@ -226,7 +226,7 @@ export default async function HomePage() {
             <MembershipPlans
               heading="Monthly or yearly."
               body={MEMBERSHIP_TEASER.body}
-              photoId="home-membership-teaser"
+              slides={membershipGallery()}
             />
           </div>
         </Reveal>
