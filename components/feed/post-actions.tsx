@@ -150,7 +150,7 @@ export function PostActions({
           icon={<MessageSquare className="size-[1.15rem]" aria-hidden />}
         />
         <ActionButton
-                        label="Saved"
+          label="Saved"
           active={state.saved}
           onClick={save}
           icon={
@@ -256,7 +256,7 @@ function LikeAction({
           role="menu"
           onMouseEnter={hold}
           onMouseLeave={close}
-          className="absolute bottom-[calc(100%-0.15rem)] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-overlay px-2 py-1.5 shadow-e3 reaction-pop"
+          className="absolute bottom-[calc(100%+0.2rem)] left-0 z-40 flex items-center gap-0.5 rounded-full border border-border bg-overlay px-1.5 py-1 shadow-e3 reaction-pop"
         >
           {FEED_REACTIONS.map((item) => (
             <button
@@ -269,9 +269,9 @@ function LikeAction({
                 onPick(item.emoji);
                 setOpen(false);
               }}
-              className="transition hover:-translate-y-1 hover:scale-110"
+              className="shrink-0 transition hover:-translate-y-0.5 hover:scale-110"
             >
-              <ReactionBadge def={item} size="lg" className="ring-overlay" />
+              <ReactionBadge def={item} size="md" className="ring-overlay" />
             </button>
           ))}
         </div>

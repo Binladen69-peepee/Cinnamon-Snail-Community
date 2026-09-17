@@ -69,9 +69,9 @@ export function ReactionBadge({
   className?: string;
 }) {
   const dim =
-    size === "sm" ? "size-4" : size === "lg" ? "size-10" : "size-8";
+    size === "sm" ? "size-4" : size === "lg" ? "size-9" : "size-7";
   const icon =
-    size === "sm" ? "size-2.5" : size === "lg" ? "size-5" : "size-4";
+    size === "sm" ? "size-2.5" : size === "lg" ? "size-[1.125rem]" : "size-3.5";
 
   return (
     <span
