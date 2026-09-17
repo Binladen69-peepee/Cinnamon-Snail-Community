@@ -1,15 +1,22 @@
 "use client";
 
 import { useOptimistic, useRef, useState, useTransition } from "react";
-import { Bookmark, Heart, MessageSquare, Share2 } from "lucide-react";
+import {
+  Bookmark,
+  MessageSquare,
+  Send,
+  ThumbsUp,
+} from "lucide-react";
 import { reactAction, saveAction } from "@/app/(member)/community-actions";
-import { FEED_REACTIONS, reactionFor } from "@/lib/community/reactions";
-import { ReactionIcon } from "@/components/feed/reaction-icon";
+import {
+  DEFAULT_REACTION,
+  FEED_REACTIONS,
+  reactionFor,
+  topReactions,
+} from "@/lib/community/reactions";
+import { ReactionBadge, ReactionIcon } from "@/components/feed/reaction-icon";
 import { formatCount } from "@/lib/community/format-count";
 import { cn } from "@/lib/utils";
-
-/** The stored value behind the plain Like button. */
-const LIKE = "❤️";
 
 type State = {
   myReaction: string | null;
@@ -18,16 +25,8 @@ type State = {
 };
 
 /**
- * The action row under a post.
- *
- * Reddit's shape: small, low-contrast pills that read as metadata rather than
- * as buttons, grouped tight to the left instead of spread across the card. The
- * count sits inside the control, so the row does not change width when a number
- * grows.
- *
- * Like maps to a single stored reaction, so the count is one number. The rest of
- * the reaction set is reachable by hovering, which keeps the rows already in the
- * database meaningful instead of flattening them all into hearts.
+ * LinkedIn-style engagement: reaction summary row + four equal actions
+ * (Like · Comment · Saved · Send). Like opens a coloured reaction picker on hover.
  */
 export function PostActions({
   postId,
@@ -92,99 +91,122 @@ export function PostActions({
       setCopied(true);
       window.setTimeout(() => setCopied(false), 1800);
     } catch {
-      // Clipboard can be refused; the link is still in the address bar.
+      // Clipboard can be refused.
     }
   }
 
   const mine = reactionFor(state.myReaction);
-  const likes = Object.values(state.counts).reduce((sum, n) => sum + n, 0);
+  const total = Object.values(state.counts).reduce((sum, n) => sum + n, 0);
+  const tops = topReactions(state.counts, 3);
 
   return (
-    <div className={cn("flex items-center gap-0.5", compact ? "mt-1.5" : "mt-2")}>
-      <Pill
-        icon={<MessageSquare className="size-4" aria-hidden />}
-        label={commentCount > 0 ? formatCount(commentCount) : "Reply"}
-        srLabel={commentsOpen ? "Hide replies" : `${commentCount} replies`}
-        active={commentsOpen}
-        onClick={onToggleComments}
-      />
+    <div className={cn(compact ? "mt-1" : "mt-0")}>
+      {/* Metrics: stacked reactions + counts */}
+      {(total > 0 || commentCount > 0 || state.saved) && (
+        <div className="flex items-center justify-between gap-3 px-1 pb-2 pt-1">
+          <div className="flex min-w-0 items-center gap-1.5">
+            {tops.length > 0 ? (
+              <div className="flex items-center -space-x-1">
+                {tops.map(({ def }) => (
+                  <ReactionBadge key={def.emoji} def={def} size="sm" />
+                ))}
+              </div>
+            ) : null}
+            {total > 0 ? (
+              <span className="text-[12.5px] tabular-nums text-foreground-muted">
+                {formatCount(total)}
+              </span>
+            ) : null}
+          </div>
+          <p className="shrink-0 text-[12.5px] text-foreground-muted">
+            {commentCount > 0 ? (
+              <button
+                type="button"
+                onClick={onToggleComments}
+                className="hover:text-foreground hover:underline"
+              >
+                {formatCount(commentCount)}{" "}
+                {commentCount === 1 ? "comment" : "comments"}
+              </button>
+            ) : null}
+            {commentCount > 0 && state.saved ? (
+              <span aria-hidden> · </span>
+            ) : null}
+            {state.saved ? <span>Saved</span> : null}
+          </p>
+        </div>
+      )}
 
-      <LikePill
-        mine={mine}
-        count={likes}
-        onLike={() => react(mine ? mine.emoji : LIKE)}
-        onPick={react}
-      />
-
-      <Pill
-        icon={<Share2 className="size-4" aria-hidden />}
-        label={copied ? "Copied" : "Share"}
-        onClick={share}
-      />
-
-      <Pill
-        icon={
-          <Bookmark
-            className="size-4"
-            fill={state.saved ? "currentColor" : "none"}
-            aria-hidden
-          />
-        }
-        label={state.saved ? "Saved" : "Save"}
-        active={state.saved}
-        onClick={save}
-      />
+      <div className="grid grid-cols-4 border-t border-border">
+        <LikeAction
+          mine={mine}
+          onLike={() => react(mine ? mine.emoji : DEFAULT_REACTION)}
+          onPick={react}
+        />
+        <ActionButton
+          label="Comment"
+          active={commentsOpen}
+          onClick={onToggleComments}
+          icon={<MessageSquare className="size-[1.15rem]" aria-hidden />}
+        />
+        <ActionButton
+                        label="Saved"
+          active={state.saved}
+          onClick={save}
+          icon={
+            <Bookmark
+              className="size-[1.15rem]"
+              fill={state.saved ? "currentColor" : "none"}
+              aria-hidden
+            />
+          }
+        />
+        <ActionButton
+          label={copied ? "Copied" : "Send"}
+          onClick={share}
+          icon={<Send className="size-[1.15rem]" aria-hidden />}
+        />
+      </div>
     </div>
   );
 }
 
-function Pill({
+function ActionButton({
   icon,
   label,
-  srLabel,
   active,
   onClick,
-  tone = "brand",
 }: {
   icon: React.ReactNode;
   label: string;
-  srLabel?: string;
   active?: boolean;
   onClick?: () => void;
-  tone?: "brand" | "warm";
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
       aria-pressed={active}
-      aria-label={srLabel}
       className={cn(
-        "inline-flex h-8 items-center gap-1.5 rounded-chip px-2 text-[12.5px] font-bold transition",
-        "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
+        "flex flex-col items-center justify-center gap-0.5 rounded-[8px] px-1 py-2.5 text-[12px] transition",
+        "hover:bg-mint/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
         active
-          ? tone === "warm"
-            ? "bg-terracotta/10 text-terracotta"
-            : "bg-brand-wash text-brand"
-          : tone === "warm"
-            ? "text-foreground-muted hover:bg-terracotta/10 hover:text-terracotta"
-            : "text-foreground-muted hover:bg-mint hover:text-foreground",
+          ? "font-semibold text-brand"
+          : "text-foreground-muted hover:text-foreground",
       )}
     >
       {icon}
-      <span className="tabular-nums">{label}</span>
+      <span>{label}</span>
     </button>
   );
 }
 
-function LikePill({
+function LikeAction({
   mine,
-  count,
   onLike,
   onPick,
 }: {
   mine: ReturnType<typeof reactionFor>;
-  count: number;
   onLike: () => void;
   onPick: (emoji: string) => void;
 }) {
@@ -193,7 +215,7 @@ function LikePill({
 
   function close() {
     if (timer.current) window.clearTimeout(timer.current);
-    timer.current = window.setTimeout(() => setOpen(false), 220);
+    timer.current = window.setTimeout(() => setOpen(false), 280);
   }
   function hold() {
     if (timer.current) window.clearTimeout(timer.current);
@@ -208,47 +230,48 @@ function LikePill({
       }}
       onMouseLeave={close}
     >
-      <Pill
-        tone="warm"
-        active={Boolean(mine)}
+      <button
+        type="button"
         onClick={onLike}
-        srLabel={mine ? mine.label : "Like"}
-        icon={
-          mine ? (
-            <ReactionIcon name={mine.icon} className="size-4" filled />
-          ) : (
-            <Heart className="size-4" aria-hidden />
-          )
-        }
-        label={count > 0 ? formatCount(count) : "Like"}
-      />
+        aria-pressed={Boolean(mine)}
+        aria-label={mine ? mine.label : "Like"}
+        className={cn(
+          "flex w-full flex-col items-center justify-center gap-0.5 rounded-[8px] px-1 py-2.5 text-[12px] transition",
+          "hover:bg-mint/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+          mine
+            ? "font-semibold text-[#378fe9]"
+            : "text-foreground-muted hover:text-foreground",
+        )}
+      >
+        {mine ? (
+          <ReactionIcon name={mine.icon} className="size-[1.15rem]" filled />
+        ) : (
+          <ThumbsUp className="size-[1.15rem]" aria-hidden />
+        )}
+        <span>{mine ? mine.label : "Like"}</span>
+      </button>
 
       {open ? (
         <div
-          onFocus={hold}
-          onBlur={close}
-          className="absolute bottom-[calc(100%+0.25rem)] left-0 z-30 flex origin-bottom-left animate-[reaction-pop_140ms_ease-out] items-center gap-0.5 rounded-full border border-border bg-overlay p-1 shadow-e2"
+          role="menu"
+          onMouseEnter={hold}
+          onMouseLeave={close}
+          className="absolute bottom-[calc(100%-0.15rem)] left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full border border-border bg-overlay px-2 py-1.5 shadow-e3 reaction-pop"
         >
           {FEED_REACTIONS.map((item) => (
             <button
               key={item.emoji}
               type="button"
+              role="menuitem"
               title={item.label}
               aria-label={item.label}
               onClick={() => {
                 onPick(item.emoji);
                 setOpen(false);
               }}
-              className={cn(
-                "grid size-8 place-items-center rounded-full transition hover:-translate-y-0.5 hover:bg-mint",
-                mine?.emoji === item.emoji && "bg-brand-wash text-brand",
-              )}
+              className="transition hover:-translate-y-1 hover:scale-110"
             >
-              <ReactionIcon
-                name={item.icon}
-                className="size-4"
-                filled={mine?.emoji === item.emoji}
-              />
+              <ReactionBadge def={item} size="lg" className="ring-overlay" />
             </button>
           ))}
         </div>

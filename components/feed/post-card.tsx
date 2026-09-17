@@ -2,15 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BadgeCheck, Pin } from "lucide-react";
+import { BadgeCheck, Globe2, Pin } from "lucide-react";
 import { formatShortTime } from "@/lib/community/format-count";
 import { Avatar } from "@/components/ui/avatar";
+import { PostFollowButton } from "@/components/feed/post-follow-button";
 import { PostFooter } from "@/components/feed/post-footer";
 import { PostGalleryModal } from "@/components/feed/post-gallery-modal";
 import { PostMedia } from "@/components/feed/post-media";
 import { PostMenu } from "@/components/feed/post-menu";
-import { VoteRail } from "@/components/feed/vote-rail";
-import { SPACE_KIND_ICON } from "@/lib/spaces/kinds";
 import type { Density } from "@/components/feed/feed-toolbar";
 import { cn } from "@/lib/utils";
 
@@ -54,10 +53,13 @@ export type FeedPost = {
   }[];
   pollOptions: { id: string; label: string; _count: { votes: number } }[];
   _count: { comments: number; bookmarks: number };
+  authorFollowerCount?: number;
+  viewerFollowsAuthor?: boolean;
 };
 
 /**
- * Feed post card. Posts with media open an Instagram-style lightbox on click.
+ * LinkedIn-style feed post: header, body, full-bleed media, reaction summary,
+ * and a four-action bar (Like · Comment · Saved · Send).
  */
 export function PostCard({
   post,
@@ -68,7 +70,7 @@ export function PostCard({
   showSpace = true,
 }: {
   post: FeedPost;
-  viewer: { name: string; avatar: string | null };
+  viewer: { name: string; avatar: string | null; handle?: string };
   density?: Density;
   preview?: boolean;
   canPin?: boolean;
@@ -76,6 +78,7 @@ export function PostCard({
 }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
+  const [expanded, setExpanded] = useState(!preview);
 
   const compact = density === "compact";
   const name = post.author.profile?.displayName ?? post.author.handle;
@@ -86,9 +89,15 @@ export function PostCard({
   const hasMedia = media.length > 0;
   const previewComments = post.comments?.slice(0, 2) ?? [];
   const isHost = post.author.handle === "adam";
+  const isOwn = Boolean(viewer.handle && viewer.handle === post.author.handle);
   const webLink = /^https?:\/\//.test(post.linkUrl ?? "") ? post.linkUrl : null;
-  const SpaceIcon =
-    SPACE_KIND_ICON[(post.space.kind ?? "FEED") as keyof typeof SPACE_KIND_ICON];
+  const spaceLabel = post.space.name.startsWith("#")
+    ? post.space.name
+    : `# ${post.space.name}`;
+  const followerLabel =
+    typeof post.authorFollowerCount === "number" && post.authorFollowerCount > 0
+      ? `${post.authorFollowerCount.toLocaleString()} followers`
+      : null;
 
   const galleryPayload = {
     id: post.id,
@@ -114,6 +123,9 @@ export function PostCard({
     setGalleryOpen(true);
   }
 
+  const bodyText = post.plainText?.trim() ?? "";
+  const longBody = bodyText.length > 180;
+
   return (
     <>
       <article
@@ -121,196 +133,156 @@ export function PostCard({
           "group/post overflow-hidden rounded-card border bg-surface shadow-e1 transition-[border-color,box-shadow]",
           post.pinnedAt
             ? "border-brand/40"
-            : "border-border hover:border-hairline-firm hover:shadow-e2",
+            : "border-border hover:border-hairline-firm",
           "[content-visibility:auto]",
           compact
-            ? "[contain-intrinsic-size:auto_8rem]"
-            : "[contain-intrinsic-size:auto_24rem]",
-          hasMedia && "cursor-pointer",
+            ? "[contain-intrinsic-size:auto_10rem]"
+            : "[contain-intrinsic-size:auto_28rem]",
         )}
-        onClick={(event) => {
-          if (!hasMedia) return;
-          const target = event.target as HTMLElement;
-          if (target.closest("a, button, input, textarea, [role='menu']")) return;
-          openGallery(0);
-        }}
       >
         {post.pinnedAt ? (
-          <p className="flex items-center gap-1.5 border-b border-brand/20 bg-brand-wash px-3.5 py-1.5 text-[10.5px] uppercase tracking-[0.12em] text-brand-strong">
+          <p className="flex items-center gap-1.5 border-b border-brand/20 bg-brand-wash px-4 py-1.5 text-[10.5px] uppercase tracking-[0.12em] text-brand-strong">
             <Pin className="size-2.5" aria-hidden />
             Pinned by a host
           </p>
         ) : null}
 
-        <div className={cn("flex", compact ? "gap-2 p-3" : "gap-3 p-3.5")}>
-          <div onClick={(event) => event.stopPropagation()}>
-            <VoteRail
-              postId={post.id}
-              score={post.score}
-              myVote={post.myVote ?? 0}
+        {/* Header */}
+        <header className="flex items-start gap-2.5 px-3.5 pb-2 pt-3 sm:px-4">
+          <Link
+            href={`/members/${post.author.handle}`}
+            className="shrink-0 no-underline"
+            aria-label={name}
+          >
+            <Avatar
+              name={name}
+              src={post.author.profile?.avatarUrl}
+              size="sm"
+              className="size-12 rounded-[10px] text-[12px]"
             />
-          </div>
+          </Link>
 
-          <div className="min-w-0 flex-1">
-            <div className="flex items-start gap-2.5">
+          <div className="min-w-0 flex-1 leading-tight">
+            <div className="flex flex-wrap items-center gap-x-1">
               <Link
                 href={`/members/${post.author.handle}`}
-                className="shrink-0 no-underline"
-                aria-label={name}
-                onClick={(event) => event.stopPropagation()}
+                className="truncate text-[14.5px] font-semibold text-foreground no-underline hover:underline"
               >
-                <Avatar
-                  name={name}
-                  src={post.author.profile?.avatarUrl}
-                  size="sm"
-                  className={cn(compact ? "size-8 text-[10px]" : "size-9 text-[11px]")}
-                />
+                {name}
               </Link>
-
-              <div className="min-w-0 flex-1">
-                <div className="flex items-start gap-2">
-                  <div className="min-w-0 flex-1 leading-tight">
-                    <p className="flex flex-wrap items-center gap-x-1.5 text-[13.5px] text-foreground">
-                      <Link
-                        href={`/members/${post.author.handle}`}
-                        className="truncate no-underline hover:underline"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {name}
-                      </Link>
-                      {isHost ? (
-                        <BadgeCheck
-                          className="size-3.5 shrink-0 text-brand"
-                          aria-label="Host"
-                        />
-                      ) : null}
-                      <span className="text-foreground-muted">·</span>
-                      <button
-                        type="button"
-                        onClick={() => openGallery(0)}
-                        className="shrink-0 text-[12.5px] text-foreground-muted hover:underline"
-                      >
-                        <time
-                          dateTime={stamp.toISOString()}
-                          title={stamp.toLocaleString()}
-                        >
-                          {formatShortTime(stamp)}
-                        </time>
-                      </button>
-                    </p>
-                    {showSpace ? (
-                      <Link
-                        href={`/spaces/${post.space.slug}`}
-                        className="mt-0.5 inline-flex items-center gap-1 text-[12px] text-foreground-muted no-underline hover:text-brand hover:underline"
-                        onClick={(event) => event.stopPropagation()}
-                      >
-                        {SpaceIcon ? <SpaceIcon className="size-3" aria-hidden /> : null}
-                        {post.space.name.startsWith("#")
-                          ? post.space.name
-                          : `# ${post.space.name}`}
-                      </Link>
-                    ) : null}
-                  </div>
-                  <div onClick={(event) => event.stopPropagation()}>
-                    <PostMenu
-                      postId={post.id}
-                      pinned={Boolean(post.pinnedAt)}
-                      canPin={canPin}
-                    />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className={cn("mt-2", compact && "flex items-start gap-3")}>
-              <div className="min-w-0 flex-1">
-                {post.title ? (
-                  <p
-                    className={cn(
-                      "leading-[1.3] tracking-[-0.015em] text-foreground",
-                      compact ? "text-[15px]" : "text-[16.5px]",
-                    )}
-                  >
-                    {hasMedia ? (
-                      <button
-                        type="button"
-                        onClick={() => openGallery(0)}
-                        className="text-left no-underline hover:underline"
-                      >
-                        {post.title}
-                      </button>
-                    ) : (
-                      <Link
-                        href={`/posts/${post.id}`}
-                        className="no-underline hover:underline"
-                      >
-                        {post.title}
-                      </Link>
-                    )}
-                  </p>
-                ) : null}
-
-                {post.plainText ? (
-                  <div
-                    className={cn(
-                      "prose-vu text-[14.5px] leading-[1.55] text-foreground [&_a]:text-brand",
-                      post.title ? "mt-1" : null,
-                      preview
-                        ? compact
-                          ? "line-clamp-2"
-                          : "line-clamp-5"
-                        : "[&_p]:mb-3",
-                    )}
-                    dangerouslySetInnerHTML={{
-                      __html: post.bodyHtml || post.plainText,
-                    }}
-                  />
-                ) : null}
-              </div>
-
-              {compact && hasMedia ? (
-                <div onClick={(event) => event.stopPropagation()}>
-                  <PostMedia
-                    items={media}
-                    compact
-                    onOpen={openGallery}
-                  />
-                </div>
+              {isHost ? (
+                <BadgeCheck
+                  className="size-3.5 shrink-0 text-[#378fe9]"
+                  aria-label="Host"
+                />
               ) : null}
             </div>
-
-            {!compact && hasMedia ? (
-              <div onClick={(event) => event.stopPropagation()}>
-                <PostMedia items={media} onOpen={openGallery} />
-              </div>
-            ) : null}
-
-            {!compact && webLink ? (
-              <a
-                href={webLink}
-                target="_blank"
-                rel="noreferrer"
-                onClick={(event) => event.stopPropagation()}
-                className="mt-2.5 block truncate rounded-card border border-border bg-mint/40 px-3 py-2.5 text-[13px] text-brand-strong no-underline transition hover:border-brand"
-              >
-                {webLink}
-              </a>
-            ) : null}
-
-            <div onClick={(event) => event.stopPropagation()}>
-              <PostFooter
-                postId={post.id}
-                commentCount={post._count.comments}
-                myReaction={post.myReaction ?? null}
-                counts={post.reactionCounts ?? {}}
-                saved={post.myBookmark ?? false}
-                viewer={viewer}
-                compact={compact}
-                previewComments={previewComments}
-                totalComments={post._count.comments}
-              />
-            </div>
+            <p className="mt-0.5 truncate text-[12.5px] text-foreground-muted">
+              {followerLabel ??
+                (showSpace ? (
+                  <Link
+                    href={`/spaces/${post.space.slug}`}
+                    className="no-underline hover:text-foreground hover:underline"
+                  >
+                    {spaceLabel}
+                  </Link>
+                ) : (
+                  `@${post.author.handle}`
+                ))}
+            </p>
+            <p className="mt-0.5 flex items-center gap-1 text-[12px] text-foreground-muted">
+              <time dateTime={stamp.toISOString()} title={stamp.toLocaleString()}>
+                {formatShortTime(stamp)}
+              </time>
+              <span aria-hidden>·</span>
+              <Globe2 className="size-3" aria-hidden />
+            </p>
           </div>
+
+          <div className="flex shrink-0 items-center gap-0.5">
+            {!isOwn ? (
+              <PostFollowButton
+                handle={post.author.handle}
+                initialFollowing={Boolean(post.viewerFollowsAuthor)}
+              />
+            ) : null}
+            <PostMenu
+              postId={post.id}
+              pinned={Boolean(post.pinnedAt)}
+              canPin={canPin}
+            />
+          </div>
+        </header>
+
+        {/* Body */}
+        <div className="px-3.5 pb-2 sm:px-4">
+          {post.title ? (
+            <p className="text-[15px] font-semibold leading-snug text-foreground">
+              {post.title}
+            </p>
+          ) : null}
+
+          {bodyText ? (
+            <div className={cn(post.title && "mt-1")}>
+              <div
+                className={cn(
+                  "prose-vu text-[14.5px] leading-[1.5] text-foreground [&_a]:text-[#378fe9]",
+                  !expanded && longBody && "line-clamp-3",
+                )}
+                dangerouslySetInnerHTML={{
+                  __html: post.bodyHtml || post.plainText,
+                }}
+              />
+              {longBody && !expanded ? (
+                <button
+                  type="button"
+                  onClick={() => setExpanded(true)}
+                  className="mt-0.5 text-[14px] font-semibold text-[#378fe9] hover:underline"
+                >
+                  …more
+                </button>
+              ) : null}
+            </div>
+          ) : null}
+
+          {webLink && !hasMedia ? (
+            <a
+              href={webLink}
+              target="_blank"
+              rel="noreferrer"
+              className="mt-2 block truncate rounded-[12px] border border-border bg-mint/30 px-3 py-2.5 text-[13px] text-[#378fe9] no-underline hover:border-[#378fe9]/40"
+            >
+              {webLink}
+            </a>
+          ) : null}
+        </div>
+
+        {/* Media — full bleed */}
+        {hasMedia ? (
+          <div className="border-y border-border">
+            {compact ? (
+              <div className="flex justify-center bg-mint/20 p-3">
+                <PostMedia items={media} compact onOpen={openGallery} />
+              </div>
+            ) : (
+              <PostMedia items={media} flush onOpen={openGallery} />
+            )}
+          </div>
+        ) : null}
+
+        {/* Actions + comments */}
+        <div className="px-2 pb-1 sm:px-3">
+          <PostFooter
+            postId={post.id}
+            commentCount={post._count.comments}
+            myReaction={post.myReaction ?? null}
+            counts={post.reactionCounts ?? {}}
+            saved={post.myBookmark ?? false}
+            viewer={viewer}
+            compact={compact}
+            previewComments={previewComments}
+            totalComments={post._count.comments}
+          />
         </div>
       </article>
 

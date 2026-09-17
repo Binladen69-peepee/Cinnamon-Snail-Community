@@ -33,6 +33,7 @@ export default async function HomePage({
   const viewer = {
     name: session.user.name || session.user.handle,
     avatar: session.user.image ?? null,
+    handle: session.user.handle,
   };
   const isStaff = session.user.roles.some(
     (role) => role === "ADMIN" || role === "SUPER_ADMIN" || role === "HOST",

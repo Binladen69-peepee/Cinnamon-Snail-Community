@@ -15,12 +15,8 @@ type PreviewComment = {
 };
 
 /**
- * Owns the one piece of state the action row and the comment panel share:
- * whether replies are open. Keeping it here lets PostCard stay a server
- * component while only the interactive parts hydrate.
- *
- * Votes are not here — they live in the rail and hold their own optimistic
- * state, because nothing else on the card depends on the score.
+ * Engagement footer: LinkedIn-style actions, optional comment previews, and the
+ * expandable comment panel.
  */
 export function PostFooter({
   postId,
@@ -59,24 +55,27 @@ export function PostFooter({
         compact={compact}
       />
 
-      {/* Two replies as a taste of the conversation, hidden once the full panel
-          is open so the same comments do not appear twice. */}
       {!open && previewComments.length > 0 ? (
-        <ul className="mt-2 space-y-1.5 border-t border-border pt-2">
+        <ul className="mt-1 space-y-2 border-t border-border px-1 pt-2">
           {previewComments.map((comment) => {
-            const who = comment.author.profile?.displayName ?? comment.author.handle;
+            const who =
+              comment.author.profile?.displayName ?? comment.author.handle;
             return (
               <li key={comment.id} className="flex gap-2">
                 <Avatar
                   name={who}
                   src={comment.author.profile?.avatarUrl}
                   size="sm"
-                  className="size-5 text-[9px]"
+                  className="size-7 rounded-[8px] text-[9px]"
                 />
-                <p className="min-w-0 text-[13px] leading-[1.45] text-foreground-muted">
-                  <span className="font-bold text-foreground">{who}</span>{" "}
-                  {comment.body}
-                </p>
+                <div className="min-w-0 flex-1 rounded-[12px] bg-mint/40 px-2.5 py-1.5">
+                  <p className="text-[12.5px] font-semibold text-foreground">
+                    {who}
+                  </p>
+                  <p className="text-[13px] leading-[1.4] text-foreground-muted">
+                    {comment.body}
+                  </p>
+                </div>
               </li>
             );
           })}
@@ -85,9 +84,9 @@ export function PostFooter({
               <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="text-[12.5px] font-bold text-brand transition hover:underline"
+                className="text-[12.5px] font-semibold text-[#378fe9] transition hover:underline"
               >
-                Show all {totalComments} replies
+                View all {totalComments} comments
               </button>
             </li>
           ) : null}

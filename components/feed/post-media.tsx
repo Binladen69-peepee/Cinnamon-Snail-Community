@@ -25,11 +25,14 @@ export function PostMedia({
   items,
   compact = false,
   onOpen,
+  flush = false,
 }: {
   items: MediaItem[];
   compact?: boolean;
   /** Opens the post lightbox at the given slide index. */
   onOpen?: (index: number) => void;
+  /** Edge-to-edge inside a post card (no top margin / outer radius). */
+  flush?: boolean;
 }) {
   if (items.length === 0) return null;
 
@@ -80,7 +83,10 @@ export function PostMedia({
         type="button"
         onClick={() => openAt(0)}
         aria-label="View video"
-        className="relative mt-2 block w-full overflow-hidden rounded-ctl border border-border bg-black text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className={cn(
+          "relative block w-full overflow-hidden bg-black text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+          flush ? "rounded-none border-0" : "mt-2 rounded-ctl border border-border",
+        )}
         style={{ aspectRatio: String(ratioOf(items[0])) }}
       >
         <video
@@ -109,7 +115,10 @@ export function PostMedia({
       aria-label={
         single ? items[0].alt || "View post" : `View all ${items.length} images`
       }
-      className="group/media mt-2 block w-full overflow-hidden rounded-ctl border border-border bg-mint/40 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      className={cn(
+        "group/media block w-full overflow-hidden bg-mint/40 text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+        flush ? "rounded-none border-0" : "mt-2 rounded-ctl border border-border",
+      )}
       style={single ? { aspectRatio: String(ratioOf(items[0])) } : undefined}
     >
       {single ? (

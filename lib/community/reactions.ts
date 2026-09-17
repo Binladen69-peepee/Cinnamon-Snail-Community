@@ -1,12 +1,8 @@
 /**
- * The reaction set, with one distinct icon per reaction.
+ * LinkedIn-style reaction set for the feed picker and summary chips.
  *
- * The previous map pointed "Helpful" at a bookmark icon and collapsed Curious,
- * Wow, Sad and Angry onto a single question mark, so four different reactions
- * rendered identically. Every entry here has its own glyph.
- *
- * `emoji` stays the stored value so existing rows keep counting; the icon name
- * is what the UI renders.
+ * `emoji` is the stored value so existing rows keep counting; `tone` drives the
+ * coloured circle in the hover picker and the stacked summary icons.
  */
 export type ReactionIcon =
   | "heart"
@@ -17,37 +13,52 @@ export type ReactionIcon =
   | "heartHandshake"
   | "laugh"
   | "zap"
+  | "lightbulb"
   | "frown"
   | "angry";
+
+export type ReactionTone =
+  | "like"
+  | "celebrate"
+  | "support"
+  | "love"
+  | "insightful"
+  | "funny"
+  | "neutral";
 
 export type ReactionDef = {
   emoji: string;
   label: string;
   icon: ReactionIcon;
+  tone: ReactionTone;
 };
 
-/** Offered in the picker, in this order. */
+/** Offered in the picker, LinkedIn order. */
 export const FEED_REACTIONS: ReactionDef[] = [
-  { emoji: "❤️", label: "Love", icon: "heart" },
-  { emoji: "👍", label: "Like", icon: "thumbsUp" },
-  { emoji: "🎉", label: "Celebrate", icon: "partyPopper" },
-  { emoji: "🙌", label: "Helpful", icon: "handHelping" },
-  { emoji: "🤔", label: "Curious", icon: "circleHelp" },
+  { emoji: "👍", label: "Like", icon: "thumbsUp", tone: "like" },
+  { emoji: "🎉", label: "Celebrate", icon: "partyPopper", tone: "celebrate" },
+  { emoji: "🤗", label: "Support", icon: "heartHandshake", tone: "support" },
+  { emoji: "❤️", label: "Love", icon: "heart", tone: "love" },
+  { emoji: "💡", label: "Insightful", icon: "lightbulb", tone: "insightful" },
+  { emoji: "😆", label: "Funny", icon: "laugh", tone: "funny" },
 ];
 
 /** Legacy stored values, still rendered so old reactions keep their meaning. */
 export const LEGACY_REACTIONS: ReactionDef[] = [
-  { emoji: "🤗", label: "Care", icon: "heartHandshake" },
-  { emoji: "😆", label: "Haha", icon: "laugh" },
-  { emoji: "😮", label: "Wow", icon: "zap" },
-  { emoji: "😢", label: "Sad", icon: "frown" },
-  { emoji: "😡", label: "Angry", icon: "angry" },
+  { emoji: "🙌", label: "Helpful", icon: "handHelping", tone: "celebrate" },
+  { emoji: "🤔", label: "Curious", icon: "circleHelp", tone: "insightful" },
+  { emoji: "😮", label: "Wow", icon: "zap", tone: "insightful" },
+  { emoji: "😢", label: "Sad", icon: "frown", tone: "neutral" },
+  { emoji: "😡", label: "Angry", icon: "angry", tone: "love" },
 ];
 
 export const ALL_REACTIONS: ReactionDef[] = [
   ...FEED_REACTIONS,
   ...LEGACY_REACTIONS,
 ];
+
+/** Default one-click reaction (LinkedIn primary). */
+export const DEFAULT_REACTION = "👍";
 
 const byEmoji = new Map(ALL_REACTIONS.map((item) => [item.emoji, item]));
 
@@ -91,3 +102,13 @@ export function topReactions(
       return def ? [{ def, count }] : [];
     });
 }
+
+export const REACTION_TONE_CLASS: Record<ReactionTone, string> = {
+  like: "bg-[#378fe9] text-white",
+  celebrate: "bg-[#6dae4f] text-white",
+  support: "bg-[#bba9d1] text-white",
+  love: "bg-[#df704d] text-white",
+  insightful: "bg-[#f5bb5c] text-[#1a1a1a]",
+  funny: "bg-[#5c9d91] text-white",
+  neutral: "bg-[#6b7280] text-white",
+};

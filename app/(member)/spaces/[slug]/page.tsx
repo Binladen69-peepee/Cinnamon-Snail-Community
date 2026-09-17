@@ -163,6 +163,7 @@ export default async function SpacePage({
             viewer={{
               name: session.user.name || session.user.handle,
               avatar: session.user.image ?? null,
+              handle: session.user.handle,
             }}
             isStaff={session.user.roles.some(
               (role) => role === "ADMIN" || role === "SUPER_ADMIN" || role === "HOST",
@@ -198,7 +199,7 @@ async function SpaceFeed({
   density: Density;
   userId: string;
   joined: boolean;
-  viewer: { name: string; avatar: string | null };
+  viewer: { name: string; avatar: string | null; handle?: string };
   isStaff: boolean;
 }) {
   const { posts } = await listFeed({ userId, spaceId: space.id, sort, take: 40 });

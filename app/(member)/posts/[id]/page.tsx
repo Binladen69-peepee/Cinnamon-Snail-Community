@@ -79,6 +79,7 @@ export default async function PostPage({
   const viewer = {
     name: session.user.name || session.user.handle,
     avatar: session.user.image ?? null,
+    handle: session.user.handle,
   };
   const SpaceIcon =
     SPACE_KIND_ICON[(post.space.kind ?? "FEED") as keyof typeof SPACE_KIND_ICON];

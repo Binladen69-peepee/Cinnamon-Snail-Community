@@ -110,6 +110,28 @@ export async function listFeed(input: {
   const ranked = sortByFeed(visible, sort).slice(0, take);
   const extra = visible.length > take;
   const last = ranked[ranked.length - 1];
+
+  const authorIds = [...new Set(ranked.map((post) => post.authorId))];
+  const [followerRows, followingRows] = await Promise.all([
+    authorIds.length
+      ? prisma.follow.groupBy({
+          by: ["followingId"],
+          where: { followingId: { in: authorIds } },
+          _count: { _all: true },
+        })
+      : Promise.resolve([]),
+    authorIds.length
+      ? prisma.follow.findMany({
+          where: { followerId: input.userId, followingId: { in: authorIds } },
+          select: { followingId: true },
+        })
+      : Promise.resolve([]),
+  ]);
+  const followerCountByAuthor = new Map(
+    followerRows.map((row) => [row.followingId, row._count._all]),
+  );
+  const followingSet = new Set(followingRows.map((row) => row.followingId));
+
   return {
     posts: ranked.map((post) => {
       const summary = summarizeReactions(post.reactions, input.userId);
@@ -120,6 +142,8 @@ export async function listFeed(input: {
         reactionCounts: summary.counts,
         myReaction: summary.myReaction,
         reactionTotal: summary.total,
+        authorFollowerCount: followerCountByAuthor.get(post.authorId) ?? 0,
+        viewerFollowsAuthor: followingSet.has(post.authorId),
       };
     }),
     sort,

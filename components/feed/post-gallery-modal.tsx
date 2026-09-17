@@ -41,7 +41,9 @@ export type GalleryPost = {
   _count: { comments: number };
 };
 
-const LIKE = "❤️";
+import { DEFAULT_REACTION } from "@/lib/community/reactions";
+
+const LIKE = DEFAULT_REACTION;
 
 /**
  * Instagram-style post view: large dimmed overlay, media left, sticky header /
