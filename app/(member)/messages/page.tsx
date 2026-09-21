@@ -25,7 +25,7 @@ export default function MessagesIndexPage() {
       </div>
       <Link
         href="/messages/new"
-        className="inline-flex h-10 items-center gap-2 rounded-ctl bg-brand-strong px-4 text-[14px] font-semibold text-white no-underline transition hover:bg-deep-forest"
+        className="inline-flex h-10 items-center gap-2 rounded-ctl bg-brand-fill px-4 text-[14px] font-semibold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover"
       >
         <PenSquare className="size-4" aria-hidden />
         New message

@@ -298,7 +298,7 @@ export function Thread({
           <button
             type="button"
             onClick={() => scrollToBottom("smooth")}
-            className="absolute bottom-2 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-brand-strong px-3 py-1.5 text-[12.5px] font-semibold text-white shadow-e2"
+            className="absolute bottom-2 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-brand-fill px-3 py-1.5 text-[12.5px] font-semibold text-brand-fill-foreground shadow-e2"
           >
             <ArrowDown className="size-3.5" aria-hidden />
             New messages

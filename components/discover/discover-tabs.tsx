@@ -53,7 +53,7 @@ export function DiscoverTabs({
                 className={cn(
                   "inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[13.5px] font-semibold no-underline transition",
                   current
-                    ? "border-brand-strong bg-brand-strong text-white"
+                    ? "border-brand-fill bg-brand-fill text-brand-fill-foreground"
                     : "border-border bg-surface text-foreground-muted hover:border-hairline-firm hover:text-foreground",
                 )}
               >
@@ -62,7 +62,7 @@ export function DiscoverTabs({
                 <span
                   className={cn(
                     "tabular-nums",
-                    current ? "text-white/70" : "text-foreground-muted",
+                    current ? "text-brand-fill-foreground/70" : "text-foreground-muted",
                   )}
                 >
                   {count}

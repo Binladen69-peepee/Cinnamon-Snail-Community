@@ -175,7 +175,7 @@ export function NewMessagePicker({
           className={cn(
             "inline-flex h-10 w-full items-center justify-center gap-2 rounded-ctl text-[14px] font-semibold transition",
             selected.length > 0
-              ? "bg-brand-strong text-white hover:bg-deep-forest"
+              ? "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover"
               : "bg-default text-foreground-muted",
           )}
         >

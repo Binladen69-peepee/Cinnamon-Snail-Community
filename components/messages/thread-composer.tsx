@@ -214,7 +214,7 @@ export function ThreadComposer({
           className={cn(
             "grid size-9 shrink-0 place-items-center rounded-full transition",
             (body.trim() || image) && !tooLong && !uploading
-              ? "bg-brand-strong text-white hover:bg-deep-forest"
+              ? "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover"
               : "bg-default text-foreground-muted",
           )}
         >

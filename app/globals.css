@@ -64,6 +64,15 @@
     --brand-wash: #e8f5e9;
     --on-brand: #06120d;
 
+    /* A filled brand control -- primary button, active tab, own chat bubble.
+       It needs its own role because --brand-strong inverts: it is the darkest
+       green in light mode and the palest in dark, so a fill built on it with
+       fixed white text measured 1.4:1 against WCAG's 4.5. Fill and foreground
+       move together here, and neither is ever chosen at the call site. */
+    --brand-fill: #0f3d32;
+    --brand-fill-hover: #0b513f;
+    --brand-fill-foreground: #ffffff;
+
     /* Member sidebar: light cream in light mode, charcoal in dark. */
     --sidebar: #fffcf8;
     --sidebar-foreground: var(--foreground);
@@ -151,6 +160,12 @@
     --brand-wash: #10241a;
     --on-brand: #06120d;
 
+    /* Inverted: on black the fill is the lit colour and the label is the dark
+       one, which is what keeps a primary action legible here (10.96:1). */
+    --brand-fill: #4ade80;
+    --brand-fill-hover: #86efac;
+    --brand-fill-foreground: #06120d;
+
     --sidebar: #0a0f0d;
     --sidebar-foreground: #fff8ef;
     --sidebar-accent: #1a3d32;
@@ -218,6 +233,9 @@
   --color-brand-strong: var(--brand-strong);
   --color-brand-wash: var(--brand-wash);
   --color-on-brand: var(--on-brand);
+  --color-brand-fill: var(--brand-fill);
+  --color-brand-fill-hover: var(--brand-fill-hover);
+  --color-brand-fill-foreground: var(--brand-fill-foreground);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-accent: var(--sidebar-accent);

@@ -85,7 +85,7 @@ export function MessageBubble({
           className={cn(
             "relative rounded-2xl px-3 py-2 text-[14px] leading-snug",
             message.mine
-              ? "rounded-br-sm bg-brand-strong text-white"
+              ? "rounded-br-sm bg-brand-fill text-brand-fill-foreground"
               : "rounded-bl-sm border border-border bg-surface text-foreground",
             message.state === "failed" && "opacity-70 ring-1 ring-danger",
           )}
@@ -113,7 +113,7 @@ export function MessageBubble({
                     rel="noopener noreferrer nofollow"
                     className={cn(
                       "underline underline-offset-2",
-                      message.mine ? "text-white" : "text-brand",
+                      message.mine ? "text-brand-fill-foreground" : "text-brand",
                     )}
                   >
                     {part.text}

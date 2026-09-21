@@ -79,7 +79,7 @@ function ClassCard({
 
         {cls.teaserEmbed ? (
           <span className="absolute inset-0 grid place-items-center bg-black/0 transition group-hover:bg-black/25">
-            <span className="grid size-10 place-items-center rounded-full bg-white/90 text-brand-strong opacity-0 shadow-e2 transition group-hover:opacity-100">
+            <span className="grid size-10 place-items-center rounded-full bg-white/90 text-on-brand opacity-0 shadow-e2 transition group-hover:opacity-100">
               <Play className="size-4 translate-x-px fill-current" aria-hidden />
             </span>
           </span>
@@ -174,7 +174,7 @@ function ClassPanel({
                   onClick={() => setPlaying(true)}
                   className="absolute inset-0 grid place-items-center bg-black/25 transition hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
                 >
-                  <span className="grid size-14 place-items-center rounded-full bg-white/95 text-brand-strong shadow-e2">
+                  <span className="grid size-14 place-items-center rounded-full bg-white/95 text-on-brand shadow-e2">
                     <Play className="size-6 translate-x-0.5 fill-current" aria-hidden />
                   </span>
                   <span className="sr-only">Play the {cls.title} teaser</span>
@@ -229,7 +229,7 @@ function ClassPanel({
             <Link
               href={discussHref}
               className={cn(
-                "inline-flex h-10 items-center gap-2 rounded-ctl bg-brand-strong px-4 text-[14px] font-semibold text-white no-underline transition hover:bg-deep-forest",
+                "inline-flex h-10 items-center gap-2 rounded-ctl bg-brand-fill px-4 text-[14px] font-semibold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover",
               )}
             >
               <MessageSquare className="size-4" aria-hidden />

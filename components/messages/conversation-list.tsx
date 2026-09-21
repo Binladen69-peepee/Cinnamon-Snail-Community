@@ -36,7 +36,7 @@ export function ConversationList({ rows }: { rows: InboxRow[] }) {
           className={cn(
             "inline-flex h-8 items-center gap-1.5 rounded-full px-3 text-[13px] font-semibold no-underline transition",
             openId === "new"
-              ? "bg-brand-strong text-white"
+              ? "bg-brand-fill text-brand-fill-foreground"
               : "text-brand hover:bg-brand-wash",
           )}
         >
