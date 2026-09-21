@@ -8,7 +8,7 @@ import {
   type DiscoverTab,
 } from "@/lib/community/discover";
 import { AppShell } from "@/components/app/app-shell";
-import { DiscoverSearch } from "@/components/discover/discover-search";
+import { UrlSearchField } from "@/components/app/url-search-field";
 import { DiscoverTabs } from "@/components/discover/discover-tabs";
 import { ClassBrowser } from "@/components/discover/class-browser";
 import { PersonCard } from "@/components/discover/person-card";
@@ -86,7 +86,11 @@ export default async function DiscoverPage({
             </p>
           </div>
 
-          <DiscoverSearch placeholder="Search classes, rooms, people and events" />
+          <UrlSearchField
+            placeholder="Search classes, rooms, people and events"
+            label="Search the community"
+            resetParams={["category"]}
+          />
           <DiscoverTabs active={tab} q={q} counts={data.counts} />
         </header>
 

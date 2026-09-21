@@ -3,9 +3,10 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Search, X } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 /**
- * The Discover search field.
+ * A search field whose query lives in the URL.
  *
  * A real form wrapping a real input, so it still searches with JavaScript off —
  * the page reads `?q=` on the server either way. With JavaScript it also types
@@ -14,9 +15,29 @@ import { Loader2, Search, X } from "lucide-react";
  *
  * The field owns its text while focused and only syncs from the URL when it is
  * not, so a slow round trip can never yank a character back out from under
- * someone still typing.
+ * someone still typing. Focus is held in state rather than read off the ref,
+ * because render must not touch a ref.
+ *
+ * Shared by Discover and the member directory: both narrow a server-rendered
+ * list from `?q`, and two copies of this would have drifted the first time one
+ * of them fixed a debounce.
  */
-export function DiscoverSearch({ placeholder }: { placeholder: string }) {
+export function UrlSearchField({
+  placeholder,
+  label,
+  resetParams = [],
+  className,
+}: {
+  placeholder: string;
+  /** Accessible name. The visible label is the placeholder. */
+  label: string;
+  /**
+   * Params that stop making sense once the query changes — a category filter
+   * chosen for the old term, a page number from the old result set.
+   */
+  resetParams?: string[];
+  className?: string;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const params = useSearchParams();
@@ -27,10 +48,8 @@ export function DiscoverSearch({ placeholder }: { placeholder: string }) {
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Back/forward and the "clear search" links change `q` without going through
-  // this field, so it follows the URL whenever the visitor is not typing in it.
-  // Focus is held in state rather than read off the ref, because render must
-  // not touch a ref -- and a stale ref read would resync the wrong field anyway.
+  // Back/forward and "clear search" links change `q` without going through this
+  // field, so it follows the URL whenever the visitor is not typing in it.
   const [lastUrlQuery, setLastUrlQuery] = useState(urlQuery);
   if (urlQuery !== lastUrlQuery) {
     setLastUrlQuery(urlQuery);
@@ -42,8 +61,7 @@ export function DiscoverSearch({ placeholder }: { placeholder: string }) {
     const trimmed = next.trim();
     if (trimmed) search.set("q", trimmed);
     else search.delete("q");
-    // A new search starts at the top of the results it is narrowing.
-    search.delete("category");
+    for (const param of resetParams) search.delete(param);
     const query = search.toString();
     startTransition(() => {
       router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
@@ -54,8 +72,8 @@ export function DiscoverSearch({ placeholder }: { placeholder: string }) {
     if (value.trim() === urlQuery) return;
     const timer = window.setTimeout(() => commit(value), 220);
     return () => window.clearTimeout(timer);
-    // `commit` closes over the current params, which is exactly what we want on
-    // each keystroke; re-running on params identity would cancel the timer.
+    // `commit` closes over the current params, which is what we want on each
+    // keystroke; re-running on params identity would cancel the timer.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [value, urlQuery]);
 
@@ -68,7 +86,7 @@ export function DiscoverSearch({ placeholder }: { placeholder: string }) {
         commit(value);
         inputRef.current?.blur();
       }}
-      className="relative"
+      className={cn("relative", className)}
     >
       <Search
         className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-foreground-muted"
@@ -83,7 +101,7 @@ export function DiscoverSearch({ placeholder }: { placeholder: string }) {
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
         placeholder={placeholder}
-        aria-label="Search the community"
+        aria-label={label}
         autoComplete="off"
         className="h-11 w-full rounded-ctl border border-border bg-surface pl-10 pr-10 text-[14.5px] text-foreground outline-none transition placeholder:text-foreground-muted focus:border-brand focus:ring-2 focus:ring-brand/20 [&::-webkit-search-cancel-button]:appearance-none"
       />
