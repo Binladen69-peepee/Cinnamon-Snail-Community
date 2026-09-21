@@ -2,12 +2,12 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { listNavSpaces, type NavSpace } from "@/lib/spaces";
 import { peopleYouShouldMeet } from "@/lib/social/suggestions";
+import { photoForKnownClass } from "@/lib/marketing/class-library";
 import {
-  CLASS_LIBRARY,
-  formatClassLength,
-  photoForKnownClass,
-} from "@/lib/marketing/class-library";
-import { youTubeEmbed } from "@/lib/marketing/teasers";
+  CLASS_SELECT,
+  shapeClass,
+  type ClassSummary,
+} from "@/lib/learn/classes";
 
 /**
  * Everything the Discover page shows, in one place.
@@ -39,18 +39,8 @@ export function parseDiscoverTab(
 /** How many rows each type contributes to the "All" overview. */
 const OVERVIEW_TAKE = 6;
 
-export type DiscoverClass = {
-  slug: string;
-  title: string;
-  description: string | null;
-  category: string | null;
-  instructor: string | null;
-  /** A real still from the class sheet. Stock imagery is rejected upstream. */
-  photo: string | null;
-  /** Privacy-preserving YouTube embed, or null when the sheet has no teaser. */
-  teaserEmbed: string | null;
-  length: string | null;
-};
+/** A class, as `lib/learn/classes` defines it everywhere else. */
+export type DiscoverClass = ClassSummary;
 
 export type DiscoverPerson = {
   handle: string;
@@ -89,18 +79,9 @@ export type DiscoverData = {
   spaces: NavSpace[];
   people: DiscoverPerson[];
   events: DiscoverEvent[];
-  /**
-   * The course room, when the viewer can reach one. Stands in for `/learn`
-   * until Phase 7 builds it, and is null rather than guessed when absent.
-   */
-  courseRoomHref: string | null;
   /** True when the community itself is empty, not merely this search. */
   empty: boolean;
 };
-
-const SHEET_BY_TITLE = new Map(
-  CLASS_LIBRARY.map((entry) => [entry.title.toLowerCase(), entry]),
-);
 
 /**
  * Case-insensitive substring match across a row's searchable fields.
@@ -145,32 +126,6 @@ export function sortDiscoverPeople<T extends { reason: string | null }>(
   );
 }
 
-/**
- * Courses carry the title and category; the class sheet carries the still and
- * the teaser. Joining them on title is what the marketing pages already do, and
- * it covers 49 of the 52 published classes — the other three still get a photo.
- */
-function shapeClass(course: {
-  slug: string;
-  title: string;
-  description: string | null;
-  category: string | null;
-  instructorName: string | null;
-  coverUrl: string | null;
-}): DiscoverClass {
-  const sheet = SHEET_BY_TITLE.get(course.title.trim().toLowerCase());
-  return {
-    slug: course.slug,
-    title: course.title,
-    description: course.description,
-    category: course.category,
-    instructor: course.instructorName,
-    photo: photoForKnownClass(course.title, course.coverUrl),
-    teaserEmbed: youTubeEmbed(sheet?.teaserUrl),
-    length: formatClassLength(sheet?.durationSeconds),
-  };
-}
-
 export async function loadDiscover(input: {
   userId: string;
   tab: DiscoverTab;
@@ -189,14 +144,7 @@ export async function loadDiscover(input: {
           { catalogOrder: "asc" },
           { title: "asc" },
         ],
-        select: {
-          slug: true,
-          title: true,
-          description: true,
-          category: true,
-          instructorName: true,
-          coverUrl: true,
-        },
+        select: CLASS_SELECT,
       }),
       listNavSpaces(input.userId),
       prisma.event.findMany({
@@ -327,10 +275,6 @@ export async function loadDiscover(input: {
     spaces: slice(filteredSpaces, "spaces"),
     people: slice(filteredPeople, "people"),
     events: slice(filteredEvents, "events"),
-    courseRoomHref: (() => {
-      const room = allSpaces.find((space) => space.kind === "COURSE");
-      return room ? `/spaces/${room.slug}` : null;
-    })(),
     empty:
       allClasses.length === 0 &&
       allSpaces.length === 0 &&

@@ -131,10 +131,7 @@ export default async function DiscoverPage({
                     q={q}
                   />
                 ) : null}
-                <ClassBrowser
-                  classes={data.classes}
-                  discussHref={data.courseRoomHref}
-                />
+                <ClassBrowser classes={data.classes} />
               </Section>
             ) : null}
 
