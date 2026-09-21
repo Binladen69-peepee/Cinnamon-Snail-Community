@@ -18,6 +18,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { reactAction, saveAction } from "@/app/(member)/community-actions";
 import { formatCount, formatShortTime } from "@/lib/community/format-count";
 import type { MediaItem } from "@/components/feed/post-media";
+import { videoEmbedSrc, videoPosterUrl } from "@/lib/community/media";
 import { cn } from "@/lib/utils";
 
 export type GalleryPost = {
@@ -45,19 +46,7 @@ import { DEFAULT_REACTION } from "@/lib/community/reactions";
 
 const LIKE = DEFAULT_REACTION;
 
-/**
- * Instagram-style post view: large dimmed overlay, media left, sticky header /
- * scrollable caption+comments / sticky actions+composer on the right.
- */
-export function PostGalleryModal({
-  open,
-  onClose,
-  post,
-  media,
-  viewer,
-  startIndex = 0,
-  canPin = false,
-}: {
+type GalleryProps = {
   open: boolean;
   onClose: () => void;
   post: GalleryPost;
@@ -65,10 +54,34 @@ export function PostGalleryModal({
   viewer: { name: string; avatar: string | null };
   startIndex?: number;
   canPin?: boolean;
-}) {
+};
+
+/**
+ * Instagram-style post view: large dimmed overlay, media left, sticky header /
+ * scrollable caption+comments / sticky actions+composer on the right.
+ *
+ * Mounted only while open, and keyed by the post it is showing, so every open
+ * starts from the post's own counts. Resetting that state from an effect
+ * instead would render one frame of the previous post's numbers.
+ */
+export function PostGalleryModal(props: GalleryProps) {
+  if (!props.open || props.media.length === 0) return null;
+  return <GalleryDialog key={`${props.post.id}:${props.startIndex ?? 0}`} {...props} />;
+}
+
+function GalleryDialog({
+  onClose,
+  post,
+  media,
+  viewer,
+  startIndex = 0,
+  canPin = false,
+}: GalleryProps) {
   const titleId = useId();
   const composerRef = useRef<HTMLInputElement>(null);
-  const [index, setIndex] = useState(startIndex);
+  const [index, setIndex] = useState(() =>
+    Math.min(Math.max(0, startIndex), Math.max(0, media.length - 1)),
+  );
   const [comments, setComments] = useState<ThreadComment[] | null>(null);
   const [commentCount, setCommentCount] = useState(post._count.comments);
   const [error, setError] = useState<string | null>(null);
@@ -87,21 +100,6 @@ export function PostGalleryModal({
     : `# ${post.space.name}`;
 
   useEffect(() => {
-    if (open) {
-      setIndex(Math.min(Math.max(0, startIndex), Math.max(0, media.length - 1)));
-      setLiked(Boolean(post.myReaction));
-      setLikes(
-        Object.values(post.reactionCounts ?? {}).reduce((sum, n) => sum + n, 0),
-      );
-      setSaved(Boolean(post.myBookmark));
-      setCommentCount(post._count.comments);
-      setComments(null);
-      setError(null);
-    }
-  }, [open, startIndex, media.length, post]);
-
-  useEffect(() => {
-    if (!open) return;
     const previous = document.body.style.overflow;
     document.body.style.overflow = "hidden";
     const onKey = (event: KeyboardEvent) => {
@@ -118,10 +116,9 @@ export function PostGalleryModal({
       document.body.style.overflow = previous;
       document.removeEventListener("keydown", onKey);
     };
-  }, [open, onClose, media.length]);
+  }, [onClose, media.length]);
 
   useEffect(() => {
-    if (!open) return;
     let alive = true;
     fetch(`/api/community/posts/${post.id}/comments`)
       .then((response) =>
@@ -138,9 +135,7 @@ export function PostGalleryModal({
     return () => {
       alive = false;
     };
-  }, [open, post.id]);
-
-  if (!open || media.length === 0) return null;
+  }, [post.id]);
 
   function prev() {
     setIndex((value) => (value - 1 + media.length) % media.length);
@@ -284,13 +279,26 @@ export function PostGalleryModal({
           ) : null}
 
           {current?.kind === "video" ? (
-            <video
-              key={current.id}
-              src={current.url}
-              controls
-              playsInline
-              className="max-h-full max-w-full object-contain"
-            />
+            videoEmbedSrc(current.url) ? (
+              <iframe
+                key={current.id}
+                src={`${videoEmbedSrc(current.url)}?autoplay=1&rel=0&playsinline=1`}
+                title={current.alt || "Class video"}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="aspect-video h-auto max-h-full w-full max-w-full border-0"
+              />
+            ) : (
+              <video
+                key={current.id}
+                src={current.url}
+                poster={videoPosterUrl(current.url, current.thumbnailUrl) ?? undefined}
+                controls
+                autoPlay
+                playsInline
+                className="max-h-full max-w-full object-contain"
+              />
+            )
           ) : current ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img

@@ -49,6 +49,7 @@ export function CommandPalette({
     null,
   );
   const [cursor, setCursor] = useState(0);
+  const [cursorKey, setCursorKey] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
   const rootRef = useRef<HTMLDivElement>(null);
   const listId = useId();
@@ -92,10 +93,10 @@ export function CommandPalette({
   useEffect(() => {
     if (!open) return;
     const q = query.trim();
-    if (q.length < 2) {
-      setResult(null);
-      return;
-    }
+    // A one-character query never renders remote rows, so the last result can
+    // stay put: clearing it here would only cost a refetch when the visitor
+    // types the same term back.
+    if (q.length < 2) return;
     let alive = true;
     const timer = window.setTimeout(() => {
       fetch(`/api/search?q=${encodeURIComponent(q)}`)
@@ -143,9 +144,14 @@ export function CommandPalette({
     }),
   ].slice(0, 10);
 
-  useEffect(() => {
+  // The highlighted row belongs to one particular result list. Adjusting it
+  // during render keeps it from pointing at whatever now sits in that slot;
+  // an effect would let one frame through with the stale highlight.
+  const rowsKey = `${trimmed}:${rows.length}`;
+  if (rowsKey !== cursorKey) {
+    setCursorKey(rowsKey);
     setCursor(0);
-  }, [trimmed, rows.length]);
+  }
 
   function go(row: Row | undefined) {
     if (!row) return;

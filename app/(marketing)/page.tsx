@@ -7,7 +7,7 @@ import { PhotoSlot } from "@/components/marketing/photo-slot";
 import { HeroImage } from "@/components/marketing/hero-image";
 import { PressMarquee } from "@/components/marketing/press-marquee";
 import { Reel } from "@/components/marketing/reel";
-import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
+import { ScrollProgress } from "@/components/marketing/spotlight";
 import { ClassLibrary } from "@/components/marketing/class-library";
 import { CommunityGlobe } from "@/components/marketing/community-globe";
 import { MembershipPlans } from "@/components/marketing/membership-plans";
