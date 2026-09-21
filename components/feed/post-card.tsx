@@ -11,6 +11,7 @@ import { PostGalleryModal } from "@/components/feed/post-gallery-modal";
 import { PostMedia } from "@/components/feed/post-media";
 import { PostMenu } from "@/components/feed/post-menu";
 import type { Density } from "@/components/feed/feed-toolbar";
+import { videoEmbedSrc } from "@/lib/community/media";
 import { cn } from "@/lib/utils";
 
 type PreviewComment = {
@@ -50,6 +51,7 @@ export type FeedPost = {
     kind: string;
     width?: number | null;
     height?: number | null;
+    thumbnailUrl?: string | null;
   }[];
   pollOptions: { id: string; label: string; _count: { votes: number } }[];
   _count: { comments: number; bookmarks: number };
@@ -90,7 +92,10 @@ export function PostCard({
   const previewComments = post.comments?.slice(0, 2) ?? [];
   const isHost = post.author.handle === "adam";
   const isOwn = Boolean(viewer.handle && viewer.handle === post.author.handle);
-  const webLink = /^https?:\/\//.test(post.linkUrl ?? "") ? post.linkUrl : null;
+  const webLink =
+    /^https?:\/\//.test(post.linkUrl ?? "") && !videoEmbedSrc(post.linkUrl ?? "")
+      ? post.linkUrl
+      : null;
   const spaceLabel = post.space.name.startsWith("#")
     ? post.space.name
     : `# ${post.space.name}`;

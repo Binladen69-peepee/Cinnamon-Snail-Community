@@ -419,15 +419,17 @@ model Post {
 }
 
 model PostAttachment {
-  id       String  @id @default(cuid())
-  postId   String
-  kind     String
-  url      String
-  alt      String?
-  mimeType String?
-  width    Int?
-  height   Int?
-  post     Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+  id           String  @id @default(cuid())
+  postId       String
+  kind         String
+  url          String
+  alt          String?
+  mimeType     String?
+  width        Int?
+  height       Int?
+  /** Optional still shown before a video plays (composer thumbnail or class cover). */
+  thumbnailUrl String?
+  post         Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model PostMention {

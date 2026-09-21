@@ -150,6 +150,8 @@ export function Composer({
             onRemove={uploads.remove}
             onRetry={uploads.retry}
             onAlt={uploads.setAlt}
+            onVideoThumbnail={uploads.setVideoThumbnail}
+            onClearVideoThumbnail={uploads.clearVideoThumbnail}
           />
 
           {error ? (

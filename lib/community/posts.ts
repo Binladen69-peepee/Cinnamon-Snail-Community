@@ -172,6 +172,8 @@ export async function createPost(input: {
     /** Stored so the feed can reserve exact space before the file loads. */
     width?: number | null;
     height?: number | null;
+    /** Optional poster for video attachments. */
+    thumbnailUrl?: string | null;
   }[];
 }) {
   const auth = await getUserAuth(input.userId);
@@ -214,6 +216,7 @@ export async function createPost(input: {
               mimeType: file.mimeType,
               width: file.width ?? null,
               height: file.height ?? null,
+              thumbnailUrl: file.thumbnailUrl ?? null,
             })),
           }
         : undefined,

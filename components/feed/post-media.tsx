@@ -1,6 +1,7 @@
 "use client";
 
 import { Play } from "lucide-react";
+import { videoEmbedSrc, videoPosterUrl } from "@/lib/community/media";
 import { cn } from "@/lib/utils";
 
 export type MediaItem = {
@@ -10,6 +11,7 @@ export type MediaItem = {
   kind?: string;
   width?: number | null;
   height?: number | null;
+  thumbnailUrl?: string | null;
 };
 
 /** Tallest a single image may be, as width/height. Anything taller is cropped. */
@@ -20,6 +22,9 @@ const MAX_RATIO = 2.2;
  * Feed media thumbnail / grid. Opens the Instagram lightbox via onOpen when
  * the post has gallery context; otherwise links through onOpen still fire for
  * parents that own the modal.
+ *
+ * Video tiles prefer an explicit thumbnail (or a YouTube still) so the feed
+ * never shows a blank first frame while metadata loads.
  */
 export function PostMedia({
   items,
@@ -89,13 +94,7 @@ export function PostMedia({
         )}
         style={{ aspectRatio: String(ratioOf(items[0])) }}
       >
-        <video
-          src={items[0].url}
-          muted
-          playsInline
-          preload="metadata"
-          className="size-full object-contain"
-        />
+        <Frame item={items[0]} fill />
         <span
           className="pointer-events-none absolute inset-0 grid place-items-center bg-[rgba(9,20,16,0.22)]"
           aria-hidden
@@ -179,6 +178,32 @@ function Frame({
   eager?: boolean;
 }) {
   if (item.kind === "video") {
+    const poster = videoPosterUrl(item.url, item.thumbnailUrl);
+    if (poster) {
+      return (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={poster}
+          alt={item.alt ?? ""}
+          loading={eager ? undefined : "lazy"}
+          decoding="async"
+          className={cn(
+            "size-full bg-black object-cover",
+            fill && "absolute inset-0",
+          )}
+        />
+      );
+    }
+    // YouTube (and similar) cannot be painted by <video>; keep a dark plate
+    // with the play overlay from the parent rather than a broken media element.
+    if (videoEmbedSrc(item.url)) {
+      return (
+        <span
+          className={cn("block size-full bg-black", fill && "absolute inset-0")}
+          aria-hidden
+        />
+      );
+    }
     return (
       <video
         src={item.url}

@@ -4,14 +4,17 @@ import { readPrivacy, visibleProfileFields } from "@/lib/community/privacy";
 
 describe("video embeds", () => {
   it("embeds YouTube watch URLs", () => {
-    expect(videoEmbedSrc("https://www.youtube.com/watch?v=dQw4w9wg")).toBe(
-      "https://www.youtube.com/embed/dQw4w9wg",
+    expect(videoEmbedSrc("https://www.youtube.com/watch?v=dQw4w9WgXcQ")).toBe(
+      "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
     );
   });
 
-  it("embeds youtu.be and Vimeo", () => {
-    expect(videoEmbedSrc("https://youtu.be/abc123")).toBe(
-      "https://www.youtube.com/embed/abc123",
+  it("embeds youtu.be, /embed/, and Vimeo", () => {
+    expect(videoEmbedSrc("https://youtu.be/dQw4w9WgXcQ")).toBe(
+      "https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ",
+    );
+    expect(videoEmbedSrc("https://www.youtube.com/embed/GuhyvG7W48c")).toBe(
+      "https://www.youtube-nocookie.com/embed/GuhyvG7W48c",
     );
     expect(videoEmbedSrc("https://vimeo.com/123456")).toBe(
       "https://player.vimeo.com/video/123456",

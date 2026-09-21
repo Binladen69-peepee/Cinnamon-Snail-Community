@@ -20,6 +20,10 @@ export type UploadItem = {
   height?: number | null;
   mimeType?: string;
   alt?: string;
+  /** Optional poster image for a video (object URL while uploading / settling). */
+  thumbnailPreview?: string;
+  thumbnailUrl?: string;
+  thumbnailStatus?: "preparing" | "uploading" | "done" | "error";
 };
 
 /** What a finished upload contributes to a post. */
@@ -30,6 +34,7 @@ export type FinishedAttachment = {
   width: number | null;
   height: number | null;
   alt?: string;
+  thumbnailUrl?: string;
 };
 
 let counter = 0;
@@ -140,13 +145,93 @@ export function useUploads() {
     [run],
   );
 
+  const setVideoThumbnail = useCallback(
+    async (videoId: string, file: File) => {
+      const kind = kindOf(file.type);
+      const check = validateUpload({ mimeType: file.type, size: file.size });
+      if (kind !== "image" || !check.ok) {
+        patch(videoId, {
+          thumbnailStatus: "error",
+          error: check.ok ? "Pick an image for the thumbnail." : check.error,
+        });
+        return;
+      }
+
+      const preview = URL.createObjectURL(file);
+      patch(videoId, {
+        thumbnailPreview: preview,
+        thumbnailStatus: "preparing",
+        thumbnailUrl: undefined,
+        error: undefined,
+      });
+
+      const controller = new AbortController();
+      aborts.current.set(`${videoId}:thumb`, controller);
+      try {
+        const prepared = await prepareForUpload(file);
+        const ticket = await requestUploadAction({
+          mimeType: prepared.mimeType,
+          size: prepared.blob.size,
+        });
+        if (!ticket.ok) {
+          patch(videoId, { thumbnailStatus: "error", error: ticket.error });
+          return;
+        }
+        patch(videoId, { thumbnailStatus: "uploading" });
+        await putWithProgress({
+          url: ticket.ticket.signedUrl,
+          blob: prepared.blob,
+          mimeType: prepared.mimeType,
+          onProgress: () => undefined,
+          signal: controller.signal,
+        });
+        patch(videoId, {
+          thumbnailStatus: "done",
+          thumbnailUrl: ticket.ticket.readUrl,
+        });
+      } catch (error) {
+        if (error instanceof DOMException && error.name === "AbortError") return;
+        patch(videoId, {
+          thumbnailStatus: "error",
+          error:
+            error instanceof Error ? error.message : "Thumbnail upload failed.",
+        });
+      } finally {
+        aborts.current.delete(`${videoId}:thumb`);
+      }
+    },
+    [patch],
+  );
+
+  const clearVideoThumbnail = useCallback((videoId: string) => {
+    aborts.current.get(`${videoId}:thumb`)?.abort();
+    aborts.current.delete(`${videoId}:thumb`);
+    setItems((current) =>
+      current.map((item) => {
+        if (item.id !== videoId) return item;
+        if (item.thumbnailPreview) URL.revokeObjectURL(item.thumbnailPreview);
+        return {
+          ...item,
+          thumbnailPreview: undefined,
+          thumbnailUrl: undefined,
+          thumbnailStatus: undefined,
+        };
+      }),
+    );
+  }, []);
+
   const remove = useCallback((id: string) => {
     aborts.current.get(id)?.abort();
     aborts.current.delete(id);
+    aborts.current.get(`${id}:thumb`)?.abort();
+    aborts.current.delete(`${id}:thumb`);
     files.current.delete(id);
     setItems((current) => {
       const found = current.find((item) => item.id === id);
-      if (found) URL.revokeObjectURL(found.preview);
+      if (found) {
+        URL.revokeObjectURL(found.preview);
+        if (found.thumbnailPreview) URL.revokeObjectURL(found.thumbnailPreview);
+      }
       return current.filter((item) => item.id !== id);
     });
   }, []);
@@ -169,13 +254,20 @@ export function useUploads() {
     aborts.current.clear();
     files.current.clear();
     setItems((current) => {
-      for (const item of current) URL.revokeObjectURL(item.preview);
+      for (const item of current) {
+        URL.revokeObjectURL(item.preview);
+        if (item.thumbnailPreview) URL.revokeObjectURL(item.thumbnailPreview);
+      }
       return [];
     });
   }, []);
 
   const busy = items.some(
-    (item) => item.status === "preparing" || item.status === "uploading",
+    (item) =>
+      item.status === "preparing" ||
+      item.status === "uploading" ||
+      item.thumbnailStatus === "preparing" ||
+      item.thumbnailStatus === "uploading",
   );
 
   const attachments: FinishedAttachment[] = items
@@ -187,7 +279,19 @@ export function useUploads() {
       width: item.width ?? null,
       height: item.height ?? null,
       alt: item.alt,
+      thumbnailUrl: item.thumbnailUrl,
     }));
 
-  return { items, add, remove, retry, setAlt, reset, busy, attachments };
+  return {
+    items,
+    add,
+    remove,
+    retry,
+    setAlt,
+    setVideoThumbnail,
+    clearVideoThumbnail,
+    reset,
+    busy,
+    attachments,
+  };
 }

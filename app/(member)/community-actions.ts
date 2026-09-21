@@ -60,6 +60,7 @@ async function verifyAttachments(
         mimeType?: string;
         width?: number | null;
         height?: number | null;
+        thumbnailUrl?: string | null;
       }[];
     }
   | { ok: false; error: string }
@@ -73,6 +74,7 @@ async function verifyAttachments(
     mimeType?: string;
     width?: number | null;
     height?: number | null;
+    thumbnailUrl?: string | null;
   }[] = [];
 
   for (const entry of claimed) {
@@ -94,6 +96,20 @@ async function verifyAttachments(
     const width = Number(record.width);
     const height = Number(record.height);
 
+    let thumbnailUrl: string | null = null;
+    if (kind === "video" && typeof record.thumbnailUrl === "string" && record.thumbnailUrl) {
+      const thumbPath = objectPathFromUrl(record.thumbnailUrl);
+      if (!thumbPath) {
+        return { ok: false, error: "That video thumbnail is not one of ours." };
+      }
+      const thumb = await verifyUploaded({ userId, path: thumbPath });
+      if (!thumb.ok) return { ok: false, error: thumb.error };
+      if (kindOf(thumb.mimeType) !== "image") {
+        return { ok: false, error: "Video thumbnails must be images." };
+      }
+      thumbnailUrl = record.thumbnailUrl;
+    }
+
     files.push({
       url,
       kind,
@@ -102,6 +118,7 @@ async function verifyAttachments(
       mimeType: verified.mimeType,
       width: Number.isFinite(width) && width > 0 ? width : null,
       height: Number.isFinite(height) && height > 0 ? height : null,
+      thumbnailUrl,
     });
   }
 
