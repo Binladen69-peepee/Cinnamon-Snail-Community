@@ -176,6 +176,31 @@ export async function createPostAction(
     const poll = [1, 2, 3, 4]
       .map((n) => String(formData.get(`poll${n}`) ?? "").trim())
       .filter(Boolean);
+    if (type === "POLL" && poll.length < 2) {
+      return { ok: false, error: "A poll needs at least two options." };
+    }
+
+    // `createPost` has always accepted a link, but nothing ever passed one, so
+    // a LINK post had no URL. Only http(s) is allowed through: the value is
+    // rendered as an href, and a `javascript:` string in that position is the
+    // whole of the attack.
+    const rawLink = String(formData.get("linkUrl") ?? "").trim();
+    let linkUrl: string | undefined;
+    if (rawLink) {
+      let parsed: URL;
+      try {
+        parsed = new URL(rawLink);
+      } catch {
+        return { ok: false, error: "That link is not a valid URL." };
+      }
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+        return { ok: false, error: "Links have to start with http or https." };
+      }
+      linkUrl = parsed.toString();
+    }
+    if (type === "LINK" && !linkUrl) {
+      return { ok: false, error: "Paste the link you want to share." };
+    }
 
     await createPost({
       userId,
@@ -183,6 +208,7 @@ export async function createPostAction(
       type,
       title: title || undefined,
       body,
+      linkUrl,
       status: "PUBLISHED",
       attachmentUrls: attachments.files,
       pollOptions: type === "POLL" ? poll : undefined,
