@@ -12,6 +12,7 @@ import {
   Stat,
 } from "@/components/admin/ui";
 import { Receipt } from "lucide-react";
+import { FormLayout, Select } from "@/components/admin/form";
 import {
   grantAccessAction,
   retryWebhooksAction,
@@ -19,9 +20,6 @@ import {
 } from "@/app/admin/actions";
 
 export const metadata = { title: "Billing" };
-
-const FIELD =
-  "h-9 min-w-0 rounded-ctl border border-field-border bg-field-background px-3 text-[13px] text-foreground outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20";
 
 /**
  * Billing health.
@@ -123,24 +121,27 @@ export default async function AdminBillingPage() {
             Writes an entitlement and an audit row. Kit sync is attempted; if Kit
             keys are missing the log records the failure rather than pretending.
           </p>
-          <form
-            action={grantAccessAction}
-            className="mt-3 grid gap-2 md:grid-cols-[1fr_1fr_auto]"
-          >
-            <select name="userId" required className={FIELD} aria-label="Member">
-              {members.map((member) => (
-                <option key={member.id} value={member.id}>
-                  {member.profile?.displayName ?? member.email}
-                </option>
-              ))}
-            </select>
-            <select name="productId" required className={FIELD} aria-label="Product">
-              {products.map((product) => (
-                <option key={product.id} value={product.id}>
-                  {product.name}
-                </option>
-              ))}
-            </select>
+          <form action={grantAccessAction} className="mt-3 space-y-3">
+            <FormLayout columns={2}>
+              <Select
+                name="userId"
+                required
+                label="Member"
+                options={members.map((member) => ({
+                  value: member.id,
+                  label: member.profile?.displayName ?? member.email ?? member.id,
+                }))}
+              />
+              <Select
+                name="productId"
+                required
+                label="Product"
+                options={products.map((product) => ({
+                  value: product.id,
+                  label: product.name,
+                }))}
+              />
+            </FormLayout>
             <AdminButton type="submit" variant="primary">
               Grant access
             </AdminButton>

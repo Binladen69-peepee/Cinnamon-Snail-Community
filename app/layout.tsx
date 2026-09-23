@@ -16,7 +16,11 @@ const inter = Inter({
 const poppins = Poppins({
   variable: "--font-poppins",
   subsets: ["latin"],
-  weight: ["400"],
+  // 400 is all the marketing and member pages ask for -- they flatten every
+  // weight class to regular on purpose. The admin console needs a real
+  // hierarchy, and `font-synthesis: none` on body means a weight that is not
+  // loaded cannot be faked: it would silently render as 400.
+  weight: ["400", "500", "600", "700"],
   display: "swap",
 });
 

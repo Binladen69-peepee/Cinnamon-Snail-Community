@@ -318,8 +318,37 @@ describe("the reel", () => {
 describe("site typography", () => {
   it("loads Poppins at 400 and Momo at the only Google weight", () => {
     const layout = readFileSync(resolve(process.cwd(), "app/layout.tsx"), "utf8");
-    expect(layout).toMatch(/const poppins = Poppins\(\{[\s\S]*?weight:\s*\["400"\]/);
+    // Poppins carries heavier weights for the admin console, which needs a real
+    // hierarchy. 400 must stay in the set: it is what the site actually paints,
+    // and `font-synthesis: none` means an unloaded weight renders as regular
+    // rather than being faked.
+    expect(layout).toMatch(/const poppins = Poppins\(\{[\s\S]*?weight:\s*\[[^\]]*"400"/);
     expect(layout).toMatch(/const momo = Momo_Trust_Display\(\{[\s\S]*?weight:\s*"400"/);
+  });
+
+  it("keeps the site flat at 400 however many weights are loaded", () => {
+    const css = readFileSync(resolve(process.cwd(), "app/globals.css"), "utf8");
+    // This rule, not the font loader, is what holds the marketing and member
+    // look to one weight. Loading more weights is only safe while it stands.
+    expect(css).toMatch(
+      /\.font-medium,[\s\S]{0,120}?\.font-bold,[\s\S]*?font-weight: 400;/,
+    );
+  });
+
+  it("keeps the admin console's weight rules scoped to the console", () => {
+    const css = readFileSync(resolve(process.cwd(), "app/globals.css"), "utf8");
+    const block = css.slice(css.indexOf("Admin typography: Poppins"));
+    expect(block).toContain(".vu-admin .font-medium");
+
+    // Unscoping any of these would push a weight the rest of the site
+    // deliberately flattens back out across marketing and the member app.
+    const weightRules = block
+      .split("\n")
+      .filter((line) => /font-weight: (?:500|600|700);/.test(line));
+    expect(weightRules.length).toBeGreaterThanOrEqual(4);
+    for (const line of weightRules) {
+      expect(line.trimStart().startsWith(".vu-admin")).toBe(true);
+    }
   });
 
   it("keeps Momo on h1–h3 and Poppins on everything smaller", () => {

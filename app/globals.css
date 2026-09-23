@@ -1716,3 +1716,58 @@ button:hover .vu-media-zoom {
 .vu-admin .vu-raise {
   box-shadow: var(--lift);
 }
+
+/* ---------------------------------------------------------------------------
+   Admin typography: Poppins, with weights that actually differ.
+
+   Two things stand in the way of that elsewhere in the sheet, and both are
+   deliberate for the marketing and member pages rather than mistakes:
+
+   1. `--ui-display` points at Momo Trust Display, so h1-h3 anywhere in the app
+      render in the display face. The console is a tool, not a brochure, and
+      wants one family throughout.
+   2. Every weight utility is flattened to 400, because only Poppins 400 used
+      to be loaded and `font-synthesis: none` means an unloaded weight cannot
+      be faked -- it just renders regular.
+
+   Both are scoped overrides here rather than edits to the global rules, so
+   nothing outside the console moves. These selectors carry one more class than
+   the rules they override, so they win without !important.
+--------------------------------------------------------------------------- */
+.vu-admin {
+  --ui-display: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --ui-copy: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --ui-display-tracking: -0.02em;
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+}
+
+.vu-admin h1,
+.vu-admin h2,
+.vu-admin h3,
+.vu-admin h4,
+.vu-admin h5,
+.vu-admin h6,
+.vu-admin .font-display {
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+}
+
+.vu-admin .font-medium { font-weight: 500; }
+.vu-admin .font-semibold { font-weight: 600; }
+.vu-admin .font-bold,
+.vu-admin b,
+.vu-admin strong,
+.vu-admin h1,
+.vu-admin h2,
+.vu-admin h3 { font-weight: 600; }
+.vu-admin .font-extrabold,
+.vu-admin .font-black { font-weight: 700; }
+
+/* Headings lead; a 700 heading over 600 body is the only weight step needed. */
+.vu-admin h1.font-display,
+.vu-admin .font-display.font-bold { font-weight: 700; }
+
+/* Numbers in a console are compared down a column, so they line up. */
+.vu-admin .tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
