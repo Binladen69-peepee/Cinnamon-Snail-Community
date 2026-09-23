@@ -44,9 +44,9 @@ export default async function AdminWelcomePage() {
   return (
     <div className="space-y-10">
       <div>
-        <p className="text-sm uppercase tracking-[0.18em] text-olive">Admin</p>
-        <h1 className="mt-2 font-display text-4xl text-forest">Welcome DM</h1>
-        <p className="mt-3 max-w-2xl text-muted">
+        <p className="text-[10.5px] font-bold uppercase tracking-[0.13em] text-foreground-muted">Admin</p>
+        <h1 className="mt-2 font-display text-[1.55rem] font-bold tracking-[-0.02em] text-foreground">Welcome DM</h1>
+        <p className="mt-3 max-w-2xl text-foreground-muted">
           A direct message that arrives a set time after a member signs in for
           the first time ever — not on every sign-in, and not by email. Each
           member can only ever receive one.
@@ -65,7 +65,7 @@ export default async function AdminWelcomePage() {
       </dl>
 
       <section className="rounded-card border border-border bg-surface p-5">
-        <h2 className="font-display text-xl text-forest">Settings</h2>
+        <h2 className="text-[13.5px] font-bold text-foreground">Settings</h2>
         <p className="mt-1 text-sm text-foreground-muted">
           {setting.updatedAt
             ? `Last saved ${setting.updatedAt.toLocaleString()}.`
@@ -89,7 +89,7 @@ export default async function AdminWelcomePage() {
       <section className="rounded-card border border-border bg-surface p-5">
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
-            <h2 className="font-display text-xl text-forest">Queue</h2>
+            <h2 className="text-[13.5px] font-bold text-foreground">Queue</h2>
             <p className="mt-1 text-sm text-foreground-muted">
               A cron sweeps this on a timer. You can also run it now.
             </p>
@@ -143,9 +143,9 @@ function Stat({
 }) {
   return (
     <div className="rounded-card border border-border bg-surface p-5">
-      <dt className="text-sm text-muted">{label}</dt>
+      <dt className="text-sm text-foreground-muted">{label}</dt>
       <dd
-        className={`font-display text-3xl ${tone === "danger" ? "text-danger" : "text-forest"}`}
+        className={`font-display text-3xl ${tone === "danger" ? "text-danger" : "text-foreground"}`}
       >
         {value}
       </dd>

@@ -1618,3 +1618,101 @@ button:hover .vu-media-zoom {
 
 
 /* Look-switcher palettes removed — theme is system light/dark via next-themes. */
+
+/* ---------------------------------------------------------------------------
+   Admin console: always dark, whatever the member app is set to.
+
+   Unlayered on purpose. The role tokens live in `@layer theme`, and unlayered
+   rules beat layered ones in the cascade regardless of specificity, so this
+   re-skins every role-token class inside the console without touching the
+   member app or fighting it with `!important`.
+
+   The scale is a shading ladder rather than flat black: a pure-black ground
+   with each level of elevation one step lighter. On black a drop shadow is
+   invisible, so depth has to come from the surface colour and a lit top edge,
+   which is what --lift does.
+--------------------------------------------------------------------------- */
+.vu-admin {
+  color-scheme: dark;
+
+  /* Elevation ladder: ground -> card -> raised -> inert */
+  --background: #000000;
+  --surface: #0d0d0d;
+  --surface-foreground: #ededed;
+  --overlay: #151515;
+  --overlay-foreground: #ededed;
+  --default: #1a1a1a;
+  --default-foreground: #ededed;
+
+  --foreground: #ededed;
+  --foreground-muted: #8c8c8c;
+  --muted: #8c8c8c;
+
+  --border: #272727;
+  --separator: #1c1c1c;
+  --hairline-firm: #3a3a3a;
+
+  --field-background: #0d0d0d;
+  --field-foreground: #ededed;
+  --field-placeholder: #7a7a7a;
+  --field-border: #262626;
+
+  --primary: #ededed;
+  --primary-foreground: #000000;
+  --link: #4ade80;
+  --focus: #4ade80;
+
+  /* Brand stays green: it is the one colour in the console and it carries the
+     product's identity into a surface that is otherwise neutral. */
+  --brand: #4ade80;
+  --brand-strong: #86efac;
+  --brand-wash: #0d1f14;
+  --on-brand: #06120d;
+  --brand-fill: #4ade80;
+  --brand-fill-hover: #86efac;
+  --brand-fill-foreground: #06120d;
+
+  --accent: #4ade80;
+  --accent-foreground: #06120d;
+  --success: #4ade80;
+  --success-foreground: #06120d;
+  --warning: #fbbf24;
+  --warning-foreground: #1a1205;
+  --danger: #f87171;
+  --danger-foreground: #1a0606;
+
+  --sidebar: #070707;
+  --sidebar-foreground: #ededed;
+  --sidebar-accent: #0d1f14;
+  --sidebar-accent-foreground: #86efac;
+  --sidebar-border: #1a1a1a;
+  --sidebar-ring: #4ade80;
+
+  /* Literal names still resolve, because older admin pages use them. */
+  --forest: #ededed;
+  --deep-forest: #d4d4d4;
+  --mint: #141414;
+  --sage: #1a1a1a;
+  --cream: #000000;
+  --paper: #ededed;
+  --warm-white: #0d0d0d;
+  --ink: #ededed;
+  --olive: #8c8c8c;
+  --sand: #222222;
+
+  --e1: 0 1px 2px rgb(0 0 0 / 0.6);
+  --e2: 0 4px 16px rgb(0 0 0 / 0.65);
+  --e3: 0 24px 60px rgb(0 0 0 / 0.8);
+  --lift: inset 0 1px 0 rgb(255 255 255 / 0.05);
+  --surface-shadow: 0 10px 30px rgb(0 0 0 / 0.7);
+  --overlay-shadow: 0 24px 60px rgb(0 0 0 / 0.8);
+
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* Every raised surface in the console carries the lit top edge, so a card on a
+   black ground reads as raised rather than as a border drawn on nothing. */
+.vu-admin .vu-raise {
+  box-shadow: var(--lift);
+}

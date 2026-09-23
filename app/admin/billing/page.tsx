@@ -1,13 +1,36 @@
 import Link from "next/link";
 import { billingMetrics } from "@/lib/billing/metrics";
 import { prisma } from "@/lib/db";
-import { Button } from "@/components/ui/button";
+import {
+  AdminButton,
+  AdminLink,
+  Badge,
+  EmptyPanel,
+  PageHeader,
+  Panel,
+  PanelHeader,
+  Stat,
+} from "@/components/admin/ui";
+import { Receipt } from "lucide-react";
 import {
   grantAccessAction,
   retryWebhooksAction,
   runReconciliationAction,
 } from "@/app/admin/actions";
 
+export const metadata = { title: "Billing" };
+
+const FIELD =
+  "h-9 min-w-0 rounded-ctl border border-field-border bg-field-background px-3 text-[13px] text-foreground outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20";
+
+/**
+ * Billing health.
+ *
+ * Restyled onto the console's shared parts. The numbers and the actions are
+ * unchanged: money lives in SamCart, access lives here, and when the two
+ * disagree the entitlement is what gets fixed — the storefront is never asked
+ * during a page load.
+ */
 export default async function AdminBillingPage() {
   const metrics = await billingMetrics();
   const [products, members, events, findings] = await Promise.all([
@@ -18,10 +41,7 @@ export default async function AdminBillingPage() {
       orderBy: { createdAt: "desc" },
       take: 40,
     }),
-    prisma.billingEvent.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 12,
-    }),
+    prisma.billingEvent.findMany({ orderBy: { createdAt: "desc" }, take: 12 }),
     prisma.reconciliationFinding.findMany({
       orderBy: { createdAt: "desc" },
       take: 8,
@@ -30,112 +50,180 @@ export default async function AdminBillingPage() {
   ]);
 
   return (
-    <div className="space-y-10">
-      <div>
-        <p className="text-sm uppercase tracking-[0.18em] text-olive">Admin</p>
-        <h1 className="mt-2 font-display text-4xl text-forest">Billing health</h1>
-        <p className="mt-3 max-w-2xl text-muted">
-          Money lives in SamCart. Access lives here. If those disagree, fix the
-          entitlement — never ask the storefront during a page load.
-        </p>
-      </div>
+    <div className="space-y-5">
+      <PageHeader
+        title="Billing health"
+        subtitle="Money lives in SamCart. Access lives here. When they disagree, the entitlement is what gets fixed."
+        actions={
+          <>
+            <form action={runReconciliationAction}>
+              <AdminButton type="submit">Run reconciliation</AdminButton>
+            </form>
+            <form action={retryWebhooksAction}>
+              <AdminButton type="submit">Retry webhooks</AdminButton>
+            </form>
+          </>
+        }
+      />
 
-      <dl className="grid gap-4 md:grid-cols-3">
-        <Stat label="MRR" value={`$${(metrics.mrrCents / 100).toFixed(0)}`} />
-        <Stat label="Paying seats" value={String(metrics.activeSubscriptions)} />
-        <Stat
-          label="Churn this month"
-          value={`${Math.round(metrics.churnRate * 100)}%`}
+      <Panel>
+        <PanelHeader
+          title="This month"
+          icon={<Receipt className="size-3.5" aria-hidden />}
+          action={
+            <div className="flex items-center gap-3">
+              <Link
+                href="/admin/billing/webhooks"
+                className="text-[12.5px] font-semibold text-brand no-underline hover:underline"
+              >
+                Webhook log
+              </Link>
+              <Link
+                href="/admin/billing/reconciliation"
+                className="text-[12.5px] font-semibold text-brand no-underline hover:underline"
+              >
+                Reconciliation
+              </Link>
+            </div>
+          }
         />
-        <Stat label="Failed payments" value={String(metrics.pastDue)} />
-        <Stat label="Webhook failures" value={String(metrics.failedWebhooks)} />
-        <Stat label="Dead letters" value={String(metrics.deadLetters)} />
-      </dl>
+        <dl className="grid gap-px bg-border sm:grid-cols-2 xl:grid-cols-3">
+          <Stat flush label="MRR" value={`$${(metrics.mrrCents / 100).toFixed(0)}`} />
+          <Stat flush label="Paying seats" value={metrics.activeSubscriptions} />
+          <Stat
+            flush
+            label="Churn this month"
+            value={`${Math.round(metrics.churnRate * 100)}%`}
+          />
+          <Stat
+            flush
+            label="Failed payments"
+            value={metrics.pastDue}
+            tone={metrics.pastDue > 0 ? "warn" : "default"}
+          />
+          <Stat
+            flush
+            label="Webhook failures"
+            value={metrics.failedWebhooks}
+            tone={metrics.failedWebhooks > 0 ? "warn" : "default"}
+          />
+          <Stat
+            flush
+            label="Dead letters"
+            value={metrics.deadLetters}
+            tone={metrics.deadLetters > 0 ? "bad" : "default"}
+          />
+        </dl>
+      </Panel>
 
-      <div className="flex flex-wrap gap-3">
-        <form action={runReconciliationAction}>
-          <Button type="submit" variant="secondary">
-            Run reconciliation
-          </Button>
-        </form>
-        <form action={retryWebhooksAction}>
-          <Button type="submit" variant="secondary">
-            Retry failed webhooks
-          </Button>
-        </form>
-        <Link href="/admin/billing/webhooks" className="inline-flex min-h-11 items-center text-sm text-olive">
-          Webhook log
-        </Link>
-        <Link href="/admin/billing/reconciliation" className="inline-flex min-h-11 items-center text-sm text-olive">
-          Reconciliation history
-        </Link>
-      </div>
+      <Panel>
+        <PanelHeader title="Manual grant" />
+        <div className="p-4">
+          <p className="text-[13px] text-foreground-muted">
+            Writes an entitlement and an audit row. Kit sync is attempted; if Kit
+            keys are missing the log records the failure rather than pretending.
+          </p>
+          <form
+            action={grantAccessAction}
+            className="mt-3 grid gap-2 md:grid-cols-[1fr_1fr_auto]"
+          >
+            <select name="userId" required className={FIELD} aria-label="Member">
+              {members.map((member) => (
+                <option key={member.id} value={member.id}>
+                  {member.profile?.displayName ?? member.email}
+                </option>
+              ))}
+            </select>
+            <select name="productId" required className={FIELD} aria-label="Product">
+              {products.map((product) => (
+                <option key={product.id} value={product.id}>
+                  {product.name}
+                </option>
+              ))}
+            </select>
+            <AdminButton type="submit" variant="primary">
+              Grant access
+            </AdminButton>
+          </form>
+        </div>
+      </Panel>
 
-      <section className="rounded-[1.5rem] border border-sand bg-warm-white p-6">
-        <h2 className="font-display text-2xl text-forest">Manual grant</h2>
-        <p className="mt-2 text-sm text-muted">
-          Writes an entitlement and an audit row. Kit sync is attempted; if Kit
-          keys are missing, the log records the failure instead of pretending.
-        </p>
-        <form action={grantAccessAction} className="mt-4 grid gap-3 md:grid-cols-[1fr_1fr_auto]">
-          <select name="userId" required className="min-h-11 rounded-2xl border border-sand px-3">
-            {members.map((member) => (
-              <option key={member.id} value={member.id}>
-                {member.profile?.displayName ?? member.email}
-              </option>
-            ))}
-          </select>
-          <select name="productId" required className="min-h-11 rounded-2xl border border-sand px-3">
-            {products.map((product) => (
-              <option key={product.id} value={product.id}>
-                {product.name}
-              </option>
-            ))}
-          </select>
-          <Button type="submit">Grant access</Button>
-        </form>
-      </section>
-
-      <section>
-        <h2 className="font-display text-2xl text-forest">Recent billing events</h2>
-        <ul className="mt-4 space-y-2">
-          {events.map((event) => (
-            <li key={event.id} className="rounded-2xl bg-warm-white px-4 py-3 text-sm">
-              <span className="text-forest">{event.type}</span>
-              <span className="ml-2 text-muted">
-                {event.processedAt
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Panel>
+          <PanelHeader title="Recent billing events" count={events.length} />
+          {events.length === 0 ? (
+            <EmptyPanel
+              icon={<Receipt className="size-6" aria-hidden />}
+              title="No events yet"
+              body="SamCart webhooks land here as they arrive."
+            />
+          ) : (
+            <ul className="divide-y divide-separator">
+              {events.map((event) => {
+                const state = event.processedAt
                   ? "processed"
                   : event.deadLetteredAt
                     ? "dead letter"
                     : event.failedAt
                       ? "failed"
-                      : "queued"}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
+                      : "queued";
+                return (
+                  <li
+                    key={event.id}
+                    className="flex items-center justify-between gap-3 px-4 py-2.5"
+                  >
+                    <span className="min-w-0 truncate text-[13px] text-foreground">
+                      {event.type}
+                    </span>
+                    <Badge
+                      tone={
+                        state === "dead letter"
+                          ? "bad"
+                          : state === "failed"
+                            ? "warn"
+                            : state === "processed"
+                              ? "good"
+                              : "neutral"
+                      }
+                    >
+                      {state}
+                    </Badge>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </Panel>
 
-      <section>
-        <h2 className="font-display text-2xl text-forest">Latest reconciliation notes</h2>
-        <ul className="mt-4 space-y-2">
-          {findings.map((item) => (
-            <li key={item.id} className="rounded-2xl bg-warm-white px-4 py-3 text-sm">
-              {item.kind.replaceAll("_", " ")}
-              {item.autoFixed ? " · auto-fixed" : " · alert"}
-            </li>
-          ))}
-        </ul>
-      </section>
-    </div>
-  );
-}
+        <Panel>
+          <PanelHeader title="Reconciliation notes" count={findings.length} />
+          {findings.length === 0 ? (
+            <EmptyPanel
+              icon={<Receipt className="size-6" aria-hidden />}
+              title="Nothing flagged"
+              body="Drift between SamCart and local entitlements shows up here."
+            />
+          ) : (
+            <ul className="divide-y divide-separator">
+              {findings.map((item) => (
+                <li
+                  key={item.id}
+                  className="flex items-center justify-between gap-3 px-4 py-2.5"
+                >
+                  <span className="min-w-0 truncate text-[13px] text-foreground">
+                    {item.kind.replaceAll("_", " ")}
+                  </span>
+                  <Badge tone={item.autoFixed ? "good" : "warn"}>
+                    {item.autoFixed ? "auto-fixed" : "alert"}
+                  </Badge>
+                </li>
+              ))}
+            </ul>
+          )}
+        </Panel>
+      </div>
 
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-xl border border-border bg-surface p-5">
-      <dt className="text-sm text-muted">{label}</dt>
-      <dd className="mt-1 font-display text-3xl text-forest">{value}</dd>
+      <AdminLink href="/admin">Back to overview</AdminLink>
     </div>
   );
 }

@@ -1,18 +1,22 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
+import { countOpenReports } from "@/lib/admin/overview";
 
 /**
- * Admin gets its own chrome.
+ * The admin console.
  *
- * It used to render inside the member shell, which meant moderation and billing
- * sat inside the same social furniture as the feed. The blueprint asks for
- * admin to be visually separate, and it is safer too: nothing here should look
- * like somewhere a mis-click belongs.
+ * Always dark, whatever the member app is set to. `.dark` switches Tailwind's
+ * dark variant on for everything inside -- the variant keys off a `.dark`
+ * ancestor, not the <html> element -- and `.vu-admin` then replaces the role
+ * tokens with the console's black shading ladder. Nothing below needs to know:
+ * every component here already paints from role tokens, so the whole console
+ * re-skins from one scope.
  *
- * The top band became a left rail to match the supplied course design, which is
- * built around one. Two links went with it -- Members and Moderation both
- * pointed at routes that do not exist and 404'd.
+ * Admin is deliberately not the member shell. Moderation and billing should not
+ * sit inside the same furniture as the feed, and a surface that looks nothing
+ * like the member app is a surface a mis-click cannot mistake for it.
  */
 export const dynamic = "force-dynamic";
 
@@ -32,25 +36,33 @@ export default async function AdminLayout({
   );
   if (!isStaff) redirect("/home");
 
+  // One cheap count, so the rail can say how much is waiting without every
+  // page loading the moderation queue to find out.
+  const openReports = await countOpenReports();
+
+  const identity = {
+    name: session.user.name || session.user.handle,
+    role: session.user.roles.includes("SUPER_ADMIN")
+      ? "Super admin"
+      : "School admin",
+    avatarUrl: session.user.image ?? null,
+  };
+
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="dark vu-admin min-h-screen bg-background text-foreground">
       <aside
         aria-label="Admin"
-        className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-border bg-surface lg:block"
+        className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-sidebar-border bg-sidebar lg:block"
       >
-        <AdminSidebar
-          name={session.user.name || session.user.handle}
-          role={
-            session.user.roles.includes("SUPER_ADMIN")
-              ? "Super admin"
-              : "School admin"
-          }
-          avatarUrl={session.user.image ?? null}
-        />
+        <AdminSidebar {...identity} badges={{ openReports }} />
       </aside>
 
+      <AdminMobileNav {...identity} />
+
       <div className="lg:pl-60">
-        <main className="mx-auto w-full max-w-[1120px] px-4 py-6">{children}</main>
+        <main className="mx-auto w-full max-w-[1180px] px-4 pb-16 pt-4 sm:px-6">
+          {children}
+        </main>
       </div>
     </div>
   );

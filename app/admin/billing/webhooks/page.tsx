@@ -8,16 +8,16 @@ export default async function WebhookLogPage() {
   });
   return (
     <div className="space-y-6">
-      <Link href="/admin/billing" className="text-sm text-olive">
+      <Link href="/admin/billing" className="text-sm text-foreground-muted">
         Back to billing
       </Link>
-      <h1 className="font-display text-4xl text-forest">Webhook failures and history</h1>
+      <h1 className="font-display text-[1.55rem] font-bold tracking-[-0.02em] text-foreground">Webhook failures and history</h1>
       <ul className="space-y-3">
         {events.map((event) => (
-          <li key={event.id} className="rounded-[1.5rem] border border-sand bg-warm-white p-4 text-sm">
-            <p className="font-medium text-forest">{event.type}</p>
-            <p className="text-muted">{event.providerEventId}</p>
-            <p className="mt-1 text-muted">
+          <li key={event.id} className="rounded-[1.5rem] border border-border bg-surface p-4 text-sm">
+            <p className="font-medium text-foreground">{event.type}</p>
+            <p className="text-foreground-muted">{event.providerEventId}</p>
+            <p className="mt-1 text-foreground-muted">
               attempts {event.attempts}
               {event.error ? ` · ${event.error}` : ""}
               {event.deadLetteredAt ? " · dead-lettered" : ""}

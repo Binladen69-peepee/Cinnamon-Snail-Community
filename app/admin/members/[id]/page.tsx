@@ -23,20 +23,20 @@ export default async function AdminMemberPage({
 
   return (
     <div className="space-y-8">
-      <Link href="/admin/billing" className="text-sm text-olive">
+      <Link href="/admin/billing" className="text-sm text-foreground-muted">
         Back to billing
       </Link>
       <div>
-        <h1 className="font-display text-4xl text-forest">
+        <h1 className="font-display text-[1.55rem] font-bold tracking-[-0.02em] text-foreground">
           {member.profile?.displayName ?? member.email}
         </h1>
-        <p className="mt-2 text-muted">{member.email}</p>
+        <p className="mt-2 text-foreground-muted">{member.email}</p>
       </div>
       <section>
-        <h2 className="font-display text-2xl text-forest">Subscription timeline</h2>
+        <h2 className="text-[14px] font-bold text-foreground">Subscription timeline</h2>
         <ul className="mt-3 space-y-2 text-sm">
           {member.subscriptions.map((item) => (
-            <li key={item.id} className="rounded-2xl bg-warm-white px-4 py-3">
+            <li key={item.id} className="rounded-ctl border border-border bg-surface px-4 py-3">
               {item.product.name} · {item.status.toLowerCase()} ·{" "}
               {item.createdAt.toDateString()}
             </li>
@@ -44,10 +44,10 @@ export default async function AdminMemberPage({
         </ul>
       </section>
       <section>
-        <h2 className="font-display text-2xl text-forest">Entitlement timeline</h2>
+        <h2 className="text-[14px] font-bold text-foreground">Entitlement timeline</h2>
         <ul className="mt-3 space-y-2 text-sm">
           {member.entitlements.map((item) => (
-            <li key={item.id} className="rounded-2xl bg-warm-white px-4 py-3">
+            <li key={item.id} className="rounded-ctl border border-border bg-surface px-4 py-3">
               {item.product.name} · {item.source.toLowerCase()} · {item.status.toLowerCase()}
             </li>
           ))}
@@ -55,7 +55,7 @@ export default async function AdminMemberPage({
       </section>
       <form action={grantAccessAction} className="flex flex-wrap gap-3">
         <input type="hidden" name="userId" value={member.id} />
-        <select name="productId" className="min-h-11 rounded-2xl border border-sand px-3">
+        <select name="productId" className="min-h-11 rounded-ctl border border-border px-3">
           {products.map((product) => (
             <option key={product.id} value={product.id}>
               {product.name}
