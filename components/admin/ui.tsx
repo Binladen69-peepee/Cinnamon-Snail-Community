@@ -182,13 +182,11 @@ export function AdminButton({
   return (
     <button
       className={cn(
-        "inline-flex h-9 items-center justify-center gap-1.5 rounded-ctl px-3.5 text-[13px] font-semibold transition disabled:cursor-not-allowed disabled:opacity-45",
-        variant === "primary" &&
-          "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover",
-        variant === "secondary" &&
-          "border border-border bg-background text-foreground hover:border-hairline-firm",
+        "vu-btn inline-flex h-9 items-center justify-center gap-1.5 px-3.5 text-[13px]",
+        variant === "primary" && "vu-btn-primary",
+        variant === "secondary" && "vu-btn-secondary",
         variant === "danger" &&
-          "border border-danger/40 bg-danger/10 text-danger hover:bg-danger/20",
+          "vu-btn-secondary text-danger hover:text-danger",
         className,
       )}
       {...props}
@@ -211,10 +209,8 @@ export function AdminLink({
     <Link
       href={href}
       className={cn(
-        "inline-flex h-9 items-center justify-center gap-1.5 rounded-ctl px-3.5 text-[13px] font-semibold no-underline transition",
-        variant === "primary"
-          ? "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover"
-          : "border border-border bg-background text-foreground hover:border-hairline-firm",
+        "vu-btn inline-flex h-9 items-center justify-center gap-1.5 px-3.5 text-[13px] no-underline",
+        variant === "primary" ? "vu-btn-primary" : "vu-btn-secondary",
         className,
       )}
     >

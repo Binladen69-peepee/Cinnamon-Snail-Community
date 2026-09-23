@@ -38,10 +38,8 @@ export function PostFollowButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[13px] font-semibold transition",
-        following
-          ? "border border-border text-foreground-muted hover:bg-mint"
-          : "text-link hover:bg-default",
+        "vu-btn inline-flex h-8 shrink-0 items-center gap-1 px-3 text-[13px]",
+        following ? "vu-btn-secondary text-foreground-muted" : "vu-btn-primary",
         className,
       )}
     >

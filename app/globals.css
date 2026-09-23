@@ -1808,3 +1808,113 @@ button:hover .vu-media-zoom {
   --lift: 0 0 #0000;
   color-scheme: light;
 }
+
+/* ---------------------------------------------------------------------------
+   Buttons, to Polaris's construction.
+
+   Values read from @shopify/polaris 13.9.5's shipped stylesheet, not guessed.
+   The library itself cannot be used here -- the React package is deprecated and
+   React-18-only, and the web components need App Bridge inside Shopify Admin --
+   so the construction is reproduced instead.
+
+   What makes a Polaris button read as a physical object is three stacked inset
+   shadows, not a drop shadow: a dark bottom edge, a hairline border, and a
+   half-pixel gloss along the top. Pressing it swaps all three for a shadow cast
+   *inwards* from the top, so the face appears to sink. That swap is the effect
+   a flat background-colour change can never imitate.
+
+   Colour comes from this project's role tokens rather than Polaris's palette,
+   so the buttons stay pure black and white and invert with the theme.
+--------------------------------------------------------------------------- */
+:root,
+.light,
+[data-theme="light"] {
+  --btn-edge: #b5b5b5;          /* Polaris #b5b5b5 */
+  --btn-gloss: #ffffff;
+  --btn-hairline: rgb(0 0 0 / 0.1);
+  --btn-hover-face: #f7f7f7;    /* Polaris --p-color-bg-fill-brand-active */
+  --btn-active-face: #f1f1f1;
+}
+
+.dark,
+[data-theme="dark"] {
+  /* Polaris drops the raised shadows in dark and carries the edge on a
+     hairline instead: a lit bevel on a black ground reads as a smudge. */
+  --btn-edge: transparent;
+  --btn-gloss: transparent;
+  --btn-hairline: var(--border);
+  --btn-hover-face: #151515;
+  --btn-active-face: #1f1f1f;
+}
+
+.vu-btn {
+  border-radius: 0.5rem; /* Polaris --p-border-radius-200 */
+  font-weight: 500;
+  transition:
+    background-color 120ms ease,
+    box-shadow 120ms ease,
+    color 120ms ease;
+}
+
+.vu-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 1px;
+}
+
+.vu-btn-secondary {
+  background-color: var(--surface);
+  color: var(--foreground);
+  box-shadow:
+    0 -1px 0 0 var(--btn-edge) inset,
+    0 0 0 1px var(--btn-hairline) inset,
+    0 0.5px 0 1.5px var(--btn-gloss) inset;
+}
+
+.vu-btn-secondary:hover:not(:disabled) {
+  background-color: var(--btn-hover-face);
+}
+
+/* Pressed: the raised stack is replaced by a shadow cast in from the top. */
+.vu-btn-secondary:active:not(:disabled) {
+  background-color: var(--btn-active-face);
+  box-shadow:
+    -1px 0 1px 0 rgb(26 26 26 / 0.122) inset,
+    1px 0 1px 0 rgb(26 26 26 / 0.122) inset,
+    0 2px 1px 0 rgb(26 26 26 / 0.2) inset;
+}
+
+.vu-btn-primary {
+  background-color: var(--brand-fill);
+  color: var(--brand-fill-foreground);
+  box-shadow:
+    0 -1px 0 1px rgb(0 0 0 / 0.8) inset,
+    0 0 0 1px var(--brand-fill) inset,
+    0 0.5px 0 1.5px rgb(255 255 255 / 0.25) inset;
+}
+
+.vu-btn-primary:hover:not(:disabled) {
+  background-color: var(--brand-fill-hover);
+}
+
+.vu-btn-primary:active:not(:disabled) {
+  box-shadow: 0 3px 0 0 rgb(0 0 0) inset;
+}
+
+/* On a white face the same bevel would be invisible, so dark mode's primary
+   carries a plain hairline -- which is what Polaris does at this end too. */
+.dark .vu-btn-primary,
+[data-theme="dark"] .vu-btn-primary {
+  box-shadow: 0 0 0 1px rgb(0 0 0 / 0.12) inset;
+}
+
+.dark .vu-btn-primary:active:not(:disabled),
+[data-theme="dark"] .vu-btn-primary:active:not(:disabled) {
+  box-shadow: 0 2px 2px 0 rgb(0 0 0 / 0.25) inset;
+}
+
+.vu-btn:disabled,
+.vu-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.55;
+  box-shadow: 0 0 0 1px var(--btn-hairline) inset;
+}

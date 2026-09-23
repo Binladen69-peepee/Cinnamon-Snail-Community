@@ -337,7 +337,12 @@ describe("site typography", () => {
 
   it("keeps the admin console's weight rules scoped to the console", () => {
     const css = readFileSync(resolve(process.cwd(), "app/globals.css"), "utf8");
-    const block = css.slice(css.indexOf("Admin typography: Poppins"));
+    // Bounded to the admin typography section. Slicing to end-of-file would
+    // sweep up every later rule, including global ones that are allowed a
+    // weight of their own — the button's medium face, for one.
+    const start = css.indexOf("Admin typography: Poppins");
+    const next = css.indexOf("/* ---", start + 1);
+    const block = css.slice(start, next === -1 ? undefined : next);
     expect(block).toContain(".vu-admin .font-medium");
 
     // Unscoping any of these would push a weight the rest of the site

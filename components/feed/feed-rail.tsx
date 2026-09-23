@@ -44,7 +44,7 @@ export function FeedRail({
     <div className="flex flex-col gap-3.5">
       <Link
         href="/compose"
-        className="flex h-11 items-center justify-center gap-1.5 rounded-full bg-brand-fill text-[14px] text-brand-fill-foreground no-underline shadow-e1 transition hover:bg-brand-fill-hover"
+        className="vu-btn vu-btn-primary flex h-11 items-center justify-center gap-1.5 text-[14px] no-underline"
       >
         <Plus className="size-4" aria-hidden />
         Create Post
@@ -142,7 +142,7 @@ export function FeedRail({
                 </div>
                 <Link
                   href={`/members/${person.handle}`}
-                  className="inline-flex h-7 shrink-0 items-center rounded-full bg-brand-fill px-3 text-[12px] text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover"
+                  className="vu-btn vu-btn-primary inline-flex h-7 shrink-0 items-center px-3 text-[12px] no-underline"
                 >
                   Follow
                 </Link>
