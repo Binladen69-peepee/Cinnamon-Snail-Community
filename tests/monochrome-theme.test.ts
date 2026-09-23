@@ -79,17 +79,42 @@ describe("monochrome theme", () => {
     expect(css).not.toMatch(/mix-blend-mode: multiply;[\s\S]{0,80}opacity: 0\.45/);
   });
 
+  /**
+   * Third-party brand marks are exempt, and only these.
+   *
+   * Google's sign-in branding rules require their own logo colours — a
+   * recoloured Google "G" is not a permitted variant. The rule this suite
+   * enforces is that *our* palette has no hue, not that another company's
+   * trademark must be repainted to suit it.
+   */
+  const BRAND_MARK_FILES = ["app/(auth)/login/social-buttons.tsx"];
+
   it("has no green hardcoded into a component", () => {
     const offenders: string[] = [];
     for (const file of walk(resolve(root, "components")).concat(
       walk(resolve(root, "app")),
     )) {
+      const relative = file.replace(root, "").replace(/\\/g, "/").slice(1);
+      if (BRAND_MARK_FILES.includes(relative)) continue;
       const source = readFileSync(file, "utf8");
       for (const hex of source.match(/#[0-9a-fA-F]{6}\b/g) ?? []) {
-        if (isGreen(hex)) offenders.push(`${file.replace(root, "")}: ${hex}`);
+        if (isGreen(hex)) offenders.push(`${relative}: ${hex}`);
       }
     }
     expect(offenders).toEqual([]);
+  });
+
+  it("confines third-party brand colour to the sign-in marks", () => {
+    // The exemption is only worth having if it stays one file wide.
+    expect(BRAND_MARK_FILES).toHaveLength(1);
+    const marks = readFileSync(
+      resolve(root, "app/(auth)/login/social-buttons.tsx"),
+      "utf8",
+    );
+    // And only inside SVGs — not leaking into buttons, text or backgrounds.
+    for (const hex of marks.match(/#[0-9a-fA-F]{6}\b/g) ?? []) {
+      expect(marks).toMatch(new RegExp(`fill="${hex}"`, "i"));
+    }
   });
 
   it("still keeps warning and danger, which carry meaning", () => {

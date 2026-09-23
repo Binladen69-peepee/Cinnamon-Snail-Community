@@ -1,6 +1,8 @@
 import NextAuth from "next-auth";
 import { after } from "next/server";
 import Credentials from "next-auth/providers/credentials";
+import Google from "next-auth/providers/google";
+import Facebook from "next-auth/providers/facebook";
 import { randomBytes } from "crypto";
 import { prisma } from "@/lib/db";
 import { normalizeEmail } from "@/lib/community/format";
@@ -32,6 +34,46 @@ async function hydrateFromDatabase(token: MutableToken, userId: string) {
   token.email = dbUser.email;
   token.name = dbUser.name ?? undefined;
   token.picture = dbUser.image ?? undefined;
+}
+
+/**
+ * Which social sign-ins are configured.
+ *
+ * Registered only when their credentials exist, so a deployment without them
+ * does not advertise a button that fails the moment it is pressed. `enabled`
+ * below reads the same variables, which is what keeps the login page and the
+ * auth config from disagreeing about what is available.
+ */
+export const socialSignIn = {
+  google: Boolean(process.env.AUTH_GOOGLE_ID && process.env.AUTH_GOOGLE_SECRET),
+  facebook: Boolean(
+    process.env.AUTH_FACEBOOK_ID && process.env.AUTH_FACEBOOK_SECRET,
+  ),
+};
+
+function socialProviders() {
+  const providers = [];
+  if (socialSignIn.google) {
+    providers.push(
+      Google({
+        clientId: process.env.AUTH_GOOGLE_ID,
+        clientSecret: process.env.AUTH_GOOGLE_SECRET,
+        // Members arrive with a verified address from Google, which is the
+        // whole point of using it; asking them to verify it again is theatre.
+        allowDangerousEmailAccountLinking: true,
+      }),
+    );
+  }
+  if (socialSignIn.facebook) {
+    providers.push(
+      Facebook({
+        clientId: process.env.AUTH_FACEBOOK_ID,
+        clientSecret: process.env.AUTH_FACEBOOK_SECRET,
+        allowDangerousEmailAccountLinking: true,
+      }),
+    );
+  }
+  return providers;
 }
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
@@ -78,6 +120,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         };
       },
     }),
+    ...socialProviders(),
   ],
   callbacks: {
     async jwt({ token, user, trigger }) {

@@ -15,6 +15,7 @@
     "db:push": "prisma db push",
     "db:seed": "tsx prisma/seed.ts",
     "db:seed:classes": "tsx prisma/seed-class-posts.ts",
+    "db:reseed": "tsx prisma/reseed-community.ts",
     "db:studio": "prisma studio",
     "format": "prettier --write ."
   },

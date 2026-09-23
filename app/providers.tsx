@@ -1,6 +1,7 @@
 "use client";
 
 import { ThemeProvider } from "next-themes";
+import { Toast } from "@heroui/react/toast";
 
 /**
  * App theme: system by default; user can override via the theme control in the
@@ -21,5 +22,12 @@ export function HeroUIProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  return <HeroUIProvider>{children}</HeroUIProvider>;
+  return (
+    <HeroUIProvider>
+      {children}
+      {/* Mounted once for the whole app. Bottom-right keeps toasts clear of the
+          phone tab bar, which owns the bottom-centre of every member page. */}
+      <Toast.Provider placement="bottom end" maxVisibleToasts={3} />
+    </HeroUIProvider>
+  );
 }

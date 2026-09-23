@@ -93,6 +93,7 @@ const COVERS: Record<string, string> = {
  * the same embed id in the sheet (jU6Sasix5tY). Applied as given rather than
  * guessed at, and raised with Adam — one of the two is likely a copy-paste.
  */
+
 const TEASERS: Record<string, string> = {
   "2023 Vegan Christmas Dinner Class": "https://www.youtube.com/embed/GuhyvG7W48c",
   "2023 Vegan Thanksgiving Cooking Class": "https://www.youtube.com/embed/FueK_7bFyn4",

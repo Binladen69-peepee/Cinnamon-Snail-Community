@@ -458,6 +458,8 @@ async function main() {
       body: "Founder host Los Angeles weeknight dinners",
     },
   });
+
+  
   await prisma.searchIndex.upsert({
     where: { entityType_entityId: { entityType: "member", entityId: "sam" } },
     update: {},
