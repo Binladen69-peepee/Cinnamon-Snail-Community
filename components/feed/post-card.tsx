@@ -177,7 +177,7 @@ export function PostCard({
               </Link>
               {isHost ? (
                 <BadgeCheck
-                  className="size-3.5 shrink-0 text-[#378fe9]"
+                  className="size-3.5 shrink-0 text-link"
                   aria-label="Host"
                 />
               ) : null}
@@ -231,7 +231,7 @@ export function PostCard({
             <div className={cn(post.title && "mt-1")}>
               <div
                 className={cn(
-                  "prose-vu text-[14.5px] leading-[1.5] text-foreground [&_a]:text-[#378fe9]",
+                  "prose-vu text-[14.5px] leading-[1.5] text-foreground [&_a]:text-link",
                   !expanded && longBody && "line-clamp-3",
                 )}
                 dangerouslySetInnerHTML={{
@@ -242,7 +242,7 @@ export function PostCard({
                 <button
                   type="button"
                   onClick={() => setExpanded(true)}
-                  className="mt-0.5 text-[14px] font-semibold text-[#378fe9] hover:underline"
+                  className="mt-0.5 text-[14px] font-semibold text-link hover:underline"
                 >
                   …more
                 </button>
@@ -255,7 +255,7 @@ export function PostCard({
               href={webLink}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 block truncate rounded-[12px] border border-border bg-mint/30 px-3 py-2.5 text-[13px] text-[#378fe9] no-underline hover:border-[#378fe9]/40"
+              className="mt-2 block truncate rounded-[12px] border border-border bg-mint/30 px-3 py-2.5 text-[13px] text-link no-underline hover:border-hairline-firm"
             >
               {webLink}
             </a>

@@ -84,7 +84,7 @@ export function PostFooter({
               <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="text-[12.5px] font-semibold text-[#378fe9] transition hover:underline"
+                className="text-[12.5px] font-semibold text-link transition hover:underline"
               >
                 View all {totalComments} comments
               </button>

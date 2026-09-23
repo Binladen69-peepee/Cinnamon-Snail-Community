@@ -21,7 +21,7 @@ export default async function DeleteAccountPage({
         will not soft-delete a paying member when cancellation is unconfirmed.
       </p>
       {blocked ? (
-        <p className="rounded-2xl bg-[#f6d7d0] px-4 py-3 text-sm" role="alert">
+        <p className="rounded-2xl bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
           SamCart has not confirmed cancellation, so the account stays open.
         </p>
       ) : null}

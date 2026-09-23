@@ -239,7 +239,7 @@ function LikeAction({
           "flex w-full flex-col items-center justify-center gap-0.5 rounded-[8px] px-1 py-2.5 text-[12px] transition",
           "hover:bg-mint/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
           mine
-            ? "font-semibold text-[#378fe9]"
+            ? "font-semibold text-link"
             : "text-foreground-muted hover:text-foreground",
         )}
       >

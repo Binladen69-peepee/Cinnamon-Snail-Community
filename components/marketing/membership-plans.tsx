@@ -120,19 +120,19 @@ function PlanCard({
         "relative flex h-full flex-col overflow-hidden rounded-[1.35rem]",
         compact ? "p-4 md:p-5" : "p-6 md:p-7",
         featured
-          ? "bg-[#0f3d32] text-[#fff8ef] shadow-[var(--e3)]"
+          ? "bg-foreground text-background shadow-[var(--e3)]"
           : "vu-card",
       )}
     >
       {featured ? (
         <span
           aria-hidden
-          className="pointer-events-none absolute -right-12 -top-16 size-40 rounded-full bg-[#fff8ef]/10 blur-2xl"
+          className="pointer-events-none absolute -right-12 -top-16 size-40 rounded-full bg-background/10 blur-2xl"
         />
       ) : null}
 
       {featured ? (
-        <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/12 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-[#fff8ef]">
+        <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/12 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-background">
           <Sparkles className="size-3" aria-hidden />
           {plan.name}
         </span>
@@ -146,7 +146,7 @@ function PlanCard({
         className={cn(
           "font-display mt-3 tracking-tight",
           compact ? "text-4xl" : "text-5xl",
-          featured ? "text-[#fff8ef]" : "text-forest",
+          featured ? "text-background" : "text-forest",
         )}
       >
         {plan.price}
@@ -154,7 +154,7 @@ function PlanCard({
       <p
         className={cn(
           "mt-0.5 text-xs",
-          featured ? "text-[#fff8ef]/70" : "text-olive",
+          featured ? "text-background/70" : "text-olive",
         )}
       >
         {plan.period}
@@ -167,14 +167,14 @@ function PlanCard({
             <Check
               className={cn(
                 "mt-0.5 size-3.5 shrink-0",
-                featured ? "text-[#fff8ef]" : "text-forest",
+                featured ? "text-background" : "text-forest",
               )}
               aria-hidden
             />
             <span
               className={cn(
                 "text-xs leading-snug",
-                featured ? "text-[#fff8ef]/90" : "text-foreground",
+                featured ? "text-background/90" : "text-foreground",
               )}
             >
               {item.title}
@@ -190,7 +190,7 @@ function PlanCard({
           tone={featured ? "onDark" : "default"}
           className={cn(
             "w-full justify-center",
-            featured && "bg-[#FFF8EF] text-[#0F3D32] hover:bg-white",
+            featured && "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover",
           )}
         />
       </div>

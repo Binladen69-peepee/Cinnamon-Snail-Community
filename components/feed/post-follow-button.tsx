@@ -41,7 +41,7 @@ export function PostFollowButton({
         "inline-flex h-8 shrink-0 items-center gap-1 rounded-full px-3 text-[13px] font-semibold transition",
         following
           ? "border border-border text-foreground-muted hover:bg-mint"
-          : "text-[#378fe9] hover:bg-[#378fe9]/10",
+          : "text-link hover:bg-default",
         className,
       )}
     >

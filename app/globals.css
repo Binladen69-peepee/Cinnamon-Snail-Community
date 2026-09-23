@@ -3,78 +3,80 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Vegan University identity: cream ground, forest branding, Momo Trust Display. */
+/* Vegan University identity: monochrome. Pure white ground in light, pure
+   black in dark, and no hue anywhere except the amber and red that carry
+   warning and danger. */
 @layer theme {
   :root,
   .light,
   [data-theme="light"] {
     color-scheme: light;
 
-    --background: #fff8ef;
-    --foreground: #16231f;
-    --surface: #fffcf8;
-    --surface-foreground: #16231f;
+    --background: #ffffff;
+    --foreground: #0a0a0a;
+    --surface: #ffffff;
+    --surface-foreground: #0a0a0a;
     --overlay: #ffffff;
-    --overlay-foreground: #16231f;
-    --muted: #66736d;
-    --primary: #0f3d32;
+    --overlay-foreground: #0a0a0a;
+    --muted: #6e6e6e;
+    --primary: #0a0a0a;
     --primary-foreground: #ffffff;
-    --accent: #16a34a;
+    --accent: #0a0a0a;
     --accent-foreground: #ffffff;
-    --accent-gold: #f59e0b;
-    --accent-magenta: #d97752;
-    --accent-coral: #d97752;
-    --foreground-muted: #66736d;
-    --border: #ede2d2;
-    --separator: #ede2d2;
-    --focus: #16a34a;
-    --link: #0f3d32;
-    --default: #e8f5e9;
-    --default-foreground: #0f3d32;
+    --accent-gold: #8a6a00;
+    --accent-magenta: #b4442a;
+    --accent-coral: #b4442a;
+    --foreground-muted: #6e6e6e;
+    --border: #e6e6e6;
+    --separator: #efefef;
+    --focus: #0a0a0a;
+    --link: #0a0a0a;
+    --default: #f4f4f4;
+    --default-foreground: #0a0a0a;
     --field-background: #ffffff;
-    --field-foreground: #16231f;
-    --field-placeholder: #66736d;
-    --field-border: #ede2d2;
+    --field-foreground: #0a0a0a;
+    --field-placeholder: #8e8e8e;
+    --field-border: #dcdcdc;
     --field-border-width: 1px;
-    --success: #16a34a;
+    --success: #0a0a0a;
     --success-foreground: #ffffff;
-    --warning: #f59e0b;
-    --warning-foreground: #16231f;
-    --danger: #d97752;
+    --warning: #8a6a00;
+    --warning-foreground: #ffffff;
+    --danger: #b4442a;
     --danger-foreground: #ffffff;
     --radius: 0.75rem;
     --field-radius: 0.75rem;
-    --surface-shadow: 0 10px 30px rgba(15, 61, 50, 0.05);
+    --surface-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
     --field-shadow: 0 0 0 0 transparent;
-    --overlay-shadow: 0 20px 60px rgba(15, 61, 50, 0.08);
+    --overlay-shadow: 0 20px 60px rgba(0, 0, 0, 0.10);
 
     /* App elevation, derived from ink rather than forest. Every shadow in the
-       app used to be rgba(15,61,50,...) — literal forest — which painted a
+       app used to be rgb(0 0 0 / ...) — literal forest — which painted a
        green glow around cards on the dark ground. */
-    --e1: 0 1px 2px rgb(22 35 31 / 0.055);
-    --e2: 0 4px 14px rgb(22 35 31 / 0.10), 0 1px 3px rgb(22 35 31 / 0.05);
-    --e3: 0 18px 44px rgb(22 35 31 / 0.16), 0 2px 8px rgb(22 35 31 / 0.07);
+    --e1: 0 1px 2px rgb(0 0 0 / 0.06);
+    --e2: 0 4px 14px rgb(0 0 0 / 0.08), 0 1px 3px rgb(0 0 0 / 0.05);
+    --e3: 0 18px 44px rgb(0 0 0 / 0.14), 0 2px 8px rgb(0 0 0 / 0.06);
     --lift: 0 0 #0000;
 
     /* Brand green that survives the dark theme. The existing --accent is
        redefined to cream in dark, which loses the identity exactly where a
        vote arrow or a like needs to read as "mine". */
-    --brand: #16a34a;
-    --brand-strong: #0f3d32;
-    --brand-wash: #e8f5e9;
-    --on-brand: #06120d;
+    --brand: #0a0a0a;
+    --brand-strong: #000000;
+    --brand-wash: #f4f4f4;
+    --on-brand: #ffffff;
 
     /* A filled brand control -- primary button, active tab, own chat bubble.
        It needs its own role because --brand-strong inverts: it is the darkest
        green in light mode and the palest in dark, so a fill built on it with
        fixed white text measured 1.4:1 against WCAG's 4.5. Fill and foreground
        move together here, and neither is ever chosen at the call site. */
-    --brand-fill: #0f3d32;
-    --brand-fill-hover: #0b513f;
+    --brand-fill: #0a0a0a;
+    --brand-fill-hover: #262626;
     --brand-fill-foreground: #ffffff;
 
     /* Member sidebar: light cream in light mode, charcoal in dark. */
-    --sidebar: #fffcf8;
+    --sidebar: #ffffff;
     --sidebar-foreground: var(--foreground);
     --sidebar-accent: var(--brand-wash);
     --sidebar-accent-foreground: var(--brand-strong);
@@ -90,23 +92,23 @@
 
     /* One step firmer than --border. Cards rest on a hairline and firm up on
        hover; without this the hover state was a no-op class. */
-    --hairline-firm: #d3d0c8;
+    --hairline-firm: #cfcfcf;
 
-    --forest: #0f3d32;
-    --deep-forest: #0b513f;
-    --olive: #66736d;
-    --sage: #e8f5e9;
-    --mint: #f1f8f2;
-    --cream: #fff8ef;
-    --paper: #fff8ef;
-    --warm-white: #fffcf8;
-    --sand: #ede2d2;
-    --taupe: #66736d;
-    --terracotta: #d97752;
-    --apricot: #f59e0b;
-    --ink: #16231f;
-    --cta-fill: #0f3d32;
-    --cta-fill-hover: #0b513f;
+    --forest: #0a0a0a;
+    --deep-forest: #000000;
+    --olive: #6e6e6e;
+    --sage: #efefef;
+    --mint: #f7f7f7;
+    --cream: #ffffff;
+    --paper: #ffffff;
+    --warm-white: #ffffff;
+    --sand: #e6e6e6;
+    --taupe: #6e6e6e;
+    --terracotta: #b4442a;
+    --apricot: #8a6a00;
+    --ink: #0a0a0a;
+    --cta-fill: #0a0a0a;
+    --cta-fill-hover: #262626;
     --cta-fill-foreground: #ffffff;
   }
 
@@ -115,35 +117,35 @@
     color-scheme: dark;
 
     --background: #000000;
-    --foreground: #fff8ef;
-    --surface: #0a0a0a;
-    --surface-foreground: #fff8ef;
-    --overlay: #111111;
-    --overlay-foreground: #fff8ef;
-    --muted: #9a9084;
-    --primary: #fff8ef;
+    --foreground: #ffffff;
+    --surface: #0b0b0b;
+    --surface-foreground: #ffffff;
+    --overlay: #141414;
+    --overlay-foreground: #ffffff;
+    --muted: #a1a1a1;
+    --primary: #ffffff;
     --primary-foreground: #000000;
-    --accent: #fff8ef;
+    --accent: #ffffff;
     --accent-foreground: #000000;
-    --accent-gold: #f59e0b;
-    --accent-magenta: #d97752;
-    --accent-coral: #d97752;
-    --foreground-muted: #9a9084;
-    --border: #262626;
-    --separator: #262626;
-    --focus: #fff8ef;
-    --link: #fff8ef;
-    --default: #141414;
-    --default-foreground: #fff8ef;
-    --field-background: #0a0a0a;
-    --field-foreground: #fff8ef;
-    --field-placeholder: #9a9084;
-    --field-border: #262626;
-    --success: #c4b8a8;
+    --accent-gold: #e0b341;
+    --accent-magenta: #ef8b6f;
+    --accent-coral: #ef8b6f;
+    --foreground-muted: #a1a1a1;
+    --border: #232323;
+    --separator: #1a1a1a;
+    --focus: #ffffff;
+    --link: #ffffff;
+    --default: #1a1a1a;
+    --default-foreground: #ffffff;
+    --field-background: #0b0b0b;
+    --field-foreground: #ffffff;
+    --field-placeholder: #8a8a8a;
+    --field-border: #2a2a2a;
+    --success: #ffffff;
     --success-foreground: #000000;
-    --warning: #f59e0b;
+    --warning: #e0b341;
     --warning-foreground: #000000;
-    --danger: #f0a07a;
+    --danger: #ef6f6f;
     --danger-foreground: #000000;
     --surface-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
     --overlay-shadow: 0 20px 60px rgba(0, 0, 0, 0.75);
@@ -155,42 +157,42 @@
        a lit top edge instead. */
     --lift: inset 0 1px 0 rgb(255 255 255 / 0.06);
 
-    --brand: #4ade80;
-    --brand-strong: #86efac;
-    --brand-wash: #10241a;
-    --on-brand: #06120d;
+    --brand: #ffffff;
+    --brand-strong: #ffffff;
+    --brand-wash: #1a1a1a;
+    --on-brand: #000000;
 
     /* Inverted: on black the fill is the lit colour and the label is the dark
        one, which is what keeps a primary action legible here (10.96:1). */
-    --brand-fill: #4ade80;
-    --brand-fill-hover: #86efac;
-    --brand-fill-foreground: #06120d;
+    --brand-fill: #ffffff;
+    --brand-fill-hover: #e5e5e5;
+    --brand-fill-foreground: #000000;
 
-    --sidebar: #0a0f0d;
-    --sidebar-foreground: #fff8ef;
-    --sidebar-accent: #1a3d32;
-    --sidebar-accent-foreground: #fff8ef;
-    --sidebar-border: #1c2420;
-    --sidebar-ring: #4ade80;
+    --sidebar: #070707;
+    --sidebar-foreground: #ffffff;
+    --sidebar-accent: #1a1a1a;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #1a1a1a;
+    --sidebar-ring: #ffffff;
 
-    --hairline-firm: #333b37;
+    --hairline-firm: #3a3a3a;
 
-    --forest: #fff8ef;
-    --deep-forest: #ebe2d4;
-    --olive: #9a9084;
-    --sage: #161616;
-    --mint: #0a0a0a;
+    --forest: #ffffff;
+    --deep-forest: #e5e5e5;
+    --olive: #a1a1a1;
+    --sage: #1a1a1a;
+    --mint: #111111;
     --cream: #000000;
-    --paper: #fff8ef;
-    --warm-white: #0a0a0a;
-    --sand: #262626;
-    --taupe: #9a9084;
-    --terracotta: #d97752;
-    --apricot: #f59e0b;
-    --ink: #fff8ef;
-    --cta-fill: #000000;
-    --cta-fill-hover: #141414;
-    --cta-fill-foreground: #fff8ef;
+    --paper: #ffffff;
+    --warm-white: #0b0b0b;
+    --sand: #232323;
+    --taupe: #a1a1a1;
+    --terracotta: #ef8b6f;
+    --apricot: #e0b341;
+    --ink: #ffffff;
+    --cta-fill: #ffffff;
+    --cta-fill-hover: #e5e5e5;
+    --cta-fill-foreground: #000000;
   }
 }
 
@@ -388,7 +390,7 @@ h3 strong {
 
 .vu-card-hover:hover {
   transform: translateY(-2px);
-  box-shadow: 0 20px 60px rgba(15, 61, 50, 0.08);
+  box-shadow: 0 20px 60px rgb(0 0 0 / 0.08);
 }
 
 .dark .vu-card-hover:hover,
@@ -469,8 +471,8 @@ h3 strong {
    frames without needing a heavier scrim. */
 .vu-on-media {
   text-shadow:
-    0 1px 2px rgba(4, 18, 14, 0.45),
-    0 6px 24px rgba(4, 18, 14, 0.35);
+    0 1px 2px rgb(0 0 0 / 0.45),
+    0 6px 24px rgb(0 0 0 / 0.35);
 }
 
 /* --- Marketing motion + headline treatment -------------------------- */
@@ -552,7 +554,7 @@ h3 strong {
 }
 
 [data-app-nav][data-scrolled="true"] .vu-nav-surface {
-  background: rgba(255, 248, 239, 0.78);
+  background: color-mix(in oklab, var(--background) 78%, transparent);
   border-bottom-color: color-mix(in oklab, var(--sand) 70%, transparent);
   backdrop-filter: blur(18px);
 }
@@ -567,7 +569,7 @@ h3 strong {
    invert or it disappears into the footage. Scoped with :has() so the nav does
    not need to know which page it is on — only pages with a dark hero opt in. */
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] {
-  --nav-ink: #fff8ef;
+  --nav-ink: #ffffff;
 }
 
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] a,
@@ -585,12 +587,12 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .text-olive {
 }
 
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .fill-forest {
-  fill: rgba(255, 248, 239, 0.16);
+  fill: color-mix(in oklab, var(--background) 16%, transparent);
 }
 
 /* The centred pill reads as glass rather than a cream chip. */
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] nav[aria-label="Main"] {
-  border-color: rgba(255, 248, 239, 0.22);
+  border-color: color-mix(in oklab, var(--background) 22%, transparent);
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
   box-shadow: none;
@@ -612,26 +614,26 @@ body:has([data-hero-dark])
 }
 
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search-shell {
-  border-color: rgba(255, 248, 239, 0.42);
+  border-color: color-mix(in oklab, var(--background) 42%, transparent);
   background: transparent;
 }
 
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search {
-  color: #fff8ef;
+  color: #ffffff;
 }
 
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search::placeholder {
-  color: rgba(255, 248, 239, 0.62);
+  color: color-mix(in oklab, var(--background) 62%, transparent);
 }
 
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search-icon,
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search-status,
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search-kbd {
-  color: rgba(255, 248, 239, 0.72);
+  color: color-mix(in oklab, var(--background) 72%, transparent);
 }
 
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-search-kbd {
-  border-color: rgba(255, 248, 239, 0.28);
+  border-color: color-mix(in oklab, var(--background) 28%, transparent);
   background: transparent;
 }
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-suggest,
@@ -653,7 +655,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-nav-palette
 }
 
 body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-tag {
-  color: rgba(255, 248, 239, 0.72);
+  color: color-mix(in oklab, var(--background) 72%, transparent);
 }
 
 .vu-wordmark-name {
@@ -951,44 +953,12 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 
 /* Same, for light type on a permanently dark ground. */
 .vu-headline-invert {
-  text-shadow:
-    0 0 22px rgba(255, 248, 239, 0.18),
-    0 1px 2px rgba(4, 18, 14, 0.5);
+  text-shadow: none;
 }
 
-/* Speckle and scratch texture, worked into the lettering. Uses ::before so it
-   can coexist with the pen-stroke underline on ::after. */
-.vu-title-anim::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background-image:
-    radial-gradient(circle at 12% 22%, rgba(0, 0, 0, 0.5) 0.6px, transparent 0.9px),
-    radial-gradient(circle at 68% 74%, rgba(0, 0, 0, 0.42) 0.5px, transparent 0.8px),
-    radial-gradient(circle at 38% 58%, rgba(0, 0, 0, 0.36) 0.5px, transparent 0.8px),
-    radial-gradient(circle at 84% 34%, rgba(0, 0, 0, 0.3) 0.4px, transparent 0.7px);
-  background-size:
-    37px 41px,
-    53px 47px,
-    29px 31px,
-    61px 59px;
-  mix-blend-mode: multiply;
-  opacity: 0.45;
-}
-
-/* On dark grounds the speckle has to lighten, not darken, to read at all. */
-.vu-headline-invert .vu-title-anim::before,
-.dark .vu-title-anim::before,
-[data-theme="dark"] .vu-title-anim::before {
-  background-image:
-    radial-gradient(circle at 12% 22%, rgba(255, 255, 255, 0.5) 0.6px, transparent 0.9px),
-    radial-gradient(circle at 68% 74%, rgba(255, 255, 255, 0.4) 0.5px, transparent 0.8px),
-    radial-gradient(circle at 38% 58%, rgba(255, 255, 255, 0.34) 0.5px, transparent 0.8px),
-    radial-gradient(circle at 84% 34%, rgba(255, 255, 255, 0.28) 0.4px, transparent 0.7px);
-  mix-blend-mode: screen;
-  opacity: 0.4;
-}
+/* The speckle/scratch headline texture was removed with the green: a
+   monochrome identity carries its weight through type and contrast, and a
+   worn overlay on the lettering reads as noise rather than as craft. */
 
 .vu-cta-glow {
   transition:
@@ -1000,7 +970,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 .vu-cta-glow:hover {
   transform: translateY(-2px) scale(1.025);
   box-shadow:
-    0 12px 30px rgba(15, 61, 50, 0.24),
+    0 12px 30px rgb(0 0 0 / 0.24),
     0 0 0 6px color-mix(in oklab, var(--accent) 14%, transparent);
 }
 
@@ -1020,7 +990,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 
 .vu-lift:hover {
   transform: translateY(-4px);
-  box-shadow: 0 22px 50px rgba(15, 61, 50, 0.14);
+  box-shadow: 0 22px 50px rgb(0 0 0 / 0.14);
 }
 
 .dark .vu-lift:hover,
@@ -1332,7 +1302,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
   max-width: min(100%, 24rem);
   padding: 5px 22px;
   border-radius: 0.75rem;
-  background: #fff8ef;
+  background: #ffffff;
 }
 
 .vu-hero-proof .senja-embed {
@@ -1485,7 +1455,7 @@ button:hover .vu-media-zoom {
 .dark .vu-panel-dark,
 [data-theme="dark"] .vu-panel-dark {
   background:
-    radial-gradient(120% 120% at 12% 0%, rgba(255, 248, 239, 0.06) 0%, transparent 55%),
+    radial-gradient(120% 120% at 12% 0%, color-mix(in oklab, var(--background) 6%, transparent) 0%, transparent 55%),
     #0a0a0a;
   box-shadow: inset 0 0 0 1px var(--border);
 }
@@ -1633,7 +1603,8 @@ button:hover .vu-media-zoom {
    which is what --lift does.
 --------------------------------------------------------------------------- */
 .vu-admin {
-  color-scheme: dark;
+  /* Console surfaces sit one step denser than the member app in both modes.
+     The values below are the dark ladder; the light overrides follow. */
 
   /* Elevation ladder: ground -> card -> raised -> inert */
   --background: #000000;
@@ -1659,34 +1630,35 @@ button:hover .vu-media-zoom {
 
   --primary: #ededed;
   --primary-foreground: #000000;
-  --link: #4ade80;
-  --focus: #4ade80;
+  --link: #ffffff;
+  --focus: #ffffff;
 
-  /* Brand stays green: it is the one colour in the console and it carries the
-     product's identity into a surface that is otherwise neutral. */
-  --brand: #4ade80;
-  --brand-strong: #86efac;
-  --brand-wash: #0d1f14;
-  --on-brand: #06120d;
-  --brand-fill: #4ade80;
-  --brand-fill-hover: #86efac;
-  --brand-fill-foreground: #06120d;
+  /* Monochrome throughout: white is the accent on black, and the only colour
+     left anywhere is the amber and red that carry warning and danger, because
+     stripping those would take meaning out of the UI rather than decoration. */
+  --brand: #ffffff;
+  --brand-strong: #ffffff;
+  --brand-wash: #1a1a1a;
+  --on-brand: #000000;
+  --brand-fill: #ffffff;
+  --brand-fill-hover: #e5e5e5;
+  --brand-fill-foreground: #000000;
 
-  --accent: #4ade80;
-  --accent-foreground: #06120d;
-  --success: #4ade80;
-  --success-foreground: #06120d;
-  --warning: #fbbf24;
-  --warning-foreground: #1a1205;
-  --danger: #f87171;
-  --danger-foreground: #1a0606;
+  --accent: #ffffff;
+  --accent-foreground: #000000;
+  --success: #ffffff;
+  --success-foreground: #000000;
+  --warning: #e0b341;
+  --warning-foreground: #000000;
+  --danger: #ef6f6f;
+  --danger-foreground: #000000;
 
   --sidebar: #070707;
   --sidebar-foreground: #ededed;
-  --sidebar-accent: #0d1f14;
-  --sidebar-accent-foreground: #86efac;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ffffff;
   --sidebar-border: #1a1a1a;
-  --sidebar-ring: #4ade80;
+  --sidebar-ring: #ffffff;
 
   /* Literal names still resolve, because older admin pages use them. */
   --forest: #ededed;
@@ -1770,4 +1742,69 @@ button:hover .vu-media-zoom {
 .vu-admin .tabular-nums {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+}
+
+/* The console in light mode: the same ladder, inverted. Pure white ground with
+   each level of elevation one step darker, which is how depth reads when the
+   ground is the lightest thing on screen. */
+:root:not(.dark) .vu-admin,
+.light .vu-admin,
+[data-theme="light"] .vu-admin {
+  --background: #ffffff;
+  --surface: #ffffff;
+  --surface-foreground: #0a0a0a;
+  --overlay: #ffffff;
+  --overlay-foreground: #0a0a0a;
+  --default: #f4f4f4;
+  --default-foreground: #0a0a0a;
+  --foreground: #0a0a0a;
+  --foreground-muted: #6e6e6e;
+  --muted: #6e6e6e;
+  --border: #e6e6e6;
+  --separator: #efefef;
+  --hairline-firm: #cfcfcf;
+  --field-background: #ffffff;
+  --field-foreground: #0a0a0a;
+  --field-placeholder: #8e8e8e;
+  --field-border: #dcdcdc;
+  --primary: #0a0a0a;
+  --primary-foreground: #ffffff;
+  --link: #0a0a0a;
+  --focus: #0a0a0a;
+  --brand: #0a0a0a;
+  --brand-strong: #000000;
+  --brand-wash: #f4f4f4;
+  --on-brand: #ffffff;
+  --brand-fill: #0a0a0a;
+  --brand-fill-hover: #262626;
+  --brand-fill-foreground: #ffffff;
+  --accent: #0a0a0a;
+  --accent-foreground: #ffffff;
+  --success: #0a0a0a;
+  --success-foreground: #ffffff;
+  --warning: #8a6a00;
+  --warning-foreground: #ffffff;
+  --danger: #b4442a;
+  --danger-foreground: #ffffff;
+  --sidebar: #fafafa;
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-accent: #f0f0f0;
+  --sidebar-accent-foreground: #0a0a0a;
+  --sidebar-border: #e6e6e6;
+  --sidebar-ring: #0a0a0a;
+  --forest: #0a0a0a;
+  --deep-forest: #000000;
+  --mint: #f7f7f7;
+  --sage: #efefef;
+  --cream: #ffffff;
+  --paper: #ffffff;
+  --warm-white: #ffffff;
+  --ink: #0a0a0a;
+  --olive: #6e6e6e;
+  --sand: #e6e6e6;
+  --e1: 0 1px 2px rgb(0 0 0 / 0.06);
+  --e2: 0 4px 14px rgb(0 0 0 / 0.08);
+  --e3: 0 18px 44px rgb(0 0 0 / 0.14);
+  --lift: 0 0 #0000;
+  color-scheme: light;
 }

@@ -7,12 +7,11 @@ import { countOpenReports } from "@/lib/admin/overview";
 /**
  * The admin console.
  *
- * Always dark, whatever the member app is set to. `.dark` switches Tailwind's
- * dark variant on for everything inside -- the variant keys off a `.dark`
- * ancestor, not the <html> element -- and `.vu-admin` then replaces the role
- * tokens with the console's black shading ladder. Nothing below needs to know:
- * every component here already paints from role tokens, so the whole console
- * re-skins from one scope.
+ * Monochrome, and it follows the theme: pure white in light, pure black in
+ * dark. `.vu-admin` tightens the console's surfaces a step past the member
+ * app's -- denser borders, a flatter elevation ladder -- without introducing a
+ * second palette. Every component here paints from role tokens, so the whole
+ * console re-skins from that one scope.
  *
  * Admin is deliberately not the member shell. Moderation and billing should not
  * sit inside the same furniture as the feed, and a surface that looks nothing
@@ -49,7 +48,7 @@ export default async function AdminLayout({
   };
 
   return (
-    <div className="dark vu-admin min-h-screen bg-background text-foreground">
+    <div className="vu-admin min-h-screen bg-background text-foreground">
       <aside
         aria-label="Admin"
         className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-sidebar-border bg-sidebar lg:block"

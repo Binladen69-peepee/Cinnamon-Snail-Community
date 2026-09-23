@@ -105,7 +105,7 @@ export function MembershipGallery({ slides }: { slides: MembershipSlide[] }) {
   return (
     <div
       ref={root}
-      className="absolute inset-0 overflow-hidden bg-[#0f3d32]"
+      className="absolute inset-0 overflow-hidden bg-ink"
       role="region"
       aria-roledescription="carousel"
       aria-label="Classes in the library"

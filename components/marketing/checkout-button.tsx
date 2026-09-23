@@ -31,7 +31,7 @@ export function CheckoutButton({
         // Literal colours, not tokens: this variant always sits on a panel that
         // is dark in both themes, and the paper/forest tokens swap values
         // between them, which would render cream-on-cream in dark mode.
-        onDark ? "bg-[#FFF8EF] text-[#0F3D32] hover:bg-white" : "vu-cta-fill",
+        onDark ? "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover" : "vu-cta-fill",
         size === "lg" ? "h-13 px-8 text-base" : "h-12 px-7 text-sm",
         withArrow && "pl-2",
         className,
@@ -42,7 +42,7 @@ export function CheckoutButton({
           className={cn(
             "grid size-9 place-items-center rounded-full",
             onDark
-              ? "bg-[#0F3D32] text-[#FFF8EF]"
+              ? "bg-foreground text-background"
               : "bg-white !text-forest dark:bg-paper dark:!text-black",
           )}
         >

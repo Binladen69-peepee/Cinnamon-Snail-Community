@@ -268,9 +268,9 @@ export function Composer({
                   "inline-flex h-8 min-w-18 items-center justify-center gap-1.5 rounded-full px-3.5",
                   "text-[13px] transition active:scale-[0.97]",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-                  "bg-forest text-paper hover:bg-deep-forest",
+                  "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover",
                   "disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100",
-                  "dark:bg-[#fff8ef] dark:text-[#0f3d32] dark:hover:bg-white",
+                  "",
                 )}
               >
                 {pending ? (

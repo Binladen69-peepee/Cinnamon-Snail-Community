@@ -51,7 +51,7 @@ export function FeedToolbar({
                 "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] no-underline transition",
                 "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
                 active
-                  ? "bg-[#fff8ef] text-[#0f3d32] shadow-e1"
+                  ? "bg-brand-fill text-brand-fill-foreground shadow-e1"
                   : "text-foreground-muted hover:bg-mint hover:text-foreground",
               )}
             >

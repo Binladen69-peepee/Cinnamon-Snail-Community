@@ -279,7 +279,7 @@ function Badge({ count, className }: { count: number; className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-[#fff8ef] px-1.5 text-[10px] tabular-nums text-[#0f3d32] dark:bg-[#fff8ef] dark:text-[#0f3d32]",
+        "inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-brand-fill px-1.5 text-[10px] tabular-nums text-brand-fill-foreground",
         className,
       )}
     >

@@ -453,11 +453,10 @@ function MapPin({ place }: { place: string }) {
       >
         <path
           d="M12 31C12 31 2 18.8 2 11.2A10 10 0 0 1 22 11.2C22 18.8 12 31 12 31Z"
-          fill="#0f3d32"
-          stroke="#fff8ef"
+          className="fill-foreground stroke-background"
           strokeWidth="1.4"
         />
-        <circle cx="12" cy="11" r="3.4" fill="#fff8ef" />
+        <circle cx="12" cy="11" r="3.4" className="fill-background" />
       </svg>
     </span>
   );

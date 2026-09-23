@@ -112,7 +112,7 @@ export function ProfileView({
       {/* Full-bleed compact cover, flush under the app header */}
       <div className="relative h-28 w-full overflow-hidden sm:h-32">
         <div
-          className="absolute inset-0 bg-[linear-gradient(120deg,#0b513f_0%,#0f3d32_45%,#1b4332_100%)]"
+          className="absolute inset-0 bg-[linear-gradient(120deg,var(--brand-strong)_0%,var(--foreground)_55%,var(--brand-strong)_100%)]"
           aria-hidden
         />
         <div
@@ -180,7 +180,7 @@ export function ProfileView({
                           "inline-flex h-9 items-center gap-1.5 rounded-[12px] px-3.5 text-[13px] font-semibold transition",
                           followState.following
                             ? "border border-border bg-surface text-foreground hover:bg-mint"
-                            : "bg-forest text-paper hover:bg-deep-forest dark:bg-[#fff8ef] dark:text-[#0f3d32]",
+                            : "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover ",
                         )}
                       >
                         <UserPlus className="size-3.5" aria-hidden />

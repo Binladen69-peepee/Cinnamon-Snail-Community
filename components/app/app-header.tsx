@@ -43,7 +43,7 @@ export async function AppHeader() {
         <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
           <Link
             href="/compose"
-            className="mr-1.5 hidden h-9 items-center gap-1.5 rounded-full bg-[#fff8ef] px-3.5 text-[13.5px] text-[#0f3d32] no-underline shadow-e1 transition hover:bg-white sm:inline-flex"
+            className="mr-1.5 hidden h-9 items-center gap-1.5 rounded-full bg-brand-fill px-3.5 text-[13.5px] text-brand-fill-foreground no-underline shadow-e1 transition hover:bg-brand-fill-hover sm:inline-flex"
           >
             <Plus className="size-4" aria-hidden />
             Create

@@ -81,7 +81,7 @@ export function SalesVideo({
       />
 
       {failed ? (
-        <div className="absolute inset-0 grid place-items-center bg-[#0b2a22] px-6 text-center">
+        <div className="absolute inset-0 grid place-items-center bg-black px-6 text-center">
           <div>
             <VideoOff className="mx-auto size-7 text-white/50" aria-hidden />
             <p className="mt-3 text-[13px] font-semibold leading-snug text-white/85">

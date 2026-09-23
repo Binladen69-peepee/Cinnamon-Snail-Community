@@ -167,7 +167,7 @@ export function CommentThread({
               <button
                 type="submit"
                 disabled={replyPending}
-                className="inline-flex h-9 shrink-0 items-center rounded-[12px] bg-forest px-3.5 text-[13px] text-paper transition hover:bg-deep-forest disabled:opacity-50 dark:bg-[#fff8ef] dark:text-[#0f3d32]"
+                className="inline-flex h-9 shrink-0 items-center rounded-[12px] bg-brand-fill px-3.5 text-[13px] text-brand-fill-foreground transition hover:bg-brand-fill-hover disabled:opacity-50 "
               >
                 {replyPending ? "Posting…" : "Reply"}
               </button>

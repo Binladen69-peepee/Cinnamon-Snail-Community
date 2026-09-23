@@ -48,8 +48,8 @@ export function JoinButton({
         className={cn(
           "inline-flex items-center gap-1.5 rounded-full font-bold transition active:scale-[0.97]",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-          "bg-forest text-paper hover:bg-deep-forest disabled:opacity-60",
-          "dark:bg-brand dark:text-on-brand dark:hover:bg-brand-strong",
+          "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover disabled:opacity-60",
+          "",
           size === "sm" ? "h-8 px-3 text-[12.5px]" : "h-9 px-4 text-[13.5px]",
         )}
       >

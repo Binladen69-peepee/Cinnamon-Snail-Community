@@ -67,7 +67,7 @@ export function HeroImage({
       {/* Painted under the photo so the headline always has a ground, even in
           the moment before the image decodes — and if the media library is
           unreachable, the hero degrades to this rather than to white. */}
-      <div aria-hidden className="absolute inset-0 bg-[#071b17]" />
+      <div aria-hidden className="absolute inset-0 bg-black" />
 
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img

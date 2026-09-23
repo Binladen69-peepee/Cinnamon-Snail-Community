@@ -34,7 +34,7 @@ export default async function CancelConfirmPage({
         1-month trial memberships.
       </p>
       {failed ? (
-        <p className="rounded-2xl bg-[#f6d7d0] px-4 py-3 text-sm text-forest" role="alert">
+        <p className="rounded-2xl bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
           SamCart did not confirm the cancellation. Your access is unchanged.
         </p>
       ) : null}
