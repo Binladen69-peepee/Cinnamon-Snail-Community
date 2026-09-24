@@ -2073,13 +2073,27 @@ button:hover .vu-media-zoom {
 
 /* The hero headline. A brush script reads smaller than a grotesk at the same
    size, so it runs larger; its own weight is the only weight it has. */
+/* The hero headline.
+ *
+ * A swash-capital script needs room to breathe, and this headline is
+ * twenty-four words long. At 320px a size that looks right on a laptop runs
+ * to eight lines and pushes the subhead and the button off the screen, so the
+ * phone size is set deliberately low and the clamp grows it from there. The
+ * line height is under one because the swashes already carry the spacing.
+ */
 .vu-title-brush {
   font-family: var(--font-brush), var(--font-caveat), "Segoe Script", cursive;
-  font-weight: 400;
-  font-size: clamp(2.65rem, 1.35rem + 4.9vw, 5.1rem);
-  line-height: 1;
-  letter-spacing: 0.004em;
+  font-weight: 700;
+  font-size: clamp(1.85rem, 1.05rem + 3.6vw, 4.4rem);
+  line-height: 1.04;
+  letter-spacing: 0;
   text-wrap: balance;
+}
+
+/* Swash capitals sit on a taller body, so the first line needs a little less
+   space above it than a grotesk would. */
+.vu-title-brush > * {
+  display: inline;
 }
 
 /* Each word settles in on its own, a beat after the last. The stagger is

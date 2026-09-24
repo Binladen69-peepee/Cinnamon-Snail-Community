@@ -62,11 +62,16 @@ export default async function HomePage() {
       {/* Hero ------------------------------------------------------------ */}
       {/* data-hero-dark tells the nav to use light type while it is
           transparent over this section, and tells the sticky bar what to wait
-          for. -mt-18 pulls the photograph up under the 72px bar; the inner
-          column's top padding keeps the copy clear of it. */}
+          for. -mt-18 cancels the 72px the bar takes in flow, so the
+          photograph starts at the very top of the page and the bar sits over
+          it; the inner column's top padding keeps the copy clear.
+          Because the margin nets the section's top to zero, its height is the
+          height you see: on a phone exactly one screen, so the headline, the
+          subhead and the button all land above the fold. It used to add the
+          bar's height back on top, which pushed the last card 72px under it. */}
       <section
         data-hero-dark
-        className="relative isolate -mt-18 flex min-h-[calc(clamp(36rem,92svh,52rem)+4.5rem)] items-end overflow-hidden"
+        className="relative isolate -mt-18 flex min-h-[100svh] items-end overflow-hidden sm:min-h-[clamp(38rem,92svh,52rem)]"
       >
         {hero.src ? (
           <HeroImage src={hero.src} alt={hero.alt} />
@@ -76,7 +81,7 @@ export default async function HomePage() {
           <div className="absolute inset-0 bg-black" />
         )}
 
-        <div className="vu-gutter relative z-10 w-full pb-12 pt-28 md:pb-16 md:pt-36">
+        <div className="vu-gutter relative z-10 w-full pb-9 pt-24 sm:pb-12 sm:pt-28 md:pb-16 md:pt-36">
           <div className="vu-shell hero-copy-reveal">
             <p className="vu-glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em]">
               <Leaf className="size-3.5" aria-hidden />
@@ -85,16 +90,16 @@ export default async function HomePage() {
 
             <h1
               aria-label={HOMEPAGE_HERO.headline}
-              className="vu-title-brush vu-on-media mt-5 max-w-[22ch] text-white"
+              className="vu-title-brush vu-on-media mt-4 max-w-[19ch] text-white sm:mt-5 sm:max-w-[22ch]"
             >
               <HeroWords text={HOMEPAGE_HERO.headline} />
             </h1>
 
-            <p className="vu-hero-live-title vu-measure vu-on-media mt-5 text-white/90">
+            <p className="vu-hero-live-title vu-measure vu-on-media mt-4 text-white/90 sm:mt-5">
               {HOMEPAGE_HERO.subhead}
             </p>
 
-            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
+            <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 sm:mt-8">
               <CheckoutButton size="lg" withArrow />
               <a
                 href="#class-library-heading"
@@ -108,7 +113,7 @@ export default async function HomePage() {
             {/* A live date is the most concrete reason to join this week, so
                 it gets its own card when there is one. Without one the card
                 states the size of the library instead, which is also true. */}
-            <div className="mt-7 flex flex-wrap items-stretch gap-3">
+            <div className="mt-5 flex flex-wrap items-stretch gap-3 sm:mt-7">
               <div className="vu-glass flex min-w-0 items-center gap-3 rounded-2xl px-4 py-3">
                 <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white text-black">
                   {nextLive?.liveAt ? (
@@ -129,12 +134,18 @@ export default async function HomePage() {
                 </span>
               </div>
 
-              <div className="vu-hero-proof self-center">
-                <SenjaEmbed
-                  widgetId={SENJA_HOMEPAGE_WIDGET}
-                  title="What members say"
-                  wash={false}
-                />
+              {/* The wrapper carries the breakpoint, not the chip:
+                  `.vu-hero-proof` sets its own `display` later in the
+                  stylesheet, so a `hidden` utility on the same element loses
+                  at equal specificity and the chip stayed on screen. */}
+              <div className="hidden self-center sm:block">
+                <div className="vu-hero-proof">
+                  <SenjaEmbed
+                    widgetId={SENJA_HOMEPAGE_WIDGET}
+                    title="What members say"
+                    wash={false}
+                  />
+                </div>
               </div>
             </div>
           </div>

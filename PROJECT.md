@@ -83,7 +83,7 @@ and the tests all exist.
 ```
 pnpm typecheck     # clean
 pnpm lint          # clean
-pnpm test          # 463 pass
+pnpm test          # 465 pass
 pnpm build         # prisma migrate deploy && prisma generate && next build
 ```
 
@@ -222,11 +222,12 @@ Every ruling, by id. Code comments cite these, so the ids are load-bearing.
 | DEC-059 | **Every responsive grid declares a base column.** A grid with no `grid-template-columns` gets one implicit `auto` column, and `auto` is content-sized — one long member name and the page scrolled sideways. |
 | DEC-060 | **The theme control lives in the navbar.** As a floating button it sat on top of the post action bar at 320px and was the only chrome that moved with the page. |
 | DEC-061 | **A phone shows media in place, never in a lightbox.** An overlay covers the post it belongs to and costs a second gesture to leave. One image is an image, several are a swipeable strip, and video plays inline at every width. |
-| DEC-062 | **The hero headline is set in a brush script** (Caveat Brush, loaded as `--font-brush`) and arrives one word at a time. The words are the client's and stay verbatim; the h1 carries the whole sentence as its label so assistive technology reads one sentence, not forty fragments. |
+| DEC-062 | **The hero headline is set in a brush script** (Oleo Script Swash Caps, loaded as `--font-brush` at its bold cut) and arrives one word at a time. The words are the client's and stay verbatim; the h1 carries the whole sentence as its label so assistive technology reads one sentence, not forty fragments. |
 | DEC-063 | **The landing page draws no decorative SVG.** The site-wide leaf backdrop, the section leaves and the painted globe are gone. The globe alone was four hundred lines of SVG whose postcards overlapped at phone widths; four real class stills say the same thing. Interface icons stay. |
 | DEC-064 | **Permanently dark surfaces are built from literals.** The Kitchen Table panel is dark in both themes, so its ink is `#ffffff` in both; the Senja chip is white in both because the widget draws dark type we do not control. Built from tokens, both inverted out of existence in one mode. |
 | DEC-065 | **The sticky checkout bar watches the hero itself**, not a sentinel below it. A sentinel below the fold is "not intersecting" at the top of the page, so the bar showed immediately, on top of the button it duplicates. |
 | DEC-066 | **The marketing bar carries the theme control and not the messages icon.** Light and dark is a visitor's choice and belongs where the other controls are; messages belongs to the member app, which reaches it from the sidebar and the tab bar. |
+| DEC-067 | **The hero is exactly one screen on a phone.** Its top margin cancels the bar's height in flow, so the section starts at zero and its height is the height you see; adding the bar's height back on top pushed the last card 72px under the fold. The testimonial chip is hidden below `sm` by a wrapper, because `.vu-hero-proof` sets its own `display` later in the stylesheet and beats a `hidden` utility at equal specificity. |
 | DEC-055 | **An event post writes an Event and a recipe post writes a Recipe**, and the post points at it. Both enum values existed with no authoring path, so a RECIPE post would have been a plain post wearing a label. The event joins its space's calendar as well as the feed, which is why it is created with a `spaceId` rather than standing alone. |
 | DEC-054 | **Notifications are written in one place** (`lib/notifications/community.ts`) and in bulk. Fan-out to a space reads preferences in one query, inserts in one statement and is capped, so a space that becomes popular does not turn one post into a thousand round trips. |
 

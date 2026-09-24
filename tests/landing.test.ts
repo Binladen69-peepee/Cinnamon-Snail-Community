@@ -44,10 +44,28 @@ describe("the landing page carries no decorative SVG", () => {
 
 describe("the hero", () => {
   it("sets its headline in the brush face", () => {
-    expect(layout).toContain("Caveat_Brush");
+    expect(layout).toContain("Oleo_Script_Swash_Caps");
     expect(layout).toContain("--font-brush");
     expect(css).toMatch(/\.vu-title-brush\s*\{[^}]*var\(--font-brush\)/);
     expect(page).toContain("vu-title-brush");
+  });
+
+  it("is exactly one screen tall on a phone", () => {
+    // The section's top margin cancels the bar's height in flow, so the
+    // section starts at zero and its height is the height you see. Adding the
+    // bar's height back on top pushed the last card under the fold.
+    expect(page).toMatch(/min-h-\[100svh\]/);
+    expect(page).not.toMatch(/min-h-\[calc\(100svh\+/);
+  });
+
+  it("keeps the testimonial chip off the phone hero", () => {
+    // `.vu-hero-proof` sets its own display later in the stylesheet, so a
+    // `hidden` utility on the same element loses at equal specificity. The
+    // breakpoint goes on a wrapper instead.
+    // Scoped to a class attribute: the prose above it in the source explains
+    // the trap and names both strings.
+    expect(page).not.toMatch(/className="[^"]*vu-hero-proof[^"]*hidden/);
+    expect(page).toMatch(/hidden self-center sm:block[\s\S]{0,200}vu-hero-proof/);
   });
 
   it("keeps the signed-off copy verbatim", () => {

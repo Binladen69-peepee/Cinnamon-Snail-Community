@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import {
   Caveat,
-  Caveat_Brush,
   Fraunces,
   Inter,
   Momo_Trust_Display,
+  Oleo_Script_Swash_Caps,
   Poppins,
 } from "next/font/google";
 import { Providers } from "@/app/providers";
@@ -50,14 +50,14 @@ const caveat = Caveat({
 });
 
 /**
- * The hero headline's face: a bold brush script. Google ships it at 400 only,
- * which is its natural weight — a brush stroke has no lighter cut, and asking
- * the browser to synthesise a bolder one would double the strokes.
+ * The hero headline's face: a brush script with swash capitals. Loaded at its
+ * bold cut, which is the weight the headline is set in — the regular cut is
+ * too fine to hold up over a photograph at display size.
  */
-const brush = Caveat_Brush({
+const brush = Oleo_Script_Swash_Caps({
   variable: "--font-brush",
   subsets: ["latin"],
-  weight: "400",
+  weight: ["400", "700"],
   display: "swap",
 });
 

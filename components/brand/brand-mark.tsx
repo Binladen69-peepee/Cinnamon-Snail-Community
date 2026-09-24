@@ -24,10 +24,17 @@ export function BrandMark({
   href,
   className,
   showWordmark = true,
+  compactBelowSm = false,
 }: {
   href: string;
   className?: string;
   showWordmark?: boolean;
+  /**
+   * Leaf only on phones. For a signed-in member the bar also carries search,
+   * notifications, an avatar and the menu, and at 320px those five controls
+   * and a wordmark do not both fit. A visitor's bar is lighter and keeps it.
+   */
+  compactBelowSm?: boolean;
 }) {
   return (
     <Link
@@ -41,7 +48,12 @@ export function BrandMark({
     >
       <BrandLogo className="size-7 transition-transform duration-300 group-hover:rotate-[-8deg]" />
       {showWordmark ? (
-        <span className="vu-wordmark flex flex-col justify-center leading-none">
+        <span
+          className={cn(
+            "vu-wordmark flex-col justify-center leading-none",
+            compactBelowSm ? "hidden sm:flex" : "flex",
+          )}
+        >
           <span className="vu-wordmark-name">Vegan University</span>
           <span className="vu-wordmark-tag hidden md:block">Cooking school</span>
         </span>

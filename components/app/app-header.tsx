@@ -36,7 +36,7 @@ export async function AppHeader() {
       className="sticky top-0 z-50 border-b border-border bg-background/92 backdrop-blur-md"
     >
       <div className="flex h-14 w-full items-center gap-3 px-3 sm:gap-4 sm:px-5">
-        <BrandMark href="/home" className="shrink-0" />
+        <BrandMark href="/home" className="shrink-0" compactBelowSm />
 
         <div className="mx-auto hidden min-w-0 max-w-xl flex-1 md:block">
           <NavSearch />
@@ -63,12 +63,16 @@ export async function AppHeader() {
             count={messages}
             icon={<MessageSquare className="size-[1.15rem]" aria-hidden />}
           />
+          {/* Staff reach the console from the sidebar too; at 320px the bar
+              has room for the controls every member needs and no more. */}
           {isStaff ? (
-            <IconLink
-              href="/admin/billing"
-              label="Admin"
-              icon={<Shield className="size-[1.15rem]" aria-hidden />}
-            />
+            <span className="hidden sm:inline-flex">
+              <IconLink
+                href="/admin/billing"
+                label="Admin"
+                icon={<Shield className="size-[1.15rem]" aria-hidden />}
+              />
+            </span>
           ) : null}
 
           {/* Light and dark belongs beside the other controls, not floating

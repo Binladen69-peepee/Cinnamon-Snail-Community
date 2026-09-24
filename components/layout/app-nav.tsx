@@ -58,7 +58,7 @@ export async function AppNav() {
 
       <div className="vu-gutter relative">
         <div className="vu-feed-shell flex h-[72px] items-center gap-3">
-          <BrandMark href={homeHref} className="min-w-0" />
+          <BrandMark href={homeHref} className="min-w-0" compactBelowSm={signedIn} />
 
           {/* Centre track. For members this is the command centre, not a
               search box that navigates away from the feed. */}
@@ -85,7 +85,13 @@ export async function AppNav() {
 
           {/* Right track */}
           <div className="ml-auto flex shrink-0 items-center gap-1">
-            <ThemeToggle className="text-foreground" />
+            {/* A member's bar is already five controls wide on a phone, and
+                the sheet behind the menu button carries the same toggle. A
+                visitor's bar has room, and the sheet is their only other
+                route to it. */}
+            <span className={signedIn ? "hidden sm:inline-flex" : "inline-flex"}>
+              <ThemeToggle className="text-foreground" />
+            </span>
             {signedIn ? (
               <>
                 <span className="md:hidden">
