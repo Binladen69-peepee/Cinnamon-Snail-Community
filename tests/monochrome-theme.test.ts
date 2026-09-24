@@ -60,19 +60,18 @@ describe("monochrome theme", () => {
   });
 
   it("keeps the two grounds Adam chose", () => {
-    // These two were picked by hand and are the only colours in the product
-    // that are not derived from something else, so they are pinned: a pale
-    // green-white in light, a deep navy in dark. Drifting back to pure white
-    // and pure black is the failure this catches.
+    // Light is a pale green-white Adam picked by hand; dark stays pure black,
+    // which is what the design is named for. Drifting back to pure white is
+    // the failure this catches on one side, and a near-black on the other.
     expect(css).toMatch(/:root,[\s\S]*?--background: #f3f7f0;/);
-    expect(css).toMatch(/\.dark,[\s\S]*?--background: #0b132b;/);
+    expect(css).toMatch(/\.dark,[\s\S]*?--background: #000000;/);
     expect(css).toMatch(/\.dark,[\s\S]*?--foreground: #ffffff;/);
   });
 
   it("keeps the dark ladder above its own ground", () => {
     // A card darker than the page it sits on reads as a hole. Every step of
-    // the dark ladder has to be lighter than #0b132b, which is the thing that
-    // broke when the ground stopped being pure black.
+    // the dark ladder has to be lighter than the ground, read from the file
+    // rather than written down here, so the check survives the ground moving.
     const start = css.indexOf(".dark,");
     const dark = css.slice(start, css.indexOf("\n  }", start));
     const value = (name: string) =>

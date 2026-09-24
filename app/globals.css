@@ -119,12 +119,12 @@
   [data-theme="dark"] {
     color-scheme: dark;
 
-    --background: #0b132b;
+    --background: #000000;
     --foreground: #ffffff;
-    --surface: #111b3a;
+    --surface: #0b0b0b;
     --surface-foreground: #ffffff;
-    --surface-muted: #18244b;
-    --overlay: #152044;
+    --surface-muted: #171717;
+    --overlay: #141414;
     --overlay-foreground: #ffffff;
     --muted: #a1a1a1;
     --primary: #ffffff;
@@ -135,16 +135,16 @@
     --accent-magenta: #ef8b6f;
     --accent-coral: #ef8b6f;
     --foreground-muted: #a1a1a1;
-    --border: #243158;
-    --separator: #1b2747;
+    --border: #232323;
+    --separator: #1a1a1a;
     --focus: #ffffff;
     --link: #ffffff;
-    --default: #1b2747;
+    --default: #1a1a1a;
     --default-foreground: #ffffff;
-    --field-background: #080f24;
+    --field-background: #0b0b0b;
     --field-foreground: #ffffff;
     --field-placeholder: #8a8a8a;
-    --field-border: #2a3865;
+    --field-border: #2a2a2a;
     --success: #ffffff;
     --success-foreground: #000000;
     --warning: #e0b341;
@@ -163,7 +163,7 @@
 
     --brand: #ffffff;
     --brand-strong: #ffffff;
-    --brand-wash: #18244b;
+    --brand-wash: #1a1a1a;
     --on-brand: #000000;
 
     /* Inverted: on black the fill is the lit colour and the label is the dark
@@ -172,24 +172,24 @@
     --brand-fill-hover: #e5e5e5;
     --brand-fill-foreground: #000000;
 
-    --sidebar: #0b132b;
+    --sidebar: #070707;
     --sidebar-foreground: #ffffff;
     --sidebar-accent: #1a1a1a;
     --sidebar-accent-foreground: #ffffff;
     --sidebar-border: #1a1a1a;
     --sidebar-ring: #ffffff;
 
-    --hairline-firm: #33426f;
+    --hairline-firm: #3a3a3a;
 
     --forest: #ffffff;
     --deep-forest: #e5e5e5;
     --olive: #a1a1a1;
-    --sage: #1b2747;
-    --mint: #152044;
-    --cream: #0b132b;
-    --paper: #0b132b;
-    --warm-white: #111b3a;
-    --sand: #243158;
+    --sage: #1a1a1a;
+    --mint: #111111;
+    --cream: #000000;
+    --paper: #000000;
+    --warm-white: #0b0b0b;
+    --sand: #232323;
     --taupe: #a1a1a1;
     --terracotta: #ef8b6f;
     --apricot: #e0b341;
@@ -1622,12 +1622,12 @@ button:hover .vu-media-zoom {
      The values below are the dark ladder; the light overrides follow. */
 
   /* Elevation ladder: ground -> card -> raised -> inert */
-  --background: #070d1c;
-  --surface: #0d1631;
+  --background: #000000;
+  --surface: #0d0d0d;
   --surface-foreground: #ededed;
-  --overlay: #131d40;
+  --overlay: #151515;
   --overlay-foreground: #ededed;
-  --default: #1a2547;
+  --default: #1a1a1a;
   --default-foreground: #ededed;
 
   --foreground: #ededed;
