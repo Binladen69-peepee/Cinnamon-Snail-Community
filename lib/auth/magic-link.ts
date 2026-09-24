@@ -68,6 +68,19 @@ export async function consumeMagicToken(email: string, token: string) {
     return null;
   }
   await ensureMemberSetup(user.id, user.email, user.name);
+  // Opening the link is proof of the address, so this is the moment an
+  // account created with a password stops being unverified.
+  if (!user.emailVerified) {
+    await prisma.user
+      .update({ where: { id: user.id }, data: { emailVerified: new Date() } })
+      .catch(() => undefined);
+  }
+  await prisma.userEmail
+    .updateMany({
+      where: { userId: user.id, email: normalized, verifiedAt: null },
+      data: { verifiedAt: new Date() },
+    })
+    .catch(() => undefined);
   return user;
 }
 
@@ -75,12 +88,10 @@ export async function requestMagicLink(typedEmail: string, ip: string) {
   const recipient = typedEmail.trim();
   const normalized = normalizeEmail(recipient);
 
-  const ipLimit = consumeRateLimit(`magic-ip:${ip}`, IP_LIMIT, EMAIL_WINDOW_MS);
-  const emailLimit = consumeRateLimit(
-    `magic-email:${normalized}`,
-    EMAIL_LIMIT,
-    EMAIL_WINDOW_MS,
-  );
+  const [ipLimit, emailLimit] = await Promise.all([
+    consumeRateLimit(`magic-ip:${ip}`, IP_LIMIT, EMAIL_WINDOW_MS),
+    consumeRateLimit(`magic-email:${normalized}`, EMAIL_LIMIT, EMAIL_WINDOW_MS),
+  ]);
   if (!ipLimit.ok || !emailLimit.ok) {
     throw new MagicLinkRateLimitError();
   }

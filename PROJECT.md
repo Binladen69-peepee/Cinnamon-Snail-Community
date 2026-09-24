@@ -49,7 +49,7 @@ and the tests all exist.
 
 | Feature | Route | Notes |
 | --- | --- | --- |
-| Auth | `/login` | Magic link + password. JWT sessions with a DB-backed revocation list. Google/Facebook wired, dormant until credentials exist. |
+| Auth | `/login`, `/register`, `/forgot-password`, `/reset-password` | Magic link, password, registration with a strength meter and terms, password reset. JWT sessions with a DB-backed revocation list; signing out, resetting and changing a password all revoke. Rate limits are counted in Postgres. Google/Facebook wired, dormant until credentials exist. |
 | Feed | `/home` | Composer, sort, density, vote rail, reactions, threaded comments. |
 | Post detail | `/posts/[id]` | Depth-capped threads, permalinks, comment sort. |
 | Spaces | `/spaces`, `/spaces/[slug]` | Visibility enforced by `canDiscoverSpace`; join/leave/favourite. |
@@ -122,7 +122,7 @@ claiming it falls back to `DATABASE_URL` is wrong.
 
 ```
 app/(marketing)     public sales site
-app/(auth)          login, magic-link verify
+app/(auth)          login, register, forgot/reset password, magic-link verify
 app/(member)        the signed-in app
 app/admin           staff console (own chrome, own scope)
 app/api             route handlers: auth, search, media, polling, webhooks, cron
@@ -199,6 +199,11 @@ Every ruling, by id. Code comments cite these, so the ids are load-bearing.
 | DEC-037 | **The product is monochrome.** Green and the headline texture are gone from admin, member app and marketing. Amber and red survive because they carry meaning. Supersedes DEC-013. |
 | DEC-038 | **Polaris cannot be used.** The React package is deprecated and peer-locked to React 18; the web components require App Bridge inside Shopify Admin. Its button *construction* is reproduced from the shipped stylesheet; colour comes from our tokens. |
 | DEC-039 | **The admin console follows the theme.** It keeps its own denser scope but is no longer pinned to dark. |
+| DEC-040 | **Rate limits are counted in Postgres**, in one `ON CONFLICT` upsert per check, not in an in-process Map. Serverless gives every instance its own memory, so the old limiter granted its allowance once per instance. It falls back to the in-process window if the database is unreachable: a limiter outage should cost an attacker time, not cost members their sign-in. |
+| DEC-041 | **Reset tokens live in their own identifier namespace** (`reset:<email>`) inside the same table as magic-link tokens. A link that proves an address can never be spent as a link that changes the password guarding it. |
+| DEC-042 | **Signing out revokes the Session row**, not just the cookie. Resetting a password and setting one from settings revoke every session. A JWT is only as revokable as the row it points at, and dropping the cookie left that row live. |
+| DEC-043 | **A taken email is reported plainly at registration** rather than hidden behind a generic "check your inbox". Hiding it would defend against address enumeration, but it also leaves someone who mistypes their address with an email that never arrives and no way to know why. The rate limit is the control that bounds probing. |
+| DEC-044 | **Password rules are one pure module** (`lib/auth/password-policy.ts`), imported by the register form in the browser and by the server before hashing. `password.ts` keeps bcrypt, so no client bundle pulls it in. |
 
 ---
 
@@ -229,9 +234,10 @@ The brief is millions of users. This is where the code stands against that.
    its facet list is empty. A tag table is the fix.
 4. **The feed has no cursor pagination.** `listFeed` has a cursor helper
    (`encodeCursor`) that the page does not use.
-5. **No rate limiting in production.** `lib/auth/rate-limit.ts` is an in-memory
-   limiter — per-instance, so it does not hold across serverless invocations.
-   `UPSTASH_REDIS_REST_URL` is in `.env.example` and unset.
+5. **Email delivery is capped.** Resend still sends from `onboarding@resend.dev`,
+   which only delivers to the account owner until a domain is verified (DEC-035).
+   Sign-in links, reset links and confirmations all ride on it, so nobody else
+   can complete an email-based flow until that domain exists.
 6. **No caching anywhere.** Every member page is `force-dynamic` and hits the
    database. No `unstable_cache`, no ISR, no Redis.
 7. **Images bypass the optimizer.** `next.config.ts` allows only

@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth, revokeAllSessions, revokeSession } from "@/auth";
 import { prisma } from "@/lib/db";
-import { hashPassword, isPasswordStrong } from "@/lib/auth/password";
+import { hashPassword, passwordProblems } from "@/lib/auth/password";
 import { normalizeEmail } from "@/lib/community/format";
 import { upsertSearchIndex } from "@/lib/search";
 import { z } from "zod";
@@ -96,13 +96,23 @@ export async function updateProfileAction(formData: FormData) {
 export async function setPasswordAction(formData: FormData) {
   const session = await requireUser();
   const password = String(formData.get("password") ?? "");
-  if (!isPasswordStrong(password)) {
-    throw new Error("Use at least 10 characters.");
+  // Same rules as registration and reset. A password set from settings is not
+  // a lesser password.
+  const problems = passwordProblems(password, {
+    email: session.user.email ?? undefined,
+    name: session.user.name ?? undefined,
+  });
+  if (problems.length > 0) {
+    throw new Error(problems[0]!);
   }
   await prisma.user.update({
     where: { id: session.user.id },
     data: { passwordHash: await hashPassword(password) },
   });
+  // Changing a password ends the other sessions. Someone who changes it
+  // because they think they were compromised expects exactly that.
+  await revokeAllSessions(session.user.id);
+  revalidatePath("/settings");
 }
 
 export async function addEmailAction(formData: FormData) {

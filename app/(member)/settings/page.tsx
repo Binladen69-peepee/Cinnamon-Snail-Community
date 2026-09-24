@@ -1,3 +1,5 @@
+import { PASSWORD_MIN_LENGTH } from "@/lib/auth/password-policy";
+import { signOutEverywhereAction } from "@/app/(auth)/sign-out-action";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
@@ -6,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   addEmailAction,
-  revokeOtherSessionsAction,
   setPasswordAction,
   updateProfileAction,
 } from "@/app/(member)/settings/actions";
@@ -106,7 +107,17 @@ export default async function SettingsPage({
 
       <form action={setPasswordAction} className="space-y-3">
         <h2 className="font-display text-2xl text-forest">Optional password</h2>
-        <Input type="password" name="password" minLength={10} required placeholder="At least 10 characters" />
+        <Input
+          type="password"
+          name="password"
+          autoComplete="new-password"
+          minLength={PASSWORD_MIN_LENGTH}
+          required
+          placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
+        />
+        <p className="text-sm text-muted">
+          Setting a password signs out every other device.
+        </p>
         <Button type="submit" variant="secondary">
           Set password
         </Button>
@@ -130,7 +141,7 @@ export default async function SettingsPage({
         </Button>
       </form>
 
-      <form action={revokeOtherSessionsAction}>
+      <form action={signOutEverywhereAction}>
         <h2 className="font-display text-2xl text-forest">Sessions</h2>
         <p className="mb-3 text-sm text-muted">{user.sessions.length} session records on file.</p>
         <Button type="submit" variant="danger">

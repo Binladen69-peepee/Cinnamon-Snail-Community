@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Bell, MessageSquare, Plus, Shield } from "lucide-react";
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
+import { signOutAction } from "@/app/(auth)/sign-out-action";
 import { prisma } from "@/lib/db";
 import { totalUnreadForUser } from "@/lib/messages/conversations";
 import { BrandMark } from "@/components/brand/brand-mark";
@@ -72,10 +73,7 @@ export async function AppHeader() {
           <AccountMenu
             name={name}
             handle={session.user.handle}
-            signOutAction={async () => {
-              "use server";
-              await signOut({ redirectTo: "/" });
-            }}
+            signOutAction={signOutAction}
           >
             <Avatar name={name} src={session.user.image} size="sm" />
           </AccountMenu>

@@ -54,10 +54,17 @@ describe("token blacklisting", () => {
   });
 
   it("exposes both ways to revoke", () => {
-    expect(auth).toContain("export async function revokeSession");
-    expect(auth).toContain("export async function revokeAllSessions");
+    // They live in lib/auth/sessions.ts so that resetting a password or
+    // signing out can revoke without importing the Auth.js runtime.
+    const sessions = readFileSync(
+      resolve(process.cwd(), "lib/auth/sessions.ts"),
+      "utf8",
+    );
+    expect(sessions).toContain("export async function revokeSession");
+    expect(sessions).toContain("export async function revokeAllSessions");
+    expect(auth).toContain('export { revokeSession, revokeAllSessions }');
     // Revoking is an administrative act and is recorded as one.
-    expect(auth).toContain("writeAuditLog");
+    expect(sessions).toContain("writeAuditLog");
   });
 });
 

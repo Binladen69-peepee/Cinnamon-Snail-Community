@@ -1269,3 +1269,16 @@ model MemberGeoPoint {
   @@unique([source, country, region, city])
   @@index([source])
 }
+
+/// A fixed-window rate-limit counter, shared by every instance.
+///
+/// Lives in Postgres rather than in memory because the app runs serverless: an
+/// in-process Map gives each instance its own allowance, which is not a limit
+/// at all. Rows are disposable and swept once expired.
+model RateLimitBucket {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
+
+  @@index([resetAt])
+}

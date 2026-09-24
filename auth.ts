@@ -105,7 +105,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           };
         }
 
-        const limit = consumeRateLimit(`password:${normalizeEmail(email)}`, 8, 15 * 60 * 1000);
+        const limit = await consumeRateLimit(
+          `password:${normalizeEmail(email)}`,
+          8,
+          15 * 60 * 1000,
+        );
         if (!limit.ok) return null;
         const user = await findUserByAnyEmail(email);
         if (!user?.passwordHash) return null;
@@ -250,28 +254,6 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
 });
 
-export async function revokeSession(sessionId: string, actorId: string) {
-  await prisma.session.update({
-    where: { id: sessionId },
-    data: { revokedAt: new Date() },
-  });
-  await writeAuditLog({
-    actorId,
-    action: "auth.session.revoked",
-    targetType: "session",
-    targetId: sessionId,
-  });
-}
-
-export async function revokeAllSessions(userId: string) {
-  await prisma.session.updateMany({
-    where: { userId, revokedAt: null },
-    data: { revokedAt: new Date() },
-  });
-  await writeAuditLog({
-    actorId: userId,
-    action: "auth.session.revoked_all",
-    targetType: "user",
-    targetId: userId,
-  });
-}
+// The revocation list lives in its own module so that anything which needs to
+// strike a session off does not have to import the Auth.js runtime to do it.
+export { revokeSession, revokeAllSessions } from "@/lib/auth/sessions";

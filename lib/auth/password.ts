@@ -13,6 +13,11 @@ export async function verifyPassword(
   return bcrypt.compare(password, hash);
 }
 
-export function isPasswordStrong(password: string): boolean {
-  return password.length >= 10;
-}
+export {
+  PASSWORD_MIN_LENGTH,
+  PASSWORD_MAX_LENGTH,
+  passwordProblems,
+  passwordStrength,
+  isPasswordStrong,
+  type PasswordStrength,
+} from "@/lib/auth/password-policy";

@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { auth, signOut } from "@/auth";
+import { auth } from "@/auth";
+import { signOutAction } from "@/app/(auth)/sign-out-action";
 import { prisma } from "@/lib/db";
 import { Avatar } from "@/components/ui/avatar";
 import { NavIconLink, NavIconSubmit, NavProfileLink } from "@/components/layout/nav-icon";
@@ -121,10 +122,7 @@ export async function AppNav() {
                 </NavProfileLink>
                 <form
                   className="hidden lg:block"
-                  action={async () => {
-                    "use server";
-                    await signOut({ redirectTo: "/" });
-                  }}
+                  action={signOutAction}
                 >
                   <NavIconSubmit label="Sign out" icon="logout" />
                 </form>
