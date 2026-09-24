@@ -95,19 +95,10 @@ export default async function HomePage() {
               <HeroWords text={HOMEPAGE_HERO.headline} />
             </h1>
 
-            <p className="vu-hero-live-title vu-measure vu-on-media mt-4 text-white/90 sm:mt-5">
-              {HOMEPAGE_HERO.subhead}
-            </p>
+          
 
             <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 sm:mt-8">
               <CheckoutButton size="lg" withArrow />
-              <a
-                href="#class-library-heading"
-                className="hidden items-center gap-2 text-sm text-white/75 no-underline transition hover:text-white sm:flex"
-              >
-                <ArrowDown className="size-4 animate-bounce" aria-hidden />
-                See the class library
-              </a>
             </div>
 
             {/* A live date is the most concrete reason to join this week, so
@@ -121,16 +112,6 @@ export default async function HomePage() {
                   ) : (
                     <ChefHat className="size-4" aria-hidden />
                   )}
-                </span>
-                <span className="min-w-0">
-                  <span className="block text-[10.5px] font-semibold uppercase tracking-[0.18em] text-white/70">
-                    {nextLive?.liveAt ? "Next live cook-along" : "On demand"}
-                  </span>
-                  <span className="block truncate text-[14px] font-semibold text-white">
-                    {nextLive?.liveAt
-                      ? `${nextLive.title} · ${nextLive.liveAt.toLocaleDateString(undefined, { month: "long", day: "numeric" })}`
-                      : `${totalClasses} classes across ${shelfCount} shelves`}
-                  </span>
                 </span>
               </div>
 
