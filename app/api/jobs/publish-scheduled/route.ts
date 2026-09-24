@@ -11,7 +11,10 @@ import { sweepRateLimitBuckets } from "@/lib/auth/rate-limit";
  * which is worse than not offering scheduling at all.
  *
  * Called on a timer by Vercel Cron and gated by the same secret as the other
- * job routes. It is safe to call twice: each post is claimed with a
+ * job routes. The Hobby plan allows one cron run a day, so `vercel.json` asks
+ * for a daily one; anything finer needs Vercel Pro or an external scheduler
+ * calling this with the job secret. The endpoint itself does not care how
+ * often it runs. It is safe to call twice: each post is claimed with a
  * conditional update, so two overlapping runs cannot both publish it and
  * cannot both notify a space about it.
  *

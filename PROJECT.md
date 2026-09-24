@@ -67,6 +67,7 @@ and the tests all exist.
 | Feature | State | Blocker |
 | --- | --- | --- |
 | GIF search | code done, no key | `TENOR_API_KEY` is unset, so the picker hides itself rather than offering a search that can never answer. |
+| Scheduled posts, to the minute | code done, plan-limited | Vercel Hobby allows one cron run a day, so `vercel.json` asks for 09:00 and a post scheduled for 14:00 waits until the next run. The endpoint is correct and idempotent; a five-minute cadence needs Vercel Pro or any external scheduler calling `/api/jobs/publish-scheduled` with `BILLING_JOB_SECRET`. |
 | `/search` | not built | Results page behind the command palette. `lib/search` is complete; only the page is missing. |
 | `/calendar` | not built | Events exist (6, all past). `searchHref('event')` points here. |
 | `/connect` | not built | Suggestions surface. `lib/social/suggestions` is complete. |
