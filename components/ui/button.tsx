@@ -23,7 +23,7 @@ export type ButtonProps = Omit<HeroButtonProps, "variant" | "size" | "isDisabled
 
 const pill = "rounded-full font-semibold tracking-tight";
 const primaryFill = "vu-cta-fill hover:-translate-y-px";
-const secondaryDark = "dark:border-paper dark:bg-black dark:text-paper";
+const secondaryDark = "";
 
 export function Button({
   className,

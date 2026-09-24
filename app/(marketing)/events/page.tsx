@@ -14,7 +14,7 @@ export default async function PublicEventsPage() {
 
   return (
     <article className="vu-gutter mx-auto max-w-3xl py-16">
-      <h1 className="font-display text-5xl text-forest">Events</h1>
+      <h1 className="font-display text-[2rem] sm:text-4xl lg:text-5xl text-forest">Events</h1>
       <p className="mt-6 text-muted">
         Public listings show time and place. Zoom and RSVP live on the campus calendar after you sign in.
       </p>

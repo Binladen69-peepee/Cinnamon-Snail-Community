@@ -111,10 +111,11 @@ export function ProfileView({
     <div className="pb-8">
       {/* Full-bleed compact cover, flush under the app header */}
       <div className="relative h-28 w-full overflow-hidden sm:h-32">
-        <div
-          className="absolute inset-0 bg-[linear-gradient(120deg,var(--brand-strong)_0%,var(--foreground)_55%,var(--brand-strong)_100%)]"
-          aria-hidden
-        />
+        {/* A quiet band built from the surface tokens. It used to be a
+            gradient between --brand-strong and --foreground, which are both
+            white in dark mode: the cover became a solid white slab and the
+            decoration on it disappeared. */}
+        <div className="absolute inset-0 bg-surface-muted" aria-hidden />
         <div
           className="absolute inset-0 opacity-30"
           style={{
@@ -123,9 +124,9 @@ export function ProfileView({
           }}
           aria-hidden
         />
-        <LeafCluster className="pointer-events-none absolute -left-8 -bottom-4 w-28 text-paper/20 sm:w-36" />
-        <LeafCluster className="pointer-events-none absolute -right-6 top-0 w-24 rotate-[16deg] text-paper/15 sm:w-28" />
-        <p className="font-hand absolute bottom-3 right-4 text-[1.15rem] leading-none text-paper/85 sm:right-6 sm:text-[1.3rem]">
+        <LeafCluster className="pointer-events-none absolute -left-8 -bottom-4 w-28 text-foreground/10 sm:w-36" />
+        <LeafCluster className="pointer-events-none absolute -right-6 top-0 w-24 rotate-[16deg] text-foreground/[0.07] sm:w-28" />
+        <p className="font-hand absolute bottom-3 right-4 text-[1.15rem] leading-none text-foreground-muted sm:right-6 sm:text-[1.3rem]">
           Good food brings people together
         </p>
       </div>
@@ -429,7 +430,7 @@ export function ProfileView({
                     body="Keep cooking and showing up — badges land here."
                   />
                 ) : (
-                  <div className="grid gap-2.5 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                     {profile.badges.map((badge) => (
                       <div
                         key={badge.id}

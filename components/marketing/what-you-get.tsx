@@ -43,7 +43,7 @@ export function WhatYouGet() {
               as="article"
               delay={index * 90}
               className={cn(
-                "grid lg:grid-cols-2",
+                "grid grid-cols-1 lg:grid-cols-2",
                 index > 0 && "border-t border-border",
               )}
             >

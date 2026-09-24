@@ -28,7 +28,10 @@ export function CheckoutButton({
       data-samcart-checkout
       className={cn(
         "vu-cta-glow inline-flex items-center gap-3 rounded-full font-semibold no-underline",
-        onDark ? "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover" : "vu-cta-fill",
+        // The dark panel's ground is --forest, which inverts. A fill of
+        // --brand-fill matches it exactly in light mode, so the button
+        // disappeared into its own panel. The page colour always contrasts.
+        onDark ? "bg-background text-foreground hover:opacity-90" : "vu-cta-fill",
         size === "lg" ? "h-13 px-8 text-base" : "h-12 px-7 text-sm",
         withArrow && "pl-2",
         className,
@@ -38,10 +41,9 @@ export function CheckoutButton({
         <span
           className={cn(
             "grid size-9 place-items-center rounded-full",
+            // The disc is always the opposite of the button it sits in.
             onDark
               ? "bg-foreground text-background"
-              // The circle is the page colour so it always reads against the
-              // button: white-on-black in light, black-on-white in dark.
               : "bg-background text-foreground",
           )}
         >

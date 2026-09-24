@@ -143,7 +143,7 @@ export default async function DiscoverPage({
                 href={sectionHref("spaces", q)}
                 tab={tab}
               >
-                <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
                   {data.spaces.map((space) => (
                     <SpaceCard key={space.id} space={space} />
                   ))}
@@ -159,7 +159,7 @@ export default async function DiscoverPage({
                 href={sectionHref("people", q)}
                 tab={tab}
               >
-                <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
                   {data.people.map((person) => (
                     <PersonCard key={person.handle} person={person} />
                   ))}
@@ -175,7 +175,7 @@ export default async function DiscoverPage({
                 href={sectionHref("events", q)}
                 tab={tab}
               >
-                <div className="grid gap-2.5 sm:grid-cols-2">
+                <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
                   {data.events.map((event) => (
                     <EventCard key={event.id} event={event} />
                   ))}

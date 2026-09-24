@@ -12,6 +12,7 @@ import {
   updateProfileAction,
 } from "@/app/(member)/settings/actions";
 import { readPrivacy } from "@/lib/community/privacy";
+import { AppShell } from "@/components/app/app-shell";
 
 export default async function SettingsPage({
   searchParams,
@@ -38,18 +39,19 @@ export default async function SettingsPage({
     : "";
 
   return (
-    <div className="mx-auto max-w-2xl space-y-10">
+    <AppShell>
+      <div className="mx-auto max-w-2xl space-y-10 pb-10">
       <div>
-        <h1 className="font-display text-4xl text-forest">Your profile</h1>
-        <p className="mt-3 text-muted">
+        <h1 className="font-display text-[1.6rem] sm:text-3xl text-foreground">Your profile</h1>
+        <p className="mt-3 text-foreground-muted">
           City-level location only. We never store a home address on your profile.{" "}
-          <a href="/billing" className="text-olive underline-offset-2 hover:underline">
+          <a href="/billing" className="text-foreground-muted underline-offset-2 hover:underline">
             Review membership and billing
           </a>
           .
         </p>
         {saved ? (
-          <p className="mt-4 rounded-2xl bg-sage/40 px-4 py-3 text-sm text-forest" role="status">
+          <p className="mt-4 rounded-2xl bg-sage/40 px-4 py-3 text-sm text-foreground" role="status">
             Profile saved. The directory will use these details.
           </p>
         ) : null}
@@ -58,7 +60,7 @@ export default async function SettingsPage({
         <Input name="displayName" defaultValue={user.profile.displayName} required />
         <Input name="avatarUrl" defaultValue={user.image ?? ""} placeholder="Avatar URL" />
         <Textarea name="bio" defaultValue={user.profile.bio ?? ""} placeholder="Bio" />
-        <div className="grid gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
           <Input name="city" defaultValue={user.profile.city ?? ""} placeholder="City" />
           <Input name="region" defaultValue={user.profile.region ?? ""} placeholder="Region" />
           <Input name="country" defaultValue={user.profile.country ?? ""} placeholder="Country" />
@@ -80,7 +82,7 @@ export default async function SettingsPage({
           </select>
         </label>
         <fieldset className="space-y-2 rounded-2xl border border-sand px-4 py-3">
-          <legend className="text-sm font-medium text-forest">Privacy</legend>
+          <legend className="text-sm font-medium text-foreground">Privacy</legend>
           <label className="flex min-h-11 items-center gap-2 text-sm">
             <input
               type="checkbox"
@@ -106,7 +108,7 @@ export default async function SettingsPage({
       </form>
 
       <form action={setPasswordAction} className="space-y-3">
-        <h2 className="font-display text-2xl text-forest">Optional password</h2>
+        <h2 className="font-display text-2xl text-foreground">Optional password</h2>
         <Input
           type="password"
           name="password"
@@ -115,7 +117,7 @@ export default async function SettingsPage({
           required
           placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
         />
-        <p className="text-sm text-muted">
+        <p className="text-sm text-foreground-muted">
           Setting a password signs out every other device.
         </p>
         <Button type="submit" variant="secondary">
@@ -124,8 +126,8 @@ export default async function SettingsPage({
       </form>
 
       <form action={addEmailAction} className="space-y-3">
-        <h2 className="font-display text-2xl text-forest">More emails</h2>
-        <p className="text-sm text-muted">
+        <h2 className="font-display text-2xl text-foreground">More emails</h2>
+        <p className="text-sm text-foreground-muted">
           Verified emails can be used to sign in and to match billing identity later.
         </p>
         <ul className="text-sm">
@@ -142,12 +144,13 @@ export default async function SettingsPage({
       </form>
 
       <form action={signOutEverywhereAction}>
-        <h2 className="font-display text-2xl text-forest">Sessions</h2>
-        <p className="mb-3 text-sm text-muted">{user.sessions.length} session records on file.</p>
+        <h2 className="font-display text-2xl text-foreground">Sessions</h2>
+        <p className="mb-3 text-sm text-foreground-muted">{user.sessions.length} session records on file.</p>
         <Button type="submit" variant="danger">
           Sign out everywhere
         </Button>
       </form>
-    </div>
+      </div>
+    </AppShell>
   );
 }

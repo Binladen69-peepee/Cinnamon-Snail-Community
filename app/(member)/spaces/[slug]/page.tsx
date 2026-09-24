@@ -386,7 +386,7 @@ async function SpaceCourses({ spaceId }: { spaceId: string }) {
   }
 
   return (
-    <ul className="grid gap-2.5 sm:grid-cols-2">
+    <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
       {courses.map((course) => (
         <li key={course.slug}>
           <Link
@@ -426,7 +426,7 @@ async function SpaceMembers({ spaceId }: { spaceId: string }) {
   });
 
   return (
-    <ul className="grid gap-2 sm:grid-cols-2">
+    <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
       {members.map((member) => (
         <li key={member.user.handle}>
           <Link

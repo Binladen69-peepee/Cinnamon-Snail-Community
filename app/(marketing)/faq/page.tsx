@@ -3,7 +3,7 @@ import { FaqAccordion } from "@/components/marketing/faq-accordion";
 export default function FaqPage() {
   return (
     <article className="vu-gutter mx-auto max-w-3xl py-16">
-      <h1 className="text-5xl font-extrabold tracking-tight text-foreground">
+      <h1 className="text-[2rem] sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-foreground">
         Questions, answered <span className="text-accent">plainly</span>
       </h1>
       <p className="prose-measure mt-4 text-foreground-muted">

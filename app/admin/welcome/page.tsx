@@ -53,7 +53,7 @@ export default async function AdminWelcomePage() {
         </p>
       </div>
 
-      <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <Stat label="Sent" value={counts.sent} />
         <Stat label="Waiting to send" value={counts.pending} />
         <Stat label="Cancelled" value={counts.canceled} />

@@ -145,7 +145,7 @@ function PlanCard({
       <p
         className={cn(
           "font-display mt-3 tracking-tight",
-          compact ? "text-4xl" : "text-5xl",
+          compact ? "text-[1.75rem] sm:text-3xl lg:text-4xl" : "text-[2rem] sm:text-4xl lg:text-5xl",
           featured ? "text-background" : "text-forest",
         )}
       >

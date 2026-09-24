@@ -104,7 +104,7 @@ export default async function MembersPage({
               <Sparkles className="size-3" aria-hidden />
               People you should meet
             </h2>
-            <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+            <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
               {data.suggested.map((member) => (
                 <li key={member.handle}>
                   <MemberCard member={member} showStarter />
@@ -130,7 +130,7 @@ export default async function MembersPage({
               empty={data.totalUnfiltered === 0}
             />
           ) : (
-            <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+            <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
               {data.members.map((member) => (
                 <li key={member.handle}>
                   <MemberCard member={member} />

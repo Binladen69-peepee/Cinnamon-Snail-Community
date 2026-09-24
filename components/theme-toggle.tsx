@@ -49,7 +49,7 @@ export function ThemeToggle({
         role="menuitem"
         onClick={() => setTheme(isDark ? "light" : "dark")}
         className={cn(
-          "flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[14px] font-semibold text-foreground transition hover:bg-mint",
+          "flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[14px] font-semibold text-foreground transition hover:bg-surface-muted",
           className,
         )}
       >
@@ -73,7 +73,7 @@ export function ThemeToggle({
         "grid place-items-center text-foreground-muted transition",
         variant === "fab"
           ? "size-11 rounded-card border border-border bg-surface shadow-e2 hover:border-brand hover:text-brand"
-          : "size-9 rounded-full hover:bg-mint hover:text-foreground",
+          : "size-9 rounded-full hover:bg-surface-muted hover:text-foreground",
         className,
       )}
     >

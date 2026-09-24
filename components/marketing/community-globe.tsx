@@ -133,7 +133,7 @@ export function CommunityGlobe({
             Different places. Same mission.
           </p>
 
-          <div className="relative px-10 py-12 sm:px-16 sm:py-14">
+          <div className="relative px-3 py-8 sm:px-16 sm:py-14">
             <svg
               aria-hidden
               viewBox="0 0 400 400"
@@ -189,7 +189,7 @@ export function CommunityGlobe({
         >
           The pins are stand-ins. Import the Mighty Networks membership export
           with{" "}
-          <code className="rounded bg-mint px-1.5 py-0.5">
+          <code className="inline-block max-w-full break-all rounded bg-surface-muted px-1.5 py-0.5">
             pnpm tsx scripts/import-member-geo.ts &lt;export.csv&gt;
           </code>{" "}
           and the real spread appears here.

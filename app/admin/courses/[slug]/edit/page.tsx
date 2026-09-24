@@ -87,7 +87,7 @@ export default async function EditCoursePage({
         />
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="space-y-4">
           <section className="overflow-hidden rounded-card border border-border bg-surface">
             <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">

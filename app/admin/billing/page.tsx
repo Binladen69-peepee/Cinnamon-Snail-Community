@@ -85,7 +85,7 @@ export default async function AdminBillingPage() {
             </div>
           }
         />
-        <dl className="grid gap-px bg-border sm:grid-cols-2 xl:grid-cols-3">
+        <dl className="grid grid-cols-1 gap-px bg-border sm:grid-cols-2 xl:grid-cols-3">
           <Stat flush label="MRR" value={`$${(metrics.mrrCents / 100).toFixed(0)}`} />
           <Stat flush label="Paying seats" value={metrics.activeSubscriptions} />
           <Stat
@@ -149,7 +149,7 @@ export default async function AdminBillingPage() {
         </div>
       </Panel>
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         <Panel>
           <PanelHeader title="Recent billing events" count={events.length} />
           {events.length === 0 ? (

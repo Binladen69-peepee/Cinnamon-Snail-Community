@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { beginCancelAction } from "@/app/(member)/billing/actions";
 import { isEntitlementActive } from "@/lib/entitlements/check";
 import { isPayingStatus } from "@/lib/billing/types";
+import { AppShell } from "@/components/app/app-shell";
 
 export default async function BillingPage({
   searchParams,
@@ -31,24 +32,25 @@ export default async function BillingPage({
   const paying = subscriptions.filter((item) => isPayingStatus(item.status));
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
+    <AppShell>
+      <div className="mx-auto max-w-2xl space-y-8 pb-10">
       <div>
-        <p className="text-sm uppercase tracking-[0.18em] text-olive">Membership</p>
-        <h1 className="mt-2 font-display text-4xl text-forest">Your seat at the table</h1>
-        <p className="mt-3 text-muted">
+        <p className="text-sm uppercase tracking-[0.18em] text-foreground-muted">Membership</p>
+        <h1 className="mt-2 font-display text-[1.6rem] sm:text-3xl text-foreground">Your seat at the table</h1>
+        <p className="mt-3 text-foreground-muted">
           SamCart is the record of money. This page is the record of access. If
           you cancel, access follows the period SamCart reports.
         </p>
         {canceled ? (
-          <p className="mt-4 rounded-2xl bg-sage/40 px-4 py-3 text-sm text-forest" role="status">
+          <p className="mt-4 rounded-2xl bg-sage/40 px-4 py-3 text-sm text-foreground" role="status">
             SamCart confirmed the cancellation. Access follows the period they reported.
           </p>
         ) : null}
       </div>
 
       <section className="rounded-[1.5rem] border border-sand bg-warm-white p-6">
-        <h2 className="font-display text-2xl text-forest">Access right now</h2>
-        <p className="mt-2 text-sm text-muted">
+        <h2 className="font-display text-2xl text-foreground">Access right now</h2>
+        <p className="mt-2 text-sm text-foreground-muted">
           {hasAccess
             ? "You currently have an active entitlement."
             : "You do not have an active entitlement. If you just paid, add the billing email to your profile so we can match it."}
@@ -56,8 +58,8 @@ export default async function BillingPage({
         <ul className="mt-4 space-y-3">
           {entitlements.map((item) => (
             <li key={item.id} className="rounded-2xl bg-cream px-4 py-3 text-sm">
-              <span className="font-medium text-forest">{item.product.name}</span>
-              <span className="mt-1 block text-muted">
+              <span className="font-medium text-foreground">{item.product.name}</span>
+              <span className="mt-1 block text-foreground-muted">
                 {item.source.toLowerCase()} · {item.status.toLowerCase()}
                 {item.endsAt ? ` · ends ${item.endsAt.toDateString()}` : ""}
                 {item.revokedAt ? " · revoked" : ""}
@@ -68,17 +70,17 @@ export default async function BillingPage({
       </section>
 
       <section className="rounded-[1.5rem] border border-sand bg-warm-white p-6">
-        <h2 className="font-display text-2xl text-forest">Billing with SamCart</h2>
+        <h2 className="font-display text-2xl text-foreground">Billing with SamCart</h2>
         {subscriptions.length === 0 ? (
-          <p className="mt-3 text-sm text-muted">
+          <p className="mt-3 text-sm text-foreground-muted">
             No SamCart subscription is attached to this account yet.
           </p>
         ) : (
           <ul className="mt-4 space-y-4">
             {subscriptions.map((item) => (
               <li key={item.id} className="rounded-2xl bg-cream px-4 py-4">
-                <p className="font-medium text-forest">{item.product.name}</p>
-                <p className="mt-1 text-sm text-muted">
+                <p className="font-medium text-foreground">{item.product.name}</p>
+                <p className="mt-1 text-sm text-foreground-muted">
                   {item.status.toLowerCase().replaceAll("_", " ")}
                   {item.amountCents != null
                     ? ` · $${(item.amountCents / 100).toFixed(2)} ${item.currency ?? "usd"}`
@@ -99,13 +101,14 @@ export default async function BillingPage({
         )}
       </section>
 
-      <p className="text-sm text-muted">
+      <p className="text-sm text-foreground-muted">
         Need to close the account entirely?{" "}
-        <Link href="/billing/delete" className="text-olive underline-offset-2 hover:underline">
+        <Link href="/billing/delete" className="text-foreground-muted underline-offset-2 hover:underline">
           Start an honest deletion request
         </Link>
         {paying.length > 0 ? " — we will cancel billing first." : "."}
       </p>
-    </div>
+      </div>
+    </AppShell>
   );
 }

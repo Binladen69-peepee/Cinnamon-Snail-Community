@@ -39,6 +39,7 @@ let authorId = "";
 let otherId = "";
 let spaceId = "";
 const created: string[] = [];
+const extraSpaces: string[] = [];
 
 beforeAll(async () => {
   try {
@@ -48,31 +49,49 @@ beforeAll(async () => {
     return;
   }
 
-  const space = await prisma.space.findFirst({
-    where: { visibility: { in: ["PUBLIC", "MEMBERS"] }, productId: null },
-    orderBy: { sortOrder: "asc" },
+  // Its own room, not a shared one. Vitest runs test files in parallel, and
+  // posting into the seeded space moved the unread counts another suite was
+  // asserting on. A space of our own makes this file independent of every
+  // other, and cascades away at the end.
+  const people = await prisma.user.findMany({
+    where: { status: "ACTIVE" },
+    orderBy: { createdAt: "asc" },
+    take: 3,
     select: { id: true },
   });
-  const members = space
-    ? await prisma.spaceMembership.findMany({
-        where: { spaceId: space.id },
-        take: 2,
-        select: { userId: true },
-      })
-    : [];
-
-  if (!space || members.length < 2) {
+  if (people.length < 3) {
     reachable = false;
     return;
   }
+  authorId = people[0]!.id;
+  otherId = people[1]!.id;
+
+  const space = await prisma.space.create({
+    data: {
+      slug: `it-community-${Date.now()}`,
+      name: "Integration room",
+      kind: "FEED",
+      visibility: "MEMBERS",
+      memberships: {
+        create: [
+          { userId: people[0]!.id, role: "HOST" },
+          { userId: people[1]!.id, role: "MEMBER" },
+          { userId: people[2]!.id, role: "MEMBER" },
+        ],
+      },
+    },
+    select: { id: true },
+  });
   spaceId = space.id;
-  authorId = members[0]!.userId;
-  otherId = members[1]!.userId;
 });
 
 afterAll(async () => {
   if (reachable && created.length) {
     await prisma.post.deleteMany({ where: { id: { in: created } } }).catch(() => {});
+  }
+  // Posts, memberships and pending rows all cascade from the space.
+  for (const id of [...extraSpaces, spaceId].filter(Boolean)) {
+    await prisma.space.delete({ where: { id } }).catch(() => {});
   }
   await prisma.$disconnect().catch(() => {});
 });
@@ -446,15 +465,17 @@ describe("scheduling", () => {
 describe("sharing and removing", () => {
   it("re-shares into another space, pointing back at the original", async () => {
     if (!reachable) return;
-    const other = await prisma.space.findFirst({
-      where: {
-        id: { not: spaceId },
-        productId: null,
-        memberships: { some: { userId: authorId } },
+    const other = await prisma.space.create({
+      data: {
+        slug: `it-share-${Date.now()}`,
+        name: "Integration share target",
+        kind: "FEED",
+        visibility: "MEMBERS",
+        memberships: { create: [{ userId: authorId, role: "MEMBER" }] },
       },
       select: { id: true },
     });
-    if (!other) return;
+    extraSpaces.push(other.id);
 
     const post = await newPost("worth sharing");
     const shared = await sharePostToSpace({

@@ -127,7 +127,7 @@ export function CommentPanel({
           <button
             type="submit"
             disabled={pending}
-            className="absolute right-1 top-1 inline-flex h-9 items-center gap-1.5 rounded-full bg-forest px-3.5 text-xs font-semibold text-paper transition hover:bg-deep-forest disabled:opacity-60 dark:bg-surface dark:text-foreground dark:ring-1 dark:ring-border"
+            className="absolute right-1 top-1 inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-fill px-3.5 text-xs font-semibold text-brand-fill-foreground transition hover:bg-brand-fill-hover disabled:opacity-60"
           >
             {pending ? "Posting…" : "Post"}
             <CornerDownLeft className="size-3.5" aria-hidden />

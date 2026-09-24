@@ -244,7 +244,7 @@ export function ComposeForm({
           <legend className="px-1 text-[12.5px] font-semibold text-foreground">
             When and where
           </legend>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Labelled label="Starts" htmlFor="event-starts">
               <input
                 id="event-starts"
@@ -275,7 +275,7 @@ export function ComposeForm({
               className={FIELD}
             />
           </Labelled>
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Labelled label="Joining link (optional)" htmlFor="event-zoom">
               <input
                 id="event-zoom"

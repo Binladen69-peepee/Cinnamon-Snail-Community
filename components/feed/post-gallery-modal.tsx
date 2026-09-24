@@ -20,6 +20,7 @@ import { runAction } from "@/components/feed/run-action";
 import { formatCount, formatShortTime } from "@/lib/community/format-count";
 import type { MediaItem } from "@/components/feed/post-media";
 import { videoEmbedSrc, videoPosterUrl } from "@/lib/community/media";
+import { useIsMobile } from "@/components/hooks/use-media-query";
 import { cn } from "@/lib/utils";
 
 export type GalleryPost = {
@@ -65,8 +66,17 @@ type GalleryProps = {
  * starts from the post's own counts. Resetting that state from an effect
  * instead would render one frame of the previous post's numbers.
  */
+/**
+ * The lightbox, on screens with room for one.
+ *
+ * It refuses to open on a phone. An overlay that covers the whole screen hides
+ * the post it belongs to and costs a second gesture to leave, so the phone
+ * shows its media in place instead — see `PostMedia`. Checking here as well as
+ * at the call site means no future caller can reintroduce it by accident.
+ */
 export function PostGalleryModal(props: GalleryProps) {
-  if (!props.open || props.media.length === 0) return null;
+  const isMobile = useIsMobile();
+  if (isMobile || !props.open || props.media.length === 0) return null;
   return <GalleryDialog key={`${props.post.id}:${props.startIndex ?? 0}`} {...props} />;
 }
 
@@ -239,7 +249,7 @@ function GalleryDialog({
       </button>
 
       <div
-        className="flex h-full w-full max-w-[1180px] overflow-hidden bg-background shadow-e3 sm:h-[min(90vh,860px)] sm:rounded-[12px] lg:flex-row"
+        className="flex h-full w-full max-w-[1180px] flex-col overflow-hidden bg-background shadow-e3 sm:h-[min(90vh,860px)] sm:rounded-[12px] lg:flex-row"
         onClick={(event) => event.stopPropagation()}
       >
         {/* Left: media */}

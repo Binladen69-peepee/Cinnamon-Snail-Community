@@ -5,7 +5,6 @@ import { totalUnreadForUser } from "@/lib/messages/conversations";
 import { AppHeader } from "@/components/app/app-header";
 import { SideRail } from "@/components/app/side-rail";
 import { MobileTabs } from "@/components/app/mobile-tabs";
-import { ThemeFab } from "@/components/app/theme-fab";
 import { cn } from "@/lib/utils";
 
 /**
@@ -75,7 +74,7 @@ export async function AppShell({
           </main>
 
           {rail && !wide && !flush ? (
-            <aside className="sticky top-14 hidden h-[calc(100vh-3.5rem)] w-[300px] shrink-0 overflow-y-auto py-5 pr-4 xl:block">
+            <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-[300px] shrink-0 overflow-y-auto py-5 pr-4 xl:block">
               {rail}
             </aside>
           ) : null}
@@ -83,7 +82,6 @@ export async function AppShell({
       </div>
 
       <MobileTabs />
-      <ThemeFab />
     </div>
   );
 }

@@ -140,7 +140,7 @@ export function ClassLibrary() {
               Popular This Week
             </h3>
           </div>
-          <ul className="grid flex-1 grid-cols-2 gap-3">
+          <ul className="grid flex-1 grid-cols-1 gap-3 min-[420px]:grid-cols-2">
             {popular.map((cls) => (
               <li key={cls.slug} className="min-h-0">
                 <LibraryCard cls={cls} onOpen={() => openClass(cls)} compact />
@@ -464,10 +464,10 @@ function ClassViewer({
         role="dialog"
         aria-modal="true"
         aria-labelledby={titleId}
-        className="vu-dialog-in relative z-10 grid h-[min(88vh,56rem)] w-[70%] max-w-none grid-rows-[minmax(0,1fr)_minmax(14rem,42%)] overflow-hidden rounded-[1.75rem] border border-border shadow-[var(--overlay-shadow)] lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-none"
+        className="vu-dialog-in relative z-10 grid h-[min(88vh,56rem)] w-full max-w-none grid-rows-[minmax(0,1fr)_minmax(14rem,42%)] md:w-[85%] lg:w-[70%] overflow-hidden rounded-[1.75rem] border border-border shadow-[var(--overlay-shadow)] lg:grid-cols-[minmax(0,1fr)_22rem] lg:grid-rows-none"
       >
-        <div className="flex min-h-0 min-w-0 flex-col overflow-y-auto bg-ink text-background dark:bg-black">
-          <div key={current.slug} className="vu-copy-fade px-6 pb-3 pt-6 md:px-8 md:pt-8">
+        <div className="flex min-h-0 min-w-0 flex-col overflow-y-auto bg-ink text-background">
+          <div key={current.slug} className="vu-copy-fade px-4 pb-3 pt-5 sm:px-6 sm:pt-6 md:px-8 md:pt-8">
             <p className="text-[11px] font-bold tracking-[0.22em] text-terracotta">
               Vegan University
             </p>

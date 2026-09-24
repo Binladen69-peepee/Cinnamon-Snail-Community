@@ -26,7 +26,11 @@ export function MessagesPanes({
   const detailOpen = segment !== null;
 
   return (
-    <div className="flex h-[calc(100vh-3.5rem)] min-h-0 w-full">
+    // 100dvh rather than 100vh: on iOS the browser chrome is counted by vh,
+    // so the pane was taller than the screen and the composer sat below the
+    // fold. The extra bottom room on phones is the fixed tab bar, which this
+    // used to slide under.
+    <div className="flex h-[calc(100dvh-3.5rem-var(--vu-tabbar,0px))] min-h-0 w-full">
       <div
         className={cn(
           "min-h-0 w-full shrink-0 border-r border-border bg-surface lg:block lg:w-[340px]",

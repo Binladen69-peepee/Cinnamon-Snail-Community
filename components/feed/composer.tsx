@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { createPostAction } from "@/app/(member)/community-actions";
 import { RichEditor } from "@/components/feed/rich-editor";
+import { useIsMobile } from "@/components/hooks/use-media-query";
 import { Avatar } from "@/components/ui/avatar";
 import { UploadTray } from "@/components/feed/upload-tray";
 import { useUploads } from "@/components/feed/use-uploads";
@@ -60,6 +61,12 @@ export function Composer({
   const photoRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
   const uploads = useUploads();
+  // A placeholder that is clipped mid-sentence reads as a broken control, and
+  // "Share something with the community…" does not fit a 320px line.
+  const isMobile = useIsMobile();
+  const placeholder = isMobile
+    ? "Share something…"
+    : "Share something with the community…";
 
   const text = body.trim();
   const heading = title.trim();
@@ -157,7 +164,7 @@ export function Composer({
               rows={4}
               maxLength={MAX}
               disabled={pending}
-              placeholder="Share something with the community…"
+              placeholder={placeholder}
             />
           ) : (
             <textarea
@@ -166,7 +173,7 @@ export function Composer({
               rows={1}
               disabled={pending}
               aria-label="Write a post"
-              placeholder="Share something with the community…"
+              placeholder={placeholder}
               onFocus={() => setOpen(true)}
               onChange={(event) => {
                 setBody(event.currentTarget.value);
@@ -237,7 +244,7 @@ export function Composer({
             </div>
           ) : null}
 
-          <div className="mt-2.5 flex items-center gap-0.5 border-t border-border pt-2">
+          <div className="mt-2.5 flex flex-wrap items-center gap-0.5 border-t border-border pt-2">
             <input
               ref={photoRef}
               type="file"
@@ -343,7 +350,7 @@ export function Composer({
                 onClick={() => submit(scheduling ? "SCHEDULE" : "PUBLISH")}
                 disabled={!canPost}
                 className={cn(
-                  "inline-flex h-8 min-w-18 items-center justify-center gap-1.5 rounded-full px-3.5",
+                  "inline-flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-full px-3 sm:min-w-18 sm:px-3.5",
                   "text-[13px] transition active:scale-[0.97]",
                   "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
                   "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover",

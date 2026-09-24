@@ -54,7 +54,7 @@ export function ClassPlayer({
           onClick={() => setPlaying(true)}
           className="absolute inset-0 grid place-items-center bg-black/25 transition hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
         >
-          <span className="grid size-16 place-items-center rounded-full bg-white/95 text-on-brand shadow-e2">
+          <span className="grid size-16 place-items-center rounded-full bg-white/95 text-black shadow-e2">
             <Play className="size-7 translate-x-0.5 fill-current" aria-hidden />
           </span>
           <span className="sr-only">Play the {title} teaser</span>

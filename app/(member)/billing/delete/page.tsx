@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { deleteAccountAction } from "@/app/(member)/billing/actions";
 import Link from "next/link";
+import { AppShell } from "@/components/app/app-shell";
 
 export default async function DeleteAccountPage({
   searchParams,
@@ -14,9 +15,10 @@ export default async function DeleteAccountPage({
   const blocked = (await searchParams).error === "billing";
 
   return (
-    <div className="mx-auto max-w-xl space-y-6">
-      <h1 className="font-display text-4xl text-forest">Close this account</h1>
-      <p className="text-muted">
+    <AppShell>
+      <div className="mx-auto max-w-xl space-y-6 pb-10">
+      <h1 className="font-display text-[1.6rem] sm:text-3xl text-foreground">Close this account</h1>
+      <p className="text-foreground-muted">
         If you have a paid membership, we cancel billing with SamCart first. We
         will not soft-delete a paying member when cancellation is unconfirmed.
       </p>
@@ -30,10 +32,11 @@ export default async function DeleteAccountPage({
         <Button type="submit" variant="danger">
           Request deletion
         </Button>
-        <Link href="/billing" className="ml-4 text-sm text-olive">
+        <Link href="/billing" className="ml-4 text-sm text-foreground-muted">
           Never mind
         </Link>
       </form>
-    </div>
+      </div>
+    </AppShell>
   );
 }

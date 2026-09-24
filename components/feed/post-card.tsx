@@ -311,11 +311,21 @@ export function PostCard({
         {hasMedia ? (
           <div className="border-y border-border">
             {compact ? (
-              <div className="flex justify-center bg-mint/20 p-3">
-                <PostMedia items={media} compact onOpen={openGallery} />
+              <div className="flex justify-center bg-surface-muted/60 p-3">
+                <PostMedia
+                  items={media}
+                  compact
+                  onOpen={openGallery}
+                  href={`/posts/${post.id}`}
+                />
               </div>
             ) : (
-              <PostMedia items={media} flush onOpen={openGallery} />
+              <PostMedia
+                items={media}
+                flush
+                onOpen={openGallery}
+                href={`/posts/${post.id}`}
+              />
             )}
           </div>
         ) : null}

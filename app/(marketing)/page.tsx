@@ -62,7 +62,10 @@ export default async function HomePage() {
         {hero.src ? (
           <HeroImage src={hero.src} alt={hero.alt} />
         ) : (
-          <div className="absolute inset-0 bg-forest" />
+          // The hero carries white copy over a photograph; when the photo is
+          // missing the plate behind it has to stay dark in both modes, so it
+          // is a literal rather than a token that inverts.
+          <div className="absolute inset-0 bg-black" />
         )}
 
         <div className="vu-gutter relative z-10 w-full pb-14 pt-32 md:pb-20 md:pt-36">
@@ -149,7 +152,7 @@ export default async function HomePage() {
       <section className="vu-gutter vu-section" aria-labelledby="adam-reel">
         <div className="vu-shell">
           <Reveal>
-            <div className="grid items-center gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] lg:gap-14">
+            <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] lg:gap-14">
               {reel.src ? (
                 <Reel src={reel.src} label="Adam, on what's actually inside" />
               ) : null}

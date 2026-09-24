@@ -276,7 +276,7 @@ export function RichEditor({
       </div>
 
       {panel === "emoji" ? (
-        <div className="mb-2 grid grid-cols-8 gap-1 rounded-ctl border border-border bg-surface p-2">
+        <div className="mb-2 grid grid-cols-6 gap-1 rounded-ctl border border-border bg-surface p-2 min-[420px]:grid-cols-8">
           {EMOJI.map((emoji) => (
             <button
               key={emoji}

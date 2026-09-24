@@ -16,6 +16,9 @@
     --foreground: #0a0a0a;
     --surface: #ffffff;
     --surface-foreground: #0a0a0a;
+    /* One step off the surface: hover fills, media placeholders, the ground a
+       thumbnail sits on. */
+    --surface-muted: #f4f4f4;
     --overlay: #ffffff;
     --overlay-foreground: #0a0a0a;
     --muted: #6e6e6e;
@@ -120,6 +123,7 @@
     --foreground: #ffffff;
     --surface: #0b0b0b;
     --surface-foreground: #ffffff;
+    --surface-muted: #171717;
     --overlay: #141414;
     --overlay-foreground: #ffffff;
     --muted: #a1a1a1;
@@ -183,7 +187,7 @@
     --sage: #1a1a1a;
     --mint: #111111;
     --cream: #000000;
-    --paper: #ffffff;
+    --paper: #000000;
     --warm-white: #0b0b0b;
     --sand: #232323;
     --taupe: #a1a1a1;
@@ -200,6 +204,9 @@
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-field-background: var(--field-background);
+  --color-field-foreground: var(--field-foreground);
   --color-primary: var(--primary);
   --color-primary-foreground: var(--primary-foreground);
   --color-accent: var(--accent);
@@ -409,7 +416,8 @@ h3 strong {
 
 .dark .vu-cta-fill,
 [data-theme="dark"] .vu-cta-fill {
-  box-shadow: inset 0 0 0 1px var(--paper);
+  /* A hairline so a white fill on a black ground still has an edge. */
+  box-shadow: inset 0 0 0 1px var(--cta-fill-foreground);
 }
 
 .vu-sidebar {
@@ -586,7 +594,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .text-olive {
   color: color-mix(in oklab, var(--nav-ink) 72%, transparent);
 }
 
-body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .fill-forest {
+body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .fill-forest-unused {
   fill: color-mix(in oklab, var(--background) 16%, transparent);
 }
 
@@ -978,7 +986,7 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 [data-theme="dark"] .vu-cta-glow:hover {
   box-shadow:
     0 12px 30px rgba(0, 0, 0, 0.6),
-    0 0 0 6px color-mix(in oklab, var(--paper) 16%, transparent);
+    0 0 0 6px color-mix(in oklab, var(--foreground) 16%, transparent);
 }
 
 /* Anything clickable that reads as a card lifts and gains a soft shadow. */
@@ -1218,6 +1226,12 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 }
 
 /* Section eyebrow. */
+.vu-panel-dark .vu-kicker,
+.vu-panel-dark .vu-eyebrow {
+  color: currentColor;
+  opacity: 0.72;
+}
+
 .vu-kicker {
   font-family: var(--ui-copy);
   font-size: 0.75rem;
@@ -1302,7 +1316,8 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
   max-width: min(100%, 24rem);
   padding: 5px 22px;
   border-radius: 0.75rem;
-  background: #ffffff;
+  background: var(--surface);
+  color: var(--foreground);
 }
 
 .vu-hero-proof .senja-embed {
@@ -1447,7 +1462,7 @@ button:hover .vu-media-zoom {
 /* Inverted panel, for contrast rhythm between cream sections. */
 .vu-panel-dark {
   background:
-    radial-gradient(120% 120% at 12% 0%, rgba(22, 163, 74, 0.16) 0%, transparent 55%),
+    radial-gradient(120% 120% at 12% 0%, rgba(255, 255, 255, 0.06) 0%, transparent 55%),
     var(--forest);
   color: var(--paper);
 }
@@ -1456,7 +1471,10 @@ button:hover .vu-media-zoom {
 [data-theme="dark"] .vu-panel-dark {
   background:
     radial-gradient(120% 120% at 12% 0%, color-mix(in oklab, var(--background) 6%, transparent) 0%, transparent 55%),
-    #0a0a0a;
+    var(--surface);
+  /* The panel stays dark in dark mode, so its ink stays light. It used to
+     inherit --paper, which now correctly means "ink on a light fill". */
+  color: var(--foreground);
   box-shadow: inset 0 0 0 1px var(--border);
 }
 
@@ -1917,4 +1935,137 @@ button:hover .vu-media-zoom {
   cursor: not-allowed;
   opacity: 0.55;
   box-shadow: 0 0 0 1px var(--btn-hairline) inset;
+}
+
+/* A horizontal strip that snaps, without a visible scrollbar. Used by the
+   phone media carousel, which replaced the lightbox on small screens. */
+.vu-scroll-x {
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+
+.vu-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+/* ---------------------------------------------------------------------------
+   Member-authored HTML.
+
+   Four components render post and comment bodies through
+   `dangerouslySetInnerHTML` and all four ask for `.prose-vu`, which was never
+   defined — so none of the markdown the editor produces had any styling, and
+   nothing stopped a pasted URL from pushing a card wider than the phone it was
+   being read on.
+
+   The wrapping rules are the important part. `overflow-wrap: anywhere` breaks a
+   long token only when it would otherwise overflow, which leaves ordinary prose
+   alone, and `min-width: 0` lets the block shrink inside the flex rows these
+   bodies live in.
+   --------------------------------------------------------------------------- */
+.prose-vu {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.prose-vu a {
+  overflow-wrap: anywhere;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.prose-vu strong {
+  font-weight: 700;
+}
+
+.prose-vu em {
+  font-style: italic;
+}
+
+.prose-vu h2,
+.prose-vu h3,
+.prose-vu h4 {
+  margin: 0.9em 0 0.35em;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.prose-vu h2 {
+  font-size: 1.15em;
+}
+
+.prose-vu h3 {
+  font-size: 1.05em;
+}
+
+.prose-vu h4 {
+  font-size: 1em;
+}
+
+.prose-vu ul,
+.prose-vu ol {
+  margin: 0.4em 0 0.6em;
+  padding-left: 1.35em;
+}
+
+.prose-vu ul {
+  list-style: disc;
+}
+
+.prose-vu ol {
+  list-style: decimal;
+}
+
+.prose-vu li {
+  margin: 0.15em 0;
+}
+
+.prose-vu blockquote {
+  margin: 0.6em 0;
+  padding-left: 0.85em;
+  border-left: 2px solid var(--border);
+  color: var(--foreground-muted, var(--muted));
+}
+
+.prose-vu code {
+  padding: 0.1em 0.35em;
+  border-radius: 0.35rem;
+  background: var(--surface-muted);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.9em;
+}
+
+/* A code block scrolls rather than stretching the card it sits in. */
+.prose-vu pre {
+  margin: 0.6em 0;
+  padding: 0.75em 0.85em;
+  border-radius: 0.6rem;
+  background: var(--surface-muted);
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.prose-vu pre code {
+  padding: 0;
+  background: none;
+  white-space: pre;
+}
+
+.prose-vu img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 0.6rem;
+}
+
+/* The phone tab bar's height, so panes that fill the screen can subtract it.
+   Zero from md upward, where the bar is not rendered. */
+:root {
+  --vu-tabbar: calc(3.25rem + env(safe-area-inset-bottom));
+}
+
+@media (min-width: 768px) {
+  :root {
+    --vu-tabbar: 0px;
+  }
 }

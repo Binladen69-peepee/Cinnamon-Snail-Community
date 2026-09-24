@@ -50,7 +50,7 @@ export function ClassTile({
 
         {cls.teaserEmbed ? (
           <span className="absolute inset-0 grid place-items-center transition group-hover:bg-black/25">
-            <span className="grid size-10 place-items-center rounded-full bg-white/90 text-on-brand opacity-0 shadow-e2 transition group-hover:opacity-100">
+            <span className="grid size-10 place-items-center rounded-full bg-white/90 text-black opacity-0 shadow-e2 transition group-hover:opacity-100">
               <Play className="size-4 translate-x-px fill-current" aria-hidden />
             </span>
           </span>

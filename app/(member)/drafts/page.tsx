@@ -61,7 +61,7 @@ export default async function DraftsPage({
 
         <nav
           aria-label="Draft state"
-          className="flex items-center gap-1 rounded-card border border-border bg-surface p-1"
+          className="flex items-center gap-1 overflow-x-auto rounded-card border border-border bg-surface p-1"
         >
           {TABS.map((item) => {
             const active = tab === item.value;

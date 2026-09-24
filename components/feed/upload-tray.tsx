@@ -185,7 +185,7 @@ function UploadTile({
           <button
             type="button"
             onClick={() => onRetry(item.id)}
-            className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-forest"
+            className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-black"
           >
             <RotateCcw className="size-2.5" aria-hidden />
             Retry

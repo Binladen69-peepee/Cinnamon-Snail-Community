@@ -96,7 +96,7 @@ function Section({
         {icon}
         {title}
       </h2>
-      <div className="grid gap-2.5 sm:grid-cols-2">{children}</div>
+      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">{children}</div>
     </section>
   );
 }

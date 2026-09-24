@@ -227,7 +227,7 @@ function Group({
           </Link>
         }
       />
-      <div className="grid gap-px bg-border sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-px bg-border sm:grid-cols-2 xl:grid-cols-4">
         {children}
       </div>
     </Panel>

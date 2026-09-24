@@ -80,7 +80,7 @@ export function MemberFilters({
   return (
     <div className="space-y-2.5">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <ul className="flex items-center gap-1" role="list">
+        <ul className="-mx-1 flex items-center gap-1 overflow-x-auto px-1" role="list">
           <li className="mr-1 text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
             Sort
           </li>

@@ -123,7 +123,7 @@ export function Reel({
             aria-label={`Play: ${label}`}
             className="group absolute inset-0 grid place-items-center bg-[linear-gradient(180deg,rgba(0,0,0,0.15)_0%,rgba(0,0,0,0.55)_100%)] transition"
           >
-            <span className="grid size-16 place-items-center rounded-full bg-white/95 text-forest shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition group-hover:scale-105">
+            <span className="grid size-16 place-items-center rounded-full bg-white/95 text-black shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition group-hover:scale-105">
               <Play className="size-6 translate-x-0.5" aria-hidden />
             </span>
             <span className="absolute bottom-4 left-4 right-4 text-left text-[13px] font-semibold leading-snug text-white/95">

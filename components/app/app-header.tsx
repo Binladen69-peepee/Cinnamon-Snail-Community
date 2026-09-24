@@ -8,6 +8,7 @@ import { BrandMark } from "@/components/brand/brand-mark";
 import { NavSearch } from "@/components/layout/nav-search";
 import { Avatar } from "@/components/ui/avatar";
 import { AccountMenu } from "@/components/app/account-menu";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 /**
  * Member app bar — brand, command search, create + account actions.
@@ -70,6 +71,11 @@ export async function AppHeader() {
             />
           ) : null}
 
+          {/* Light and dark belongs beside the other controls, not floating
+              over the feed above the tab bar where it covered content and was
+              the only chrome that moved with the page. */}
+          <ThemeToggle />
+
           <AccountMenu
             name={name}
             handle={session.user.handle}
@@ -98,7 +104,7 @@ function IconLink({
     <Link
       href={href}
       title={label}
-      className="relative grid size-9 place-items-center rounded-full text-foreground-muted no-underline transition hover:bg-mint hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      className="relative grid size-9 place-items-center rounded-full text-foreground-muted no-underline transition hover:bg-surface-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
     >
       {icon}
       <span className="sr-only">{label}</span>

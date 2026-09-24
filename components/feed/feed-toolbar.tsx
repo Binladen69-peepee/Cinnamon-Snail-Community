@@ -47,7 +47,13 @@ export function FeedToolbar({
 
   return (
     <div className="flex items-center gap-1 rounded-card border border-border bg-surface px-2 py-1.5 shadow-e1">
-      <nav aria-label="Sort posts" className="flex min-w-0 items-center gap-0.5">
+      <nav
+        aria-label="Sort posts"
+        // The three orders scroll rather than colliding with the density
+        // toggle beside them. At 320px the pills and the toggle together are
+        // wider than the bar, and `ml-auto` on the toggle made them overlap.
+        className="vu-scroll-x flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto"
+      >
         {FEED_SORTS.map((item) => {
           const active = sort === item.value;
           const Icon = ICONS[item.value];
@@ -76,7 +82,7 @@ export function FeedToolbar({
         })}
       </nav>
 
-      <div className="ml-auto flex shrink-0 items-center gap-0.5 border-l border-border pl-1.5">
+      <div className="ml-1 flex shrink-0 items-center gap-0.5 border-l border-border pl-1.5">
         <DensityButton
           active={density === "card"}
           onClick={() => setDensity("card")}

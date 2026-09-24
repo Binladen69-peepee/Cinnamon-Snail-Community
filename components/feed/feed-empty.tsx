@@ -57,7 +57,7 @@ export function FeedEmpty({
       </p>
       <Link
         href="/compose"
-        className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-full bg-forest px-4 text-[13.5px] font-bold text-paper no-underline transition hover:bg-deep-forest dark:bg-brand dark:text-on-brand"
+        className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-fill px-4 text-[13.5px] font-bold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover"
       >
         <PenLine className="size-4" aria-hidden />
         Write a post

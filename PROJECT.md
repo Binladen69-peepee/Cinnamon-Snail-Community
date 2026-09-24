@@ -83,7 +83,7 @@ and the tests all exist.
 ```
 pnpm typecheck     # clean
 pnpm lint          # clean
-pnpm test          # 439 pass
+pnpm test          # 451 pass
 pnpm build         # prisma migrate deploy && prisma generate && next build
 ```
 
@@ -216,6 +216,12 @@ Every ruling, by id. Code comments cite these, so the ids are load-bearing.
 | DEC-051 | **Approval is a post status, not a filter.** `PostStatus.PENDING` plus a host queue per space. The `approvalRequired` column existed with nothing reading it, which made the setting a trap: posts would have gone nowhere and been unreachable by anyone. |
 | DEC-052 | **Scheduled posts need a runner**, so `/api/jobs/publish-scheduled` claims each due post with a conditional update and Vercel Cron calls it every five minutes. Scheduling without a publisher is a post that never appears. |
 | DEC-053 | **Community mutations are rate limited per member** (`lib/community/rate-limits.ts`), on the durable Postgres limiter. The numbers sit far above what a person does by hand: the point is to bound one account's damage in a minute, not to police behaviour. |
+| DEC-056 | **`--paper` inverts.** It was `#ffffff` in both modes, which is why four components rendered white on white and three of them carried hand-written `dark:` patches. `text-paper` means "ink on a dark fill", and in dark mode the dark fill is white. |
+| DEC-057 | **`surface-muted` and the field colours are generated.** Thirty-seven call sites asked for utilities that `@theme inline` never emitted, so hover states did nothing and every input fell back to the browser's own field colour. |
+| DEC-058 | **`.prose-vu` exists and wraps.** Four components render member markdown through it and it had never been defined: no styling at all, and nothing to stop a pasted URL widening a card past the phone reading it. |
+| DEC-059 | **Every responsive grid declares a base column.** A grid with no `grid-template-columns` gets one implicit `auto` column, and `auto` is content-sized — one long member name and the page scrolled sideways. |
+| DEC-060 | **The theme control lives in the navbar.** As a floating button it sat on top of the post action bar at 320px and was the only chrome that moved with the page. |
+| DEC-061 | **A phone shows media in place, never in a lightbox.** An overlay covers the post it belongs to and costs a second gesture to leave. One image is an image, several are a swipeable strip, and video plays inline at every width. |
 | DEC-055 | **An event post writes an Event and a recipe post writes a Recipe**, and the post points at it. Both enum values existed with no authoring path, so a RECIPE post would have been a plain post wearing a label. The event joins its space's calendar as well as the feed, which is why it is created with a `spaceId` rather than standing alone. |
 | DEC-054 | **Notifications are written in one place** (`lib/notifications/community.ts`) and in bulk. Fan-out to a space reads preferences in one query, inserts in one statement and is capped, so a space that becomes popular does not turn one post into a thousand round trips. |
 

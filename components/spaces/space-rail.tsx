@@ -133,7 +133,7 @@ export function PinnedResources({ resources }: { resources: SpaceResource[] }) {
         <Pin className="size-2.5" aria-hidden />
         Pinned in this space
       </h2>
-      <ul className="grid gap-0.5 sm:grid-cols-2">
+      <ul className="grid grid-cols-1 gap-0.5 sm:grid-cols-2">
         {resources.map((resource) => (
           <li key={resource.id}>
             <ResourceLink resource={resource} />

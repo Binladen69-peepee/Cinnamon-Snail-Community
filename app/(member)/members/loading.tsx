@@ -19,7 +19,7 @@ export default function MembersLoading() {
       </div>
 
       <Skeleton className="h-3 w-28" />
-      <ul className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+      <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
         {Array.from({ length: 6 }).map((_, index) => (
           <li
             key={index}
