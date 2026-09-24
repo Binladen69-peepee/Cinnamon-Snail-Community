@@ -5,12 +5,12 @@ import { prisma } from "@/lib/db";
 import { Avatar } from "@/components/ui/avatar";
 import { NavIconLink, NavIconSubmit, NavProfileLink } from "@/components/layout/nav-icon";
 import { MEMBER_NAV_LINKS } from "@/lib/navigation";
-import { totalUnreadForUser } from "@/lib/messages/conversations";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { NavSearch } from "@/components/layout/nav-search";
 import { NavMobileSheet } from "@/components/layout/nav-mobile-sheet";
 import { CheckoutButton } from "@/components/marketing/checkout-button";
 import { NavShell } from "@/components/layout/nav-shell";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const signedOutLinks = [
   { href: "/membership", label: "Membership" },
@@ -35,18 +35,13 @@ export async function AppNav() {
   const homeHref = signedIn ? "/home" : "/";
 
   let unread = 0;
-  let unreadMessages = 0;
   if (signedIn && session?.user.id && process.env.DATABASE_URL) {
     try {
-      [unread, unreadMessages] = await Promise.all([
-        prisma.notification.count({
-          where: { userId: session.user.id, readAt: null },
-        }),
-        totalUnreadForUser(session.user.id),
-      ]);
+      unread = await prisma.notification.count({
+        where: { userId: session.user.id, readAt: null },
+      });
     } catch {
       unread = 0;
-      unreadMessages = 0;
     }
   }
   const isAdmin = Boolean(
@@ -80,7 +75,7 @@ export async function AppNav() {
                 <Link
                   key={link.href}
                   href={link.href}
-                  className="rounded-full px-4 py-2 text-sm font-semibold text-foreground/80 no-underline transition hover:bg-sage hover:text-forest"
+                  className="rounded-full px-4 py-2 text-sm font-semibold text-foreground/80 no-underline transition hover:bg-surface-muted hover:text-foreground"
                 >
                   {link.label}
                 </Link>
@@ -90,6 +85,7 @@ export async function AppNav() {
 
           {/* Right track */}
           <div className="ml-auto flex shrink-0 items-center gap-1">
+            <ThemeToggle className="text-foreground" />
             {signedIn ? (
               <>
                 <span className="md:hidden">
@@ -101,12 +97,6 @@ export async function AppNav() {
                   label="Notifications"
                   icon="bell"
                   badge={unread}
-                />
-                <NavIconLink
-                  href="/messages"
-                  label="Messages"
-                  icon="messages"
-                  badge={unreadMessages}
                 />
                 {isAdmin ? (
                   <span className="hidden lg:inline-flex">
@@ -131,7 +121,7 @@ export async function AppNav() {
               <>
                 <Link
                   href="/login"
-                  className="hidden rounded-full px-4 py-2 text-sm font-semibold text-foreground/80 no-underline transition hover:text-forest sm:inline-flex"
+                  className="hidden rounded-full px-4 py-2 text-sm font-semibold text-foreground/80 no-underline transition hover:text-foreground sm:inline-flex"
                 >
                   Sign in
                 </Link>

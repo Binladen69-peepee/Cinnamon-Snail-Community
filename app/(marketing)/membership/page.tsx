@@ -4,7 +4,7 @@ import { AmbientEmbers } from "@/components/marketing/ambient-embers";
 import { Reveal } from "@/components/marketing/reveal";
 import { VideoSlot } from "@/components/marketing/photo-slot";
 import { ScrollProgress, Spotlight } from "@/components/marketing/spotlight";
-import { CommunityGlobe } from "@/components/marketing/community-globe";
+import { CommunitySpread } from "@/components/marketing/community-spread";
 import {
   SenjaEmbed,
   SENJA_MEMBERSHIP_WIDGET,
@@ -145,7 +145,7 @@ export default async function MembershipPage() {
       <div className="vu-gutter vu-section">
         <Reveal>
           <div className="vu-feed-shell">
-            <CommunityGlobe data={globe} />
+            <CommunitySpread data={globe} />
           </div>
         </Reveal>
       </div>

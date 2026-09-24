@@ -1,6 +1,5 @@
 import { BookOpen, Heart, Utensils } from "lucide-react";
 import { PhotoSlot } from "@/components/marketing/photo-slot";
-import { LeafCluster } from "@/components/marketing/hero-decor";
 import { Reveal } from "@/components/marketing/reveal";
 import { PILLAR_CARDS } from "@/lib/marketing/copy";
 import { cn } from "@/lib/utils";
@@ -15,18 +14,11 @@ const PILLAR_ICONS = [BookOpen, Utensils, Heart] as const;
 export function WhatYouGet() {
   return (
     <section aria-labelledby="what-you-get-heading" className="relative">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute -left-20 top-4 w-[220px] text-forest opacity-[0.1] dark:opacity-[0.14]"
-      >
-        <LeafCluster className="vu-leaf-float w-full" />
-      </div>
-
       <Reveal>
         <p className="vu-kicker">What you get</p>
         <h2
           id="what-you-get-heading"
-          className="vu-title-script-sm vu-headline mt-3 text-forest"
+          className="vu-title-script-sm vu-headline mt-3 text-foreground"
         >
           <span className="vu-title-anim">Learn. Cook. Belong.</span>
         </h2>
@@ -67,21 +59,21 @@ export function WhatYouGet() {
 
               <div
                 className={cn(
-                  "relative flex flex-col justify-center px-7 py-10 md:px-12 md:py-14",
+                  "relative flex flex-col justify-center px-5 py-8 sm:px-7 sm:py-10 md:px-12 md:py-14",
                   photoRight && "lg:order-1",
                 )}
               >
                 <span
                   aria-hidden
-                  className="pointer-events-none absolute -right-2 top-4 font-display text-8xl leading-none text-forest/[0.06] md:text-9xl"
+                  className="pointer-events-none absolute -right-2 top-4 hidden font-display text-8xl leading-none text-foreground/[0.06] md:block md:text-9xl"
                 >
                   {String(index + 1).padStart(2, "0")}
                 </span>
-                <p className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-olive">
+                <p className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-foreground-muted">
                   <Icon className="size-3.5" aria-hidden />
                   {String(index + 1).padStart(2, "0")}
                 </p>
-                <h3 className="vu-title-script-sm mt-3 text-forest">
+                <h3 className="vu-title-script-sm mt-3 text-foreground">
                   {pillar.title}
                 </h3>
                 <p className="vu-measure mt-4 text-base leading-relaxed text-foreground-muted">
@@ -89,7 +81,7 @@ export function WhatYouGet() {
                 </p>
                 <span
                   aria-hidden
-                  className="mt-8 h-px w-16 bg-[#d97752]/70"
+                  className="mt-8 h-px w-16 bg-foreground/20"
                 />
               </div>
             </Reveal>

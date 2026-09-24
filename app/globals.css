@@ -1316,8 +1316,8 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
   max-width: min(100%, 24rem);
   padding: 5px 22px;
   border-radius: 0.75rem;
-  background: var(--surface);
-  color: var(--foreground);
+  background: #ffffff;
+  color: #0a0a0a;
 }
 
 .vu-hero-proof .senja-embed {
@@ -1460,21 +1460,18 @@ button:hover .vu-media-zoom {
 }
 
 /* Inverted panel, for contrast rhythm between cream sections. */
+/* A permanently dark panel, like the footer: the same object in both themes,
+   so it is built from literals rather than tokens that would invert it. In
+   dark mode a hairline separates it from the black page. */
 .vu-panel-dark {
   background:
     radial-gradient(120% 120% at 12% 0%, rgba(255, 255, 255, 0.06) 0%, transparent 55%),
-    var(--forest);
-  color: var(--paper);
+    #0a0a0a;
+  color: #ffffff;
 }
 
 .dark .vu-panel-dark,
 [data-theme="dark"] .vu-panel-dark {
-  background:
-    radial-gradient(120% 120% at 12% 0%, color-mix(in oklab, var(--background) 6%, transparent) 0%, transparent 55%),
-    var(--surface);
-  /* The panel stays dark in dark mode, so its ink stays light. It used to
-     inherit --paper, which now correctly means "ink on a light fill". */
-  color: var(--foreground);
   box-shadow: inset 0 0 0 1px var(--border);
 }
 
@@ -2067,5 +2064,96 @@ button:hover .vu-media-zoom {
 @media (min-width: 768px) {
   :root {
     --vu-tabbar: 0px;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   Landing page: the brush headline and its motion.
+   --------------------------------------------------------------------------- */
+
+/* The hero headline. A brush script reads smaller than a grotesk at the same
+   size, so it runs larger; its own weight is the only weight it has. */
+.vu-title-brush {
+  font-family: var(--font-brush), var(--font-caveat), "Segoe Script", cursive;
+  font-weight: 400;
+  font-size: clamp(2.65rem, 1.35rem + 4.9vw, 5.1rem);
+  line-height: 1;
+  letter-spacing: 0.004em;
+  text-wrap: balance;
+}
+
+/* Each word settles in on its own, a beat after the last. The stagger is
+   short enough that the whole line lands inside a second. */
+.vu-hero-word {
+  display: inline-block;
+  animation: hero-word 720ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation-delay: calc(var(--i, 0) * 42ms + 120ms);
+}
+
+@keyframes hero-word {
+  from {
+    opacity: 0;
+    transform: translateY(0.32em) rotate(-1.4deg);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* The photograph drifts very slowly after it settles. Slow enough not to be
+   noticed as motion, only as life. */
+.vu-hero-photo {
+  animation:
+    hero-photo-settle 1700ms cubic-bezier(0.22, 1, 0.36, 1) both,
+    hero-kenburns 26s ease-in-out 1700ms infinite alternate;
+  transform-origin: 58% 42%;
+}
+
+@keyframes hero-kenburns {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.07);
+  }
+}
+
+/* Chips that sit on the photograph: frosted, mode-independent. */
+.vu-glass {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+/* A fact strip figure. Tabular so a counting number does not jitter. */
+.vu-figure {
+  font-family: var(--ui-display);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+/* A gentle lift for the mosaic tiles and plan cards. */
+.vu-lift-sm {
+  transition:
+    transform 320ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 320ms ease;
+}
+
+.vu-lift-sm:hover {
+  transform: translateY(-4px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vu-hero-word,
+  .vu-hero-photo {
+    animation: none;
+  }
+  .vu-lift-sm,
+  .vu-lift-sm:hover {
+    transition: none;
+    transform: none;
   }
 }

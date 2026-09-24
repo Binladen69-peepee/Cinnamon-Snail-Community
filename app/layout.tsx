@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Inter, Poppins, Caveat, Fraunces, Momo_Trust_Display } from "next/font/google";
+import {
+  Caveat,
+  Caveat_Brush,
+  Fraunces,
+  Inter,
+  Momo_Trust_Display,
+  Poppins,
+} from "next/font/google";
 import { Providers } from "@/app/providers";
-import { BotanicalBackdrop } from "@/components/marketing/hero-decor";
 import { MediaRevealRuntime } from "@/components/ui/media-reveal-runtime";
 import { SAMCART_SLIDE_SCRIPT } from "@/lib/marketing/checkout";
 import "./globals.css";
@@ -43,6 +49,18 @@ const caveat = Caveat({
   display: "swap",
 });
 
+/**
+ * The hero headline's face: a bold brush script. Google ships it at 400 only,
+ * which is its natural weight — a brush stroke has no lighter cut, and asking
+ * the browser to synthesise a bolder one would double the strokes.
+ */
+const brush = Caveat_Brush({
+  variable: "--font-brush",
+  subsets: ["latin"],
+  weight: "400",
+  display: "swap",
+});
+
 const momo = Momo_Trust_Display({
   variable: "--font-momo",
   subsets: ["latin"],
@@ -71,17 +89,17 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${inter.variable} ${poppins.variable} ${caveat.variable} ${momo.variable} ${fraunces.variable} h-full antialiased`}
+      className={`${inter.variable} ${poppins.variable} ${caveat.variable} ${brush.variable} ${momo.variable} ${fraunces.variable} h-full antialiased`}
     >
       <body className="relative min-h-full bg-background font-sans text-foreground">
         <Script src={SAMCART_SLIDE_SCRIPT} strategy="afterInteractive" />
         {/* One observer drives the reveal for every MediaFrame on the page. */}
         <MediaRevealRuntime />
+        {/* The site-wide leaf backdrop is gone: a dozen absolutely-placed SVGs
+            floating behind every page read as clutter rather than craft, and
+            they were the first thing to overflow a phone. */}
         <div className="relative min-h-full">
-          <BotanicalBackdrop />
-          <div className="relative z-10">
-            <Providers>{children}</Providers>
-          </div>
+          <Providers>{children}</Providers>
         </div>
       </body>
     </html>

@@ -2,7 +2,6 @@ import { Check, Sparkles } from "lucide-react";
 import { CheckoutButton } from "@/components/marketing/checkout-button";
 import { PhotoSlot } from "@/components/marketing/photo-slot";
 import { MembershipGallery } from "@/components/marketing/membership-gallery";
-import { LeafCluster } from "@/components/marketing/hero-decor";
 import { Spotlight } from "@/components/marketing/spotlight";
 import {
   CANCEL_REASSURANCE,
@@ -33,13 +32,6 @@ export function MembershipPlans({
   return (
     <section aria-labelledby="membership-plans-heading" className="relative">
       <div
-        aria-hidden
-        className="pointer-events-none absolute -right-16 -top-6 w-[200px] text-forest opacity-[0.1] dark:opacity-[0.14]"
-      >
-        <LeafCluster className="vu-leaf-float w-full" />
-      </div>
-
-      <div
         className={cn(
           "relative grid grid-cols-1 gap-6",
           media &&
@@ -50,7 +42,7 @@ export function MembershipPlans({
           <p className="vu-kicker">Membership</p>
           <h2
             id="membership-plans-heading"
-            className="vu-title-script-sm vu-headline mt-3 text-forest"
+            className="vu-title-script-sm vu-headline mt-3 text-foreground"
           >
             <span className="vu-title-anim">{heading}</span>
           </h2>
@@ -132,12 +124,12 @@ function PlanCard({
       ) : null}
 
       {featured ? (
-        <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-white/12 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-background">
+        <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-background/15 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-background">
           <Sparkles className="size-3" aria-hidden />
           {plan.name}
         </span>
       ) : (
-        <span className="inline-flex w-fit rounded-full border border-border px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-olive">
+        <span className="inline-flex w-fit rounded-full border border-border px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-foreground-muted">
           {plan.name}
         </span>
       )}
@@ -146,7 +138,7 @@ function PlanCard({
         className={cn(
           "font-display mt-3 tracking-tight",
           compact ? "text-[1.75rem] sm:text-3xl lg:text-4xl" : "text-[2rem] sm:text-4xl lg:text-5xl",
-          featured ? "text-background" : "text-forest",
+          featured ? "text-background" : "text-foreground",
         )}
       >
         {plan.price}
@@ -154,7 +146,7 @@ function PlanCard({
       <p
         className={cn(
           "mt-0.5 text-xs",
-          featured ? "text-background/70" : "text-olive",
+          featured ? "text-background/70" : "text-foreground-muted",
         )}
       >
         {plan.period}
@@ -167,7 +159,7 @@ function PlanCard({
             <Check
               className={cn(
                 "mt-0.5 size-3.5 shrink-0",
-                featured ? "text-background" : "text-forest",
+                featured ? "text-background" : "text-foreground",
               )}
               aria-hidden
             />
@@ -188,10 +180,7 @@ function PlanCard({
           size="md"
           withArrow
           tone={featured ? "onDark" : "default"}
-          className={cn(
-            "w-full justify-center",
-            featured && "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover",
-          )}
+          className="w-full justify-center"
         />
       </div>
     </Spotlight>

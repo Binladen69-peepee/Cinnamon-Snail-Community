@@ -1,21 +1,28 @@
-import { ArrowDown, Leaf } from "lucide-react";
+import {
+  ArrowDown,
+  BookOpen,
+  CalendarDays,
+  ChefHat,
+  FlaskConical,
+  Leaf,
+  ListChecks,
+  Users,
+} from "lucide-react";
 import { FaqAccordion } from "@/components/marketing/faq-accordion";
 import { CheckoutButton } from "@/components/marketing/checkout-button";
 import { StickyCheckout } from "@/components/marketing/sticky-checkout";
 import { Reveal } from "@/components/marketing/reveal";
 import { PhotoSlot } from "@/components/marketing/photo-slot";
 import { HeroImage } from "@/components/marketing/hero-image";
+import { HeroWords } from "@/components/marketing/hero-words";
 import { PressMarquee } from "@/components/marketing/press-marquee";
 import { Reel } from "@/components/marketing/reel";
 import { ScrollProgress } from "@/components/marketing/spotlight";
 import { ClassLibrary } from "@/components/marketing/class-library";
-import { CommunityGlobe } from "@/components/marketing/community-globe";
+import { CommunitySpread } from "@/components/marketing/community-spread";
 import { MembershipPlans } from "@/components/marketing/membership-plans";
 import { WhatYouGet } from "@/components/marketing/what-you-get";
-import {
-  SenjaEmbed,
-  SENJA_HOMEPAGE_WIDGET,
-} from "@/components/marketing/senja-embed";
+import { SenjaEmbed, SENJA_HOMEPAGE_WIDGET } from "@/components/marketing/senja-embed";
 import { getNextLiveClass } from "@/lib/marketing/catalog";
 import { CLASS_LIBRARY, libraryShelves, membershipGallery } from "@/lib/marketing/class-library";
 import { getGlobeMarkers } from "@/lib/marketing/globe-markers";
@@ -29,10 +36,14 @@ import {
 import {
   HOMEPAGE_HERO,
   KITCHEN_TABLE_BLOCK,
+  MEMBERSHIP_PAGE,
   MEMBERSHIP_TEASER,
 } from "@/lib/marketing/copy";
 
 export const dynamic = "force-dynamic";
+
+/** The five things inside, as the signed-off copy names them. */
+const INSIDE_ICONS = [CalendarDays, BookOpen, Users, FlaskConical, ListChecks] as const;
 
 export default async function HomePage() {
   const [nextLive, globe] = await Promise.all([
@@ -48,57 +59,83 @@ export default async function HomePage() {
     <div className="overflow-x-clip">
       <ScrollProgress />
 
-      {/* Hero — full-bleed photograph, text-forward --------------------- */}
+      {/* Hero ------------------------------------------------------------ */}
       {/* data-hero-dark tells the nav to use light type while it is
-          transparent over this section. */}
-      {/* -mt-18 pulls the hero up under the sticky app bar, which is 72px
-          tall and would otherwise sit above it in normal flow — a transparent
-          bar would then show cream page background rather than the photo. The
-          inner column's pt-32 keeps the copy clear of the bar. */}
+          transparent over this section, and tells the sticky bar what to wait
+          for. -mt-18 pulls the photograph up under the 72px bar; the inner
+          column's top padding keeps the copy clear of it. */}
       <section
         data-hero-dark
-        className="relative isolate -mt-18 flex min-h-[calc(clamp(38rem,92svh,54rem)+4.5rem)] items-end overflow-hidden"
+        className="relative isolate -mt-18 flex min-h-[calc(clamp(36rem,92svh,52rem)+4.5rem)] items-end overflow-hidden"
       >
         {hero.src ? (
           <HeroImage src={hero.src} alt={hero.alt} />
         ) : (
-          // The hero carries white copy over a photograph; when the photo is
-          // missing the plate behind it has to stay dark in both modes, so it
-          // is a literal rather than a token that inverts.
+          // White copy over a photograph; the plate behind it stays dark in
+          // both themes, so it is a literal rather than a token that inverts.
           <div className="absolute inset-0 bg-black" />
         )}
 
-        <div className="vu-gutter relative z-10 w-full pb-14 pt-32 md:pb-20 md:pt-36">
+        <div className="vu-gutter relative z-10 w-full pb-12 pt-28 md:pb-16 md:pt-36">
           <div className="vu-shell hero-copy-reveal">
-            <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em] text-white backdrop-blur-md">
-              <Leaf className="size-3.5 vu-leaf-drift" aria-hidden />
+            <p className="vu-glass inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[11px] font-semibold uppercase tracking-[0.2em]">
+              <Leaf className="size-3.5" aria-hidden />
               A vegan cooking school
             </p>
 
-            <h1 className="vu-title-script vu-headline-invert vu-on-media mt-6 max-w-[26ch] text-white">
-              {HOMEPAGE_HERO.headline}
+            <h1
+              aria-label={HOMEPAGE_HERO.headline}
+              className="vu-title-brush vu-on-media mt-5 max-w-[22ch] text-white"
+            >
+              <HeroWords text={HOMEPAGE_HERO.headline} />
             </h1>
 
-            <p className="vu-hero-live-title vu-measure vu-on-media mt-6 text-white">
+            <p className="vu-hero-live-title vu-measure vu-on-media mt-5 text-white/90">
               {HOMEPAGE_HERO.subhead}
             </p>
 
-            <div className="mt-9 flex flex-wrap items-center gap-5">
+            <div className="mt-8 flex flex-wrap items-center gap-x-5 gap-y-3">
               <CheckoutButton size="lg" withArrow />
-              <span className="hidden items-center gap-2 text-sm text-white/70 sm:flex">
+              <a
+                href="#class-library-heading"
+                className="hidden items-center gap-2 text-sm text-white/75 no-underline transition hover:text-white sm:flex"
+              >
                 <ArrowDown className="size-4 animate-bounce" aria-hidden />
-                {nextLive?.liveAt
-                  ? `Next live cook-along ${nextLive.liveAt.toLocaleDateString(undefined, { month: "long", day: "numeric" })}`
-                  : "Scroll for the class library"}
-              </span>
+                See the class library
+              </a>
             </div>
 
-            <div className="vu-hero-proof mt-8">
-              <SenjaEmbed
-                widgetId={SENJA_HOMEPAGE_WIDGET}
-                title="What members say"
-                wash={false}
-              />
+            {/* A live date is the most concrete reason to join this week, so
+                it gets its own card when there is one. Without one the card
+                states the size of the library instead, which is also true. */}
+            <div className="mt-7 flex flex-wrap items-stretch gap-3">
+              <div className="vu-glass flex min-w-0 items-center gap-3 rounded-2xl px-4 py-3">
+                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white text-black">
+                  {nextLive?.liveAt ? (
+                    <CalendarDays className="size-4" aria-hidden />
+                  ) : (
+                    <ChefHat className="size-4" aria-hidden />
+                  )}
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-[10.5px] font-semibold uppercase tracking-[0.18em] text-white/70">
+                    {nextLive?.liveAt ? "Next live cook-along" : "On demand"}
+                  </span>
+                  <span className="block truncate text-[14px] font-semibold text-white">
+                    {nextLive?.liveAt
+                      ? `${nextLive.title} · ${nextLive.liveAt.toLocaleDateString(undefined, { month: "long", day: "numeric" })}`
+                      : `${totalClasses} classes across ${shelfCount} shelves`}
+                  </span>
+                </span>
+              </div>
+
+              <div className="vu-hero-proof self-center">
+                <SenjaEmbed
+                  widgetId={SENJA_HOMEPAGE_WIDGET}
+                  title="What members say"
+                  wash={false}
+                />
+              </div>
             </div>
           </div>
         </div>
@@ -106,6 +143,32 @@ export default async function HomePage() {
 
       <PressMarquee />
       <StickyCheckout />
+
+      {/* What's inside — the five things, in the client's own words -------- */}
+      <section className="vu-gutter pt-10 md:pt-14" aria-label="What is inside">
+        <div className="vu-feed-shell">
+          <Reveal>
+            <ul className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-5">
+              {MEMBERSHIP_PAGE.inside.map((item, index) => {
+                const Icon = INSIDE_ICONS[index] ?? BookOpen;
+                return (
+                  <li
+                    key={item.title}
+                    className="vu-lift-sm flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3.5"
+                  >
+                    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-muted text-foreground">
+                      <Icon className="size-4" aria-hidden />
+                    </span>
+                    <span className="text-[13.5px] font-semibold leading-snug text-foreground">
+                      {item.title}
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+          </Reveal>
+        </div>
+      </section>
 
       {/* Learn / Cook / Belong ----------------------------------------- */}
       <section className="vu-gutter vu-section">
@@ -118,24 +181,24 @@ export default async function HomePage() {
       <section className="vu-gutter vu-section-tight">
         <Reveal>
           <div className="vu-panel-dark vu-shell grid overflow-hidden rounded-[1.75rem] lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-            <div className="group relative min-h-[20rem] overflow-hidden">
+            <div className="group relative min-h-[16rem] overflow-hidden sm:min-h-[20rem]">
               <PhotoSlot
                 id="home-kitchen-table"
                 aspect="absolute inset-0 size-full"
                 rounded="rounded-none"
               />
             </div>
-            <div className="flex flex-col justify-center px-7 py-12 md:px-11 lg:px-14">
+            {/* The panel is dark in both themes, so its ink is white in both:
+                literal classes, not tokens, or it inverts out of existence. */}
+            <div className="flex flex-col justify-center px-5 py-9 sm:px-7 sm:py-12 md:px-11 lg:px-14">
               <p className="vu-kicker">The differentiator</p>
-              <h2 className="vu-title-script-sm vu-headline-invert mt-3 text-paper">
-                <span className="vu-title-anim">
-                  Kitchen Table is not a feed. It is the table.
-                </span>
+              <h2 className="vu-title-script-sm vu-headline-invert mt-3 text-white">
+                <span className="vu-title-anim">Kitchen Table is not a feed. It is the table.</span>
               </h2>
               {KITCHEN_TABLE_BLOCK.paragraphs.map((paragraph) => (
                 <p
                   key={paragraph.slice(0, 32)}
-                  className="vu-measure mt-5 leading-relaxed text-paper/80"
+                  className="vu-measure mt-5 leading-relaxed text-white/80"
                 >
                   {paragraph}
                 </p>
@@ -161,18 +224,18 @@ export default async function HomePage() {
                 <p className="vu-kicker">{REEL_KICKER}</p>
                 <blockquote
                   id="adam-reel"
-                  className="vu-title-script-sm vu-headline mt-4 text-forest"
+                  className="vu-title-script-sm vu-headline mt-4 text-foreground"
                 >
                   <span className="vu-title-anim">&ldquo;{REEL_QUOTE}&rdquo;</span>
                 </blockquote>
-                <p className="vu-measure mt-6 text-lg leading-relaxed text-foreground-muted">
+                <p className="vu-measure mt-6 text-base leading-relaxed text-foreground-muted md:text-lg">
                   {REEL_SUPPORT}
                 </p>
                 <div className="mt-8">
                   <CheckoutButton size="lg" withArrow />
                 </div>
                 <details className="group mt-7 max-w-prose">
-                  <summary className="cursor-pointer text-sm font-semibold text-olive underline-offset-4 hover:underline">
+                  <summary className="cursor-pointer text-sm font-semibold text-foreground-muted underline-offset-4 hover:underline">
                     Read the transcript
                   </summary>
                   <p className="mt-3 text-sm leading-relaxed text-foreground-muted">
@@ -194,7 +257,7 @@ export default async function HomePage() {
                 <p className="vu-kicker">The classes</p>
                 <h2
                   id="class-library-heading"
-                  className="vu-title-script-sm vu-headline mt-3 text-forest"
+                  className="vu-title-script-sm vu-headline mt-3 text-foreground"
                 >
                   <span className="vu-title-anim">Every class, one library.</span>
                 </h2>
@@ -207,22 +270,20 @@ export default async function HomePage() {
               ) : null}
             </div>
           </Reveal>
-          <div className="mt-11">
+          <div className="mt-9 md:mt-11">
             <ClassLibrary />
           </div>
         </div>
       </section>
 
-      {/* The community — globe as centrepiece --------------------------- */}
+      {/* The community -------------------------------------------------- */}
       <div className="vu-gutter vu-section">
-        <Reveal>
-          <div className="vu-feed-shell">
-            <CommunityGlobe data={globe} />
-          </div>
-        </Reveal>
+        <div className="vu-feed-shell">
+          <CommunitySpread data={globe} />
+        </div>
       </div>
 
-      {/* Membership teaser -------------------------------------------- */}
+      {/* Membership ---------------------------------------------------- */}
       <section className="vu-gutter vu-section">
         <Reveal>
           <div className="vu-feed-shell">
@@ -238,9 +299,9 @@ export default async function HomePage() {
       {/* FAQ ----------------------------------------------------------- */}
       <section className="vu-gutter vu-section pt-0">
         <Reveal>
-          <div className="vu-card mx-auto max-w-3xl rounded-[1.75rem] px-7 py-12 md:px-11">
+          <div className="vu-card mx-auto max-w-3xl rounded-[1.75rem] px-5 py-9 sm:px-7 sm:py-12 md:px-11">
             <p className="vu-kicker">FAQ</p>
-            <h2 className="vu-title-script-sm vu-headline mt-3 text-forest">
+            <h2 className="vu-title-script-sm vu-headline mt-3 text-foreground">
               <span className="vu-title-anim">Questions, answered plainly</span>
             </h2>
             <div className="mt-7">
