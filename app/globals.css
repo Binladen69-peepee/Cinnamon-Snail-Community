@@ -12,7 +12,7 @@
   [data-theme="light"] {
     color-scheme: light;
 
-    --background: #ffffff;
+    --background: #f3f7f0;
     --foreground: #0a0a0a;
     --surface: #ffffff;
     --surface-foreground: #0a0a0a;
@@ -119,12 +119,12 @@
   [data-theme="dark"] {
     color-scheme: dark;
 
-    --background: #000000;
+    --background: #0b132b;
     --foreground: #ffffff;
-    --surface: #0b0b0b;
+    --surface: #111b3a;
     --surface-foreground: #ffffff;
-    --surface-muted: #171717;
-    --overlay: #141414;
+    --surface-muted: #18244b;
+    --overlay: #152044;
     --overlay-foreground: #ffffff;
     --muted: #a1a1a1;
     --primary: #ffffff;
@@ -135,16 +135,16 @@
     --accent-magenta: #ef8b6f;
     --accent-coral: #ef8b6f;
     --foreground-muted: #a1a1a1;
-    --border: #232323;
-    --separator: #1a1a1a;
+    --border: #243158;
+    --separator: #1b2747;
     --focus: #ffffff;
     --link: #ffffff;
-    --default: #1a1a1a;
+    --default: #1b2747;
     --default-foreground: #ffffff;
-    --field-background: #0b0b0b;
+    --field-background: #080f24;
     --field-foreground: #ffffff;
     --field-placeholder: #8a8a8a;
-    --field-border: #2a2a2a;
+    --field-border: #2a3865;
     --success: #ffffff;
     --success-foreground: #000000;
     --warning: #e0b341;
@@ -163,7 +163,7 @@
 
     --brand: #ffffff;
     --brand-strong: #ffffff;
-    --brand-wash: #1a1a1a;
+    --brand-wash: #18244b;
     --on-brand: #000000;
 
     /* Inverted: on black the fill is the lit colour and the label is the dark
@@ -172,24 +172,24 @@
     --brand-fill-hover: #e5e5e5;
     --brand-fill-foreground: #000000;
 
-    --sidebar: #070707;
+    --sidebar: #0b132b;
     --sidebar-foreground: #ffffff;
     --sidebar-accent: #1a1a1a;
     --sidebar-accent-foreground: #ffffff;
     --sidebar-border: #1a1a1a;
     --sidebar-ring: #ffffff;
 
-    --hairline-firm: #3a3a3a;
+    --hairline-firm: #33426f;
 
     --forest: #ffffff;
     --deep-forest: #e5e5e5;
     --olive: #a1a1a1;
-    --sage: #1a1a1a;
-    --mint: #111111;
-    --cream: #000000;
-    --paper: #000000;
-    --warm-white: #0b0b0b;
-    --sand: #232323;
+    --sage: #1b2747;
+    --mint: #152044;
+    --cream: #0b132b;
+    --paper: #0b132b;
+    --warm-white: #111b3a;
+    --sand: #243158;
     --taupe: #a1a1a1;
     --terracotta: #ef8b6f;
     --apricot: #e0b341;
@@ -1622,12 +1622,12 @@ button:hover .vu-media-zoom {
      The values below are the dark ladder; the light overrides follow. */
 
   /* Elevation ladder: ground -> card -> raised -> inert */
-  --background: #000000;
-  --surface: #0d0d0d;
+  --background: #070d1c;
+  --surface: #0d1631;
   --surface-foreground: #ededed;
-  --overlay: #151515;
+  --overlay: #131d40;
   --overlay-foreground: #ededed;
-  --default: #1a1a1a;
+  --default: #1a2547;
   --default-foreground: #ededed;
 
   --foreground: #ededed;
@@ -1765,7 +1765,7 @@ button:hover .vu-media-zoom {
 :root:not(.dark) .vu-admin,
 .light .vu-admin,
 [data-theme="light"] .vu-admin {
-  --background: #ffffff;
+  --background: #f3f7f0;
   --surface: #ffffff;
   --surface-foreground: #0a0a0a;
   --overlay: #ffffff;

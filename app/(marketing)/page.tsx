@@ -1,8 +1,6 @@
 import {
-  ArrowDown,
   BookOpen,
   CalendarDays,
-  ChefHat,
   FlaskConical,
   Leaf,
   ListChecks,
@@ -23,7 +21,6 @@ import { CommunitySpread } from "@/components/marketing/community-spread";
 import { MembershipPlans } from "@/components/marketing/membership-plans";
 import { WhatYouGet } from "@/components/marketing/what-you-get";
 import { SenjaEmbed, SENJA_HOMEPAGE_WIDGET } from "@/components/marketing/senja-embed";
-import { getNextLiveClass } from "@/lib/marketing/catalog";
 import { CLASS_LIBRARY, libraryShelves, membershipGallery } from "@/lib/marketing/class-library";
 import { getGlobeMarkers } from "@/lib/marketing/globe-markers";
 import {
@@ -46,10 +43,7 @@ export const dynamic = "force-dynamic";
 const INSIDE_ICONS = [CalendarDays, BookOpen, Users, FlaskConical, ListChecks] as const;
 
 export default async function HomePage() {
-  const [nextLive, globe] = await Promise.all([
-    getNextLiveClass(),
-    getGlobeMarkers(8),
-  ]);
+  const globe = await getGlobeMarkers(8);
   const hero = assetSlot("home-hero");
   const reel = assetSlot("home-reel");
   const totalClasses = CLASS_LIBRARY.length;
@@ -95,26 +89,11 @@ export default async function HomePage() {
               <HeroWords text={HOMEPAGE_HERO.headline} />
             </h1>
 
-          
-
             <div className="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3 sm:mt-8">
               <CheckoutButton size="lg" withArrow />
             </div>
 
-            {/* A live date is the most concrete reason to join this week, so
-                it gets its own card when there is one. Without one the card
-                states the size of the library instead, which is also true. */}
             <div className="mt-5 flex flex-wrap items-stretch gap-3 sm:mt-7">
-              <div className="vu-glass flex min-w-0 items-center gap-3 rounded-2xl px-4 py-3">
-                <span className="grid size-10 shrink-0 place-items-center rounded-full bg-white text-black">
-                  {nextLive?.liveAt ? (
-                    <CalendarDays className="size-4" aria-hidden />
-                  ) : (
-                    <ChefHat className="size-4" aria-hidden />
-                  )}
-                </span>
-              </div>
-
               {/* The wrapper carries the breakpoint, not the chip:
                   `.vu-hero-proof` sets its own `display` later in the
                   stylesheet, so a `hidden` utility on the same element loses

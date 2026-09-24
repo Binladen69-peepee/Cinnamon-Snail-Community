@@ -71,10 +71,23 @@ describe("the hero", () => {
   it("keeps the signed-off copy verbatim", () => {
     // The words are the client's. The page may animate them, size them and
     // colour them, and may not change one of them.
+    //
+    // `HOMEPAGE_HERO.subhead` is not in this list any more. Adam cut the
+    // subhead from the hero deliberately, along with the jump link and the
+    // on-demand card, so the headline now carries the section alone. The copy
+    // constant still exists for whatever uses it next.
     expect(page).toContain("HOMEPAGE_HERO.headline");
-    expect(page).toContain("HOMEPAGE_HERO.subhead");
     expect(page).toContain("KITCHEN_TABLE_BLOCK.paragraphs");
     expect(page).toContain("MEMBERSHIP_TEASER.body");
+  });
+
+  it("leaves the hero carrying the headline and the button, and nothing else", () => {
+    // The three things that were cut, checked by their own markers rather
+    // than by the copy, so re-adding one of them fails here rather than in a
+    // screenshot somebody takes a week later.
+    expect(page).not.toContain("HOMEPAGE_HERO.subhead");
+    expect(page).not.toContain("See the class library");
+    expect(page).not.toContain("Next live cook-along");
   });
 
   it("animates word by word without hiding the sentence from assistive tech", () => {

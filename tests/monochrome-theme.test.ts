@@ -59,12 +59,33 @@ describe("monochrome theme", () => {
     expect(greens).toEqual([]);
   });
 
-  it("keeps both grounds pure", () => {
-    // Light is pure white and dark is pure black — the two the design is named
-    // for. A near-black dark ground is the most common way this drifts back.
-    expect(css).toMatch(/:root,[\s\S]*?--background: #ffffff;/);
-    expect(css).toMatch(/\.dark,[\s\S]*?--background: #000000;/);
+  it("keeps the two grounds Adam chose", () => {
+    // These two were picked by hand and are the only colours in the product
+    // that are not derived from something else, so they are pinned: a pale
+    // green-white in light, a deep navy in dark. Drifting back to pure white
+    // and pure black is the failure this catches.
+    expect(css).toMatch(/:root,[\s\S]*?--background: #f3f7f0;/);
+    expect(css).toMatch(/\.dark,[\s\S]*?--background: #0b132b;/);
     expect(css).toMatch(/\.dark,[\s\S]*?--foreground: #ffffff;/);
+  });
+
+  it("keeps the dark ladder above its own ground", () => {
+    // A card darker than the page it sits on reads as a hole. Every step of
+    // the dark ladder has to be lighter than #0b132b, which is the thing that
+    // broke when the ground stopped being pure black.
+    const start = css.indexOf(".dark,");
+    const dark = css.slice(start, css.indexOf("\n  }", start));
+    const value = (name: string) =>
+      new RegExp(`--${name}: (#[0-9a-f]{6});`).exec(dark)?.[1] ?? "";
+    const lightness = (hex: string) =>
+      (hex.replace("#", "").match(/../g) ?? []).reduce(
+        (total, part) => total + parseInt(part, 16),
+        0,
+      );
+    const ground = lightness(value("background"));
+    for (const step of ["surface", "surface-muted", "overlay", "default"]) {
+      expect(lightness(value(step))).toBeGreaterThan(ground);
+    }
   });
 
   it("carries a real fill pair in both modes, not one shared colour", () => {
