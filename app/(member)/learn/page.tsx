@@ -18,10 +18,10 @@ export const metadata = { title: "Classes" };
  * converges on. Search and category both live in the URL, so a shelf you
  * filtered is a link.
  *
- * Deliberately not built: a "continue learning" rail that is always empty.
- * There are no lessons in the database yet, so there is no progress to resume;
- * the row renders itself the moment there is, rather than sitting there as an
- * empty promise until then.
+ * The "pick up where you left off" rail appears only once there is something
+ * to pick up — ordered by when the member last touched a class rather than by
+ * how far through it they are, and pointing at the lesson itself when the
+ * course knows which one that was.
  */
 export default async function LearnPage({
   searchParams,
@@ -89,7 +89,12 @@ export default async function LearnPage({
             <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
               {data.continueLearning.map((cls) => (
                 <li key={cls.slug}>
-                  <ClassTile cls={cls} percent={cls.percent} eager />
+                  <ClassTile
+                    cls={cls}
+                    percent={cls.percent}
+                    href={cls.resumeHref ?? undefined}
+                    eager
+                  />
                 </li>
               ))}
             </ul>

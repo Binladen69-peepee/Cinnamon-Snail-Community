@@ -42,10 +42,12 @@ export function searchHref(entityType: string, entityId: string): string {
       return `/members/${entityId}`;
     case "event":
       return "/calendar";
+    // Courses and lessons are indexed by their address, not their id: a
+    // course row holds its slug and a lesson row holds "course-slug/lesson-slug".
     case "course":
       return `/learn/${entityId}`;
     case "lesson":
-      return "/learn";
+      return `/learn/${entityId}`;
     default:
       return "/search";
   }

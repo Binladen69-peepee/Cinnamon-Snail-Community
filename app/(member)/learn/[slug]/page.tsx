@@ -10,11 +10,11 @@ import {
   MessageSquare,
   PlayCircle,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { auth } from "@/auth";
 import { getClassDetail } from "@/lib/learn/library";
 import { AppShell } from "@/components/app/app-shell";
 import { ClassPlayer } from "@/components/learn/class-player";
-import { cn } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
@@ -25,7 +25,11 @@ export async function generateMetadata({
   const session = await auth();
   if (!session?.user.id) return { title: "Class" };
   const detail = await getClassDetail(slug, session.user.id);
-  return { title: detail?.title ?? "Class" };
+  // Raised here as well as in the page: this segment streams, so a
+  // `notFound()` from the page body renders the right screen under a 200.
+  // See the lesson page for the longer note.
+  if (!detail) notFound();
+  return { title: detail.title };
 }
 
 /**
@@ -35,11 +39,12 @@ export async function generateMetadata({
  * marketing class library's `classDetailHref`, and Discover's cards — all of
  * which 404'd until now.
  *
- * There are no lessons in the database yet, so the page is built around what is
- * real: the still, the teaser, and what the class is. The lesson list and the
- * resource list render themselves when those rows exist and say nothing at all
- * when they do not, rather than showing an empty syllabus. Playback is gated on
- * a live membership; the teaser is not, because it is marketing.
+ * The classes were imported without lessons, so the page is built around what
+ * is real first — the still, the teaser, and what the class is — and the
+ * syllabus appears underneath as soon as a curriculum exists. Every lesson row
+ * is a link to the lesson unless this member cannot open it, in which case it
+ * is a padlock and says why. Playback is gated on a live membership; the
+ * teaser is not, because it is marketing.
  */
 export default async function ClassPage({
   params,
@@ -112,26 +117,42 @@ export default async function ClassPage({
           ) : null}
         </header>
 
-        {cls.lessonCount > 0 && cls.percent > 0 ? (
-          <div className="rounded-card border border-border bg-surface p-3">
-            <div className="flex items-baseline justify-between gap-2 text-[12.5px] font-semibold">
-              <span className="text-foreground">Your progress</span>
-              <span className="tabular-nums text-foreground-muted">
-                {cls.completedCount} of {cls.lessonCount} · {cls.percent}%
-              </span>
-            </div>
-            <div
-              className="mt-2 h-1.5 overflow-hidden rounded-full bg-default"
-              role="progressbar"
-              aria-valuenow={cls.percent}
-              aria-valuemin={0}
-              aria-valuemax={100}
-              aria-label={`${cls.title} progress`}
-            >
-              <div
-                className="h-full rounded-full bg-brand"
-                style={{ width: `${cls.percent}%` }}
-              />
+        {cls.lessonCount > 0 ? (
+          <div className="rounded-card border border-border bg-surface p-3.5">
+            {/* Stacked on a phone. Side by side, the bar is squeezed into
+                about 150px and "Your progress" wraps onto three lines. */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0 flex-1">
+                <div className="flex items-baseline justify-between gap-2 text-[12.5px] font-semibold">
+                  <span className="text-foreground">Your progress</span>
+                  <span className="tabular-nums text-foreground-muted">
+                    {cls.completedCount} of {cls.lessonCount} · {cls.percent}%
+                  </span>
+                </div>
+                <div
+                  className="mt-2 h-1.5 overflow-hidden rounded-full bg-default"
+                  role="progressbar"
+                  aria-valuenow={cls.percent}
+                  aria-valuemin={0}
+                  aria-valuemax={100}
+                  aria-label={`${cls.title} progress`}
+                >
+                  <div
+                    className="h-full rounded-full bg-brand"
+                    style={{ width: `${cls.percent}%` }}
+                  />
+                </div>
+              </div>
+
+              {cls.resume ? (
+                <Link
+                  href={cls.resume.href}
+                  className="inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-ctl bg-brand-fill px-4 text-[14px] font-semibold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover sm:w-auto"
+                >
+                  <PlayCircle className="size-4" aria-hidden />
+                  {cls.resume.started ? "Continue" : "Start the class"}
+                </Link>
+              ) : null}
             </div>
           </div>
         ) : null}
@@ -164,38 +185,81 @@ export default async function ClassPage({
                     {section.title}
                   </h3>
                   <ul>
-                    {section.lessons.map((lesson) => (
-                      <li
-                        key={lesson.id}
-                        className="flex items-center gap-2.5 border-b border-border px-3.5 py-2.5 last:border-b-0"
-                      >
-                        <span
-                          className={cn(
-                            "grid size-7 shrink-0 place-items-center rounded-full",
-                            lesson.completed
-                              ? "bg-brand text-on-brand"
-                              : "bg-default text-foreground-muted",
-                          )}
-                          aria-hidden
-                        >
-                          {lesson.completed ? (
-                            <Check className="size-3.5" />
-                          ) : lesson.playable ? (
-                            <PlayCircle className="size-4" />
-                          ) : (
-                            <Lock className="size-3.5" />
-                          )}
-                        </span>
-                        <span className="min-w-0 flex-1 truncate text-[14px] text-foreground">
-                          {lesson.title}
-                        </span>
-                        {lesson.durationMin ? (
-                          <span className="shrink-0 text-[12px] tabular-nums text-foreground-muted">
-                            {lesson.durationMin} min
+                    {section.lessons.map((lesson) => {
+                      const body = (
+                        <>
+                          <span
+                            className={cn(
+                              "grid size-7 shrink-0 place-items-center rounded-full",
+                              lesson.completed
+                                ? "bg-brand text-on-brand"
+                                : "bg-default text-foreground-muted",
+                            )}
+                            aria-hidden
+                          >
+                            {lesson.completed ? (
+                              <Check className="size-3.5" />
+                            ) : lesson.playable ? (
+                              <PlayCircle className="size-4" />
+                            ) : (
+                              <Lock className="size-3.5" />
+                            )}
                           </span>
-                        ) : null}
-                      </li>
-                    ))}
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-[14px] text-foreground">
+                              {lesson.title}
+                            </span>
+                            {lesson.summary ? (
+                              <span className="block truncate text-[12.5px] text-foreground-muted">
+                                {lesson.summary}
+                              </span>
+                            ) : null}
+                          </span>
+                          {lesson.isPreview && !lesson.playable ? (
+                            <span className="shrink-0 rounded-chip border border-border px-1.5 py-0.5 text-[10.5px] font-bold text-foreground-muted">
+                              Free
+                            </span>
+                          ) : null}
+                          {lesson.durationMin ? (
+                            <span className="shrink-0 text-[12px] tabular-nums text-foreground-muted">
+                              {lesson.durationMin} min
+                            </span>
+                          ) : null}
+                        </>
+                      );
+
+                      return (
+                        <li
+                          key={lesson.id}
+                          className="border-b border-border last:border-b-0"
+                        >
+                          {lesson.playable ? (
+                            <Link
+                              href={lesson.href}
+                              className="flex items-center gap-2.5 px-3.5 py-2.5 no-underline transition hover:bg-mint"
+                            >
+                              {body}
+                            </Link>
+                          ) : (
+                            // Listed but not a link: a member should be able to
+                            // see what the class contains before they can open
+                            // it, and a row that silently does nothing when
+                            // tapped is worse than one that looks locked.
+                            <span
+                              aria-disabled="true"
+                              title={
+                                lesson.gate.state === "locked"
+                                  ? "Members only"
+                                  : "Not ready yet"
+                              }
+                              className="flex items-center gap-2.5 px-3.5 py-2.5 opacity-60"
+                            >
+                              {body}
+                            </span>
+                          )}
+                        </li>
+                      );
+                    })}
                   </ul>
                 </div>
               ))}

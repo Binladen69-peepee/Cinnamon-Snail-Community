@@ -19,16 +19,24 @@ export function ClassTile({
   cls,
   percent = null,
   eager = false,
+  href,
 }: {
   cls: ClassSummary;
   /** Progress, when this member has started it. */
   percent?: number | null;
   /** True for the first row, which is above the fold. */
   eager?: boolean;
+  /**
+   * Where the card goes. Defaults to the class page; the "pick up where you
+   * left off" rail passes the lesson itself, because a card that says
+   * "62% complete" and then lands on an overview has made the member navigate
+   * twice to do the thing they asked for.
+   */
+  href?: string;
 }) {
   return (
     <Link
-      href={classHref(cls.slug)}
+      href={href ?? classHref(cls.slug)}
       className="group flex h-full flex-col overflow-hidden rounded-card border border-border bg-surface no-underline transition hover:border-hairline-firm hover:shadow-e2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
     >
       <span className="relative block aspect-[4/3] w-full overflow-hidden bg-brand-wash">

@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@prisma/client";
 import { renderMarkdown, toPlainText } from "../lib/markdown";
 import { lessonDiscussionKey } from "../lib/learn/catalog";
+import type { LessonKind } from "@prisma/client";
 
 const DEMO_VIDEO = "https://interactive-examples.mdn.mozilla.net/media/cc0-videos/flower.mp4";
 
@@ -54,7 +55,7 @@ export async function seedCampusLearning(prisma: PrismaClient, adamId: string) {
       sectionId: fridge.id,
       slug: "welcome",
       title: "Welcome — dinner is the homework",
-      kind: "text",
+      kind: "TEXT",
       durationMin: 4,
       sortOrder: 0,
       body: "This campus is a cooking school that still looks like a kitchen. Watch, cook the same night, then post the plate in Course Hall. Mighty course files are not imported here (DEC-003). This is original Vegan University material.",
@@ -63,7 +64,7 @@ export async function seedCampusLearning(prisma: PrismaClient, adamId: string) {
       sectionId: fridge.id,
       slug: "the-20-minute-pan",
       title: "The 20-minute pan",
-      kind: "video",
+      kind: "VIDEO",
       durationMin: 12,
       sortOrder: 1,
       videoUid: DEMO_VIDEO,
@@ -74,7 +75,7 @@ export async function seedCampusLearning(prisma: PrismaClient, adamId: string) {
       sectionId: fridge.id,
       slug: "salt-the-tofu-first",
       title: "Salt the tofu first",
-      kind: "text",
+      kind: "TEXT",
       durationMin: 6,
       sortOrder: 2,
       body: "Press if you have time. Salt while the pan heats. The sauce only tastes loud if the tofu is seasoned before it browns.",
@@ -83,7 +84,7 @@ export async function seedCampusLearning(prisma: PrismaClient, adamId: string) {
       sectionId: sauce.id,
       slug: "a-sauce-you-can-taste",
       title: "A sauce you can taste",
-      kind: "video",
+      kind: "VIDEO",
       durationMin: 10,
       sortOrder: 0,
       videoUid: DEMO_VIDEO,
@@ -94,14 +95,14 @@ export async function seedCampusLearning(prisma: PrismaClient, adamId: string) {
       sectionId: sauce.id,
       slug: "what-did-you-cook",
       title: "Reflection: what did you cook?",
-      kind: "reflection",
+      kind: "QUIZ",
       durationMin: 5,
       sortOrder: 1,
       body: "Write it in the lesson thread: what was in the fridge, what sauce carried it, and whether you would make it again on a Tuesday.",
     },
   ];
 
-  for (const spec of lessons) {
+  for (const spec of lessons as (typeof lessons[number] & { kind: LessonKind })[]) {
     const existing = await prisma.lesson.findFirst({
       where: { sectionId: spec.sectionId, slug: spec.slug },
     });
@@ -181,12 +182,15 @@ export async function seedCampusLearning(prisma: PrismaClient, adamId: string) {
     });
   }
 
+  // Keyed on the slug, which is what `/learn/[slug]` resolves and what
+  // `prisma/reindex-search.ts` writes. Keying it on the id put a course id
+  // into the href and every seeded course result 404'd.
   await prisma.searchIndex.upsert({
-    where: { entityType_entityId: { entityType: "course", entityId: course.id } },
+    where: { entityType_entityId: { entityType: "course", entityId: course.slug } },
     update: { title: course.title, body: course.description ?? "", spaceId: hall.id },
     create: {
       entityType: "course",
-      entityId: course.id,
+      entityId: course.slug,
       title: course.title,
       body: course.description ?? "",
       spaceId: hall.id,

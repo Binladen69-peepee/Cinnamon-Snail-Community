@@ -1,6 +1,8 @@
 import "server-only";
+import type { LessonKind } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { photoForKnownClass } from "@/lib/marketing/class-library";
+import { lessonChapters, type Chapter } from "@/lib/learn/chapters";
 
 /**
  * Course administration.
@@ -53,6 +55,7 @@ export async function listAdminCourses(input: {
       createdAt: true,
       published: true,
       _count: { select: { sections: true } },
+      sections: { select: { _count: { select: { lessons: true } } } },
     },
   });
 
@@ -64,7 +67,12 @@ export async function listAdminCourses(input: {
     photo: photoForKnownClass(row.title, row.coverUrl),
     createdAt: row.createdAt,
     published: row.published,
-    lessonCount: row._count.sections,
+    // Lessons, not sections. This said `_count.sections`, so a course with
+    // three empty sections reported "3 lessons".
+    lessonCount: row.sections.reduce(
+      (total, section) => total + section._count.lessons,
+      0,
+    ),
     sales: null,
   }));
 
@@ -85,18 +93,47 @@ export async function listAdminCourses(input: {
   };
 }
 
+export type EditResource = {
+  id: string;
+  title: string;
+  url: string;
+  kind: string;
+};
+
+/**
+ * A lesson as the editor needs it: every column, not a rendered summary.
+ *
+ * The preview that used to live here showed a title and a derived subtitle
+ * because nothing could edit a lesson. Now that something can, the form needs
+ * the values it is going to put back.
+ */
 export type EditLesson = {
   id: string;
   title: string;
-  kind: string;
-  /** "1 Text & Images" in the design — what the lesson is made of. */
-  summary: string;
-  draft: boolean;
+  slug: string;
+  kind: LessonKind;
+  summary: string | null;
+  body: string | null;
+  durationMin: number | null;
+  videoUid: string | null;
+  audioUid: string | null;
+  downloadUid: string | null;
+  liveUrl: string | null;
+  liveAt: Date | null;
+  chapters: Chapter[];
+  isPreview: boolean;
+  published: boolean;
+  resources: EditResource[];
+  /** "2 Video & Text" - what the lesson is made of, for the collapsed row. */
+  parts: string;
+  /** Nothing to play and nothing to read: not ready for a member. */
+  empty: boolean;
 };
 
 export type EditSection = {
   id: string;
   title: string;
+  summary: string | null;
   lessons: EditLesson[];
 };
 
@@ -106,14 +143,29 @@ export type AdminCourseDetail = {
   title: string;
   description: string | null;
   category: string | null;
+  instructorName: string | null;
+  teaserVideoUrl: string | null;
+  catalogOrder: number;
+  categoryOrder: number;
+  spaceId: string | null;
   published: boolean;
   coverUrl: string | null;
   photo: string | null;
   sections: EditSection[];
+  resources: EditResource[];
   lessonCount: number;
+  /** Rooms this course can be attached to, for the discussion picker. */
+  spaces: { id: string; name: string }[];
   /** The SamCart product this course sells through, when one is mapped. */
   pricingProduct: { name: string; active: boolean } | null;
 };
+
+const RESOURCE_SELECT = {
+  id: true,
+  title: true,
+  url: true,
+  kind: true,
+} as const;
 
 export async function getAdminCourse(
   slug: string,
@@ -126,22 +178,42 @@ export async function getAdminCourse(
       title: true,
       description: true,
       category: true,
+      instructorName: true,
+      teaserVideoUrl: true,
+      catalogOrder: true,
+      categoryOrder: true,
+      spaceId: true,
       published: true,
       coverUrl: true,
+      resources: { orderBy: { sortOrder: "asc" }, select: RESOURCE_SELECT },
       sections: {
         orderBy: { sortOrder: "asc" },
         select: {
           id: true,
           title: true,
+          summary: true,
           lessons: {
             orderBy: { sortOrder: "asc" },
             select: {
               id: true,
               title: true,
+              slug: true,
               kind: true,
+              summary: true,
               body: true,
+              durationMin: true,
               videoUid: true,
-              _count: { select: { resources: true } },
+              audioUid: true,
+              downloadUid: true,
+              liveUrl: true,
+              liveAt: true,
+              chapters: true,
+              isPreview: true,
+              published: true,
+              resources: {
+                orderBy: { sortOrder: "asc" },
+                select: RESOURCE_SELECT,
+              },
             },
           },
         },
@@ -150,21 +222,29 @@ export async function getAdminCourse(
   });
   if (!course) return null;
 
-  const pricingProduct = await prisma.product.findFirst({
-    where: { kind: "COURSE", slug: course.slug },
-    select: { name: true, active: true },
-  });
+  // Two small lookups beside the tree rather than inside it: neither belongs
+  // to a lesson, and nesting them would re-run per row.
+  const [pricingProduct, spaces] = await Promise.all([
+    prisma.product.findFirst({
+      where: { kind: "COURSE", slug: course.slug },
+      select: { name: true, active: true },
+    }),
+    prisma.space.findMany({
+      orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      select: { id: true, name: true },
+      take: 100,
+    }),
+  ]);
 
   const sections: EditSection[] = course.sections.map((section) => ({
     id: section.id,
     title: section.title,
+    summary: section.summary,
     lessons: section.lessons.map((lesson) => ({
-      id: lesson.id,
-      title: lesson.title,
-      kind: lesson.kind,
-      summary: lessonSummary(lesson),
-      // A lesson with no body and no video is not ready to be read.
-      draft: !lesson.body && !lesson.videoUid,
+      ...lesson,
+      chapters: lessonChapters(lesson.chapters),
+      parts: lessonSummary(lesson),
+      empty: !lessonIsReady(lesson),
     })),
   }));
 
@@ -174,37 +254,80 @@ export async function getAdminCourse(
     title: course.title,
     description: course.description,
     category: course.category,
+    instructorName: course.instructorName,
+    teaserVideoUrl: course.teaserVideoUrl,
+    catalogOrder: course.catalogOrder,
+    categoryOrder: course.categoryOrder,
+    spaceId: course.spaceId,
     published: course.published,
     coverUrl: course.coverUrl,
     photo: photoForKnownClass(course.title, course.coverUrl),
     sections,
+    resources: course.resources,
     lessonCount: sections.reduce(
       (total, section) => total + section.lessons.length,
       0,
     ),
+    spaces,
     pricingProduct,
   };
 }
 
 /**
- * What a lesson is made of, in the design's words.
+ * Whether a lesson has the thing it claims to be.
  *
- * The screenshot reads "1 Text & Images" under every lesson. That is a count of
- * the lesson's parts, so it is counted here rather than printed as a constant —
- * a lesson with a video says so, and one with attachments says how many.
+ * The same rule the member-facing gate applies, so the editor's "Empty" badge
+ * and the player's "nothing here" state can never disagree.
  */
-export function lessonSummary(lesson: {
-  kind: string;
+export function lessonIsReady(lesson: {
+  kind: LessonKind;
   body: string | null;
   videoUid: string | null;
-  _count: { resources: number };
+  audioUid: string | null;
+  downloadUid: string | null;
+  liveUrl: string | null;
+}): boolean {
+  switch (lesson.kind) {
+    case "VIDEO":
+      return Boolean(lesson.videoUid);
+    case "AUDIO":
+      return Boolean(lesson.audioUid);
+    case "DOWNLOAD":
+      return Boolean(lesson.downloadUid);
+    case "LIVE":
+      return Boolean(lesson.liveUrl);
+    default:
+      return Boolean(lesson.body?.trim());
+  }
+}
+
+
+/**
+ * What a lesson is made of, in the design's words.
+ *
+ * The screenshot reads "1 Text & Images" under every lesson. That is a count
+ * of the lesson's parts, so it is counted here rather than printed as a
+ * constant - a lesson with a video says so, and one with attachments says how
+ * many.
+ */
+export function lessonSummary(lesson: {
+  kind: LessonKind;
+  body: string | null;
+  videoUid: string | null;
+  audioUid: string | null;
+  downloadUid: string | null;
+  liveUrl: string | null;
+  resources: { id: string }[];
 }): string {
   const parts: string[] = [];
   if (lesson.videoUid) parts.push("Video");
+  if (lesson.audioUid) parts.push("Audio");
+  if (lesson.downloadUid) parts.push("Download");
+  if (lesson.liveUrl) parts.push("Live");
   if (lesson.body) parts.push("Text & Images");
-  if (lesson._count.resources > 0) {
+  if (lesson.resources.length > 0) {
     parts.push(
-      `${lesson._count.resources} ${lesson._count.resources === 1 ? "File" : "Files"}`,
+      `${lesson.resources.length} ${lesson.resources.length === 1 ? "File" : "Files"}`,
     );
   }
   if (parts.length === 0) return "Empty";
@@ -237,4 +360,20 @@ export async function uniqueCourseSlug(title: string): Promise<string> {
     if (!taken.has(candidate)) return candidate;
   }
   return `${base}-${Date.now()}`;
+}
+
+/**
+ * Categories already in use, for the editor's suggestion list.
+ *
+ * Distinct rather than a full read of the catalog: the editor wants the
+ * fifteen-or-so shelf names, not fifty-two courses.
+ */
+export async function courseCategories(): Promise<string[]> {
+  const rows = await prisma.course.findMany({
+    where: { category: { not: null } },
+    distinct: ["category"],
+    orderBy: { category: "asc" },
+    select: { category: true },
+  });
+  return rows.flatMap((row) => (row.category ? [row.category] : []));
 }

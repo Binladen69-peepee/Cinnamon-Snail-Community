@@ -130,15 +130,28 @@ async function main() {
   }
   console.log(`courses: ${courses.length}`);
 
+  // Addressed as "course-slug/lesson-slug", which is exactly the lesson page's
+  // route, and limited to lessons a member could actually open: a draft or a
+  // lesson inside an unpublished course has no page to land on.
   const lessons = await prisma.lesson.findMany({
-    select: { id: true, title: true, body: true },
+    where: { published: true, section: { course: { published: true } } },
+    select: {
+      title: true,
+      slug: true,
+      summary: true,
+      body: true,
+      section: {
+        select: { course: { select: { slug: true, spaceId: true } } },
+      },
+    },
   });
   for (const lesson of lessons) {
     await upsert({
       entityType: "lesson",
-      entityId: lesson.id,
+      entityId: `${lesson.section.course.slug}/${lesson.slug}`,
       title: lesson.title,
-      body: lesson.body ?? "",
+      body: [lesson.summary, lesson.body].filter(Boolean).join(" "),
+      spaceId: lesson.section.course.spaceId,
     });
     count += 1;
   }

@@ -28,6 +28,20 @@ enum RoleName {
   SUPER_ADMIN
 }
 
+/// What a lesson actually is. It was a free-text column, so nothing stopped a
+/// row saying "vidoe" and rendering as nothing at all.
+enum LessonKind {
+  VIDEO
+  TEXT
+  AUDIO
+  DOWNLOAD
+  /// A prompt the member answers in their own words. Saving the answer is what
+  /// completes the lesson; there is no grading.
+  QUIZ
+  /// A scheduled session somewhere else — Zoom, usually — with a join link.
+  LIVE
+}
+
 enum SpaceKind {
   FEED
   COURSE
@@ -202,6 +216,7 @@ model User {
   memberRoadmaps       MemberRoadmap[]
   memberBadges         MemberBadge[]
   lessonProgress       LessonProgress[]
+  lessonResponses      LessonResponse[]
   courseProgress       CourseProgress[]
   hostedSpaces         Space[]                 @relation("SpaceHost")
   cancellationRequests CancellationRequest[]
@@ -439,6 +454,7 @@ model Post {
   event       Event?           @relation(fields: [eventId], references: [id])
   sharedFrom  Post?            @relation("PostShare", fields: [sharedFromPostId], references: [id], onDelete: SetNull)
   shares      Post[]           @relation("PostShare")
+  lessonThread Lesson?         @relation("LessonDiscussion")
   reactionTallies PostReactionTally[]
   attachments PostAttachment[]
   mentions    PostMention[]
@@ -684,15 +700,20 @@ model Course {
   cohorts        Cohort[]
 
   @@index([published, category, catalogOrder])
+  @@index([published, updatedAt])
 }
 
 model CourseSection {
   id        String   @id @default(cuid())
   courseId  String
   title     String
+  /// Shown under the section heading in the syllabus. Optional.
+  summary   String?
   sortOrder Int      @default(0)
   course    Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons   Lesson[]
+
+  @@index([courseId, sortOrder])
 }
 
 model Lesson {
@@ -700,16 +721,65 @@ model Lesson {
   sectionId   String
   title       String
   slug        String
-  kind        String           @default("video")
+  kind        LessonKind       @default(VIDEO)
+  /// One line under the title in the syllabus.
+  summary     String?
+  /// Markdown. The lesson itself for a TEXT lesson, the prompt for a QUIZ,
+  /// and the notes beneath the player for everything else.
   body        String?
   durationMin Int?
+  /// A Cloudflare Stream uid, a path in our own bucket, or an absolute URL.
+  /// Never sent to the browser: `lib/learn/media` decides how to serve it.
   videoUid    String?
+  /// Same three shapes as videoUid, for an AUDIO lesson.
+  audioUid    String?
+  /// Same three shapes again, for a DOWNLOAD lesson.
+  downloadUid String?
+  /// Where a LIVE lesson happens, and when.
+  liveUrl     String?
+  liveAt      DateTime?
+  /// Chapter markers: [{ "atSeconds": 0, "title": "Mise en place" }].
+  chapters    Json?
+  /// A lesson anyone signed in may open, membership or not. The teaser.
+  isPreview   Boolean          @default(false)
+  /// Drafts are invisible to members and excluded from progress totals.
+  published   Boolean          @default(true)
   sortOrder   Int              @default(0)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  /// The community thread for this lesson, created the first time someone
+  /// posts in it. A real Post in a real space, so it inherits moderation,
+  /// notifications and the rest of the community rather than growing a second
+  /// comment system beside it.
+  discussionPostId String?     @unique
   section     CourseSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  discussion  Post?            @relation("LessonDiscussion", fields: [discussionPostId], references: [id], onDelete: SetNull)
   progress    LessonProgress[]
+  responses   LessonResponse[]
   resources   Resource[]
+  lastFor     CourseProgress[] @relation("CourseLastLesson")
 
   @@unique([sectionId, slug])
+  @@index([sectionId, sortOrder])
+  @@index([published, kind])
+}
+
+/// What a member wrote in answer to a QUIZ lesson's prompt.
+///
+/// One answer per person per lesson, editable. Saving one is what marks that
+/// lesson complete — there is nothing to mark, only something to have done.
+model LessonResponse {
+  id        String   @id @default(cuid())
+  lessonId  String
+  userId    String
+  answer    String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([lessonId, userId])
+  @@index([userId, updatedAt])
 }
 
 model LessonProgress {
@@ -717,12 +787,19 @@ model LessonProgress {
   lessonId        String
   userId          String
   positionSeconds Int       @default(0)
+  /// How far this member has ever got, which is not the same as where they
+  /// are now. Scrubbing back to the start must not throw away the fact that
+  /// they watched to the end.
+  furthestSeconds Int       @default(0)
   completedAt     DateTime?
+  createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
   lesson          Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([lessonId, userId])
+  /// "Carry on where you left off", newest first.
+  @@index([userId, updatedAt])
 }
 
 model CourseProgress {
@@ -731,22 +808,33 @@ model CourseProgress {
   userId       String
   percent      Int       @default(0)
   lastLessonId String?
+  startedAt    DateTime  @default(now())
+  updatedAt    DateTime  @default(now()) @updatedAt
   completedAt  DateTime?
   course       Course    @relation(fields: [courseId], references: [id], onDelete: Cascade)
   user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// Set null rather than dangling when a lesson is deleted.
+  lastLesson   Lesson?   @relation("CourseLastLesson", fields: [lastLessonId], references: [id], onDelete: SetNull)
 
   @@unique([courseId, userId])
+  @@index([userId, updatedAt])
 }
 
 model Resource {
-  id       String  @id @default(cuid())
-  courseId String?
-  lessonId String?
-  title    String
-  url      String
-  kind     String  @default("file")
-  course   Course? @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lesson   Lesson? @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  courseId  String?
+  lessonId  String?
+  title     String
+  url       String
+  /// "file", "captions", "link". Captions are picked up by the player.
+  kind      String   @default("file")
+  sortOrder Int      @default(0)
+  createdAt DateTime @default(now())
+  course    Course?  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson    Lesson?  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@index([courseId, sortOrder])
+  @@index([lessonId, sortOrder])
 }
 
 model Event {

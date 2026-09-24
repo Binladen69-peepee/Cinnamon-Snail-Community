@@ -1,15 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ExternalLink,
-  FileText,
-  Lightbulb,
-  ListChecks,
-  Video,
-} from "lucide-react";
-import { getAdminCourse } from "@/lib/admin/courses";
+import { ExternalLink, Lightbulb } from "lucide-react";
+import { courseCategories, getAdminCourse } from "@/lib/admin/courses";
+import { CourseDetailsForm } from "@/components/admin/course-details-form";
 import { CourseThumbnail } from "@/components/admin/course-thumbnail";
+import { CurriculumEditor } from "@/components/admin/curriculum-editor";
 import { PublishButtons } from "@/components/admin/publish-button";
+import { ResourceList } from "@/components/admin/resource-list";
 import { StatusBadge } from "@/components/admin/course-card";
 import { IMAGE_MAX_BYTES } from "@/lib/uploads/policy";
 import { uploadsConfigured } from "@/lib/uploads/storage";
@@ -26,17 +23,14 @@ export async function generateMetadata({
 }
 
 /**
- * The course editor, to the supplied design.
+ * The course editor.
  *
- * Two columns: Curriculum Preview and Pricing Plan on the left, a thumbnail
- * card and two help cards in the rail.
+ * Two columns: the course's own fields, its curriculum and its shared files on
+ * the left; the thumbnail, pricing and help in the rail.
  *
- * Two of the design's panels describe things this platform does not do the way
- * the design assumes, and both say so rather than showing a control that lies.
- * Curriculum has no authoring screen yet, so "Edit Curriculum" is absent until
- * there is one to open. Pricing is SamCart's — DEC-001 makes it the source of
- * truth for money — so the pricing panel points there instead of offering to
- * create a plan this app could not honour.
+ * Pricing is the one panel that still describes rather than edits. Money is
+ * SamCart's — DEC-001 makes it the source of truth — so the panel points there
+ * instead of offering to create a plan this app could not honour.
  */
 export default async function EditCoursePage({
   params,
@@ -44,8 +38,13 @@ export default async function EditCoursePage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const course = await getAdminCourse(slug);
+  const [course, categories] = await Promise.all([
+    getAdminCourse(slug),
+    courseCategories(),
+  ]);
   if (!course) notFound();
+
+  const uploadsEnabled = uploadsConfigured();
 
   return (
     <div className="space-y-4">
@@ -89,74 +88,36 @@ export default async function EditCoursePage({
 
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="space-y-4">
-          <section className="overflow-hidden rounded-card border border-border bg-surface">
-            <div className="flex items-center justify-between gap-2 border-b border-border px-4 py-3">
-              <h2 className="text-[14px] font-bold text-foreground">
-                Curriculum Preview
-              </h2>
-              <span className="text-[12px] font-semibold text-foreground-muted">
-                {course.lessonCount}{" "}
-                {course.lessonCount === 1 ? "lesson" : "lessons"}
-              </span>
-            </div>
+          <CourseDetailsForm
+            slug={course.slug}
+            course={course}
+            categories={categories}
+            spaces={course.spaces}
+          />
 
-            {course.sections.length === 0 ? (
-              <div className="px-4 py-8 text-center">
-                <span className="mx-auto grid size-11 place-items-center rounded-full bg-brand-wash text-brand-strong">
-                  <ListChecks className="size-5" aria-hidden />
-                </span>
-                <p className="mt-2.5 text-[13.5px] font-bold text-foreground">
-                  No curriculum yet
-                </p>
-                <p className="mx-auto mt-1 max-w-[46ch] text-[13px] text-foreground-muted">
-                  Lessons are not authored in the app yet — no course on this
-                  platform has any. When they are, each section and its lessons
-                  appear here.
-                </p>
-              </div>
-            ) : (
-              <div className="divide-y divide-border">
-                {course.sections.map((section) => (
-                  <div key={section.id}>
-                    <h3 className="px-4 pb-1.5 pt-3 text-[12px] font-bold text-foreground">
-                      {section.title}
-                    </h3>
-                    <ul className="pb-2">
-                      {section.lessons.map((lesson) => (
-                        <li
-                          key={lesson.id}
-                          className="flex items-center gap-2.5 px-4 py-2"
-                        >
-                          <span
-                            className="grid size-8 shrink-0 place-items-center rounded-ctl bg-brand-wash text-brand-strong"
-                            aria-hidden
-                          >
-                            {lesson.kind === "video" ? (
-                              <Video className="size-4" />
-                            ) : (
-                              <FileText className="size-4" />
-                            )}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[13.5px] font-bold text-foreground">
-                              {lesson.title}
-                            </span>
-                            <span className="block text-[12px] text-foreground-muted">
-                              {lesson.summary}
-                            </span>
-                          </span>
-                          {lesson.draft ? (
-                            <span className="shrink-0 rounded-chip border border-border px-1.5 py-0.5 text-[11px] font-bold text-foreground-muted">
-                              Draft
-                            </span>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
-                  </div>
-                ))}
-              </div>
-            )}
+          <CurriculumEditor
+            slug={course.slug}
+            sections={course.sections}
+            uploadsEnabled={uploadsEnabled}
+          />
+
+          <section className="rounded-card border border-border bg-surface">
+            <div className="border-b border-border px-4 py-3">
+              <h2 className="text-[14px] font-bold text-foreground">
+                Course files
+              </h2>
+              <p className="mt-0.5 text-[12.5px] text-foreground-muted">
+                Shown on the class page, beside every lesson. Files that belong
+                to one lesson are attached to that lesson instead.
+              </p>
+            </div>
+            <div className="px-4 py-3.5">
+              <ResourceList
+                slug={course.slug}
+                resources={course.resources}
+                uploadsEnabled={uploadsEnabled}
+              />
+            </div>
           </section>
 
           <section className="rounded-card border border-border bg-surface p-4">
@@ -201,7 +162,7 @@ export default async function EditCoursePage({
             photo={course.photo}
             hasOwnCover={Boolean(course.coverUrl)}
             maxBytes={IMAGE_MAX_BYTES}
-            uploadsEnabled={uploadsConfigured()}
+            uploadsEnabled={uploadsEnabled}
           />
 
           <HelpCard
