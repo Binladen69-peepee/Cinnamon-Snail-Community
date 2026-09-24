@@ -24,7 +24,7 @@ export function SocialLinks({
   const footer = variant === "footer";
 
   const button = footer
-    ? "inline-flex size-11 items-center justify-center rounded-full bg-white/10 text-[var(--cta-fill-foreground)] transition hover:-translate-y-0.5 hover:bg-white/20 hover:text-accent"
+    ? "inline-flex size-11 items-center justify-center rounded-full bg-white/10 text-white transition hover:-translate-y-0.5 hover:bg-white/20 hover:text-accent"
     : cn(
         "inline-flex size-9 items-center justify-center rounded-full border transition hover:-translate-y-0.5",
         variant === "heroDark"

@@ -56,7 +56,7 @@ export function NavIconLink({
         <Link href={href} aria-label={label} className={iconButtonClass}>
           <Icon className="size-4" aria-hidden />
           {badge && badge > 0 ? (
-            <span className="absolute right-1.5 top-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-terracotta px-1 text-[10px] font-bold leading-4 text-white">
+            <span className="absolute right-1.5 top-1.5 inline-flex min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold leading-4 text-danger-foreground">
               {badge > 99 ? "99+" : badge}
             </span>
           ) : null}

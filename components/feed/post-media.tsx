@@ -61,7 +61,7 @@ export function PostMedia({
         <Frame item={first} fill />
         {first.kind === "video" ? (
           <span
-            className="pointer-events-none absolute inset-0 grid place-items-center bg-[rgba(9,20,16,0.28)]"
+            className="pointer-events-none absolute inset-0 grid place-items-center bg-[rgba(0,0,0,0.28)]"
             aria-hidden
           >
             <span className="grid size-8 place-items-center rounded-full bg-white/90 text-forest">
@@ -70,7 +70,7 @@ export function PostMedia({
           </span>
         ) : null}
         {items.length > 1 ? (
-          <span className="absolute bottom-1 right-1 rounded-full bg-[rgba(9,20,16,0.72)] px-1.5 text-[10px] text-white">
+          <span className="absolute bottom-1 right-1 rounded-full bg-[rgba(0,0,0,0.72)] px-1.5 text-[10px] text-white">
             {items.length}
           </span>
         ) : null}
@@ -96,7 +96,7 @@ export function PostMedia({
       >
         <Frame item={items[0]} fill />
         <span
-          className="pointer-events-none absolute inset-0 grid place-items-center bg-[rgba(9,20,16,0.22)]"
+          className="pointer-events-none absolute inset-0 grid place-items-center bg-[rgba(0,0,0,0.22)]"
           aria-hidden
         >
           <span className="grid size-12 place-items-center rounded-full bg-white/90 text-forest">
@@ -135,7 +135,7 @@ export function PostMedia({
               <Frame item={item} fill />
               {item.kind === "video" ? (
                 <span
-                  className="pointer-events-none absolute inset-0 grid place-items-center bg-[rgba(9,20,16,0.3)]"
+                  className="pointer-events-none absolute inset-0 grid place-items-center bg-[rgba(0,0,0,0.3)]"
                   aria-hidden
                 >
                   <span className="grid size-9 place-items-center rounded-full bg-white/90 text-forest">
@@ -144,7 +144,7 @@ export function PostMedia({
                 </span>
               ) : null}
               {extra > 0 && index === shown.length - 1 ? (
-                <span className="absolute inset-0 grid place-items-center bg-[rgba(9,20,16,0.55)] text-xl font-bold text-white">
+                <span className="absolute inset-0 grid place-items-center bg-[rgba(0,0,0,0.55)] text-xl font-bold text-white">
                   +{extra}
                 </span>
               ) : null}

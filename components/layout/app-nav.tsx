@@ -73,7 +73,7 @@ export async function AppNav() {
           ) : (
             <nav
               aria-label="Main"
-              className="mx-auto hidden items-center gap-1 rounded-full border border-sand/80 bg-surface/70 p-1 shadow-[0_2px_10px_rgba(15,61,50,0.04)] lg:flex"
+              className="mx-auto hidden items-center gap-1 rounded-full border border-sand/80 bg-surface/70 p-1 shadow-[0_2px_10px_rgba(0,0,0,0.04)] lg:flex"
             >
               {signedOutLinks.map((link) => (
                 <Link

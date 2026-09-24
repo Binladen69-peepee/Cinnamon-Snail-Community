@@ -104,6 +104,29 @@ describe("monochrome theme", () => {
     expect(offenders).toEqual([]);
   });
 
+  it("has no green smuggled in as rgb() or rgba() either", () => {
+    // Shadows and gradients are written as rgba, not hex, and seven of them
+    // were still carrying the old forest tint after the hex sweep. Same hue
+    // test, applied to the channel form.
+    const offenders: string[] = [];
+    for (const file of walk(resolve(root, "components")).concat(
+      walk(resolve(root, "app")),
+    )) {
+      const relative = file.replace(root, "").replace(/\\/g, "/").slice(1);
+      if (BRAND_MARK_FILES.includes(relative)) continue;
+      const source = readFileSync(file, "utf8");
+      for (const m of source.matchAll(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/g)) {
+        const hex =
+          "#" +
+          [m[1], m[2], m[3]]
+            .map((c) => Math.min(255, Number(c)).toString(16).padStart(2, "0"))
+            .join("");
+        if (isGreen(hex)) offenders.push(`${relative}: ${m[0]}`);
+      }
+    }
+    expect(offenders).toEqual([]);
+  });
+
   it("confines third-party brand colour to the sign-in marks", () => {
     // The exemption is only worth having if it stays one file wide.
     expect(BRAND_MARK_FILES).toHaveLength(1);

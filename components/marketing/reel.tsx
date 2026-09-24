@@ -94,7 +94,7 @@ export function Reel({
         aria-hidden
         className="absolute -inset-3 rounded-[2.25rem] bg-[radial-gradient(60%_50%_at_50%_10%,color-mix(in_oklab,var(--accent)_22%,transparent),transparent_70%)] blur-xl"
       />
-      <figure className="relative overflow-hidden rounded-[1.75rem] bg-black shadow-[0_28px_70px_rgba(15,61,50,0.28)] ring-1 ring-forest/10">
+      <figure className="relative overflow-hidden rounded-[1.75rem] bg-black shadow-[0_28px_70px_rgba(0,0,0,0.28)] ring-1 ring-forest/10">
         <video
           ref={videoRef}
           src={src}
@@ -121,7 +121,7 @@ export function Reel({
             type="button"
             onClick={toggle}
             aria-label={`Play: ${label}`}
-            className="group absolute inset-0 grid place-items-center bg-[linear-gradient(180deg,rgba(6,26,21,0.15)_0%,rgba(6,26,21,0.55)_100%)] transition"
+            className="group absolute inset-0 grid place-items-center bg-[linear-gradient(180deg,rgba(0,0,0,0.15)_0%,rgba(0,0,0,0.55)_100%)] transition"
           >
             <span className="grid size-16 place-items-center rounded-full bg-white/95 text-forest shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition group-hover:scale-105">
               <Play className="size-6 translate-x-0.5" aria-hidden />

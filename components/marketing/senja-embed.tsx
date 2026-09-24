@@ -88,7 +88,7 @@ export function SenjaEmbed({
             // Literal cream rather than the --paper token: the token inverts
             // to near-black in dark mode, which is the one thing this must
             // never do — the widget's own type is dark in both themes.
-            backgroundColor: "rgba(255, 252, 248, 0.9)",
+            backgroundColor: "color-mix(in oklab, var(--surface) 90%, transparent)",
             // Both feathers start well inside the negative inset, so the
             // widget's own text never sits on a partly-faded ground.
             maskImage: FEATHER,

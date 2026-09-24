@@ -98,7 +98,7 @@ function UploadTile({
       )}
 
       {pending ? (
-        <div className="absolute inset-0 grid place-items-center bg-[rgba(9,20,16,0.55)]">
+        <div className="absolute inset-0 grid place-items-center bg-[rgba(0,0,0,0.55)]">
           <span className="text-[11.5px] font-bold tabular-nums text-white">
             {item.status === "preparing" ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -132,7 +132,7 @@ function UploadTile({
               onChange={(event) => onAlt(item.id, event.currentTarget.value)}
               placeholder="Describe it"
               aria-label={`Description for ${item.name}`}
-              className="absolute inset-x-0 bottom-0 h-6 w-full border-0 bg-[rgba(9,20,16,0.66)] px-1.5 text-[10.5px] text-white outline-none placeholder:text-white/60 focus:bg-[rgba(9,20,16,0.85)]"
+              className="absolute inset-x-0 bottom-0 h-6 w-full border-0 bg-[rgba(0,0,0,0.66)] px-1.5 text-[10.5px] text-white outline-none placeholder:text-white/60 focus:bg-[rgba(0,0,0,0.85)]"
             />
           ) : null}
           {item.kind === "video" && onVideoThumbnail ? (
@@ -140,7 +140,7 @@ function UploadTile({
               <button
                 type="button"
                 onClick={() => thumbRef.current?.click()}
-                className="flex flex-1 items-center justify-center gap-0.5 rounded-[6px] bg-[rgba(9,20,16,0.72)] px-1 py-1 text-[9.5px] font-semibold text-white"
+                className="flex flex-1 items-center justify-center gap-0.5 rounded-[6px] bg-[rgba(0,0,0,0.72)] px-1 py-1 text-[9.5px] font-semibold text-white"
               >
                 {item.thumbnailStatus === "preparing" ||
                 item.thumbnailStatus === "uploading" ? (
@@ -155,7 +155,7 @@ function UploadTile({
                   type="button"
                   onClick={() => onClearVideoThumbnail(item.id)}
                   aria-label="Remove thumbnail"
-                  className="rounded-[6px] bg-[rgba(9,20,16,0.72)] px-1.5 text-[9.5px] font-semibold text-white"
+                  className="rounded-[6px] bg-[rgba(0,0,0,0.72)] px-1.5 text-[9.5px] font-semibold text-white"
                 >
                   ✕
                 </button>
@@ -177,7 +177,7 @@ function UploadTile({
       ) : null}
 
       {item.status === "error" ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(9,20,16,0.72)] px-1.5 text-center">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(0,0,0,0.72)] px-1.5 text-center">
           <AlertTriangle className="size-4 text-danger" aria-hidden />
           <p className="line-clamp-3 text-[10px] leading-tight text-white/90">
             {item.error}
@@ -197,7 +197,7 @@ function UploadTile({
         type="button"
         onClick={() => onRemove(item.id)}
         aria-label={`Remove ${item.name}`}
-        className="absolute left-1 top-1 grid size-4.5 place-items-center rounded-full bg-[rgba(9,20,16,0.7)] text-white opacity-0 transition group-hover/tile:opacity-100 focus-visible:opacity-100"
+        className="absolute left-1 top-1 grid size-4.5 place-items-center rounded-full bg-[rgba(0,0,0,0.7)] text-white opacity-0 transition group-hover/tile:opacity-100 focus-visible:opacity-100"
       >
         <X className="size-3" aria-hidden />
       </button>

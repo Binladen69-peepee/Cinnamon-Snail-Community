@@ -16,15 +16,15 @@ export function HeroScrim() {
           radicchio a lighter green mixes to brown. */}
       <div
         aria-hidden
-        className="absolute inset-0 bg-[linear-gradient(to_top,rgba(7,27,23,0.92)_0%,rgba(7,27,23,0.74)_24%,rgba(7,27,23,0.34)_56%,rgba(7,27,23,0.12)_100%)]"
+        className="absolute inset-0 bg-[linear-gradient(to_top,rgba(0,0,0,0.92)_0%,rgba(0,0,0,0.74)_24%,rgba(0,0,0,0.34)_56%,rgba(0,0,0,0.12)_100%)]"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-[linear-gradient(to_right,rgba(7,27,23,0.74)_0%,rgba(7,27,23,0.52)_34%,rgba(7,27,23,0.2)_62%,rgba(7,27,23,0)_84%)]"
+        className="absolute inset-0 bg-[linear-gradient(to_right,rgba(0,0,0,0.74)_0%,rgba(0,0,0,0.52)_34%,rgba(0,0,0,0.2)_62%,rgba(0,0,0,0)_84%)]"
       />
       <div
         aria-hidden
-        className="absolute inset-0 bg-[radial-gradient(125%_100%_at_62%_18%,transparent_44%,rgba(4,18,14,0.42)_100%)]"
+        className="absolute inset-0 bg-[radial-gradient(125%_100%_at_62%_18%,transparent_44%,rgba(0,0,0,0.42)_100%)]"
       />
     </>
   );

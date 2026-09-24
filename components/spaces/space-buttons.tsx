@@ -101,7 +101,7 @@ export function LeaveButton({
             type="button"
             onClick={leave}
             disabled={pending}
-            className="inline-flex h-9 items-center rounded-full bg-danger px-3 text-[12.5px] font-bold text-white transition hover:opacity-90 disabled:opacity-60"
+            className="inline-flex h-9 items-center rounded-full bg-danger px-3 text-[12.5px] font-bold text-danger-foreground transition hover:opacity-90 disabled:opacity-60"
           >
             {pending ? "Leaving…" : "Confirm"}
           </button>

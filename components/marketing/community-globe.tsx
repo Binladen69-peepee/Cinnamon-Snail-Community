@@ -120,7 +120,7 @@ export function CommunityGlobe({
               href="/community"
               className="vu-cta-fill vu-cta-glow inline-flex h-12 items-center gap-3 rounded-full pl-2 pr-7 text-sm no-underline"
             >
-              <span className="grid size-9 place-items-center rounded-full bg-white text-forest dark:bg-paper dark:text-black">
+              <span className="grid size-9 place-items-center rounded-full bg-background text-foreground">
                 <ArrowRight className="size-4 vu-cta-arrow" aria-hidden />
               </span>
               Explore the Community

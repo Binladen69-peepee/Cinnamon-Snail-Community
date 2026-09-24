@@ -37,7 +37,7 @@ export function StickyCheckout() {
           data-samcart-checkout
           tabIndex={visible ? 0 : -1}
           aria-hidden={!visible}
-          className="vu-cta-fill flex h-13 items-center justify-center rounded-full text-base font-semibold no-underline shadow-[0_10px_30px_rgba(15,61,50,0.28)]"
+          className="vu-cta-fill flex h-13 items-center justify-center rounded-full text-base font-semibold no-underline shadow-[0_10px_30px_rgba(0,0,0,0.28)]"
         >
           {CHECKOUT_LABEL}
         </a>

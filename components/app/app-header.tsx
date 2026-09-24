@@ -106,7 +106,7 @@ function IconLink({
       <span className="sr-only">{label}</span>
       {count > 0 ? (
         <span
-          className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-terracotta px-1 text-[10px] tabular-nums text-white ring-2 ring-background"
+          className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-danger px-1 text-[10px] tabular-nums text-danger-foreground ring-2 ring-background"
           aria-label={`${count} unread`}
         >
           {count > 9 ? "9+" : count}

@@ -119,7 +119,7 @@ export function ProfileView({
           className="absolute inset-0 opacity-30"
           style={{
             backgroundImage:
-              "radial-gradient(ellipse at 15% 100%, rgba(255,248,239,0.28), transparent 50%), radial-gradient(ellipse at 90% 0%, rgba(255,248,239,0.14), transparent 45%)",
+              "radial-gradient(ellipse at 15% 100%, color-mix(in oklab, var(--background) 28%, transparent), transparent 50%), radial-gradient(ellipse at 90% 0%, color-mix(in oklab, var(--background) 14%, transparent), transparent 45%)",
           }}
           aria-hidden
         />

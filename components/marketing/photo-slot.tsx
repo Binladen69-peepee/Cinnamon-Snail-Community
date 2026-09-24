@@ -72,7 +72,7 @@ export function VideoSlot({ id, className }: { id: string; className?: string })
     return (
       <figure
         className={cn(
-          "mx-auto overflow-hidden rounded-[1.5rem] bg-black shadow-[0_24px_60px_rgba(15,61,50,0.22)]",
+          "mx-auto overflow-hidden rounded-[1.5rem] bg-black shadow-[0_24px_60px_rgba(0,0,0,0.22)]",
           portrait ? "w-full max-w-[22rem]" : "w-full",
           className,
         )}

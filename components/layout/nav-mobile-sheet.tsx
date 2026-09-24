@@ -61,7 +61,7 @@ export function NavMobileSheet({
           />
           <nav
             aria-label="Mobile"
-            className="fixed inset-x-0 top-[72px] z-40 max-h-[calc(100dvh-72px)] overflow-y-auto border-b border-sand bg-background px-5 pb-8 pt-4 shadow-[0_24px_48px_rgba(15,61,50,0.16)] lg:hidden"
+            className="fixed inset-x-0 top-[72px] z-40 max-h-[calc(100dvh-72px)] overflow-y-auto border-b border-sand bg-background px-5 pb-8 pt-4 shadow-[0_24px_48px_rgba(0,0,0,0.16)] lg:hidden"
           >
             <ul className="space-y-1">
               {links.map((link) => (

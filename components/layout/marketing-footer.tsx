@@ -39,12 +39,16 @@ const columns = [
 
 export function MarketingFooter() {
   return (
-    <footer className="mt-8 bg-[var(--cta-fill)] text-[var(--cta-fill-foreground)]">
+    <footer className="mt-8 border-t border-white/10 bg-black text-white">
+      {/* A dark band in both themes. It used to borrow --cta-fill, which is a
+          button token and is white in dark mode -- so the footer inverted to a
+          white slab with white text. The hairline top edge is what separates
+          it from a black page. */}
       <div className="vu-gutter">
         <div className="vu-shell grid gap-10 py-16 md:grid-cols-[minmax(0,1.2fr)_minmax(0,2fr)]">
         <div>
           <p className="text-2xl font-extrabold tracking-tight">Vegan University</p>
-          <p className="prose-measure mt-3 text-sm text-white/75 dark:text-paper/75">
+          <p className="prose-measure mt-3 text-sm text-white/75">
             A digital home for people learning to cook plants with confidence,
             community, and care — a school that still looks like a kitchen.
           </p>
@@ -52,7 +56,7 @@ export function MarketingFooter() {
         <div className="grid grid-cols-2 gap-8 sm:grid-cols-3 lg:grid-cols-5">
           {columns.map((column) => (
             <div key={column.title}>
-              <p className="text-xs font-bold uppercase tracking-[0.16em] text-accent">
+              <p className="text-xs font-bold uppercase tracking-[0.16em] text-white/60">
                 {column.title}
               </p>
               <ul className="mt-3 space-y-2 text-sm">
@@ -60,7 +64,7 @@ export function MarketingFooter() {
                   <li key={link.href + link.label}>
                     <Link
                       href={link.href}
-                      className="text-white/90 hover:text-accent dark:text-paper/90"
+                      className="text-white/90 hover:text-white"
                     >
                       {link.label}
                     </Link>

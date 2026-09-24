@@ -311,9 +311,9 @@ const PALETTE = {
   paperMid: "#f2e6d2",
   paperEdge: "#e2d0b6",
   limb: "rgba(120, 92, 62, 0.26)",
-  landFill: "rgba(22, 92, 64, 0.72)",
-  landFillDeep: "rgba(12, 58, 42, 0.55)",
-  landEdge: "rgba(10, 46, 34, 0.55)",
+  landFill: "rgba(0,0,0, 0.72)",
+  landFillDeep: "rgba(0,0,0, 0.55)",
+  landEdge: "rgba(0,0,0, 0.55)",
 };
 
 /**
@@ -447,7 +447,7 @@ function MapPin({ place }: { place: string }) {
     <span className="relative block" title={place}>
       <svg
         viewBox="0 0 24 32"
-        className="h-7 w-auto drop-shadow-[0_4px_8px_rgba(15,61,50,0.35)]"
+        className="h-7 w-auto drop-shadow-[0_4px_8px_rgba(0,0,0,0.35)]"
         role="img"
         aria-label={place}
       >

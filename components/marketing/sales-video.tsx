@@ -94,7 +94,7 @@ export function SalesVideo({
           type="button"
           onClick={start}
           aria-label={`Play: ${label}`}
-          className="group absolute inset-0 grid place-items-center bg-[linear-gradient(180deg,rgba(6,26,21,0.12)_0%,rgba(6,26,21,0.5)_100%)]"
+          className="group absolute inset-0 grid place-items-center bg-[linear-gradient(180deg,rgba(0,0,0,0.12)_0%,rgba(0,0,0,0.5)_100%)]"
         >
           <span className="grid size-[4.5rem] place-items-center rounded-full bg-white/95 text-forest shadow-[0_12px_34px_rgba(0,0,0,0.35)] transition group-hover:scale-105">
             <Play className="size-7 translate-x-0.5" aria-hidden />
