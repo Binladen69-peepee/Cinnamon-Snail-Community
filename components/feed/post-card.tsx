@@ -9,7 +9,7 @@ import { PostFollowButton } from "@/components/feed/post-follow-button";
 import { PostFooter } from "@/components/feed/post-footer";
 import { PostGalleryModal } from "@/components/feed/post-gallery-modal";
 import { PostMedia } from "@/components/feed/post-media";
-import { PostMenu } from "@/components/feed/post-menu";
+import { PostOverflow } from "@/components/feed/post-overflow";
 import type { Density } from "@/components/feed/feed-toolbar";
 import { videoEmbedSrc } from "@/lib/community/media";
 import { cn } from "@/lib/utils";
@@ -211,10 +211,11 @@ export function PostCard({
                 initialFollowing={Boolean(post.viewerFollowsAuthor)}
               />
             ) : null}
-            <PostMenu
+            <PostOverflow
               postId={post.id}
               pinned={Boolean(post.pinnedAt)}
               canPin={canPin}
+              canDelete={isOwn || canPin}
             />
           </div>
         </header>

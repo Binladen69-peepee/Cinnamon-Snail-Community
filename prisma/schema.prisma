@@ -36,6 +36,16 @@ enum SpaceKind {
   MEMBERS
 }
 
+/// How loudly a space talks to a member.
+enum SpaceNotificationLevel {
+  /// Every new post.
+  ALL
+  /// Only what a host marks, plus replies and mentions.
+  HIGHLIGHTS
+  /// Nothing; the space still shows unread counts.
+  NONE
+}
+
 enum SpaceVisibility {
   PUBLIC
   MEMBERS
@@ -69,6 +79,9 @@ enum PostType {
 enum PostStatus {
   DRAFT
   SCHEDULED
+  /// Written, but waiting for a host to let it through. Only spaces with
+  /// approvalRequired produce these, and only a moderator can move one on.
+  PENDING
   PUBLISHED
   HIDDEN
   REMOVED
@@ -317,7 +330,11 @@ model Space {
   visibility           SpaceVisibility   @default(MEMBERS)
   postingPermission    PostingPermission @default(ALL_MEMBERS)
   approvalRequired     Boolean           @default(false)
-  notificationDefaults Json?
+  /// What a member gets by default here, unless their membership overrides it.
+  notificationDefault  SpaceNotificationLevel @default(ALL)
+  /// The product that unlocks this space. Null means membership alone is
+  /// enough, which is true of every general room.
+  productId            String?
   sortOrder            Int               @default(0)
   /// Which nav group this space sits under. Null means ungrouped.
   groupId              String?
@@ -325,6 +342,7 @@ model Space {
   createdAt            DateTime          @default(now())
   updatedAt            DateTime          @updatedAt
   host                 User?             @relation("SpaceHost", fields: [hostUserId], references: [id])
+  product              Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
   group                SpaceGroup?       @relation(fields: [groupId], references: [id], onDelete: SetNull)
   memberships          SpaceMembership[]
   posts                Post[]
@@ -334,6 +352,8 @@ model Space {
   resources            SpaceResource[]
 
   @@index([groupId, sortOrder])
+  @@index([visibility])
+  @@index([productId])
 }
 
 /// A heading in the space navigation. Circle's "space groups": what keeps a
@@ -372,6 +392,8 @@ model SpaceMembership {
   /// Last time this member opened the space. Null means never, so everything
   /// published counts as unread.
   lastReadAt  DateTime?
+  /// Overrides the space default. Null means follow the space.
+  notificationLevel SpaceNotificationLevel?
   createdAt   DateTime            @default(now())
   space       Space               @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -397,12 +419,27 @@ model Post {
   publishedAt DateTime?
   scheduledAt DateTime?
   score       Int              @default(0)
+  /// The newest of: published, edited, commented on. "Recent activity" orders
+  /// by this, and it has to be a column rather than something computed so the
+  /// database can do the sort and seek straight to a cursor.
+  lastActivityAt DateTime      @default(now())
+  editedAt    DateTime?
+  /// Kept in step with the rows they count, in the same transaction as the
+  /// write. Counting on read means loading every comment and every reaction of
+  /// every post in the feed.
+  commentCount  Int            @default(0)
+  reactionCount Int            @default(0)
+  /// Set when this post re-shares another into a different space.
+  sharedFromPostId String?
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   space       Space            @relation(fields: [spaceId], references: [id], onDelete: Cascade)
   author      User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
   recipe      Recipe?          @relation(fields: [recipeId], references: [id])
   event       Event?           @relation(fields: [eventId], references: [id])
+  sharedFrom  Post?            @relation("PostShare", fields: [sharedFromPostId], references: [id], onDelete: SetNull)
+  shares      Post[]           @relation("PostShare")
+  reactionTallies PostReactionTally[]
   attachments PostAttachment[]
   mentions    PostMention[]
   comments    Comment[]
@@ -416,6 +453,30 @@ model Post {
   @@index([authorId])
   @@index([status, scheduledAt])
   @@index([score])
+  /// The three feed orderings, each able to seek straight to a cursor.
+  @@index([status, lastActivityAt, id])
+  @@index([status, publishedAt, id])
+  @@index([status, score, id])
+  @@index([spaceId, status, lastActivityAt])
+  /// Someone's own drafts and scheduled posts.
+  @@index([authorId, status, updatedAt])
+  @@index([sharedFromPostId])
+}
+
+/// One row per emoji per post, holding how many people picked it.
+///
+/// The feed needs the breakdown to draw the reaction bar. Loading every
+/// Reaction row of every post to count them in JavaScript is fine at four
+/// hundred reactions and ruinous at four hundred thousand, so the counts live
+/// here and move in the same statement that adds or removes a reaction.
+model PostReactionTally {
+  postId String
+  emoji  String
+  count  Int    @default(0)
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([postId, emoji])
+  @@index([postId])
 }
 
 model PostAttachment {
@@ -429,7 +490,10 @@ model PostAttachment {
   height       Int?
   /** Optional still shown before a video plays (composer thumbnail or class cover). */
   thumbnailUrl String?
+  sortOrder    Int     @default(0)
   post         Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId, sortOrder])
 }
 
 model PostMention {
@@ -449,6 +513,8 @@ model PollOption {
   sortOrder Int        @default(0)
   post      Post       @relation(fields: [postId], references: [id], onDelete: Cascade)
   votes     PollVote[]
+
+  @@index([postId, sortOrder])
 }
 
 model PollVote {
@@ -467,6 +533,10 @@ model Comment {
   postId    String
   authorId  String
   parentId  String?
+  /// 0 for a top-level comment, 1 for a reply. Replies stop there: a thread
+  /// that nests forever is unreadable on a phone and unbounded to render.
+  depth     Int              @default(0)
+  editedAt  DateTime?
   body      String
   bodyHtml  String?
   plainText String
@@ -475,13 +545,15 @@ model Comment {
   updatedAt DateTime         @updatedAt
   post      Post             @relation(fields: [postId], references: [id], onDelete: Cascade)
   author    User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  parent    Comment?         @relation("CommentThread", fields: [parentId], references: [id])
+  parent    Comment?         @relation("CommentThread", fields: [parentId], references: [id], onDelete: Cascade)
   replies   Comment[]        @relation("CommentThread")
   reactions Reaction[]
   votes     Vote[]
   mentions  CommentMention[]
 
   @@index([postId, createdAt])
+  @@index([postId, parentId, createdAt])
+  @@index([parentId])
 }
 
 model CommentMention {
@@ -504,6 +576,8 @@ model Reaction {
 
   @@unique([userId, postId, emoji])
   @@unique([userId, commentId, emoji])
+  @@index([postId])
+  @@index([commentId])
 }
 
 model Vote {
@@ -551,6 +625,9 @@ model Report {
   post          Post?        @relation(fields: [postId], references: [id], onDelete: Cascade)
   message       Message?     @relation(fields: [messageId], references: [id], onDelete: Cascade)
 
+  /// One report per person per post. Reporting twice is not twice the signal,
+  /// and an unbounded report table is its own denial of service.
+  @@unique([reporterId, postId])
   @@index([status, createdAt])
 }
 
@@ -843,6 +920,7 @@ model Product {
   subscriptions Subscription[]
   entitlements  Entitlement[]
   pendingGrants PendingGrant[]
+  spaces        Space[]
 }
 
 model SamcartProductMap {

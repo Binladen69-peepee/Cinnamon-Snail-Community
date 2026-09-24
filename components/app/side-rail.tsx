@@ -9,9 +9,11 @@ import {
   ChevronDown,
   ClipboardList,
   Compass,
+  FileText,
   Hash,
   Home,
   Leaf,
+  Lock,
   Map,
   MessageSquare,
   UserRound,
@@ -37,6 +39,7 @@ const SECTIONS: { label: string; links: Dest[] }[] = [
       { href: "/spaces", label: "Spaces", icon: Users },
       { href: "/members", label: "Members", icon: UserRound },
       { href: "/messages", label: "Messages", icon: MessageSquare },
+      { href: "/drafts", label: "Drafts", icon: FileText },
     ],
   },
   {
@@ -267,8 +270,21 @@ function SpaceRow({ space, pathname }: { space: NavSpace; pathname: string }) {
               : "text-sidebar-foreground/65 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground",
         )}
       >
-        <Icon className="size-3.5 shrink-0 opacity-70" aria-hidden />
+        {/* A space can carry its own emoji. It was stored and loaded and then
+            never drawn, so every room looked like its kind rather than like
+            itself. */}
+        {space.icon ? (
+          <span className="grid size-3.5 shrink-0 place-items-center text-[13px] leading-none" aria-hidden>
+            {space.icon}
+          </span>
+        ) : (
+          <Icon className="size-3.5 shrink-0 opacity-70" aria-hidden />
+        )}
         <span className="min-w-0 flex-1 truncate">{hashLabel}</span>
+        {/* Listed, but closed until they hold the product it is sold with. */}
+        {space.locked ? (
+          <Lock className="size-3 shrink-0 opacity-60" aria-hidden />
+        ) : null}
         {space.unread > 0 ? <Badge count={space.unread} /> : null}
       </Link>
     </li>

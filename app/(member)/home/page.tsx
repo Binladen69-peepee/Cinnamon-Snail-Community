@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { listFeed } from "@/lib/community/posts";
+import { toFeedCard } from "@/lib/community/feed-card";
 import { parseFeedSort } from "@/lib/community/sort";
 import { peopleYouShouldMeet } from "@/lib/social/suggestions";
 import { trendingSpaces } from "@/lib/community/trending";
@@ -13,6 +14,7 @@ import { AppShell } from "@/components/app/app-shell";
 import { Composer } from "@/components/feed/composer";
 import { FeedToolbar, type Density } from "@/components/feed/feed-toolbar";
 import { PostCard } from "@/components/feed/post-card";
+import { FeedStream } from "@/components/feed/feed-stream";
 import { FeedRail } from "@/components/feed/feed-rail";
 import { FeedEmpty } from "@/components/feed/feed-empty";
 
@@ -60,11 +62,9 @@ export default async function HomePage({
 
         <FeedToolbar sort={sort} basePath="/home" density={density} />
 
-        {data.posts.length === 0 ? (
-          <FeedEmpty sort={sort} hasSpaces={data.mySpaces.length > 0} />
-        ) : (
+        {data.pinned.length > 0 ? (
           <div className="space-y-3">
-            {data.posts.map((post) => (
+            {data.pinned.map((post) => (
               <PostCard
                 key={post.id}
                 post={post}
@@ -74,7 +74,22 @@ export default async function HomePage({
               />
             ))}
           </div>
-        )}
+        ) : null}
+
+        <FeedStream
+          key={sort}
+          initialPosts={data.posts}
+          initialCursor={data.nextCursor}
+          sort={sort}
+          viewer={viewer}
+          density={density}
+          canPin={isStaff}
+          emptyState={
+            data.pinned.length > 0 ? null : (
+              <FeedEmpty sort={sort} hasSpaces={data.mySpaces.length > 0} />
+            )
+          }
+        />
       </div>
     </AppShell>
   );
@@ -100,7 +115,7 @@ async function loadFeed(userId: string, sort: ReturnType<typeof parseFeedSort>) 
   const runningSince = new Date(Date.now() - 2 * 60 * 60 * 1000);
 
   const [feed, mySpaces, events, suggestions, trending, nextLive] = await Promise.all([
-    listFeed({ userId, sort, take: 25 }),
+    listFeed({ userId, sort, take: 20 }),
     prisma.space.findMany({
       where: { memberships: { some: { userId } } },
       orderBy: { sortOrder: "asc" },
@@ -155,7 +170,11 @@ async function loadFeed(userId: string, sort: ReturnType<typeof parseFeedSort>) 
         : [];
 
   return {
-    posts: feed.posts,
+    // Serialised to the card shape here rather than in the component, so the
+    // first page and every page after it are the same object.
+    posts: feed.posts.map(toFeedCard),
+    pinned: feed.pinned,
+    nextCursor: feed.nextCursor,
     mySpaces,
     defaultSpaceId:
       mySpaces.find((space) => space.slug === "kitchen-table")?.id ?? mySpaces[0]?.id,

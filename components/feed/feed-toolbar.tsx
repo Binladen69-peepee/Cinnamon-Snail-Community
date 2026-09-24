@@ -2,23 +2,32 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowUpRight, Clock, Flame, LayoutList, Rows3, TrendingUp } from "lucide-react";
+import { Clock, Flame, LayoutList, Rows3, TrendingUp } from "lucide-react";
 import { FEED_SORTS, type FeedSort } from "@/lib/community/sort";
 import { cn } from "@/lib/utils";
 
 export type Density = "card" | "compact";
 
-const ICONS: Record<string, typeof Flame> = {
-  hot: Flame,
+/** Phone-width labels. Three full names do not fit beside the density toggle. */
+const SHORT: Record<FeedSort, string> = {
+  active: "Active",
+  new: "New",
+  top: "Top",
+};
+
+const ICONS: Record<FeedSort, typeof Flame> = {
+  active: Flame,
   new: Clock,
   top: TrendingUp,
-  rising: ArrowUpRight,
 };
 
 /**
- * Sort pills + density toggle above the feed.
- * Active Hot uses cream fill so it reads on both light and dark.
- * See PROJECT.md — the member shell and feed layout.
+ * Sort pills and the density toggle above the feed.
+ *
+ * Three orders, each a link so it can be shared and so the control works
+ * before the page hydrates. The label says what it does rather than naming a
+ * ranking function: "Recent activity" is a promise about what you will see,
+ * "Hot" is a description of an algorithm nobody asked about.
  */
 export function FeedToolbar({
   sort,
@@ -41,7 +50,7 @@ export function FeedToolbar({
       <nav aria-label="Sort posts" className="flex min-w-0 items-center gap-0.5">
         {FEED_SORTS.map((item) => {
           const active = sort === item.value;
-          const Icon = ICONS[item.value] ?? Flame;
+          const Icon = ICONS[item.value];
           return (
             <Link
               key={item.value}
@@ -52,15 +61,16 @@ export function FeedToolbar({
                 "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
                 active
                   ? "bg-brand-fill text-brand-fill-foreground shadow-e1"
-                  : "text-foreground-muted hover:bg-mint hover:text-foreground",
+                  : "text-foreground-muted hover:bg-surface-muted hover:text-foreground",
               )}
             >
               <Icon
                 className="size-3.5"
-                fill={active && item.value === "hot" ? "currentColor" : "none"}
+                fill={active && item.value === "active" ? "currentColor" : "none"}
                 aria-hidden
               />
-              {item.label}
+              <span className="hidden sm:inline">{item.label}</span>
+              <span className="sm:hidden">{SHORT[item.value]}</span>
             </Link>
           );
         })}

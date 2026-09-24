@@ -2,19 +2,28 @@
 
 import { revalidatePath } from "next/cache";
 import { after } from "next/server";
-import { redirect } from "next/navigation";
 import { PostType } from "@prisma/client";
 import { auth } from "@/auth";
 import {
   addComment,
   createPost,
+  decideOnPendingPost,
+  deleteComment,
+  deletePost,
   pinPost,
+  publishPost,
+  sharePostToSpace,
+  updatePost,
+} from "@/lib/community/posts";
+import {
   reportPost,
   setPostReaction,
   toggleBookmark,
+  toggleCommentReaction,
   votePoll,
-} from "@/lib/community/posts";
+} from "@/lib/community/engagement";
 import { toggleVote } from "@/lib/community/votes";
+import { guardCommunityAction } from "@/lib/community/rate-limits";
 import { awardBadges } from "@/lib/social/badges";
 import { kindOf } from "@/lib/uploads/policy";
 import { objectPathFromUrl, verifyUploaded } from "@/lib/uploads/storage";
@@ -33,6 +42,27 @@ function revalidateFeeds(postId?: string) {
   revalidatePath("/home");
   revalidatePath("/spaces", "layout");
   if (postId) revalidatePath(`/posts/${postId}`);
+}
+
+export type ActionResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * Turns a thrown mutation into a message the interface can show.
+ *
+ * Every action below is triggered by a button, and a button that throws puts
+ * the whole page into an error boundary. A refusal — no permission, too fast,
+ * already gone — is an ordinary outcome and belongs next to the button.
+ */
+async function attempt(work: () => Promise<unknown>): Promise<ActionResult> {
+  try {
+    await work();
+    return { ok: true };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : "That did not work.",
+    };
+  }
 }
 
 /* -------------------------------------------------------------------------- */
@@ -66,6 +96,10 @@ async function verifyAttachments(
   | { ok: false; error: string }
 > {
   if (claimed.length === 0) return { ok: true, files: [] };
+
+  // Verifying an attachment is a round trip to object storage per file, so the
+  // act of claiming attachments is itself rate limited.
+  await guardCommunityAction("upload", userId);
 
   const files: {
     url: string;
@@ -202,6 +236,24 @@ export async function createPostAction(
       return { ok: false, error: "Paste the link you want to share." };
     }
 
+    // The composer can ask for a draft or a scheduled post; anything else is
+    // published now, subject to whatever the space says about approval.
+    const rawIntent = String(formData.get("intent") ?? "PUBLISH");
+    const intent =
+      rawIntent === "DRAFT" || rawIntent === "SCHEDULE" ? rawIntent : "PUBLISH";
+    const rawSchedule = String(formData.get("scheduledAt") ?? "").trim();
+    let scheduledAt: Date | null = null;
+    if (intent === "SCHEDULE") {
+      const parsed = new Date(rawSchedule);
+      if (Number.isNaN(parsed.getTime())) {
+        return { ok: false, error: "That is not a date we can read." };
+      }
+      if (parsed.getTime() <= Date.now()) {
+        return { ok: false, error: "Pick a time in the future." };
+      }
+      scheduledAt = parsed;
+    }
+
     await createPost({
       userId,
       spaceId,
@@ -209,7 +261,8 @@ export async function createPostAction(
       title: title || undefined,
       body,
       linkUrl,
-      status: "PUBLISHED",
+      intent,
+      scheduledAt,
       attachmentUrls: attachments.files,
       pollOptions: type === "POLL" ? poll : undefined,
     });
@@ -226,59 +279,181 @@ export async function createPostAction(
   }
 }
 
-export async function commentAction(formData: FormData) {
+export async function commentAction(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const postId = String(formData.get("postId") ?? "");
   const body = String(formData.get("body") ?? "").trim();
-  if (!postId || !body) return;
-  await addComment({
-    userId,
-    postId,
-    body,
-    parentId: String(formData.get("parentId") ?? "") || undefined,
-  });
-  revalidateFeeds(postId);
-  after(() => awardBadges(userId));
+  if (!postId || !body) {
+    return { ok: false, error: "Write something first." };
+  }
+  const result = await attempt(() =>
+    addComment({
+      userId,
+      postId,
+      body,
+      parentId: String(formData.get("parentId") ?? "") || null,
+    }),
+  );
+  if (result.ok) {
+    revalidateFeeds(postId);
+    after(() => awardBadges(userId));
+  }
+  return result;
+}
+
+/** Editing a post in place. */
+export async function updatePostAction(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const postId = String(formData.get("postId") ?? "");
+  const body = String(formData.get("body") ?? "").trim();
+  if (!postId || !body) {
+    return { ok: false, error: "A post needs something in it." };
+  }
+  const result = await attempt(() =>
+    updatePost({
+      userId,
+      postId,
+      title: String(formData.get("title") ?? "").trim() || null,
+      body,
+      linkUrl: String(formData.get("linkUrl") ?? "").trim() || null,
+    }),
+  );
+  if (result.ok) revalidateFeeds(postId);
+  return result;
+}
+
+export async function deletePostAction(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const postId = String(formData.get("postId") ?? "");
+  if (!postId) return { ok: false, error: "Nothing to remove." };
+  const result = await attempt(() => deletePost({ userId, postId }));
+  if (result.ok) revalidateFeeds(postId);
+  return result;
+}
+
+export async function deleteCommentAction(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const commentId = String(formData.get("commentId") ?? "");
+  const postId = String(formData.get("postId") ?? "");
+  if (!commentId) return { ok: false, error: "Nothing to remove." };
+  const result = await attempt(() => deleteComment({ userId, commentId }));
+  if (result.ok) revalidateFeeds(postId || undefined);
+  return result;
+}
+
+/** Sends a draft live, or an approved post on its way. */
+export async function publishPostAction(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const postId = String(formData.get("postId") ?? "");
+  if (!postId) return { ok: false, error: "Nothing to publish." };
+  const result = await attempt(() => publishPost({ userId, postId }));
+  if (result.ok) revalidateFeeds(postId);
+  return result;
+}
+
+/** A host letting a held post through, or turning it away. */
+export async function reviewPostAction(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const postId = String(formData.get("postId") ?? "");
+  const approve = String(formData.get("decision") ?? "") === "approve";
+  if (!postId) return { ok: false, error: "Nothing to review." };
+  const result = await attempt(() =>
+    decideOnPendingPost({ userId, postId, approve }),
+  );
+  if (result.ok) {
+    revalidateFeeds(postId);
+    revalidatePath("/spaces", "layout");
+  }
+  return result;
+}
+
+/** Re-sharing a post into another space. */
+export async function sharePostAction(formData: FormData): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const postId = String(formData.get("postId") ?? "");
+  const spaceId = String(formData.get("spaceId") ?? "");
+  if (!postId || !spaceId) {
+    return { ok: false, error: "Pick a space to share into." };
+  }
+  const result = await attempt(() =>
+    sharePostToSpace({
+      userId,
+      postId,
+      spaceId,
+      note: String(formData.get("note") ?? "").slice(0, 500) || undefined,
+    }),
+  );
+  if (result.ok) revalidateFeeds(postId);
+  return result;
 }
 
 /* -------------------------------------------------------------------------- */
 /* Reacting                                                                   */
 /* -------------------------------------------------------------------------- */
 
-export async function voteAction(formData: FormData) {
+export async function voteAction(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const postId = String(formData.get("postId") ?? "") || undefined;
   const commentId = String(formData.get("commentId") ?? "") || undefined;
   const returnToPostId = String(formData.get("returnToPostId") ?? "") || postId;
   const raw = Number(formData.get("value"));
-  await toggleVote({ userId, postId, commentId, value: raw === -1 ? -1 : 1 });
-  revalidateFeeds(returnToPostId);
+  const result = await attempt(() =>
+    toggleVote({ userId, postId, commentId, value: raw === -1 ? -1 : 1 }),
+  );
+  if (result.ok) revalidateFeeds(returnToPostId);
+  return result;
 }
 
-export async function reactAction(formData: FormData) {
+export async function reactAction(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const postId = String(formData.get("postId") ?? "");
-  if (!postId) return;
-  await setPostReaction({
-    userId,
-    postId,
-    emoji: String(formData.get("emoji") ?? ""),
-  });
-  revalidateFeeds(postId);
+  if (!postId) return { ok: false, error: "Nothing to react to." };
+  const result = await attempt(() =>
+    setPostReaction({
+      userId,
+      postId,
+      emoji: String(formData.get("emoji") ?? ""),
+    }),
+  );
+  if (result.ok) revalidateFeeds(postId);
+  return result;
 }
 
-export async function saveAction(formData: FormData) {
+export async function reactToCommentAction(
+  formData: FormData,
+): Promise<ActionResult> {
+  const userId = await requireUserId();
+  const commentId = String(formData.get("commentId") ?? "");
+  if (!commentId) return { ok: false, error: "Nothing to react to." };
+  const result = await attempt(() =>
+    toggleCommentReaction({
+      userId,
+      commentId,
+      emoji: String(formData.get("emoji") ?? ""),
+    }),
+  );
+  if (result.ok) revalidateFeeds(String(formData.get("postId") ?? "") || undefined);
+  return result;
+}
+
+export async function saveAction(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const postId = String(formData.get("postId") ?? "");
-  if (!postId) return;
-  await toggleBookmark(userId, postId);
-  revalidateFeeds(postId);
+  if (!postId) return { ok: false, error: "Nothing to save." };
+  const result = await attempt(() => toggleBookmark(userId, postId));
+  if (result.ok) revalidateFeeds(postId);
+  return result;
 }
 
-export async function votePollAction(formData: FormData) {
+export async function votePollAction(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
-  await votePoll(userId, String(formData.get("optionId") ?? ""));
-  revalidateFeeds(String(formData.get("postId") ?? "") || undefined);
+  const result = await attempt(() =>
+    votePoll(userId, String(formData.get("optionId") ?? "")),
+  );
+  if (result.ok) {
+    revalidateFeeds(String(formData.get("postId") ?? "") || undefined);
+  }
+  return result;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -286,23 +461,27 @@ export async function votePollAction(formData: FormData) {
 /* -------------------------------------------------------------------------- */
 
 /** pinPost toggles on the server, so the caller does not pass a target state. */
-export async function pinPostAction(formData: FormData) {
+export async function pinPostAction(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const postId = String(formData.get("postId") ?? "");
-  if (!postId) return;
-  await pinPost(userId, postId);
-  revalidateFeeds(postId);
+  if (!postId) return { ok: false, error: "Nothing to pin." };
+  const result = await attempt(() => pinPost(userId, postId));
+  if (result.ok) revalidateFeeds(postId);
+  return result;
 }
 
-export async function reportPostAction(formData: FormData) {
+export async function reportPostAction(formData: FormData): Promise<ActionResult> {
   const userId = await requireUserId();
   const postId = String(formData.get("postId") ?? "");
-  if (!postId) return;
-  await reportPost(
-    userId,
-    postId,
-    String(formData.get("reason") ?? "").slice(0, 500),
+  if (!postId) return { ok: false, error: "Nothing to report." };
+  const result = await attempt(() =>
+    reportPost({
+      userId,
+      postId,
+      reason: String(formData.get("reason") ?? ""),
+      details: String(formData.get("details") ?? "") || undefined,
+    }),
   );
-  revalidateFeeds(postId);
-  redirect(`/posts/${postId}`);
+  if (result.ok) revalidateFeeds(postId);
+  return result;
 }

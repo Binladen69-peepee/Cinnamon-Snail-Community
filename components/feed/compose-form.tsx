@@ -16,6 +16,7 @@ import {
   type ComposerType,
 } from "@/lib/community/post-types";
 import { ACCEPT, IMAGE_ACCEPT, VIDEO_ACCEPT } from "@/lib/uploads/policy";
+import { RichEditor } from "@/components/feed/rich-editor";
 import { cn } from "@/lib/utils";
 
 const MAX_BODY = 5000;
@@ -40,13 +41,23 @@ export function ComposeForm({
   defaultSpaceId,
   uploadsEnabled,
 }: {
-  type: ComposerType;
+  /**
+   * The chosen type as a plain value, resolved to its full entry here.
+   *
+   * It cannot arrive as the entry itself: each one carries a Lucide icon,
+   * which is a function, and React refuses to serialise a function across the
+   * server-to-client boundary. Passing the object made this page a 500 for
+   * every signed-in member.
+   */
+  type: ComposerType["value"];
   spaces: { id: string; name: string }[];
   defaultSpaceId: string | null;
   uploadsEnabled: boolean;
 }) {
   const router = useRouter();
-  const [type, setType] = useState(initialType);
+  const [type, setType] = useState<ComposerType>(
+    () => COMPOSER_TYPES.find((entry) => entry.value === initialType) ?? COMPOSER_TYPES[0]!,
+  );
   const [spaceId, setSpaceId] = useState(defaultSpaceId ?? spaces[0]?.id ?? "");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
@@ -193,13 +204,14 @@ export function ComposeForm({
         >
           {typeHasField(type, "title") ? "Details" : "Post"}
         </label>
-        <textarea
+        <RichEditor
           id="compose-body"
+          name="body"
           value={body}
-          onChange={(event) => setBody(event.target.value)}
+          onChange={setBody}
           rows={type.value === "ARTICLE" ? 14 : 7}
+          maxLength={MAX_BODY}
           placeholder={type.bodyPlaceholder}
-          className="w-full resize-y rounded-ctl border border-field-border bg-field-background px-3 py-2.5 text-[14.5px] leading-relaxed text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/20"
         />
         <p
           className={cn(

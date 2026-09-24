@@ -67,7 +67,7 @@ export default async function ComposePage({
         </header>
 
         <ComposeForm
-          type={type}
+          type={type.value}
           spaces={spaces.map(({ id, name }) => ({ id, name }))}
           defaultSpaceId={defaultSpaceId}
           uploadsEnabled={uploadsConfigured()}

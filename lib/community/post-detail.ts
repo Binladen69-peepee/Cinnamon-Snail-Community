@@ -1,7 +1,7 @@
 import { prisma } from "@/lib/db";
 import { getUserAuth } from "@/lib/community/posts";
-import { summarizeReactions } from "@/lib/community/reactions";
-import { nestComments, sortByFeed, type FeedSort } from "@/lib/community/sort";
+import { encodeFeedCursor } from "@/lib/community/cursor";
+import { nestComments, type CommentSort } from "@/lib/community/sort";
 import { canEnterSpace, canModerateSpace } from "@/lib/permissions";
 
 /**
@@ -18,9 +18,17 @@ const DETAIL_INCLUDE = {
   author: { include: { profile: true } },
   space: true,
   attachments: true,
-  pollOptions: { include: { _count: { select: { votes: true } } } },
-  reactions: { select: { emoji: true, userId: true } },
-  _count: { select: { comments: true, bookmarks: true } },
+  pollOptions: {
+    orderBy: { sortOrder: "asc" },
+    include: { _count: { select: { votes: true } } },
+  },
+  /// The per-emoji counts, summed at write time rather than by loading every
+  /// reaction row a popular post has collected.
+  reactionTallies: {
+    where: { count: { gt: 0 } },
+    orderBy: { count: "desc" },
+    take: 6,
+  },
 } as const;
 
 export type PostDetail = Awaited<ReturnType<typeof getPostDetail>>;
@@ -42,6 +50,7 @@ export async function getPostDetail(userId: string, postId: string) {
         ...DETAIL_INCLUDE,
         votes: { where: { userId }, select: { value: true } },
         bookmarks: { where: { userId }, select: { id: true } },
+        reactions: { where: { userId }, select: { emoji: true } },
       },
     }),
   ]);
@@ -60,17 +69,22 @@ export async function getPostDetail(userId: string, postId: string) {
     return null;
   }
 
-  // Takes the rows and the viewer, and works out counts plus which one is mine.
-  const summary = summarizeReactions(post.reactions, userId);
+  const reactionCounts: Record<string, number> = {};
+  for (const tally of post.reactionTallies) reactionCounts[tally.emoji] = tally.count;
+  const myReaction = post.reactions[0]?.emoji ?? null;
+  if (myReaction && reactionCounts[myReaction] === undefined) {
+    reactionCounts[myReaction] = 1;
+  }
 
   return {
     post: {
       ...post,
       myVote: post.votes[0]?.value ?? 0,
       myBookmark: post.bookmarks.length > 0,
-      reactionCounts: summary.counts,
-      myReaction: summary.myReaction,
-      reactionTotal: summary.total,
+      reactionCounts,
+      myReaction,
+      reactionTotal: post.reactionCount,
+      _count: { comments: post.commentCount, bookmarks: 0 },
       // The detail view shows the whole conversation below, so the card's own
       // preview comments would be the same replies twice.
       comments: [],
@@ -99,19 +113,16 @@ export type DetailComment = {
 /**
  * The conversation, nested and ordered.
  *
- * Order applies at every level, not only the top, so a busy reply chain surfaces
- * its best answer too. `nestComments` already does that; this exists to pass a
- * real sort through rather than the fixed one the API route uses.
+ * Roots are paginated and their replies come with them. Loading every comment
+ * of a post was fine while the busiest post had forty; it is the query that
+ * falls over first when one of them catches fire, and the post that catches
+ * fire is the one everybody opens.
  */
-export async function getPostConversation(
-  userId: string,
-  postId: string,
-  sort: FeedSort,
-): Promise<{ comments: DetailComment[]; count: number }> {
-  const rows = await prisma.comment.findMany({
-    where: { postId },
-    orderBy: { createdAt: "asc" },
-    select: {
+export const DETAIL_ROOTS_PER_PAGE = 20;
+const DETAIL_REPLIES_PER_ROOT = 20;
+
+const CONVERSATION_SELECT = (userId: string) =>
+  ({
       id: true,
       postId: true,
       parentId: true,
@@ -126,15 +137,60 @@ export async function getPostConversation(
           profile: { select: { displayName: true, avatarUrl: true } },
         },
       },
-    },
+    }) as const;
+
+export async function getPostConversation(
+  userId: string,
+  postId: string,
+  sort: CommentSort,
+): Promise<{ comments: DetailComment[]; count: number; nextCursor: string | null }> {
+  const select = CONVERSATION_SELECT(userId);
+  const order =
+    sort === "old"
+      ? [{ createdAt: "asc" as const }, { id: "asc" as const }]
+      : sort === "new"
+        ? [{ createdAt: "desc" as const }, { id: "desc" as const }]
+        : [{ score: "desc" as const }, { id: "desc" as const }];
+
+  const rootRows = await prisma.comment.findMany({
+    where: { postId, parentId: null },
+    orderBy: order,
+    take: DETAIL_ROOTS_PER_PAGE + 1,
+    select,
   });
+  const roots = rootRows.slice(0, DETAIL_ROOTS_PER_PAGE);
+  const last = roots[roots.length - 1];
+
+  const replies = roots.length
+    ? await prisma.comment.findMany({
+        where: { parentId: { in: roots.map((root) => root.id) } },
+        orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+        take: roots.length * DETAIL_REPLIES_PER_ROOT,
+        select,
+      })
+    : [];
 
   const tree = nestComments(
-    rows.map((row) => ({ ...row, myVote: row.votes[0]?.value ?? 0 })),
+    [...roots, ...replies].map((row) => ({
+      ...row,
+      myVote: row.votes[0]?.value ?? 0,
+    })),
     sort,
   );
 
-  return { comments: tree as unknown as DetailComment[], count: rows.length };
+  const post = await prisma.post.findUnique({
+    where: { id: postId },
+    select: { commentCount: true },
+  });
+
+  return {
+    comments: tree as unknown as DetailComment[],
+    count: post?.commentCount ?? roots.length,
+    nextCursor:
+      rootRows.length > DETAIL_ROOTS_PER_PAGE && last
+        ? encodeFeedCursor(sort === "top" ? last.score : last.createdAt, last.id)
+        : null,
+  };
 }
 
 /**
@@ -148,10 +204,12 @@ export async function listMoreFromSpace(
   excludePostId: string,
   take = 5,
 ) {
-  const rows = await prisma.post.findMany({
+  // Ordered by the database, by the same measure the feed calls recent
+  // activity. Fetching twenty to rank five in memory was pointless work.
+  return prisma.post.findMany({
     where: { spaceId, status: "PUBLISHED", id: { not: excludePostId } },
-    orderBy: { publishedAt: "desc" },
-    take: 20,
+    orderBy: [{ lastActivityAt: "desc" }, { id: "desc" }],
+    take,
     select: {
       id: true,
       title: true,
@@ -160,11 +218,7 @@ export async function listMoreFromSpace(
       publishedAt: true,
       createdAt: true,
       pinnedAt: true,
-      _count: { select: { comments: true } },
+      commentCount: true,
     },
   });
-
-  // Rank in memory: twenty rows is nothing, and it reuses the feed's own
-  // ordering rather than inventing a second notion of "interesting".
-  return sortByFeed(rows, "hot").slice(0, take);
 }

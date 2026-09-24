@@ -8,6 +8,7 @@ import {
   ThumbsUp,
 } from "lucide-react";
 import { reactAction, saveAction } from "@/app/(member)/community-actions";
+import { runAction } from "@/components/feed/run-action";
 import {
   DEFAULT_REACTION,
   FEED_REACTIONS,
@@ -67,7 +68,7 @@ export function PostActions({
     data.set("emoji", emoji);
     startTransition(async () => {
       apply({ myReaction: clearing ? null : emoji, counts: next });
-      await reactAction(data);
+      await runAction(reactAction, data);
     });
   }
 
@@ -76,7 +77,7 @@ export function PostActions({
     data.set("postId", postId);
     startTransition(async () => {
       apply({ saved: !state.saved });
-      await saveAction(data);
+      await runAction(saveAction, data);
     });
   }
 

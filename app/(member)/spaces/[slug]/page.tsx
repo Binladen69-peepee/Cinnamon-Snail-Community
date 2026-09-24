@@ -6,6 +6,7 @@ import { CalendarDays, Lock } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { listFeed } from "@/lib/community/posts";
+import { toFeedCard } from "@/lib/community/feed-card";
 import { parseFeedSort } from "@/lib/community/sort";
 import { formatShortTime } from "@/lib/community/format-count";
 import { getSpaceForMember, markSpaceRead, type SpaceKind } from "@/lib/spaces";
@@ -15,8 +16,10 @@ import { AppShell } from "@/components/app/app-shell";
 import { Composer } from "@/components/feed/composer";
 import { FeedToolbar, type Density } from "@/components/feed/feed-toolbar";
 import { PostCard } from "@/components/feed/post-card";
+import { FeedStream } from "@/components/feed/feed-stream";
 import { SpaceHeader, type SpaceTab } from "@/components/spaces/space-header";
 import { PinnedResources, SpaceRail } from "@/components/spaces/space-rail";
+import { SpaceTools } from "@/components/spaces/space-tools";
 import { Avatar } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -45,7 +48,8 @@ export default async function SpacePage({
 
   const result = await getSpaceForMember(session.user.id, slug);
   if (!result) notFound();
-  const { space, membership, canEnter, canJoin, canDiscover } = result;
+  const { space, membership, canEnter, canJoin, canDiscover, canManage, lockedByProduct } =
+    result;
 
   // A private space is unlisted, not merely locked: someone who cannot discover
   // it gets a 404 rather than confirmation that it exists.
@@ -69,6 +73,16 @@ export default async function SpacePage({
               ? space._count.memberships
               : undefined,
   }));
+
+  const canModerate =
+    membership?.role === "HOST" ||
+    membership?.role === "MODERATOR" ||
+    session.user.roles.some((role) => role === "ADMIN" || role === "SUPER_ADMIN");
+
+  // Only asked for by someone who can answer the queue.
+  const pendingCount = canModerate
+    ? await prisma.post.count({ where: { spaceId: space.id, status: "PENDING" } })
+    : 0;
 
   const hosts = await prisma.spaceMembership.findMany({
     where: { spaceId: space.id, role: { in: ["HOST", "MODERATOR"] } },
@@ -97,7 +111,9 @@ export default async function SpacePage({
   );
 
   // Someone who can see the room but not enter it gets the header and a reason,
-  // not a bare 403 — the header is what tells them who to ask.
+  // not a bare 403 — the header is what tells them who to ask. The reason
+  // matters: a room you need to be invited to and a room you need to buy into
+  // send you to two different places.
   if (!canEnter) {
     return (
       <AppShell>
@@ -106,12 +122,25 @@ export default async function SpacePage({
           <div className="rounded-card border border-border bg-surface px-6 py-10 text-center">
             <Lock className="mx-auto size-5 text-foreground-muted" aria-hidden />
             <p className="mt-3 text-[15px] font-bold text-foreground">
-              This room is private
+              {lockedByProduct ? "This room comes with a membership" : "This room is private"}
             </p>
             <p className="mx-auto mt-1 max-w-sm text-[13.5px] leading-relaxed text-foreground-muted">
-              A host adds members here. Ask{" "}
-              {space.host?.profile?.displayName ?? "a host"} if you think you
-              should be in it.
+              {lockedByProduct ? (
+                <>
+                  {space.product?.name
+                    ? `It is included with ${space.product.name}.`
+                    : "It is included with a paid membership."}{" "}
+                  <Link href="/membership" className="font-semibold text-foreground underline">
+                    See what is included
+                  </Link>
+                </>
+              ) : (
+                <>
+                  A host adds members here. Ask{" "}
+                  {space.host?.profile?.displayName ?? "a host"} if you think you
+                  should be in it.
+                </>
+              )}
             </p>
           </div>
         </div>
@@ -151,6 +180,15 @@ export default async function SpacePage({
     >
       <div className="space-y-2.5">
         {header}
+        <SpaceTools
+          spaceId={space.id}
+          slug={space.slug}
+          joined={membership !== null}
+          level={membership?.notificationLevel ?? null}
+          canManage={canManage}
+          canModerate={canModerate}
+          pendingCount={pendingCount}
+        />
         <PinnedResources resources={space.resources} />
 
         {tab === "feed" ? (
@@ -202,7 +240,7 @@ async function SpaceFeed({
   viewer: { name: string; avatar: string | null; handle?: string };
   isStaff: boolean;
 }) {
-  const { posts } = await listFeed({ userId, spaceId: space.id, sort, take: 40 });
+  const feed = await listFeed({ userId, spaceId: space.id, sort, take: 20 });
 
   return (
     <>
@@ -222,29 +260,41 @@ async function SpaceFeed({
 
       <FeedToolbar sort={sort} basePath={`/spaces/${space.slug}`} density={density} />
 
-      {posts.length === 0 ? (
-        <EmptyState
-          title="Nothing here yet"
-          body="Be the first to put something on this table."
-          actionLabel="Write a post"
-          actionHref="/compose"
-        />
-      ) : (
+      {feed.pinned.length > 0 ? (
         <div className="space-y-2.5">
-          {posts.map((post) => (
+          {feed.pinned.map((post) => (
             <PostCard
               key={post.id}
               post={post}
               viewer={viewer}
               density={density}
               canPin={isStaff}
-              // The space is already the page; repeating it on every card is
-              // noise.
               showSpace={false}
             />
           ))}
         </div>
-      )}
+      ) : null}
+
+      <FeedStream
+        key={sort}
+        initialPosts={feed.posts.map(toFeedCard)}
+        initialCursor={feed.nextCursor}
+        sort={sort}
+        spaceSlug={space.slug}
+        viewer={{ ...viewer, handle: viewer.handle ?? "" }}
+        density={density}
+        canPin={isStaff}
+        emptyState={
+          feed.pinned.length > 0 ? null : (
+            <EmptyState
+              title="Nothing here yet"
+              body="Be the first to put something on this table."
+              actionLabel="Write a post"
+              actionHref="/compose"
+            />
+          )
+        }
+      />
     </>
   );
 }

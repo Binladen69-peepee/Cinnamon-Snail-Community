@@ -3,6 +3,7 @@
 import { useOptimistic, useTransition } from "react";
 import { ArrowBigDown, ArrowBigUp } from "lucide-react";
 import { voteAction } from "@/app/(member)/community-actions";
+import { runAction } from "@/components/feed/run-action";
 import { formatCount } from "@/lib/community/format-count";
 import { cn } from "@/lib/utils";
 
@@ -52,7 +53,7 @@ export function VoteRail({
     data.set("value", String(value));
     startTransition(async () => {
       apply({ score: state.score - state.myVote + next, myVote: next });
-      await voteAction(data);
+      await runAction(voteAction, data);
     });
   }
 

@@ -1,13 +1,16 @@
 import { prisma } from "@/lib/db";
-import { getUserAuth } from "@/lib/community/posts";
+import { getUserAuth, getViewerMemberships } from "@/lib/community/viewer";
 import {
   canDiscoverSpace,
   canEnterSpace,
   canJoinSpace,
+  canManageSpace,
+  meetsProductRule,
 } from "@/lib/permissions";
 
 export type SpaceKind = "FEED" | "COURSE" | "EVENTS" | "CHAT" | "MEMBERS";
 export type SpaceVisibility = "PUBLIC" | "MEMBERS" | "PRIVATE";
+export type SpaceNotificationLevel = "ALL" | "HIGHLIGHTS" | "NONE";
 
 export type NavSpace = {
   id: string;
@@ -20,6 +23,8 @@ export type NavSpace = {
   memberCount: number;
   joined: boolean;
   favorite: boolean;
+  /** Listed, but closed until the member holds the product it is sold with. */
+  locked: boolean;
   /** Posts published since this member last opened the space. */
   unread: number;
 };
@@ -33,6 +38,12 @@ export type SpaceGroupWithSpaces = {
 
 /** Never show a number larger than this; "50+" is as useful as "3,812". */
 const UNREAD_CAP = 50;
+/**
+ * The rail is a list a person reads, so it has an end. A community with more
+ * rooms than this needs search, not a longer sidebar — and an unbounded query
+ * on the shell of every single page is not something to leave lying around.
+ */
+const SPACE_CAP = 300;
 
 const SPACE_SELECT = {
   id: true,
@@ -43,6 +54,9 @@ const SPACE_SELECT = {
   kind: true,
   visibility: true,
   postingPermission: true,
+  productId: true,
+  approvalRequired: true,
+  hostUserId: true,
   sortOrder: true,
   groupId: true,
   group: { select: { id: true, name: true, slug: true, sortOrder: true } },
@@ -52,10 +66,14 @@ const SPACE_SELECT = {
 /**
  * Every space this member can see, grouped, with favourites and unread counts.
  *
- * One query for spaces, one for their memberships, and one grouped count for
- * unread — three round trips regardless of how many spaces exist. The obvious
- * shape (count unread per space in a loop) is a query per space, which is what
- * makes a rail slow exactly when a community gets big enough to need one.
+ * Three round trips regardless of how many spaces exist: one for the spaces,
+ * one for the memberships, one grouped count for unread. The obvious shape —
+ * count unread per space in a loop — is a query per space, which makes the
+ * rail slow exactly when a community grows big enough to need one.
+ *
+ * This runs in the app shell, which means on every single member page, so it
+ * is also the one query in the product where an unbounded `findMany` would
+ * hurt most. Both lists are capped.
  */
 export async function listNavSpaces(userId: string): Promise<{
   favorites: NavSpace[];
@@ -68,32 +86,33 @@ export async function listNavSpaces(userId: string): Promise<{
   const [spaces, memberships] = await Promise.all([
     prisma.space.findMany({
       orderBy: [{ sortOrder: "asc" }, { name: "asc" }],
+      take: SPACE_CAP,
       select: SPACE_SELECT,
     }),
-    prisma.spaceMembership.findMany({
-      where: { userId },
-      select: { spaceId: true, role: true, favoritedAt: true, lastReadAt: true },
-    }),
+    getViewerMemberships(userId),
   ]);
 
-  const mine = new Map(memberships.map((m) => [m.spaceId, m]));
-
   const visible = spaces.filter((space) =>
-    canDiscoverSpace(auth, space, mine.get(space.id) ?? null),
+    canDiscoverSpace(auth, space, memberships.get(space.id) ?? null),
   );
 
   const unread = await unreadBySpace(
     visible
-      .filter((space) => mine.has(space.id))
+      .filter((space) => memberships.has(space.id))
       .map((space) => ({
         id: space.id,
-        lastReadAt: mine.get(space.id)?.lastReadAt ?? null,
+        lastReadAt: memberships.get(space.id)?.lastReadAt ?? null,
       })),
     userId,
   );
 
+  // Kept alongside the shaped list so grouping can look a space's group up
+  // directly. Searching the source list once per space per group is quadratic,
+  // and it ran on every page.
+  const groupOfSpace = new Map(visible.map((space) => [space.id, space.groupId]));
+
   const shaped: NavSpace[] = visible.map((space) => {
-    const membership = mine.get(space.id) ?? null;
+    const membership = memberships.get(space.id) ?? null;
     return {
       id: space.id,
       slug: space.slug,
@@ -105,6 +124,7 @@ export async function listNavSpaces(userId: string): Promise<{
       memberCount: space._count.memberships,
       joined: membership !== null,
       favorite: Boolean(membership?.favoritedAt),
+      locked: !meetsProductRule(auth, space),
       unread: Math.min(unread.get(space.id) ?? 0, UNREAD_CAP),
     };
   });
@@ -128,22 +148,26 @@ export async function listNavSpaces(userId: string): Promise<{
     }
   }
 
+  const byGroup = new Map<string | null, NavSpace[]>();
+  for (const space of grouped) {
+    const key = groupOfSpace.get(space.id) ?? null;
+    const list = byGroup.get(key);
+    if (list) list.push(space);
+    else byGroup.set(key, [space]);
+  }
+
   const groups: SpaceGroupWithSpaces[] = [...groupOrder.entries()]
     .sort((a, b) => a[1].sortOrder - b[1].sortOrder || a[1].name.localeCompare(b[1].name))
     .map(([id, meta]) => ({
       id,
       name: meta.name,
       slug: meta.slug,
-      spaces: grouped.filter(
-        (space) => visible.find((v) => v.id === space.id)?.groupId === id,
-      ),
+      spaces: byGroup.get(id) ?? [],
     }))
     // A group whose only spaces are favourites would render an empty heading.
     .filter((group) => group.spaces.length > 0);
 
-  const ungrouped = grouped.filter(
-    (space) => !visible.find((v) => v.id === space.id)?.groupId,
-  );
+  const ungrouped = byGroup.get(null) ?? [];
   if (ungrouped.length > 0) {
     groups.push({ id: null, name: "Spaces", slug: null, spaces: ungrouped });
   }
@@ -174,8 +198,6 @@ async function unreadBySpace(
       status: "PUBLISHED",
       authorId: { not: userId },
       spaceId: { in: spaces.map((space) => space.id) },
-      // The widest cutoff across all spaces, so one query covers every space
-      // and the per-space comparison happens below.
       OR: spaces.map((space) => ({
         spaceId: space.id,
         ...(space.lastReadAt ? { publishedAt: { gt: space.lastReadAt } } : {}),
@@ -207,12 +229,36 @@ export async function toggleFavoriteSpace(userId: string, spaceId: string) {
   });
 }
 
+/**
+ * How loudly this space talks to this member.
+ *
+ * Null means "follow the space", which is the default and is not the same as
+ * ALL — a space set to HIGHLIGHTS should stay quiet for everyone who has not
+ * said otherwise.
+ */
+export async function setSpaceNotificationLevel(
+  userId: string,
+  spaceId: string,
+  level: SpaceNotificationLevel | null,
+) {
+  await prisma.spaceMembership.updateMany({
+    where: { userId, spaceId },
+    data: { notificationLevel: level },
+  });
+}
+
 export async function joinSpace(userId: string, spaceId: string) {
   const [auth, space, existing] = await Promise.all([
     getUserAuth(userId),
     prisma.space.findUnique({
       where: { id: spaceId },
-      select: { visibility: true, postingPermission: true },
+      select: {
+        visibility: true,
+        postingPermission: true,
+        productId: true,
+        approvalRequired: true,
+        hostUserId: true,
+      },
     }),
     prisma.spaceMembership.findUnique({
       where: { spaceId_userId: { spaceId, userId } },
@@ -220,8 +266,16 @@ export async function joinSpace(userId: string, spaceId: string) {
     }),
   ]);
   if (!auth || !space) throw new Error("That space does not exist.");
-  if (!canJoinSpace(auth, space, existing ? { role: "MEMBER" } : null)) {
-    throw new Error("This space is invitation only.");
+  if (existing) return;
+  if (!canJoinSpace(auth, space, null)) {
+    // Two reasons, two answers. Being told a room is invitation-only when the
+    // truth is that it comes with a product you have not bought sends you to
+    // ask a host instead of to the page that sells it.
+    throw new Error(
+      space.productId && !meetsProductRule(auth, space)
+        ? "This space comes with a membership you do not have yet."
+        : "This space is invitation only.",
+    );
   }
   await prisma.spaceMembership.create({
     data: { spaceId, userId, role: "MEMBER", lastReadAt: new Date() },
@@ -250,14 +304,15 @@ export async function getSpaceForMember(userId: string, slug: string) {
     select: {
       ...SPACE_SELECT,
       description: true,
-      approvalRequired: true,
+      notificationDefault: true,
+      product: { select: { id: true, name: true, slug: true } },
       host: {
         select: {
           handle: true,
           profile: { select: { displayName: true, avatarUrl: true } },
         },
       },
-      resources: { orderBy: { sortOrder: "asc" } },
+      resources: { orderBy: { sortOrder: "asc" }, take: 25 },
       _count: { select: { memberships: true, posts: true, events: true, courses: true } },
     },
   });
@@ -267,7 +322,7 @@ export async function getSpaceForMember(userId: string, slug: string) {
     getUserAuth(userId),
     prisma.spaceMembership.findUnique({
       where: { spaceId_userId: { spaceId: space.id, userId } },
-      select: { role: true, favoritedAt: true, lastReadAt: true },
+      select: { role: true, favoritedAt: true, lastReadAt: true, notificationLevel: true },
     }),
   ]);
   if (!auth) return null;
@@ -278,5 +333,8 @@ export async function getSpaceForMember(userId: string, slug: string) {
     canEnter: canEnterSpace(auth, space, membership),
     canJoin: canJoinSpace(auth, space, membership),
     canDiscover: canDiscoverSpace(auth, space, membership),
+    canManage: canManageSpace(auth, space, membership),
+    /** Listed but closed: they need the product, not an invitation. */
+    lockedByProduct: !meetsProductRule(auth, space),
   };
 }

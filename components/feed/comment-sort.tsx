@@ -1,37 +1,28 @@
 import Link from "next/link";
-import { ArrowUpRight, Clock, Flame, TrendingUp } from "lucide-react";
-import { FEED_SORTS, type FeedSort } from "@/lib/community/sort";
+import { Clock, History, TrendingUp } from "lucide-react";
+import { COMMENT_SORTS, type CommentSort } from "@/lib/community/sort";
 import { cn } from "@/lib/utils";
 
-const ICONS: Record<string, typeof Flame> = {
-  hot: Flame,
-  new: Clock,
+const ICONS: Record<CommentSort, typeof Clock> = {
   top: TrendingUp,
-  rising: ArrowUpRight,
-};
-
-/** Sorting a conversation is a different job from sorting a feed. */
-const LABELS: Record<FeedSort, string> = {
-  hot: "Best",
-  new: "Newest",
-  top: "Top",
-  rising: "Rising",
+  new: Clock,
+  old: History,
 };
 
 /**
  * How the conversation is ordered.
  *
- * "Best" rather than "Hot" for comments: the same ranking, but in a thread what
- * it surfaces is the reply people found most useful, and that is what the label
- * should say. Links rather than buttons, so an order can be shared and the
- * control works without JavaScript.
+ * A thread has its own three orders, which are not the feed's: what people
+ * found most useful, what arrived last, and the conversation read in sequence.
+ * Links rather than buttons, so an order can be shared and the control works
+ * without JavaScript.
  */
 export function CommentSort({
   current,
   postId,
   count,
 }: {
-  current: FeedSort;
+  current: CommentSort;
   postId: string;
   count: number;
 }) {
@@ -41,9 +32,9 @@ export function CommentSort({
         {count} {count === 1 ? "reply" : "replies"}
       </h2>
       <nav aria-label="Sort replies" className="flex items-center gap-0.5">
-        {FEED_SORTS.map((item) => {
+        {COMMENT_SORTS.map((item) => {
           const active = current === item.value;
-          const Icon = ICONS[item.value] ?? Flame;
+          const Icon = ICONS[item.value];
           return (
             <Link
               key={item.value}
@@ -54,15 +45,11 @@ export function CommentSort({
                 "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
                 active
                   ? "bg-brand-wash text-brand"
-                  : "text-foreground-muted hover:bg-mint hover:text-foreground",
+                  : "text-foreground-muted hover:bg-surface-muted hover:text-foreground",
               )}
             >
-              <Icon
-                className="size-3"
-                fill={active && item.value === "hot" ? "currentColor" : "none"}
-                aria-hidden
-              />
-              {LABELS[item.value]}
+              <Icon className="size-3" aria-hidden />
+              {item.label}
             </Link>
           );
         })}

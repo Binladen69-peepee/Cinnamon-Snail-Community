@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, MessageSquare } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
-import { parseFeedSort } from "@/lib/community/sort";
+import { parseCommentSort } from "@/lib/community/sort";
 import { formatShortTime } from "@/lib/community/format-count";
 import {
   getPostConversation,
@@ -36,7 +36,7 @@ export default async function PostPage({
   if (!session?.user.id) redirect("/login");
 
   const { id } = await params;
-  const sort = parseFeedSort((await searchParams).sort);
+  const sort = parseCommentSort((await searchParams).sort);
 
   const detail = await getPostDetail(session.user.id, id);
   // Not found and not-allowed are the same answer: saying "this exists but you
@@ -108,7 +108,7 @@ export default async function PostPage({
                     <li key={item.id}>
                       <Link
                         href={`/posts/${item.id}`}
-                        className="-mx-1.5 block rounded-ctl px-1.5 py-1.5 no-underline transition hover:bg-mint"
+                        className="-mx-1.5 block rounded-ctl px-1.5 py-1.5 no-underline transition hover:bg-surface-muted"
                       >
                         <span className="line-clamp-2 text-[12.5px] font-bold leading-snug text-foreground">
                           {item.title || item.plainText.slice(0, 70)}
@@ -117,7 +117,7 @@ export default async function PostPage({
                           <span className="tabular-nums">{item.score} points</span>
                           <span className="inline-flex items-center gap-1 tabular-nums">
                             <MessageSquare className="size-2.5" aria-hidden />
-                            {item._count.comments}
+                            {item.commentCount}
                           </span>
                           <span>
                             {formatShortTime(item.publishedAt ?? item.createdAt)}

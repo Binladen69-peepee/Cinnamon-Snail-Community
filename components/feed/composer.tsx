@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRef, useState, useTransition } from "react";
 import {
+  CalendarClock,
   Ellipsis,
   ImagePlus,
   Link2,
@@ -11,6 +12,7 @@ import {
   Video,
 } from "lucide-react";
 import { createPostAction } from "@/app/(member)/community-actions";
+import { RichEditor } from "@/components/feed/rich-editor";
 import { Avatar } from "@/components/ui/avatar";
 import { UploadTray } from "@/components/feed/upload-tray";
 import { useUploads } from "@/components/feed/use-uploads";
@@ -51,6 +53,8 @@ export function Composer({
   const [spaceId, setSpaceId] = useState(defaultSpaceId ?? spaces[0]?.id ?? "");
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scheduledAt, setScheduledAt] = useState("");
+  const [scheduling, setScheduling] = useState(false);
   const [pending, startTransition] = useTransition();
   const boxRef = useRef<HTMLTextAreaElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
@@ -63,12 +67,28 @@ export function Composer({
   const canPost =
     hasContent && text.length <= MAX && Boolean(spaceId) && !pending && !uploads.busy;
 
-  function submit() {
-    if (!canPost) return;
+  /**
+   * One submit for three outcomes.
+   *
+   * Posting, saving a draft and scheduling differ only in the intent sent with
+   * them; the server decides what actually happens, including holding the post
+   * for a host when the space asks for that. Duplicating this into three
+   * handlers is how they drift apart.
+   */
+  function submit(intent: "PUBLISH" | "DRAFT" | "SCHEDULE" = "PUBLISH") {
+    if (intent !== "DRAFT" && !canPost) return;
+    if (intent === "DRAFT" && (!hasContent || !spaceId || pending)) return;
+    if (intent === "SCHEDULE" && !scheduledAt) {
+      setError("Pick a time to post it.");
+      return;
+    }
+
     const data = new FormData();
     data.set("body", text);
     data.set("title", heading);
     data.set("spaceId", spaceId);
+    data.set("intent", intent);
+    if (intent === "SCHEDULE") data.set("scheduledAt", scheduledAt);
     if (uploads.attachments.length > 0) {
       data.set("attachments", JSON.stringify(uploads.attachments));
     }
@@ -80,6 +100,8 @@ export function Composer({
         setTitle("");
         setError(null);
         setOpen(false);
+        setScheduling(false);
+        setScheduledAt("");
         uploads.reset();
         if (boxRef.current) boxRef.current.style.height = "auto";
       } else {
@@ -124,26 +146,57 @@ export function Composer({
             />
           ) : null}
 
-          <textarea
-            ref={boxRef}
-            value={body}
-            rows={1}
-            disabled={pending}
-            aria-label="Write a post"
-            placeholder="Share something with the community…"
-            onFocus={() => setOpen(true)}
-            onChange={(event) => {
-              setBody(event.currentTarget.value);
-              grow(event.currentTarget);
-            }}
-            onKeyDown={(event) => {
-              if ((event.metaKey || event.ctrlKey) && event.key === "Enter") {
-                event.preventDefault();
-                submit();
-              }
-            }}
-            className="w-full resize-none border-0 bg-transparent p-0 pt-1 text-[15px] leading-normal text-foreground outline-none placeholder:text-foreground-muted disabled:opacity-60"
-          />
+          {/* Collapsed it is one line and nothing more, so the composer never
+              pushes the first post below the fold. The full editor appears the
+              moment there is something to write. */}
+          {open ? (
+            <RichEditor
+              name="body"
+              value={body}
+              onChange={setBody}
+              rows={4}
+              maxLength={MAX}
+              disabled={pending}
+              placeholder="Share something with the community…"
+            />
+          ) : (
+            <textarea
+              ref={boxRef}
+              value={body}
+              rows={1}
+              disabled={pending}
+              aria-label="Write a post"
+              placeholder="Share something with the community…"
+              onFocus={() => setOpen(true)}
+              onChange={(event) => {
+                setBody(event.currentTarget.value);
+                setOpen(true);
+                grow(event.currentTarget);
+              }}
+              className="w-full resize-none border-0 bg-transparent p-0 pt-1 text-[15px] leading-normal text-foreground outline-none placeholder:text-foreground-muted disabled:opacity-60"
+            />
+          )}
+
+          {open && scheduling ? (
+            <div className="mt-2 flex flex-wrap items-center gap-2 rounded-ctl border border-border bg-background px-3 py-2">
+              <label
+                htmlFor="composer-schedule"
+                className="text-[12.5px] font-semibold text-foreground"
+              >
+                Post at
+              </label>
+              <input
+                id="composer-schedule"
+                type="datetime-local"
+                value={scheduledAt}
+                onChange={(event) => setScheduledAt(event.currentTarget.value)}
+                className="h-9 rounded-ctl border border-field-border bg-field-background px-2 text-[13px] text-foreground outline-none focus:border-brand"
+              />
+              <span className="text-[12px] text-foreground-muted">
+                Your device&rsquo;s time zone.
+              </span>
+            </div>
+          ) : null}
 
           <UploadTray
             items={uploads.items}
@@ -175,7 +228,7 @@ export function Composer({
                     "inline-flex h-6.5 items-center rounded-full px-2 text-[12px] transition",
                     spaceId === space.id
                       ? "bg-brand-wash text-brand ring-1 ring-brand/30"
-                      : "text-foreground-muted hover:bg-mint hover:text-foreground",
+                      : "text-foreground-muted hover:bg-surface-muted hover:text-foreground",
                   )}
                 >
                   {space.name}
@@ -262,7 +315,32 @@ export function Composer({
             {open ? (
               <button
                 type="button"
-                onClick={submit}
+                onClick={() => submit("DRAFT")}
+                disabled={!hasContent || pending}
+                title="Keep this without posting it"
+                className="mr-1 inline-flex h-8 items-center rounded-full px-3 text-[13px] text-foreground-muted transition hover:text-foreground disabled:opacity-40"
+              >
+                Save draft
+              </button>
+            ) : null}
+
+            {open ? (
+              <button
+                type="button"
+                onClick={() => setScheduling((value) => !value)}
+                aria-pressed={scheduling}
+                title="Post this later"
+                className="mr-1 inline-flex size-8 items-center justify-center rounded-full text-foreground-muted transition hover:text-foreground"
+              >
+                <CalendarClock className="size-4" aria-hidden />
+                <span className="sr-only">Schedule</span>
+              </button>
+            ) : null}
+
+            {open ? (
+              <button
+                type="button"
+                onClick={() => submit(scheduling ? "SCHEDULE" : "PUBLISH")}
                 disabled={!canPost}
                 className={cn(
                   "inline-flex h-8 min-w-18 items-center justify-center gap-1.5 rounded-full px-3.5",
@@ -276,8 +354,10 @@ export function Composer({
                 {pending ? (
                   <>
                     <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                    Posting
+                    {scheduling ? "Scheduling" : "Posting"}
                   </>
+                ) : scheduling ? (
+                  "Schedule"
                 ) : (
                   "Post"
                 )}

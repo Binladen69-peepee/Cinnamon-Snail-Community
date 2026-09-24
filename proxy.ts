@@ -7,6 +7,7 @@ const memberPrefixes = [
   "/spaces",
   "/posts",
   "/compose",
+  "/drafts",
   "/members",
   "/learn",
   "/roadmap",

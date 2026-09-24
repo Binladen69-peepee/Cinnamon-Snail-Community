@@ -1,5 +1,6 @@
 import { PrismaClient } from "@prisma/client";
-import { createPost, addComment, toggleReaction } from "../lib/community/posts";
+import { createPost, addComment } from "../lib/community/posts";
+import { setPostReaction } from "../lib/community/engagement";
 import { searchEntities } from "../lib/search";
 
 const prisma = new PrismaClient();
@@ -97,7 +98,7 @@ async function main() {
     postId: post.id,
     body: "That smells like the kitchen is actually open.",
   });
-  await toggleReaction({ userId: adam.id, postId: post.id, emoji: "💛" });
+  await setPostReaction({ userId: adam.id, postId: post.id, emoji: "💛" });
 
   const search = await searchEntities({ query: "kitchen" });
   const note = await prisma.notification.findFirst({

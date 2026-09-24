@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Ellipsis, Flag, Pin, PinOff } from "lucide-react";
-import { pinPostAction, reportPostAction } from "@/app/(member)/community-actions";
+import { Ellipsis, Flag, Pin, PinOff, Share2, Trash2 } from "lucide-react";
+import { pinPostAction } from "@/app/(member)/community-actions";
+import { runAction, type ActionResult } from "@/components/feed/run-action";
 
 /**
  * Post overflow menu.
@@ -15,10 +16,21 @@ export function PostMenu({
   postId,
   pinned,
   canPin,
+  canDelete = false,
+  canShare = false,
+  onReport,
+  onShare,
+  onDelete,
 }: {
   postId: string;
   pinned: boolean;
   canPin: boolean;
+  canDelete?: boolean;
+  canShare?: boolean;
+  /** Opened as dialogs by the card, so the menu stays a menu. */
+  onReport?: () => void;
+  onShare?: () => void;
+  onDelete?: () => void;
 }) {
   const [open, setOpen] = useState(false);
   const [, startTransition] = useTransition();
@@ -40,13 +52,16 @@ export function PostMenu({
     };
   }, [open]);
 
-  function run(action: (data: FormData) => Promise<void>, extra?: Record<string, string>) {
+  function run(
+    action: (data: FormData) => Promise<ActionResult>,
+    extra?: Record<string, string>,
+  ) {
     const data = new FormData();
     data.set("postId", postId);
     for (const [key, value] of Object.entries(extra ?? {})) data.set(key, value);
     setOpen(false);
     startTransition(async () => {
-      await action(data);
+      await runAction(action, data);
     });
   }
 
@@ -57,7 +72,7 @@ export function PostMenu({
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-label="Post actions"
-        className="grid size-9 place-items-center rounded-full text-foreground-muted transition hover:bg-mint hover:text-forest"
+        className="grid size-9 place-items-center rounded-full text-foreground-muted transition hover:bg-surface-muted hover:text-foreground"
       >
         <Ellipsis className="size-4" aria-hidden />
       </button>
@@ -80,8 +95,32 @@ export function PostMenu({
               label={pinned ? "Unpin from space" : "Pin to space"}
             />
           ) : null}
+          {canShare ? (
+            <MenuItem
+              onClick={() => {
+                setOpen(false);
+                onShare?.();
+              }}
+              icon={<Share2 className="size-4" aria-hidden />}
+              label="Share to a space"
+            />
+          ) : null}
+          {canDelete ? (
+            <MenuItem
+              onClick={() => {
+                setOpen(false);
+                onDelete?.();
+              }}
+              icon={<Trash2 className="size-4" aria-hidden />}
+              label="Delete post"
+              tone="danger"
+            />
+          ) : null}
           <MenuItem
-            onClick={() => run(reportPostAction, { reason: "needs_review" })}
+            onClick={() => {
+              setOpen(false);
+              onReport?.();
+            }}
             icon={<Flag className="size-4" aria-hidden />}
             label="Report post"
             tone="danger"

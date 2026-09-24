@@ -3,6 +3,7 @@
 import { useOptimistic, useTransition } from "react";
 import { Bookmark } from "lucide-react";
 import { saveAction } from "@/app/(member)/community-actions";
+import { runAction } from "@/components/feed/run-action";
 import { cn } from "@/lib/utils";
 
 /** Bookmark control that lives in the vote column, matching the feed mock. */
@@ -18,7 +19,7 @@ export function SaveMark({ postId, saved }: { postId: string; saved: boolean }) 
         data.set("postId", postId);
         startTransition(async () => {
           apply(!on);
-          await saveAction(data);
+          await runAction(saveAction, data);
         });
       }}
       aria-label={on ? "Unsave" : "Save"}
@@ -28,7 +29,7 @@ export function SaveMark({ postId, saved }: { postId: string; saved: boolean }) 
         "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
         on
           ? "text-brand"
-          : "text-foreground-muted hover:bg-mint hover:text-foreground",
+          : "text-foreground-muted hover:bg-surface-muted hover:text-foreground",
       )}
     >
       <Bookmark className="size-4" fill={on ? "currentColor" : "none"} aria-hidden />

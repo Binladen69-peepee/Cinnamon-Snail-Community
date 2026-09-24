@@ -50,14 +50,14 @@ and the tests all exist.
 | Feature | Route | Notes |
 | --- | --- | --- |
 | Auth | `/login`, `/register`, `/forgot-password`, `/reset-password` | Magic link, password, registration with a strength meter and terms, password reset. JWT sessions with a DB-backed revocation list; signing out, resetting and changing a password all revoke. Rate limits are counted in Postgres. Google/Facebook wired, dormant until credentials exist. |
-| Feed | `/home` | Composer, sort, density, vote rail, reactions, threaded comments. |
+| Feed | `/home` | Cursor-paginated in SQL across three orders: recent activity, new, top this week. Pinned head, rich composer, drafts and scheduling, reactions with kept tallies, one-level replies. |
 | Post detail | `/posts/[id]` | Depth-capped threads, permalinks, comment sort. |
-| Spaces | `/spaces`, `/spaces/[slug]` | Visibility enforced by `canDiscoverSpace`; join/leave/favourite. |
+| Spaces | `/spaces`, `/spaces/[slug]` | Five kinds, three visibilities, product-gated access, grouped nav with unread counts. Host settings and an approval queue per space, notification level per member. |
 | Discover | `/discover` | Search across classes, rooms, people, events. URL-driven. |
 | Member directory | `/members` | SQL-paginated, facets, five filters. |
 | Messages | `/messages` | List-detail, polling delivery, typing, read receipts, groups, images, block/report. |
 | Class library | `/learn`, `/learn/[slug]` | 52 classes with real stills and teasers. |
-| Composer | `/compose` | Five post types; fields driven by one table. |
+| Composer | `/compose`, `/drafts` | Five post types; fields driven by one table. Formatting toolbar, mention autocomplete, emoji, GIF search, drafts, scheduling. |
 | Notifications | `/notifications` | Six filters. Reading is an action, never a render (DEC-028). |
 | Admin console | `/admin/*` | Overview, members, moderation, spaces, events, courses, billing, welcome DM. |
 | Billing | `/billing`, `/admin/billing` | SamCart webhooks, entitlements, reconciliation, cancellation, deletion. |
@@ -66,6 +66,7 @@ and the tests all exist.
 
 | Feature | State | Blocker |
 | --- | --- | --- |
+| GIF search | code done, no key | `TENOR_API_KEY` is unset, so the picker hides itself rather than offering a search that can never answer. |
 | `/search` | not built | Results page behind the command palette. `lib/search` is complete; only the page is missing. |
 | `/calendar` | not built | Events exist (6, all past). `searchHref('event')` points here. |
 | `/connect` | not built | Suggestions surface. `lib/social/suggestions` is complete. |
@@ -81,13 +82,14 @@ and the tests all exist.
 ```
 pnpm typecheck     # clean
 pnpm lint          # clean
-pnpm test          # 332 pass, 15 skipped
+pnpm test          # 433 pass
 pnpm build         # prisma migrate deploy && prisma generate && next build
 ```
 
-Two integration test files (`billing-flow`, `welcome-dm`) fail without a local
-Postgres on `127.0.0.1:5433`. They target the local Docker database, never
-production. `docker compose up -d` fixes them.
+Four integration test files (`billing-flow`, `welcome-dm`, `spaces-flow`,
+`community-flow`) need the local Postgres on `127.0.0.1:5433`. They target the
+local Docker database, never production. `docker compose up -d && pnpm db:seed`
+gives them the data they expect; without it they skip rather than fail.
 
 ---
 
@@ -204,6 +206,16 @@ Every ruling, by id. Code comments cite these, so the ids are load-bearing.
 | DEC-042 | **Signing out revokes the Session row**, not just the cookie. Resetting a password and setting one from settings revoke every session. A JWT is only as revokable as the row it points at, and dropping the cookie left that row live. |
 | DEC-043 | **A taken email is reported plainly at registration** rather than hidden behind a generic "check your inbox". Hiding it would defend against address enumeration, but it also leaves someone who mistypes their address with an email that never arrives and no way to know why. The rate limit is the control that bounds probing. |
 | DEC-044 | **Password rules are one pure module** (`lib/auth/password-policy.ts`), imported by the register form in the browser and by the server before hashing. `password.ts` keeps bcrypt, so no client bundle pulls it in. |
+| DEC-045 | **The feed pages in SQL, not in memory.** Visibility is a WHERE clause and the order is an index, so a page costs the same whether the community holds a hundred posts or ten million. The previous shape fetched eighty rows, filtered them for permission and ranked them in JavaScript, which capped the feed at eighty with no way to reach the eighty-first. |
+| DEC-046 | **Counts are columns kept in step at write time**, not counted on read. `Post.commentCount`, `Post.reactionCount` and `PostReactionTally` move inside the same transaction as the rows they count. Loading every reaction of every post to draw the reaction bar is fine at four hundred reactions and ruinous at four hundred thousand. |
+| DEC-047 | **`Post.lastActivityAt` exists so "recent activity" can be an index.** Deriving it from the newest comment per post is a correlated subquery per row, which cannot be paged with a cursor. |
+| DEC-048 | **Replies stop at one level.** `Comment.depth` is 0 or 1, and a reply to a reply attaches to the same parent. Arbitrary nesting is unreadable on a phone and unbounded to render; it was previously capped only in the interface, and inconsistently — four on the detail page, five in the panel. |
+| DEC-049 | **Every engagement write checks the space.** Reacting, voting, saving, reporting and poll-voting all go through `requirePostAccess`. Before, only posting and commenting did, so knowing a post id was enough to act on something in a private room. |
+| DEC-050 | **A space can be sold with a product.** `Space.productId` plus live entitlements decide entry, above visibility and above membership, so a lapsed payment closes the room without a sweep. Only staff may attach or detach a product: a host must not be able to put their own room behind a paywall. |
+| DEC-051 | **Approval is a post status, not a filter.** `PostStatus.PENDING` plus a host queue per space. The `approvalRequired` column existed with nothing reading it, which made the setting a trap: posts would have gone nowhere and been unreachable by anyone. |
+| DEC-052 | **Scheduled posts need a runner**, so `/api/jobs/publish-scheduled` claims each due post with a conditional update and Vercel Cron calls it every five minutes. Scheduling without a publisher is a post that never appears. |
+| DEC-053 | **Community mutations are rate limited per member** (`lib/community/rate-limits.ts`), on the durable Postgres limiter. The numbers sit far above what a person does by hand: the point is to bound one account's damage in a minute, not to police behaviour. |
+| DEC-054 | **Notifications are written in one place** (`lib/notifications/community.ts`) and in bulk. Fan-out to a space reads preferences in one query, inserts in one statement and is capped, so a space that becomes popular does not turn one post into a thousand round trips. |
 
 ---
 
@@ -228,12 +240,15 @@ The brief is millions of users. This is where the code stands against that.
    `lib/learn/library.ts` and `lib/messages/start.ts`.** Each loads a whole
    table before filtering. Fine at 52 classes and 14 members; not at scale.
    `discover.ts` is the worst — it loads courses, spaces, profiles and follows
-   on every keystroke.
+   on every keystroke. The feed, the member directory and the space rail no
+   longer do this.
 3. **Interests are a JSON column.** They cannot be indexed, aggregated or
    filtered in SQL, so the directory's interest filter runs over the page and
    its facet list is empty. A tag table is the fix.
-4. **The feed has no cursor pagination.** `listFeed` has a cursor helper
-   (`encodeCursor`) that the page does not use.
+4. **Comment pages are capped rather than endless.** A post's roots page with a
+   cursor and each root carries up to twenty replies. Past that, the
+   twenty-first reply to a single comment is not reachable. Rare enough to
+   leave, real enough to write down.
 5. **Email delivery is capped.** Resend still sends from `onboarding@resend.dev`,
    which only delivers to the account owner until a domain is verified (DEC-035).
    Sign-in links, reset links and confirmations all ride on it, so nobody else

@@ -16,6 +16,7 @@ import { CommentThread, type ThreadComment } from "@/components/feed/comment-thr
 import { PostMenu } from "@/components/feed/post-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import { reactAction, saveAction } from "@/app/(member)/community-actions";
+import { runAction } from "@/components/feed/run-action";
 import { formatCount, formatShortTime } from "@/lib/community/format-count";
 import type { MediaItem } from "@/components/feed/post-media";
 import { videoEmbedSrc, videoPosterUrl } from "@/lib/community/media";
@@ -168,7 +169,7 @@ function GalleryDialog({
     startTransition(async () => {
       setLiked(!clearing);
       setLikes((value) => Math.max(0, value + (clearing ? -1 : 1)));
-      await reactAction(data);
+      await runAction(reactAction, data);
     });
   }
 
@@ -177,7 +178,7 @@ function GalleryDialog({
     data.set("postId", post.id);
     startTransition(async () => {
       setSaved((value) => !value);
-      await saveAction(data);
+      await runAction(saveAction, data);
     });
   }
 
