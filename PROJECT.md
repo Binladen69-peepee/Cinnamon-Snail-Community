@@ -57,7 +57,7 @@ and the tests all exist.
 | Member directory | `/members` | SQL-paginated, facets, five filters. |
 | Messages | `/messages` | List-detail, polling delivery, typing, read receipts, groups, images, block/report. |
 | Class library | `/learn`, `/learn/[slug]` | 52 classes with real stills and teasers. |
-| Composer | `/compose`, `/drafts` | Five post types; fields driven by one table. Formatting toolbar, mention autocomplete, emoji, GIF search, drafts, scheduling. |
+| Composer | `/compose`, `/drafts` | Seven post types, including events and recipes that write a row of their own. Formatting toolbar, mention autocomplete, emoji, GIF search, drafts, scheduling. |
 | Notifications | `/notifications` | Six filters. Reading is an action, never a render (DEC-028). |
 | Admin console | `/admin/*` | Overview, members, moderation, spaces, events, courses, billing, welcome DM. |
 | Billing | `/billing`, `/admin/billing` | SamCart webhooks, entitlements, reconciliation, cancellation, deletion. |
@@ -83,7 +83,7 @@ and the tests all exist.
 ```
 pnpm typecheck     # clean
 pnpm lint          # clean
-pnpm test          # 433 pass
+pnpm test          # 439 pass
 pnpm build         # prisma migrate deploy && prisma generate && next build
 ```
 
@@ -216,6 +216,7 @@ Every ruling, by id. Code comments cite these, so the ids are load-bearing.
 | DEC-051 | **Approval is a post status, not a filter.** `PostStatus.PENDING` plus a host queue per space. The `approvalRequired` column existed with nothing reading it, which made the setting a trap: posts would have gone nowhere and been unreachable by anyone. |
 | DEC-052 | **Scheduled posts need a runner**, so `/api/jobs/publish-scheduled` claims each due post with a conditional update and Vercel Cron calls it every five minutes. Scheduling without a publisher is a post that never appears. |
 | DEC-053 | **Community mutations are rate limited per member** (`lib/community/rate-limits.ts`), on the durable Postgres limiter. The numbers sit far above what a person does by hand: the point is to bound one account's damage in a minute, not to police behaviour. |
+| DEC-055 | **An event post writes an Event and a recipe post writes a Recipe**, and the post points at it. Both enum values existed with no authoring path, so a RECIPE post would have been a plain post wearing a label. The event joins its space's calendar as well as the feed, which is why it is created with a `spaceId` rather than standing alone. |
 | DEC-054 | **Notifications are written in one place** (`lib/notifications/community.ts`) and in bulk. Fan-out to a space reads preferences in one query, inserts in one statement and is capped, so a space that becomes popular does not turn one post into a thousand round trips. |
 
 ---

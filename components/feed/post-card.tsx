@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BadgeCheck, Globe2, Pin } from "lucide-react";
+import { BadgeCheck, CalendarDays, ChefHat, Globe2, Pin } from "lucide-react";
 import { formatShortTime } from "@/lib/community/format-count";
 import { Avatar } from "@/components/ui/avatar";
 import { PostFollowButton } from "@/components/feed/post-follow-button";
@@ -54,6 +54,15 @@ export type FeedPost = {
     thumbnailUrl?: string | null;
   }[];
   pollOptions: { id: string; label: string; _count: { votes: number } }[];
+  event?: {
+    id: string;
+    title: string;
+    startsAt: string | Date;
+    endsAt: string | Date | null;
+    location: string | null;
+    capacity: number | null;
+  } | null;
+  recipe?: { id: string; slug: string; title: string } | null;
   _count: { comments: number; bookmarks: number };
   authorFollowerCount?: number;
   viewerFollowsAuthor?: boolean;
@@ -249,6 +258,41 @@ export function PostCard({
                 </button>
               ) : null}
             </div>
+          ) : null}
+
+          {/* An event post is about a thing with a time and a place, so the
+              time and the place go on the card rather than being buried in
+              the body. */}
+          {post.event ? (
+            <div className="mt-2 flex items-start gap-2.5 rounded-[12px] border border-border bg-background px-3 py-2.5">
+              <CalendarDays className="mt-0.5 size-4 shrink-0 text-foreground-muted" aria-hidden />
+              <div className="min-w-0 text-[13px]">
+                <p className="font-semibold text-foreground">
+                  {new Date(post.event.startsAt).toLocaleString(undefined, {
+                    weekday: "short",
+                    day: "numeric",
+                    month: "short",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </p>
+                {post.event.location ? (
+                  <p className="text-foreground-muted">{post.event.location}</p>
+                ) : null}
+                {post.event.capacity ? (
+                  <p className="text-foreground-muted">
+                    {post.event.capacity} places
+                  </p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+
+          {post.recipe ? (
+            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[12.5px] text-foreground-muted">
+              <ChefHat className="size-3.5" aria-hidden />
+              Recipe: {post.recipe.title}
+            </p>
           ) : null}
 
           {webLink && !hasMedia ? (

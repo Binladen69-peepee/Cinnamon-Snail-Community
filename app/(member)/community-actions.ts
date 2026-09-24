@@ -254,6 +254,60 @@ export async function createPostAction(
       scheduledAt = parsed;
     }
 
+    // An event needs a time, and a recipe needs a method. Both are read here
+    // and checked here, because both write a row of their own.
+    let event: Parameters<typeof createPost>[0]["event"] = null;
+    if (type === "EVENT") {
+      const startsAt = new Date(String(formData.get("startsAt") ?? ""));
+      if (Number.isNaN(startsAt.getTime())) {
+        return { ok: false, error: "An event needs a start time." };
+      }
+      const rawEnd = String(formData.get("endsAt") ?? "").trim();
+      const endsAt = rawEnd ? new Date(rawEnd) : null;
+      if (endsAt && Number.isNaN(endsAt.getTime())) {
+        return { ok: false, error: "That end time is not one we can read." };
+      }
+      if (endsAt && endsAt <= startsAt) {
+        return { ok: false, error: "An event cannot end before it starts." };
+      }
+      const rawZoom = String(formData.get("zoomUrl") ?? "").trim();
+      let zoomUrl: string | null = null;
+      if (rawZoom) {
+        try {
+          const parsed = new URL(rawZoom);
+          if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+            return { ok: false, error: "That joining link is not a valid URL." };
+          }
+          zoomUrl = parsed.toString();
+        } catch {
+          return { ok: false, error: "That joining link is not a valid URL." };
+        }
+      }
+      const rawCapacity = Number(formData.get("capacity") ?? "");
+      event = {
+        startsAt,
+        endsAt,
+        location: String(formData.get("location") ?? "").trim() || null,
+        zoomUrl,
+        capacity:
+          Number.isFinite(rawCapacity) && rawCapacity > 0
+            ? Math.trunc(rawCapacity)
+            : null,
+      };
+    }
+
+    let recipe: Parameters<typeof createPost>[0]["recipe"] = null;
+    if (type === "RECIPE") {
+      const method = String(formData.get("method") ?? "").trim();
+      if (!method) return { ok: false, error: "Write the method, even roughly." };
+      if (!title) return { ok: false, error: "A recipe needs a name." };
+      recipe = {
+        title,
+        method: method.slice(0, 20000),
+        coverUrl: attachments.files[0]?.url ?? null,
+      };
+    }
+
     await createPost({
       userId,
       spaceId,
@@ -263,6 +317,8 @@ export async function createPostAction(
       linkUrl,
       intent,
       scheduledAt,
+      event,
+      recipe,
       attachmentUrls: attachments.files,
       pollOptions: type === "POLL" ? poll : undefined,
     });

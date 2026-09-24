@@ -31,7 +31,8 @@ describe("parseComposerType", () => {
 
   it("falls back to a plain post for anything else", () => {
     expect(parseComposerType(undefined).value).toBe("SIMPLE");
-    expect(parseComposerType("RECIPE").value).toBe("SIMPLE");
+    // IMAGE is never a choice; it is inferred from what was attached.
+    expect(parseComposerType("IMAGE").value).toBe("SIMPLE");
     expect(parseComposerType(["ARTICLE", "POLL"]).value).toBe("ARTICLE");
   });
 
@@ -113,5 +114,57 @@ describe("describeIncomplete", () => {
     // The action reads poll1..poll4, so the form must not offer a fifth.
     expect(MAX_POLL_OPTIONS).toBe(4);
     expect(MIN_POLL_OPTIONS).toBe(2);
+  });
+});
+
+describe("event and recipe posts", () => {
+  const event = COMPOSER_TYPES.find((type) => type.value === "EVENT")!;
+  const recipe = COMPOSER_TYPES.find((type) => type.value === "RECIPE")!;
+
+  it("are offered, because both now write a row of their own", () => {
+    // Neither existed while there was nothing behind them: a RECIPE post with
+    // no recipe is a plain post wearing a label.
+    expect(event).toBeDefined();
+    expect(recipe).toBeDefined();
+    expect(event.fields).toContain("event");
+    expect(recipe.fields).toContain("recipe");
+  });
+
+  it("insists on a start time for an event", () => {
+    const base = {
+      type: event,
+      title: "Soup night",
+      body: "come along",
+      link: "",
+      pollOptions: [],
+      attachments: 0,
+      spaceId: "space_1",
+    };
+    expect(describeIncomplete({ ...base, startsAt: "" })).toContain("start time");
+    expect(describeIncomplete({ ...base, startsAt: "not a date" })).toContain(
+      "not one we can read",
+    );
+    expect(
+      describeIncomplete({ ...base, startsAt: "2026-10-01T18:00" }),
+    ).toBeNull();
+  });
+
+  it("insists on a method for a recipe", () => {
+    const base = {
+      type: recipe,
+      title: "Miso soup",
+      body: "a winter staple",
+      link: "",
+      pollOptions: [],
+      attachments: 0,
+      spaceId: "space_1",
+    };
+    expect(describeIncomplete({ ...base, method: "" })).toContain("method");
+    expect(describeIncomplete({ ...base, method: "Boil water." })).toBeNull();
+  });
+
+  it("still insists on a title for both", () => {
+    expect(event.titleRequired).toBe(true);
+    expect(recipe.titleRequired).toBe(true);
   });
 });

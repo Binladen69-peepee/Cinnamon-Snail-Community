@@ -52,6 +52,18 @@ const FEED_INCLUDE = {
     orderBy: { count: "desc" as const },
     take: TALLY_MAX,
   },
+  /** An EVENT post points at a real event; a RECIPE post at a real recipe. */
+  event: {
+    select: {
+      id: true,
+      title: true,
+      startsAt: true,
+      endsAt: true,
+      location: true,
+      capacity: true,
+    },
+  },
+  recipe: { select: { id: true, slug: true, title: true } },
   comments: {
     where: { parentId: null },
     take: 3,

@@ -63,6 +63,12 @@ export function ComposeForm({
   const [body, setBody] = useState("");
   const [link, setLink] = useState("");
   const [pollOptions, setPollOptions] = useState(["", ""]);
+  const [startsAt, setStartsAt] = useState("");
+  const [endsAt, setEndsAt] = useState("");
+  const [location, setLocation] = useState("");
+  const [zoomUrl, setZoomUrl] = useState("");
+  const [capacity, setCapacity] = useState("");
+  const [method, setMethod] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -71,6 +77,8 @@ export function ComposeForm({
   const videoRef = useRef<HTMLInputElement>(null);
 
   const missing = describeIncomplete({
+    startsAt,
+    method,
     type,
     title,
     body,
@@ -93,6 +101,14 @@ export function ComposeForm({
     data.set("body", body);
     if (title.trim()) data.set("title", title.trim());
     if (typeHasField(type, "link")) data.set("linkUrl", link.trim());
+    if (typeHasField(type, "event")) {
+      data.set("startsAt", startsAt);
+      if (endsAt) data.set("endsAt", endsAt);
+      if (location.trim()) data.set("location", location.trim());
+      if (zoomUrl.trim()) data.set("zoomUrl", zoomUrl.trim());
+      if (capacity.trim()) data.set("capacity", capacity.trim());
+    }
+    if (typeHasField(type, "recipe")) data.set("method", method);
     if (typeHasField(type, "poll")) {
       pollOptions.slice(0, MAX_POLL_OPTIONS).forEach((option, index) => {
         if (option.trim()) data.set(`poll${index + 1}`, option.trim());
@@ -222,6 +238,94 @@ export function ComposeForm({
           {body.length} / {MAX_BODY}
         </p>
       </div>
+
+      {typeHasField(type, "event") ? (
+        <fieldset className="space-y-3 rounded-card border border-border bg-surface p-4">
+          <legend className="px-1 text-[12.5px] font-semibold text-foreground">
+            When and where
+          </legend>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Labelled label="Starts" htmlFor="event-starts">
+              <input
+                id="event-starts"
+                type="datetime-local"
+                value={startsAt}
+                onChange={(event) => setStartsAt(event.target.value)}
+                required
+                className={FIELD}
+              />
+            </Labelled>
+            <Labelled label="Ends (optional)" htmlFor="event-ends">
+              <input
+                id="event-ends"
+                type="datetime-local"
+                value={endsAt}
+                onChange={(event) => setEndsAt(event.target.value)}
+                className={FIELD}
+              />
+            </Labelled>
+          </div>
+          <Labelled label="Where (optional)" htmlFor="event-location">
+            <input
+              id="event-location"
+              value={location}
+              onChange={(event) => setLocation(event.target.value)}
+              maxLength={200}
+              placeholder="A kitchen, a park, online"
+              className={FIELD}
+            />
+          </Labelled>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <Labelled label="Joining link (optional)" htmlFor="event-zoom">
+              <input
+                id="event-zoom"
+                type="url"
+                value={zoomUrl}
+                onChange={(event) => setZoomUrl(event.target.value)}
+                placeholder="https://"
+                className={FIELD}
+              />
+            </Labelled>
+            <Labelled label="Places (optional)" htmlFor="event-capacity">
+              <input
+                id="event-capacity"
+                type="number"
+                min={1}
+                value={capacity}
+                onChange={(event) => setCapacity(event.target.value)}
+                placeholder="No limit"
+                className={FIELD}
+              />
+            </Labelled>
+          </div>
+          <p className="text-[12px] text-foreground-muted">
+            It joins this space&rsquo;s calendar as well as the feed.
+          </p>
+        </fieldset>
+      ) : null}
+
+      {typeHasField(type, "recipe") ? (
+        <div>
+          <label
+            htmlFor="recipe-method"
+            className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
+          >
+            The method
+          </label>
+          <textarea
+            id="recipe-method"
+            value={method}
+            onChange={(event) => setMethod(event.target.value)}
+            rows={10}
+            maxLength={20000}
+            placeholder={"Ingredients, then steps. Markdown works:\n\n- 2 onions\n- 400g tomatoes\n\n1. Soften the onions.\n2. Add everything else."}
+            className="w-full resize-y rounded-ctl border border-field-border bg-field-background px-3 py-2.5 text-[14.5px] leading-relaxed text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/20"
+          />
+          <p className="mt-1 text-[12px] text-foreground-muted">
+            Saved as a recipe of its own, so it can be found later.
+          </p>
+        </div>
+      ) : null}
 
       {typeHasField(type, "poll") ? (
         <div>
@@ -396,6 +500,32 @@ export function ComposeForm({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+const FIELD =
+  "h-11 w-full rounded-ctl border border-field-border bg-field-background px-3 text-[14.5px] text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/20";
+
+/** A label and its input, with the label actually bound to it. */
+function Labelled({
+  label,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  htmlFor: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <label
+        htmlFor={htmlFor}
+        className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
+      >
+        {label}
+      </label>
+      {children}
     </div>
   );
 }

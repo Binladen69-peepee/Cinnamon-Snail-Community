@@ -1,5 +1,7 @@
 import {
   BookOpen,
+  CalendarDays,
+  ChefHat,
   HelpCircle,
   Link2,
   ListChecks,
@@ -10,26 +12,31 @@ import {
 /**
  * The post types the composer can actually produce.
  *
- * `PostType` in the schema has nine members; this lists the six a member can
- * choose. The other three are not omissions:
+ * `PostType` in the schema has nine members and this lists seven. IMAGE and
+ * VIDEO are the two left out, and deliberately: they are never picked, they
+ * are inferred from what was attached. Offering them as buttons would let
+ * someone choose VIDEO and attach a photograph.
  *
- * - IMAGE and VIDEO are never picked, they are inferred. `createPostAction`
- *   sets them from what was attached, so offering them as buttons would let
- *   someone choose VIDEO and attach a photo.
- * - EVENT is created on the calendar, not here, because an event needs a date,
- *   a capacity and RSVPs rather than a body.
- * - RECIPE has a Recipe table of its own with variations and no authoring
- *   screen yet; a RECIPE post with none of that attached would be a SIMPLE
- *   post wearing a label.
+ * EVENT and RECIPE each write a row of their own — an Event with a date and a
+ * place, a Recipe with a method — and the post points at it. A RECIPE post
+ * with no recipe behind it would be a plain post wearing a label, which is why
+ * neither existed until the rows could be written from here.
  *
  * `fields` is what drives the form, so a type and its inputs cannot drift
- * apart — adding a type here is what makes its fields appear.
+ * apart: adding a type here is what makes its fields appear.
  */
 
-export type ComposerField = "title" | "body" | "link" | "poll" | "media";
+export type ComposerField =
+  | "title"
+  | "body"
+  | "link"
+  | "poll"
+  | "media"
+  | "event"
+  | "recipe";
 
 export type ComposerType = {
-  value: "SIMPLE" | "ARTICLE" | "QUESTION" | "POLL" | "LINK";
+  value: "SIMPLE" | "ARTICLE" | "QUESTION" | "POLL" | "LINK" | "EVENT" | "RECIPE";
   label: string;
   hint: string;
   icon: LucideIcon;
@@ -88,6 +95,26 @@ export const COMPOSER_TYPES: ComposerType[] = [
     bodyPlaceholder: "Why is it worth reading? (optional)",
     titleLabel: "Title",
   },
+  {
+    value: "EVENT",
+    label: "Event",
+    hint: "A cook-along, a meet-up, anything with a time.",
+    icon: CalendarDays,
+    fields: ["title", "body", "event", "media"],
+    bodyPlaceholder: "What happens, and what should people bring?",
+    titleLabel: "What is it called",
+    titleRequired: true,
+  },
+  {
+    value: "RECIPE",
+    label: "Recipe",
+    hint: "Something you cooked, written down properly.",
+    icon: ChefHat,
+    fields: ["title", "body", "recipe", "media"],
+    bodyPlaceholder: "Say a little about it. The method goes below.",
+    titleLabel: "Recipe name",
+    titleRequired: true,
+  },
 ];
 
 
@@ -121,6 +148,8 @@ export function describeIncomplete(input: {
   pollOptions: string[];
   attachments: number;
   spaceId: string;
+  startsAt?: string;
+  method?: string;
 }): string | null {
   if (!input.spaceId) return "Pick a space to post in.";
 
@@ -139,6 +168,17 @@ export function describeIncomplete(input: {
       // two different things about the same rule.
       return "A poll needs at least two options.";
     }
+  }
+
+  if (typeHasField(input.type, "event")) {
+    if (!input.startsAt?.trim()) return "An event needs a start time.";
+    if (new Date(input.startsAt).toString() === "Invalid Date") {
+      return "That start time is not one we can read.";
+    }
+  }
+
+  if (typeHasField(input.type, "recipe") && !input.method?.trim()) {
+    return "Write the method, even roughly.";
   }
 
   const hasSomething =

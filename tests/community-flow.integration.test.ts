@@ -553,3 +553,72 @@ describe("space settings", () => {
     ).rejects.toThrow();
   }, 60_000);
 });
+
+describe("events and recipes", () => {
+  it("writes a real event and points the post at it", async () => {
+    if (!reachable) return;
+    const startsAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+    const post = await createPost({
+      userId: authorId,
+      spaceId,
+      type: "EVENT",
+      title: "Integration cook-along",
+      body: "bring an onion",
+      event: { startsAt, location: "A kitchen", capacity: 12 },
+    });
+    created.push(post.id);
+
+    const row = await prisma.post.findUniqueOrThrow({
+      where: { id: post.id },
+      select: { eventId: true, event: { select: { title: true, spaceId: true, capacity: true } } },
+    });
+    expect(row.eventId).not.toBeNull();
+    expect(row.event?.title).toBe("Integration cook-along");
+    // It belongs to the space, so it shows up on the calendar tab too.
+    expect(row.event?.spaceId).toBe(spaceId);
+    expect(row.event?.capacity).toBe(12);
+
+    await prisma.event.delete({ where: { id: row.eventId! } }).catch(() => {});
+  }, 60_000);
+
+  it("writes a real recipe with its own slug", async () => {
+    if (!reachable) return;
+    const post = await createPost({
+      userId: authorId,
+      spaceId,
+      type: "RECIPE",
+      title: "Integration Miso Soup",
+      body: "a winter staple",
+      recipe: { title: "Integration Miso Soup", method: "1. Boil water." },
+    });
+    created.push(post.id);
+
+    const row = await prisma.post.findUniqueOrThrow({
+      where: { id: post.id },
+      select: { recipeId: true, recipe: { select: { slug: true, body: true } } },
+    });
+    expect(row.recipeId).not.toBeNull();
+    expect(row.recipe?.slug).toBe("integration-miso-soup");
+    expect(row.recipe?.body).toContain("Boil water");
+
+    // A second recipe with the same name must not collide on the slug.
+    const again = await createPost({
+      userId: authorId,
+      spaceId,
+      type: "RECIPE",
+      title: "Integration Miso Soup",
+      body: "again",
+      recipe: { title: "Integration Miso Soup", method: "1. Boil more water." },
+    });
+    created.push(again.id);
+    const second = await prisma.post.findUniqueOrThrow({
+      where: { id: again.id },
+      select: { recipeId: true, recipe: { select: { slug: true } } },
+    });
+    expect(second.recipe?.slug).not.toBe(row.recipe?.slug);
+
+    await prisma.recipe
+      .deleteMany({ where: { id: { in: [row.recipeId!, second.recipeId!] } } })
+      .catch(() => {});
+  }, 60_000);
+});

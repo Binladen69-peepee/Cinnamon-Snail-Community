@@ -71,6 +71,16 @@ export type CreatePostInput = {
   scheduledAt?: Date | null;
   pollOptions?: string[];
   sharedFromPostId?: string | null;
+  /** An EVENT post writes one of these and points at it. */
+  event?: {
+    startsAt: Date;
+    endsAt?: Date | null;
+    location?: string | null;
+    zoomUrl?: string | null;
+    capacity?: number | null;
+  } | null;
+  /** A RECIPE post writes one of these and points at it. */
+  recipe?: { title: string; method: string; coverUrl?: string | null } | null;
   attachmentUrls?: {
     url: string;
     alt?: string;
@@ -125,6 +135,43 @@ export async function createPost(input: CreatePostInput) {
   else status = "PUBLISHED";
 
   const publishedAt = status === "PUBLISHED" ? now : null;
+
+  // An event and a recipe are rows in their own right, and the post is a way
+  // of talking about one. They are created first so the post can point at
+  // them; if the post then fails, an orphan event is a far smaller problem
+  // than a post claiming to be an event and not being one.
+  let eventId: string | null = null;
+  if (input.event && input.title) {
+    const event = await prisma.event.create({
+      data: {
+        spaceId: space.id,
+        title: input.title.slice(0, 200),
+        description: input.body.slice(0, 2000) || null,
+        startsAt: input.event.startsAt,
+        endsAt: input.event.endsAt ?? null,
+        location: input.event.location?.slice(0, 200) || null,
+        zoomUrl: input.event.zoomUrl || null,
+        capacity: input.event.capacity ?? null,
+      },
+      select: { id: true },
+    });
+    eventId = event.id;
+  }
+
+  let recipeId: string | null = null;
+  if (input.recipe) {
+    const recipe = await prisma.recipe.create({
+      data: {
+        slug: await uniqueRecipeSlug(input.recipe.title),
+        title: input.recipe.title.slice(0, 200),
+        body: input.recipe.method,
+        coverUrl: input.recipe.coverUrl ?? null,
+      },
+      select: { id: true },
+    });
+    recipeId = recipe.id;
+  }
+
   const bodyHtml = renderMarkdown(input.body);
   const plainText = toPlainText(input.body);
   const handles = parseMentions(input.body);
@@ -140,6 +187,8 @@ export async function createPost(input: CreatePostInput) {
       bodyHtml,
       plainText,
       linkUrl: input.linkUrl,
+      eventId,
+      recipeId,
       publishedAt,
       scheduledAt,
       lastActivityAt: publishedAt ?? now,
@@ -205,6 +254,31 @@ export async function createPost(input: CreatePostInput) {
   });
 
   return post;
+}
+
+/**
+ * A readable, unique slug for a recipe.
+ *
+ * Recipes are addressable on their own, so two people posting "Miso Soup" must
+ * not collide. The loop is bounded: after a few tries it falls back to a
+ * random suffix rather than scanning forever.
+ */
+async function uniqueRecipeSlug(title: string): Promise<string> {
+  const base =
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-+|-+$/g, "")
+      .slice(0, 60) || "recipe";
+  for (let attempt = 0; attempt < 5; attempt += 1) {
+    const candidate = attempt === 0 ? base : `${base}-${attempt + 1}`;
+    const taken = await prisma.recipe.findUnique({
+      where: { slug: candidate },
+      select: { id: true },
+    });
+    if (!taken) return candidate;
+  }
+  return `${base}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
 /** Search indexing plus the two kinds of notification a live post produces. */

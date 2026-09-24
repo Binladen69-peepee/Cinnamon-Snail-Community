@@ -32,6 +32,15 @@ export type FeedCardPost = {
   authorFollowerCount: number;
   viewerFollowsAuthor: boolean;
   sharedFromPostId: string | null;
+  event: {
+    id: string;
+    title: string;
+    startsAt: string;
+    endsAt: string | null;
+    location: string | null;
+    capacity: number | null;
+  } | null;
+  recipe: { id: string; slug: string; title: string } | null;
   comments: {
     id: string;
     body: string;
@@ -78,6 +87,19 @@ export function toFeedCard(post: FeedPost): FeedCardPost {
     authorFollowerCount: post.authorFollowerCount,
     viewerFollowsAuthor: post.viewerFollowsAuthor,
     sharedFromPostId: post.sharedFromPostId,
+    event: post.event
+      ? {
+          id: post.event.id,
+          title: post.event.title,
+          startsAt: post.event.startsAt.toISOString(),
+          endsAt: post.event.endsAt ? post.event.endsAt.toISOString() : null,
+          location: post.event.location,
+          capacity: post.event.capacity,
+        }
+      : null,
+    recipe: post.recipe
+      ? { id: post.recipe.id, slug: post.recipe.slug, title: post.recipe.title }
+      : null,
     comments: post.comments.map((comment) => ({
       id: comment.id,
       body: comment.body,
