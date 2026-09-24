@@ -29,7 +29,7 @@ export type RailTrend = {
 
 /**
  * Right discovery column for Home.
- * docs/feed-home-redesign.md · Step 5
+ * See PROJECT.md — the member shell and feed layout.
  */
 export function FeedRail({
   events,

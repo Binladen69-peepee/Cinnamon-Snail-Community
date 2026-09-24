@@ -2425,13 +2425,26 @@ Claude Code must operate under the following instruction while building this pro
 
 Update this section continuously.
 
-**Last updated:** 2026-09-10  
-**Currently building:** Phase 4 social connection and 4A direct messages are in. Client sales-page copy build (homepage + `/membership`) is in, with the live catalog now served from the production Supabase database through the connection pooler (`DEC-021`). Blocked on the Mighty member-geography export, per-class teaser videos, and live SamCart keys.  
-**Auth:** Resend magic-link e2e verified. Password login and logout verified.  
-**Community gate:** Signed-in Adam completed the Phase 1 community loop.  
-**Billing policy:** Cancellation access follows SamCart’s reported period (31-day window on trial products `1069358` and `1069354`). Account deletion grace is 7 days.  
-**From address:** `EMAIL_FROM` is `Vegan University <onboarding@resend.dev>` until a VU domain is verified (`DEC-009`).  
-**Courses:** Original `weeknight-plants` campus course with entitlement-gated playback, captions, progress, lesson threads, and calendar RSVP. Cloudflare Stream keys are not required for the demo path (`DEC-014`). Mighty extraction remains blocked (`DEC-003`).
+**Last updated:** 2026-09-24
+**Currently building:** the member app rebuild. Phases 0-6 of the rebuild are
+shipped (shell, feed, spaces, post detail, discover, people, messages); Phase 7
+is half done -- the class library and class page exist, `/calendar` and
+`/roadmap` do not. Admin has its own console: overview, members, moderation,
+spaces, events, courses, billing, welcome DM.
+**Live:** https://cinnamon-snail-community.vercel.app
+**Still 404:** `/search`, `/calendar`, `/connect`, `/bulletin`.
+**Blocked on content, not code:** lesson playback. `lib/learn` is complete and
+idle because zero lessons exist in the database.
+**Theme:** monochrome, both modes (`DEC-037`). Green is gone.
+**Auth:** magic link and password verified. JWT sessions with a database
+revocation list, 5-minute revalidation (`DEC-022`). Google and Facebook are
+wired and dormant until credentials exist.
+**Billing:** SamCart webhooks, entitlements, reconciliation, cancellation and
+deletion all live. Five active entitlements, zero subscriptions -- access was
+granted directly, so there is no live subscription data to reconcile against.
+
+Day-to-day status, the decision log, the code map and the production-readiness
+assessment live in `PROJECT.md`. This file stays the client brief.
 
 Seeded local accounts (password `vegan-local-dev`):
 - `adam@veganuniversity.test` (admin)

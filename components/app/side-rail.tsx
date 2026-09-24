@@ -56,7 +56,7 @@ const SECTIONS: { label: string; links: Dest[] }[] = [
 /**
  * Fixed left destinations. Quiet group labels, soft active pill, unread
  * badges. Spaces keep a # prefix so rooms read like channels.
- * docs/feed-home-redesign.md · Step 2
+ * See PROJECT.md — the member shell and feed layout.
  */
 export function SideRail({
   favorites,

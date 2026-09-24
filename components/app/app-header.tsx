@@ -10,7 +10,7 @@ import { AccountMenu } from "@/components/app/account-menu";
 
 /**
  * Member app bar — brand, command search, create + account actions.
- * docs/feed-home-redesign.md · Step 3
+ * See PROJECT.md — the member shell and feed layout.
  */
 export async function AppHeader() {
   const session = await auth();

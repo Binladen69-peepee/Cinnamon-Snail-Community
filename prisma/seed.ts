@@ -427,6 +427,7 @@ async function main() {
       { authorId: extras[0]?.id ?? member.id, body: "What vinegar did you use? I always go too shy." },
       { authorId: extras[1]?.id ?? adam.id, body: "This is the plate I want after class." },
     ];
+    
     for (const row of sampleComments) {
       const already = await prisma.comment.findFirst({
         where: { postId: kitchenPost.id, authorId: row.authorId, body: row.body },
@@ -459,7 +460,7 @@ async function main() {
     },
   });
 
-  
+
   await prisma.searchIndex.upsert({
     where: { entityType_entityId: { entityType: "member", entityId: "sam" } },
     update: {},

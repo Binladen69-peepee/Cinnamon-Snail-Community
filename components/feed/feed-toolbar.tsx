@@ -18,7 +18,7 @@ const ICONS: Record<string, typeof Flame> = {
 /**
  * Sort pills + density toggle above the feed.
  * Active Hot uses cream fill so it reads on both light and dark.
- * docs/feed-home-redesign.md · Step 4
+ * See PROJECT.md — the member shell and feed layout.
  */
 export function FeedToolbar({
   sort,

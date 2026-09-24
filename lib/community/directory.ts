@@ -1,9 +1,9 @@
 import "server-only";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { peopleYouShouldMeet } from "@/lib/social/suggestions";
 import { readPrivacy } from "@/lib/community/privacy";
 import { resolveMemberAvatar } from "@/lib/community/member-avatars";
-import { matchesQuery } from "@/lib/community/discover";
 
 /**
  * The member directory behind `/members`.
@@ -86,18 +86,40 @@ export type DirectoryData = {
 /** Roles that earn the "Host" mark on a card. */
 const HOST_ROLES = new Set(["HOST", "ADMIN", "SUPER_ADMIN"]);
 
+/** "Austin, USA" - city and country only. The schema stores no street. */
+function formatLocation(
+  city: string | null,
+  country: string | null,
+): string | null {
+  const parts = [city, country].filter(
+    (part): part is string => Boolean(part?.trim()),
+  );
+  return parts.length > 0 ? parts.join(", ") : null;
+}
+
 function asStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.filter((item): item is string => typeof item === "string")
     : [];
 }
 
-/** "Austin, USA" — city and country only. The schema stores no street. */
-function formatLocation(city: string | null, country: string | null): string | null {
-  const parts = [city, country].filter((part): part is string => Boolean(part?.trim()));
-  return parts.length > 0 ? parts.join(", ") : null;
-}
-
+/**
+ * A page of the directory, counted and sliced by the database.
+ *
+ * This used to load every visible profile, then filter, sort and paginate the
+ * array in memory. That is fine at fourteen members and fatal at a million: the
+ * query returns the whole table into one request's heap before page one can
+ * render.
+ *
+ * So the selective work is pushed into SQL — the text search, the city and
+ * skill filters, the ordering, the count and the slice — and only the rows on
+ * the page have their follow state, shared rooms and matcher reason resolved.
+ * Cost is a function of page size now, not of community size.
+ *
+ * Two things are still bounded rather than exact, and both say so where they
+ * are computed: the interest filter and the facet lists. Both want a tag table
+ * rather than a JSON column, which is the next thing to normalise.
+ */
 export async function loadDirectory(input: {
   viewerId: string;
   q: string;
@@ -119,156 +141,258 @@ export async function loadDirectory(input: {
       select: { spaceId: true },
     }),
   ]);
-  const blocked = new Set(blocks.flatMap((row) => [row.blockerId, row.blockedId]));
+  const blocked = [
+    ...new Set(blocks.flatMap((row) => [row.blockerId, row.blockedId])),
+  ];
   const viewerSpaceIds = new Set(viewerSpaces.map((row) => row.spaceId));
 
-  const [profiles, suggestions, follows] = await Promise.all([
-    prisma.profile.findMany({
-      where: {
-        directoryVisible: true,
-        userId: { not: input.viewerId },
-        user: { status: "ACTIVE" },
-      },
-      select: {
-        userId: true,
-        displayName: true,
-        avatarUrl: true,
-        bio: true,
-        city: true,
-        country: true,
-        cookingInterests: true,
-        dietaryInterests: true,
-        skillLevel: true,
-        privacy: true,
-        user: {
-          select: {
-            handle: true,
-            createdAt: true,
-            roles: { select: { role: { select: { name: true } } } },
-            spaceMemberships: { select: { spaceId: true } },
-            _count: { select: { posts: true } },
-          },
-        },
-      },
-    }),
-    peopleYouShouldMeet(input.viewerId, 5).catch(() => []),
-    prisma.follow.findMany({
-      where: { followerId: input.viewerId },
-      select: { followingId: true },
-    }),
-  ]);
+  const [city, country] = splitLocation(input.location);
 
-  const byUser = new Map(suggestions.map((person) => [person.userId, person]));
-  const following = new Set(follows.map((row) => row.followingId));
-
-  const everyone: DirectoryMember[] = profiles
-    .filter((profile) => !blocked.has(profile.userId))
-    .map((profile) => {
-      // The member's own switches, not the viewer's. A viewer is never the
-      // owner here, so `visibleProfileFields` would always return these.
-      const privacy = readPrivacy(profile.privacy);
-      const suggestion = byUser.get(profile.userId);
-      return {
-        handle: profile.user.handle,
-        displayName: profile.displayName,
-        avatarUrl: resolveMemberAvatar(
-          profile.user.handle,
-          profile.avatarUrl,
-          profile.displayName,
-        ),
-        bio: profile.bio,
-        location: privacy.showLocation
-          ? formatLocation(profile.city, profile.country)
-          : null,
-        interests: privacy.showInterests
-          ? [
-              ...asStringArray(profile.cookingInterests),
-              ...asStringArray(profile.dietaryInterests),
-            ]
-          : [],
-        skillLevel: privacy.showInterests ? profile.skillLevel : null,
-        isHost: profile.user.roles.some((row) =>
-          HOST_ROLES.has(row.role.name),
-        ),
-        joinedAt: profile.user.createdAt,
-        posts: profile.user._count.posts,
-        sharedSpaces: profile.user.spaceMemberships.filter((row) =>
-          viewerSpaceIds.has(row.spaceId),
-        ).length,
-        reason: suggestion?.reason ?? null,
-        starter: suggestion?.starter ?? null,
-        following: following.has(profile.userId),
-      };
-    });
-
-  // Facets come from what members actually published, so choosing one can never
-  // land on an empty page.
-  const facets: DirectoryFacets = {
-    locations: [
-      ...new Set(everyone.flatMap((m) => (m.location ? [m.location] : []))),
-    ].sort((a, b) => a.localeCompare(b)),
-    interests: [
-      ...new Set(everyone.flatMap((m) => m.interests.map((i) => i.toLowerCase()))),
-    ].sort((a, b) => a.localeCompare(b)),
-    // Lower-cased before de-duping: the seed data holds both "advanced" and
-    // "Advanced", which would otherwise render as two chips for one level.
-    // The filter already compares case-insensitively, so they would have
-    // returned identical results.
-    skillLevels: [
-      ...new Set(
-        everyone.flatMap((m) =>
-          m.skillLevel ? [m.skillLevel.trim().toLowerCase()] : [],
-        ),
-      ),
-    ].sort((a, b) => a.localeCompare(b)),
+  const visibleToViewer: Prisma.ProfileWhereInput = {
+    directoryVisible: true,
+    userId: { not: input.viewerId, ...(blocked.length ? { notIn: blocked } : {}) },
+    user: { status: "ACTIVE" },
   };
 
-  const filtered = everyone.filter((member) => {
-    if (!matchesQuery([member.displayName, member.handle, member.bio, member.location], q)) {
-      return false;
-    }
-    if (input.location && member.location !== input.location) return false;
-    if (
-      input.interest &&
-      !member.interests.some(
-        (item) => item.toLowerCase() === input.interest?.toLowerCase(),
-      )
-    ) {
-      return false;
-    }
-    if (
-      input.skill &&
-      member.skillLevel?.toLowerCase() !== input.skill.toLowerCase()
-    ) {
-      return false;
-    }
-    return true;
-  });
+  const where: Prisma.ProfileWhereInput = {
+    ...visibleToViewer,
+    ...(city ? { city } : {}),
+    ...(country ? { country } : {}),
+    ...(input.skill
+      ? { skillLevel: { equals: input.skill, mode: "insensitive" } }
+      : {}),
+    ...(q
+      ? {
+          OR: [
+            { displayName: { contains: q, mode: "insensitive" } },
+            { bio: { contains: q, mode: "insensitive" } },
+            { city: { contains: q, mode: "insensitive" } },
+            { user: { handle: { contains: q, mode: "insensitive" } } },
+          ],
+        }
+      : {}),
+  };
 
-  const sorted = sortDirectory(filtered, input.sort);
-
-  const total = sorted.length;
-  const pageCount = Math.max(1, Math.ceil(total / MEMBERS_PER_PAGE));
-  const page = Math.min(input.page, pageCount);
-  const start = (page - 1) * MEMBERS_PER_PAGE;
+  const orderBy: Prisma.ProfileOrderByWithRelationInput[] =
+    input.sort === "newest"
+      ? [{ user: { createdAt: "desc" } }, { displayName: "asc" }]
+      : [{ displayName: "asc" }];
 
   const filtering = Boolean(q || input.location || input.interest || input.skill);
+
+  // "Suggested" cannot be expressed as an ORDER BY: the matcher scores people
+  // in application code. So it becomes a boosted head — the handful it picked,
+  // pinned ahead of an otherwise alphabetical page — which is how a ranked list
+  // is paginated in practice.
+  const suggestions =
+    input.sort === "suggested" && !filtering
+      ? await peopleYouShouldMeet(input.viewerId, 5).catch(() => [])
+      : [];
+  const pinnedIds = suggestions.map((person) => person.userId);
+  const pinnedHere = input.page <= 1 ? pinnedIds : [];
+
+  const tailWhere: Prisma.ProfileWhereInput = pinnedIds.length
+    ? { AND: [where, { userId: { notIn: pinnedIds } }] }
+    : where;
+
+  const [total, totalUnfiltered, pinnedRows, tailRows, facets] = await Promise.all([
+    prisma.profile.count({ where }),
+    prisma.profile.count({ where: visibleToViewer }),
+    pinnedHere.length
+      ? prisma.profile.findMany({
+          where: { userId: { in: pinnedHere } },
+          select: PROFILE_SELECT,
+        })
+      : Promise.resolve([]),
+    prisma.profile.findMany({
+      where: tailWhere,
+      orderBy,
+      skip: Math.max(0, input.page - 1) * MEMBERS_PER_PAGE,
+      take: MEMBERS_PER_PAGE - pinnedHere.length,
+      select: PROFILE_SELECT,
+    }),
+    loadFacets(),
+  ]);
+
+  const pageCount = Math.max(1, Math.ceil(total / MEMBERS_PER_PAGE));
+  const page = Math.min(Math.max(1, input.page), pageCount);
+
+  // Pinned rows come back in whatever order the database chose; restore the
+  // matcher's ranking.
+  const pinnedByUser = new Map(pinnedRows.map((row) => [row.userId, row]));
+  const rows = [
+    ...pinnedIds.flatMap((id) => {
+      const row = pinnedByUser.get(id);
+      return row ? [row] : [];
+    }),
+    ...tailRows,
+  ];
+
+  const userIds = rows.map((row) => row.userId);
+  const [follows, memberships, roles] = await Promise.all([
+    userIds.length
+      ? prisma.follow.findMany({
+          where: { followerId: input.viewerId, followingId: { in: userIds } },
+          select: { followingId: true },
+        })
+      : Promise.resolve([]),
+    userIds.length && viewerSpaceIds.size
+      ? prisma.spaceMembership.findMany({
+          where: { userId: { in: userIds }, spaceId: { in: [...viewerSpaceIds] } },
+          select: { userId: true },
+        })
+      : Promise.resolve([]),
+    userIds.length
+      ? prisma.userRole.findMany({
+          where: {
+            userId: { in: userIds },
+            role: { name: { in: [...HOST_ROLES] as Prisma.EnumRoleNameFilter["in"] } },
+          },
+          select: { userId: true },
+        })
+      : Promise.resolve([]),
+  ]);
+
+  const following = new Set(follows.map((row) => row.followingId));
+  const hostIds = new Set(roles.map((row) => row.userId));
+  const sharedCount = new Map<string, number>();
+  for (const row of memberships) {
+    sharedCount.set(row.userId, (sharedCount.get(row.userId) ?? 0) + 1);
+  }
+  const suggestionByUser = new Map(
+    suggestions.map((person) => [person.userId, person] as const),
+  );
+
+  const members: DirectoryMember[] = rows.map((profile) => {
+    const privacy = readPrivacy(profile.privacy);
+    const suggestion = suggestionByUser.get(profile.userId);
+    return {
+      handle: profile.user.handle,
+      displayName: profile.displayName,
+      avatarUrl: resolveMemberAvatar(
+        profile.user.handle,
+        profile.avatarUrl,
+        profile.displayName,
+      ),
+      bio: profile.bio,
+      location: privacy.showLocation
+        ? formatLocation(profile.city, profile.country)
+        : null,
+      interests: privacy.showInterests
+        ? [
+            ...asStringArray(profile.cookingInterests),
+            ...asStringArray(profile.dietaryInterests),
+          ]
+        : [],
+      skillLevel: privacy.showInterests ? profile.skillLevel : null,
+      isHost: hostIds.has(profile.userId),
+      joinedAt: profile.user.createdAt,
+      posts: profile.user._count.posts,
+      sharedSpaces: sharedCount.get(profile.userId) ?? 0,
+      reason: suggestion?.reason ?? null,
+      starter: suggestion?.starter ?? null,
+      following: following.has(profile.userId),
+    };
+  });
+
+  // Interests are a JSON array, which Postgres cannot index or aggregate the
+  // way a column can, so this filter runs over the page rather than the table.
+  // Stated rather than hidden: it is the reason `facets.interests` is empty.
+  const shown = input.interest
+    ? members.filter((member) =>
+        member.interests.some(
+          (item) => item.toLowerCase() === input.interest?.toLowerCase(),
+        ),
+      )
+    : members;
 
   return {
     q,
     sort: input.sort,
     page,
     pageCount,
-    members: sorted.slice(start, start + MEMBERS_PER_PAGE),
+    members: shown,
     total,
-    totalUnfiltered: everyone.length,
+    totalUnfiltered,
     facets,
     active: {
       location: input.location,
       interest: input.interest,
       skill: input.skill,
     },
-    suggested: pickSuggested(everyone, filtering || page > 1),
+    suggested: pickSuggested(
+      members.filter((member) => member.reason),
+      filtering || page > 1,
+    ),
+  };
+}
+
+const PROFILE_SELECT = {
+  userId: true,
+  displayName: true,
+  avatarUrl: true,
+  bio: true,
+  city: true,
+  country: true,
+  cookingInterests: true,
+  dietaryInterests: true,
+  skillLevel: true,
+  privacy: true,
+  user: {
+    select: {
+      handle: true,
+      createdAt: true,
+      _count: { select: { posts: true } },
+    },
+  },
+} satisfies Prisma.ProfileSelect;
+
+/** "Austin, USA" split back into parts, so the filter hits real columns. */
+function splitLocation(value: string | null): [string | null, string | null] {
+  if (!value) return [null, null];
+  const [city, country] = value.split(",").map((part) => part.trim());
+  return [city || null, country || null];
+}
+
+/**
+ * The filter chips, grouped by the database and capped.
+ *
+ * Interests are absent on purpose. They live in a JSON array with no aggregate
+ * over it, and offering a partial list built from one page would advertise
+ * filters that do not match what the filter does.
+ */
+async function loadFacets(): Promise<DirectoryFacets> {
+  const [cities, skills] = await Promise.all([
+    prisma.profile.groupBy({
+      by: ["city", "country"],
+      where: { directoryVisible: true, city: { not: null } },
+      _count: { _all: true },
+      orderBy: { _count: { city: "desc" } },
+      take: 24,
+    }),
+    prisma.profile.groupBy({
+      by: ["skillLevel"],
+      where: { directoryVisible: true, skillLevel: { not: null } },
+      orderBy: { skillLevel: "asc" },
+      take: 12,
+    }),
+  ]);
+
+  return {
+    locations: cities
+      .flatMap((row) => {
+        const label = formatLocation(row.city, row.country);
+        return label ? [label] : [];
+      })
+      .sort((a, b) => a.localeCompare(b)),
+    interests: [],
+    skillLevels: [
+      ...new Set(
+        skills.flatMap((row) =>
+          row.skillLevel ? [row.skillLevel.trim().toLowerCase()] : [],
+        ),
+      ),
+    ].sort((a, b) => a.localeCompare(b)),
   };
 }
 

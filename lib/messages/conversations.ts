@@ -282,20 +282,32 @@ export async function listConversations(userId: string) {
     ],
   });
 
-  const unreadRows = await Promise.all(
-    memberships.map((membership) =>
-      prisma.message.count({
-        where: {
-          conversationId: membership.conversationId,
-          authorId: { not: userId },
-          deletedAt: null,
-          ...(membership.lastReadAt ? { createdAt: { gt: membership.lastReadAt } } : {}),
-        },
-      }),
-    ),
+  // One grouped count for the whole inbox rather than a COUNT per thread.
+  // The previous shape issued a query per conversation, so a member with sixty
+  // threads paid sixty round trips to render one list -- the classic N+1, and
+  // the thing that makes an inbox slow exactly when someone uses it most.
+  const unreadGroups =
+    memberships.length === 0
+      ? []
+      : await prisma.message.groupBy({
+          by: ["conversationId"],
+          where: {
+            authorId: { not: userId },
+            deletedAt: null,
+            OR: memberships.map((membership) => ({
+              conversationId: membership.conversationId,
+              ...(membership.lastReadAt
+                ? { createdAt: { gt: membership.lastReadAt } }
+                : {}),
+            })),
+          },
+          _count: { _all: true },
+        });
+  const unreadByConversation = new Map(
+    unreadGroups.map((row) => [row.conversationId, row._count._all] as const),
   );
 
-  return memberships.map((membership, index) => {
+  return memberships.map((membership) => {
     const others = membership.conversation.members;
     return {
       id: membership.conversationId,
@@ -314,7 +326,7 @@ export async function listConversations(userId: string) {
       })),
       lastMessage: membership.conversation.messages[0] ?? null,
       lastMessageAt: membership.conversation.lastMessageAt,
-      unread: unreadRows[index],
+      unread: unreadByConversation.get(membership.conversationId) ?? 0,
     };
   });
 }
