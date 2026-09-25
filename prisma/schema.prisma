@@ -134,6 +134,24 @@ enum PostStatus {
   REMOVED
 }
 
+/// The five useful questions about a cook: what they make, how they make it,
+/// what they cannot eat, what they make it with, and what they are working on.
+enum InterestKind {
+  CUISINE
+  TECHNIQUE
+  DIETARY
+  EQUIPMENT
+  GOAL
+}
+
+/// Three rungs, because a ladder with ten is one nobody places themselves on.
+/// The values are the three that members had already written by hand.
+enum SkillLevel {
+  BEGINNER
+  CONFIDENT
+  ADVANCED
+}
+
 enum DmPreference {
   EVERYONE
   CONNECTIONS
@@ -337,8 +355,8 @@ model UserRole {
 }
 
 model Profile {
-  id                  String       @id @default(cuid())
-  userId              String       @unique
+  id                  String            @id @default(cuid())
+  userId              String            @unique
   displayName         String
   avatarUrl           String?
   bio                 String?
@@ -347,26 +365,68 @@ model Profile {
   country             String?
   cityLatitude        Float?
   cityLongitude       Float?
+  /// Superseded by `interests`. Kept so the backfill is reversible and so a
+  /// value written before the tag table existed is not lost; nothing reads it.
   cookingInterests    Json?
+  /// Free text, superseded by `skill`. Same reason.
   skillLevel          String?
   dietaryInterests    Json?
+  /// Where this member places themselves. Indexed, so the directory filter
+  /// and its facet are both a database question rather than a scan.
+  skill               SkillLevel?
+  /// One line, answered afresh: "what I'm cooking lately".
+  cookingLately       String?
+  interests           ProfileInterest[]
   links               Json?
   privacy             Json?
-  dmPreference        DmPreference @default(EVERYONE)
+  dmPreference        DmPreference      @default(EVERYONE)
   /// Which notification categories reach this member, per channel. Null means
   /// "everything in-app", which is the behaviour before this column existed.
   notificationPrefs   Json?
-  directoryVisible    Boolean      @default(true)
-  matchingOptIn       Boolean      @default(true)
+  directoryVisible    Boolean           @default(true)
+  matchingOptIn       Boolean           @default(true)
   matchingPausedUntil DateTime?
   timezone            String?
   cookVibe            String?
   suckiestThing       String?
   glutenFree          Boolean?
   primaryBenefit      String?
-  createdAt           DateTime     @default(now())
-  updatedAt           DateTime     @updatedAt
-  user                User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt           DateTime          @default(now())
+  updatedAt           DateTime          @updatedAt
+  user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Every directory query begins "visible members, then…", so the flag leads
+  /// each of these rather than being filtered after the fact.
+  @@index([directoryVisible, skill])
+  @@index([directoryVisible, country, city])
+  @@index([directoryVisible, displayName])
+}
+
+/// One curated interest. The rows mirror `lib/community/interests.ts`, which
+/// is the reviewable source of truth; `syncInterests` keeps them in step.
+model Interest {
+  id        String            @id @default(cuid())
+  slug      String            @unique
+  label     String
+  kind      InterestKind
+  sortOrder Int               @default(0)
+  members   ProfileInterest[]
+
+  @@index([kind, sortOrder])
+}
+
+/// A member's pick. The composite key makes a double-save harmless and gives
+/// the profile page its list; the index on `interestId` is what lets the
+/// directory ask "who else cooks Japanese food" without reading every row.
+model ProfileInterest {
+  profileId  String
+  interestId String
+  createdAt  DateTime @default(now())
+  profile    Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  interest   Interest @relation(fields: [interestId], references: [id], onDelete: Cascade)
+
+  @@id([profileId, interestId])
+  @@index([interestId])
 }
 
 model Space {

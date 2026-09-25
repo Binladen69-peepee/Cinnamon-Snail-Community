@@ -31,6 +31,20 @@ import { cn } from "@/lib/utils";
 
 type Tab = "posts" | "classes" | "about" | "badges" | "activity";
 
+const SKILL_WORDS = {
+  BEGINNER: "Beginner — still finding my feet",
+  CONFIDENT: "Confident — I cook most nights",
+  ADVANCED: "Advanced — happy improvising",
+} as const;
+
+const INTEREST_GROUPS = [
+  { kind: "CUISINE", label: "Cuisines" },
+  { kind: "TECHNIQUE", label: "Techniques" },
+  { kind: "DIETARY", label: "Dietary needs" },
+  { kind: "EQUIPMENT", label: "Equipment" },
+  { kind: "GOAL", label: "Working on" },
+] as const;
+
 type BadgeItem = {
   id: string;
   name: string;
@@ -56,7 +70,9 @@ export function ProfileView({
     headline: string | null;
     location: string | null;
     joinedAt: Date | string;
-    interests: string[];
+    cookingLately: string | null;
+    skill: "BEGINNER" | "CONFIDENT" | "ADVANCED" | null;
+    interests: { slug: string; label: string; kind: string }[];
     links: string[];
     stats: {
       classesTaken: number;
@@ -239,12 +255,14 @@ export function ProfileView({
                     <SocialLink key={href} href={href} />
                   ))}
                   {profile.interests.slice(0, 8).map((tag) => (
-                    <span
-                      key={tag}
-                      className="rounded-[10px] border border-border bg-mint/40 px-2.5 py-1 text-[11.5px] text-foreground"
+                    <Link
+                      key={tag.slug}
+                      href={`/members?interest=${tag.slug}`}
+                      title={`Find other members who picked ${tag.label}`}
+                      className="rounded-[10px] border border-border bg-mint/40 px-2.5 py-1 text-[11.5px] text-foreground no-underline transition hover:border-hairline-firm"
                     >
-                      {tag}
-                    </span>
+                      {tag.label}
+                    </Link>
                   ))}
                 </div>
               )}
@@ -380,13 +398,13 @@ export function ProfileView({
                       {profile.bio || "No bio yet."}
                     </dd>
                   </div>
-                  {profile.headline ? (
+                  {profile.cookingLately ? (
                     <div>
                       <dt className="text-[11px] uppercase tracking-[0.1em] text-foreground-muted">
-                        Focus
+                        Cooking lately
                       </dt>
                       <dd className="mt-1 text-[14px] text-foreground">
-                        {profile.headline}
+                        {profile.cookingLately}
                       </dd>
                     </div>
                   ) : null}
@@ -401,23 +419,45 @@ export function ProfileView({
                       </dd>
                     </div>
                   ) : null}
-                  {profile.interests.length > 0 ? (
+                  {profile.skill ? (
                     <div>
                       <dt className="text-[11px] uppercase tracking-[0.1em] text-foreground-muted">
-                        Interests
+                        Skill level
                       </dt>
-                      <dd className="mt-2 flex flex-wrap gap-1.5">
-                        {profile.interests.map((tag) => (
-                          <span
-                            key={tag}
-                            className="rounded-[10px] border border-border bg-mint/40 px-2.5 py-1 text-[12px] text-foreground"
-                          >
-                            {tag}
-                          </span>
-                        ))}
+                      <dd className="mt-1 text-[14px] text-foreground">
+                        {SKILL_WORDS[profile.skill]}
                       </dd>
                     </div>
                   ) : null}
+                  {/* Grouped by kind, because "Japanese" and "Gluten free"
+                      answer different questions and a single run of chips
+                      reads as one undifferentiated list. Each is a link into
+                      the directory filtered to that tag — which is the whole
+                      reason the tags are rows. */}
+                  {INTEREST_GROUPS.map((group) => {
+                    const tags = profile.interests.filter(
+                      (tag) => tag.kind === group.kind,
+                    );
+                    if (tags.length === 0) return null;
+                    return (
+                      <div key={group.kind}>
+                        <dt className="text-[11px] uppercase tracking-[0.1em] text-foreground-muted">
+                          {group.label}
+                        </dt>
+                        <dd className="mt-2 flex flex-wrap gap-1.5">
+                          {tags.map((tag) => (
+                            <Link
+                              key={tag.slug}
+                              href={`/members?interest=${tag.slug}`}
+                              className="rounded-[10px] border border-border bg-mint/40 px-2.5 py-1 text-[12px] text-foreground no-underline transition hover:border-hairline-firm"
+                            >
+                              {tag.label}
+                            </Link>
+                          ))}
+                        </dd>
+                      </div>
+                    );
+                  })}
                 </dl>
               </Panel>
             ) : null}

@@ -41,12 +41,27 @@ function escapeLike(value: string) {
   return value.replace(/[%_]/g, "\\$&");
 }
 
+/**
+ * One result row, whichever path produced it.
+ *
+ * Declared rather than inferred because the full-text branch and the fallback
+ * return different shapes, and a union of the two forces every caller to
+ * narrow before it can do anything useful with the list.
+ */
+export type SearchHit = {
+  id: string;
+  entityType: string;
+  entityId: string;
+  title: string;
+  body: string;
+};
+
 export async function searchEntities(input: {
   query: string;
   types?: SearchType[];
   spaceId?: string;
   limit?: number;
-}) {
+}): Promise<SearchHit[]> {
   const q = input.query.trim();
   if (q.length < 2) return [];
   const types = input.types;

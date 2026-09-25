@@ -75,6 +75,11 @@ export function MemberCard({
           <Sparkles className="mt-px size-3 shrink-0" aria-hidden />
           <span className="line-clamp-2">{member.reason}</span>
         </p>
+      ) : member.cookingLately ? (
+        <p className="mt-2.5 line-clamp-2 text-[12.5px] leading-snug text-foreground-muted">
+          <span className="font-semibold text-foreground">Cooking lately: </span>
+          {member.cookingLately}
+        </p>
       ) : member.bio ? (
         <p className="mt-2.5 line-clamp-2 text-[12.5px] leading-snug text-foreground-muted">
           {member.bio}
@@ -91,10 +96,10 @@ export function MemberCard({
         <ul className="mt-2.5 flex flex-wrap gap-1">
           {interests.map((interest) => (
             <li
-              key={interest}
+              key={interest.slug}
               className="rounded-chip border border-border px-1.5 py-0.5 text-[11px] font-semibold text-foreground-muted"
             >
-              {interest}
+              {interest.label}
             </li>
           ))}
           {moreInterests > 0 ? (

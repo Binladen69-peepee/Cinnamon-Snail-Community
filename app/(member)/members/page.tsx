@@ -37,6 +37,8 @@ export default async function MembersPage({
     location?: string;
     interest?: string;
     skill?: string;
+    cohort?: string;
+    space?: string;
   }>;
 }) {
   const session = await auth();
@@ -54,10 +56,17 @@ export default async function MembersPage({
     location: params.location?.trim() || null,
     interest: params.interest?.trim() || null,
     skill: params.skill?.trim() || null,
+    cohort: params.cohort?.trim() || null,
+    space: params.space?.trim() || null,
   });
 
   const filtering = Boolean(
-    q || data.active.location || data.active.interest || data.active.skill,
+    q ||
+      data.active.location ||
+      data.active.interest ||
+      data.active.skill ||
+      data.active.cohort ||
+      data.active.space,
   );
 
   return (

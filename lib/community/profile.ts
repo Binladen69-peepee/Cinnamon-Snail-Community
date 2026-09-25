@@ -4,6 +4,7 @@ import { summarizeReactions } from "@/lib/community/reactions";
 import { readPrivacy, visibleProfileFields } from "@/lib/community/privacy";
 import { canEnterSpace, type UserAuth } from "@/lib/permissions";
 import { getUserAuth } from "@/lib/community/posts";
+import { getMemberVisibility } from "@/lib/community/member-visibility";
 
 const FEED_INCLUDE = {
   author: { include: { profile: true } },
@@ -30,7 +31,16 @@ export type ProfileActivity = {
 
 /**
  * Public member profile for `/members/[handle]`.
- * Respects privacy flags; owners always see their own fields.
+ *
+ * Respects privacy flags; owners always see their own fields. A member who
+ * has blocked the viewer, or whom the viewer has blocked, has no profile as
+ * far as that viewer is concerned — returning null rather than a stripped
+ * page, because "this person exists and will not talk to you" is itself
+ * something a block is meant to stop conveying.
+ *
+ * Hiding from the directory does not hide the profile page: the switch is
+ * about being *found*, and a member who hands out their own link should not
+ * find it broken. Search, suggestions and the directory all honour it.
  */
 export async function getMemberProfile(viewerId: string, handle: string) {
   const auth = await getUserAuth(viewerId);
@@ -39,7 +49,16 @@ export async function getMemberProfile(viewerId: string, handle: string) {
   const user = await prisma.user.findUnique({
     where: { handle },
     include: {
-      profile: true,
+      profile: {
+        include: {
+          interests: {
+            orderBy: { interest: { sortOrder: "asc" } },
+            select: {
+              interest: { select: { slug: true, label: true, kind: true } },
+            },
+          },
+        },
+      },
       roles: { include: { role: true } },
       memberBadges: {
         orderBy: { awardedAt: "desc" },
@@ -48,8 +67,26 @@ export async function getMemberProfile(viewerId: string, handle: string) {
     },
   });
   if (!user?.profile) return null;
+  if (user.status !== "ACTIVE" && user.id !== viewerId) return null;
 
   const isOwner = user.id === viewerId;
+  if (!isOwner) {
+    const visibility = await getMemberVisibility(viewerId);
+    // Blocks are absolute in both directions. `hiddenIds` also carries members
+    // who left the directory, so it is checked against the block list rather
+    // than the whole set — hiding is not blocking.
+    const blocked = await prisma.userBlock.findFirst({
+      where: {
+        OR: [
+          { blockerId: viewerId, blockedId: user.id },
+          { blockerId: user.id, blockedId: viewerId },
+        ],
+      },
+      select: { id: true },
+    });
+    void visibility;
+    if (blocked) return null;
+  }
   const privacy = visibleProfileFields(readPrivacy(user.profile.privacy), isOwner);
   const isHost = user.roles.some(
     (row) =>
@@ -124,10 +161,14 @@ export async function getMemberProfile(viewerId: string, handle: string) {
         }),
   ]);
 
+  // From the tag table, not the old JSON column: the labels are curated, so
+  // two members who cook the same thing say it the same way.
   const interests = privacy.showInterests
-    ? asStringList(user.profile.cookingInterests).concat(
-        asStringList(user.profile.dietaryInterests),
-      )
+    ? user.profile.interests.map((row) => ({
+        slug: row.interest.slug,
+        label: row.interest.label,
+        kind: row.interest.kind as string,
+      }))
     : [];
 
   const links = privacy.showLinks ? asStringList(user.profile.links) : [];
@@ -181,10 +222,12 @@ export async function getMemberProfile(viewerId: string, handle: string) {
     displayName: user.profile.displayName,
     avatarUrl: user.profile.avatarUrl ?? user.image,
     bio: user.profile.bio,
-    headline: user.profile.skillLevel || user.profile.cookVibe || null,
+    cookingLately: user.profile.cookingLately,
+    skill: privacy.showInterests ? user.profile.skill : null,
+    headline: user.profile.cookingLately ?? null,
     location,
     joinedAt: user.createdAt,
-    interests: unique(interests),
+    interests,
     links,
     stats: {
       classesTaken,
@@ -265,6 +308,3 @@ function asStringList(value: unknown): string[] {
     .filter(Boolean);
 }
 
-function unique(items: string[]) {
-  return [...new Set(items.map((item) => item.trim()).filter(Boolean))];
-}

@@ -4,15 +4,15 @@ import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import {
   addEmailAction,
   setPasswordAction,
-  updateProfileAction,
 } from "@/app/(member)/settings/actions";
 import { readPrivacy } from "@/lib/community/privacy";
 import { AppShell } from "@/components/app/app-shell";
+import { ProfileEditor } from "@/components/profile/profile-editor";
+import { uploadsConfigured } from "@/lib/uploads/storage";
 
 export default async function SettingsPage({
   searchParams,
@@ -21,22 +21,35 @@ export default async function SettingsPage({
 }) {
   const session = await auth();
   if (!session?.user.id) redirect("/login");
-  const user = await prisma.user.findUnique({
-    where: { id: session.user.id },
-    include: { profile: true, emails: true, sessions: true },
-  });
+  const [user, options] = await Promise.all([
+    prisma.user.findUnique({
+      where: { id: session.user.id },
+      include: {
+        profile: {
+          include: {
+            interests: { select: { interest: { select: { slug: true } } } },
+          },
+        },
+        emails: true,
+        sessions: true,
+      },
+    }),
+    // The catalog, in the order it is offered. Read from the table rather than
+    // the file so a deploy that has not yet run the sync job cannot offer an
+    // option the save would then reject.
+    prisma.interest.findMany({
+      orderBy: { sortOrder: "asc" },
+      select: { slug: true, label: true, kind: true },
+    }),
+  ]);
   if (!user?.profile) redirect("/home");
   const saved = (await searchParams).saved === "1";
   const privacy = readPrivacy(user.profile.privacy);
-  const interests = Array.isArray(user.profile.cookingInterests)
-    ? (user.profile.cookingInterests as string[]).join(", ")
-    : "";
-  const dietary = Array.isArray(user.profile.dietaryInterests)
-    ? (user.profile.dietaryInterests as string[]).join(", ")
-    : "";
   const links = Array.isArray(user.profile.links)
-    ? (user.profile.links as string[]).join(", ")
-    : "";
+    ? (user.profile.links as string[]).filter(
+        (item): item is string => typeof item === "string",
+      )
+    : [];
 
   return (
     <AppShell>
@@ -56,56 +69,28 @@ export default async function SettingsPage({
           </p>
         ) : null}
       </div>
-      <form action={updateProfileAction} className="space-y-4">
-        <Input name="displayName" defaultValue={user.profile.displayName} required />
-        <Input name="avatarUrl" defaultValue={user.image ?? ""} placeholder="Avatar URL" />
-        <Textarea name="bio" defaultValue={user.profile.bio ?? ""} placeholder="Bio" />
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-3">
-          <Input name="city" defaultValue={user.profile.city ?? ""} placeholder="City" />
-          <Input name="region" defaultValue={user.profile.region ?? ""} placeholder="Region" />
-          <Input name="country" defaultValue={user.profile.country ?? ""} placeholder="Country" />
-        </div>
-        <Input name="skillLevel" defaultValue={user.profile.skillLevel ?? ""} placeholder="Skill level" />
-        <Input name="cookingInterests" defaultValue={interests} placeholder="Cooking interests, comma separated" />
-        <Input name="dietaryInterests" defaultValue={dietary} placeholder="Dietary interests, comma separated" />
-        <Input name="links" defaultValue={links} placeholder="Links, comma separated" />
-        <label className="block text-sm">
-          Direct messages
-          <select
-            name="dmPreference"
-            defaultValue={user.profile.dmPreference}
-            className="mt-2 min-h-11 w-full rounded-2xl border border-sand px-4"
-          >
-            <option value="EVERYONE">Everyone</option>
-            <option value="CONNECTIONS">Connections</option>
-            <option value="NOBODY">Nobody</option>
-          </select>
-        </label>
-        <fieldset className="space-y-2 rounded-2xl border border-sand px-4 py-3">
-          <legend className="text-sm font-medium text-foreground">Privacy</legend>
-          <label className="flex min-h-11 items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              name="directoryVisible"
-              defaultChecked={user.profile.directoryVisible}
-            />
-            Show me in the member directory
-          </label>
-          <label className="flex min-h-11 items-center gap-2 text-sm">
-            <input type="checkbox" name="showLocation" defaultChecked={privacy.showLocation} />
-            Show city and region on my profile
-          </label>
-          <label className="flex min-h-11 items-center gap-2 text-sm">
-            <input type="checkbox" name="showInterests" defaultChecked={privacy.showInterests} />
-            Show cooking and dietary interests
-          </label>
-          <label className="flex min-h-11 items-center gap-2 text-sm">
-            <input type="checkbox" name="showLinks" defaultChecked={privacy.showLinks} />
-            Show my links
-          </label>
-        </fieldset>
-        <Button type="submit">Save profile</Button>
-      </form>
+      <ProfileEditor
+        profile={{
+          handle: user.handle,
+          displayName: user.profile.displayName,
+          avatarUrl: user.profile.avatarUrl,
+          bio: user.profile.bio,
+          cookingLately: user.profile.cookingLately,
+          city: user.profile.city,
+          region: user.profile.region,
+          country: user.profile.country,
+          skill: user.profile.skill,
+          links,
+          interests: user.profile.interests.map((row) => row.interest.slug),
+          dmPreference: user.profile.dmPreference,
+          directoryVisible: user.profile.directoryVisible,
+          showLocation: privacy.showLocation,
+          showLinks: privacy.showLinks,
+          showInterests: privacy.showInterests,
+        }}
+        options={options}
+        uploadsEnabled={uploadsConfigured()}
+      />
 
       <form action={setPasswordAction} className="space-y-3">
         <h2 className="font-display text-2xl text-foreground">Optional password</h2>

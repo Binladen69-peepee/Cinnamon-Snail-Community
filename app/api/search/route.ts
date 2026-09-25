@@ -3,6 +3,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { searchEntities } from "@/lib/search";
 import { searchGroupLabel, searchGroupOrder, searchHref } from "@/lib/search/links";
+import {
+  filterHiddenMembers,
+  getMemberVisibility,
+} from "@/lib/community/member-visibility";
 
 export type PaletteHit = {
   id: string;
@@ -32,6 +36,11 @@ const TYPE_DETAIL: Record<string, string> = {
  * holds no routing knowledge and the palette stays a rendering concern. Members
  * only — the community is behind the paywall, and search would otherwise leak
  * post titles.
+ *
+ * Member hits are filtered against the viewer before anything is returned. The
+ * index has a row per member and knew nothing about privacy, so somebody who
+ * switched themselves out of the directory was still findable here by name.
+ * The switch has to mean the same thing everywhere it can be observed.
  */
 export async function GET(request: Request) {
   const session = await auth();
@@ -42,7 +51,13 @@ export async function GET(request: Request) {
   const query = new URL(request.url).searchParams.get("q")?.trim() ?? "";
   if (query.length < 2) return NextResponse.json({ groups: [] });
 
-  const rows = await searchEntities({ query, limit: 24 });
+  const [found, visibility] = await Promise.all([
+    // Over-fetch a little, because the privacy filter removes rows after the
+    // ranking and a page of results should not thin out to nothing.
+    searchEntities({ query, limit: 40 }),
+    getMemberVisibility(session.user.id),
+  ]);
+  const rows = filterHiddenMembers(found, visibility).slice(0, 24);
   const media = await loadHitMedia(rows);
 
   const byType = new Map<string, PaletteHit[]>();
