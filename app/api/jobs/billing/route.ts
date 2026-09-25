@@ -22,8 +22,8 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, result: await purgeDueDeletions(grace) });
   }
   if (job === "events") {
-    const { notifyUpcomingEventReminders } = await import("@/lib/learn/events");
-    return Response.json({ ok: true, result: await notifyUpcomingEventReminders() });
+    const { sendEventReminders } = await import("@/lib/events/jobs");
+    return Response.json({ ok: true, result: await sendEventReminders() });
   }
   return Response.json({ ok: false, error: "unknown job" }, { status: 400 });
 }

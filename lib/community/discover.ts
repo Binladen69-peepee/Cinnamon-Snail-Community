@@ -55,12 +55,13 @@ export type DiscoverPerson = {
 
 export type DiscoverEvent = {
   id: string;
+  slug: string;
   title: string;
   description: string | null;
   startsAt: Date;
   endsAt: Date | null;
   location: string | null;
-  /** The room hosting it, which is where the card can actually send someone. */
+  /** The room hosting it, for the secondary link. */
   spaceSlug: string | null;
   photo: string | null;
   going: number;
@@ -148,9 +149,12 @@ export async function loadDiscover(input: {
       }),
       listNavSpaces(input.userId),
       prisma.event.findMany({
+        where: { status: "PUBLISHED" },
         orderBy: { startsAt: "asc" },
+        take: 60,
         select: {
           id: true,
+          slug: true,
           title: true,
           description: true,
           startsAt: true,
@@ -202,6 +206,7 @@ export async function loadDiscover(input: {
   const now = Date.now();
   const allEvents: DiscoverEvent[] = eventRows.map((event) => ({
     id: event.id,
+    slug: event.slug,
     title: event.title,
     description: event.description,
     startsAt: event.startsAt,
@@ -210,9 +215,9 @@ export async function loadDiscover(input: {
     spaceSlug: event.space?.slug ?? null,
     // Seeded events carry stock covers, which this project does not show.
     photo: photoForKnownClass(event.title, event.coverUrl),
-    going: event.rsvps.filter((rsvp) => rsvp.status === "going").length,
+    going: event.rsvps.filter((rsvp) => rsvp.status === "GOING").length,
     viewerGoing: event.rsvps.some(
-      (rsvp) => rsvp.userId === input.userId && rsvp.status === "going",
+      (rsvp) => rsvp.userId === input.userId && rsvp.status === "GOING",
     ),
     past: event.startsAt.getTime() < now,
   }));

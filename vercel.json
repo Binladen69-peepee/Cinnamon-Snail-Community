@@ -6,6 +6,10 @@
     {
       "path": "/api/jobs/publish-scheduled",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/jobs/events",
+      "schedule": "0 8 * * *"
     }
   ]
 }

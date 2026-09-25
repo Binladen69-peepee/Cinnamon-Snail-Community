@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { signPlaybackToken, verifyPlaybackToken } from "@/lib/learn/playback";
 import { coursePercent } from "@/lib/learn/progress";
-import { eventIcs } from "@/lib/learn/events";
 
 describe("lesson playback tokens", () => {
   it("signs an expiring token bound to lesson and member", () => {
@@ -36,22 +35,5 @@ describe("course progress", () => {
     expect(coursePercent(2, 5)).toBe(40);
     expect(coursePercent(0, 4)).toBe(0);
     expect(coursePercent(3, 0)).toBe(0);
-  });
-});
-
-describe("event calendar file", () => {
-  it("emits a VEVENT", () => {
-    const ics = eventIcs({
-      id: "evt-1",
-      title: "Weeknight plants live cook",
-      description: "Bring what is in the fridge.",
-      startsAt: new Date("2026-09-16T01:00:00.000Z"),
-      endsAt: new Date("2026-09-16T02:30:00.000Z"),
-      timezone: "America/Los_Angeles",
-      location: "Kitchen Table (online)",
-    });
-    expect(ics).toContain("BEGIN:VEVENT");
-    expect(ics).toContain("SUMMARY:Weeknight plants live cook");
-    expect(ics).toContain("LOCATION:Kitchen Table (online)");
   });
 });

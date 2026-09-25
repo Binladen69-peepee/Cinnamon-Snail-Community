@@ -8,9 +8,11 @@ import { cn } from "@/lib/utils";
  *
  * A past event is dimmed and labelled rather than hidden: a calendar with
  * nothing upcoming still tells a new member this community meets, which an
- * empty box does not. The card links to the room that hosts the event, because
- * `/calendar` is Phase 7 — the room exists today and is where the conversation
- * about the event already is.
+ * empty box does not.
+ *
+ * The card used to link to the room hosting the event, because `/calendar`
+ * did not exist. It does now, so the card goes to the event — which is where
+ * the time, the seat and the joining link are.
  */
 export function EventCard({ event }: { event: DiscoverEvent }) {
   const when = event.startsAt;
@@ -86,13 +88,9 @@ export function EventCard({ event }: { event: DiscoverEvent }) {
     event.past && "opacity-70",
   );
 
-  if (!event.spaceSlug) {
-    return <article className={className}>{body}</article>;
-  }
-
   return (
     <Link
-      href={`/spaces/${event.spaceSlug}`}
+      href={`/calendar/${event.slug}`}
       className={cn(className, "no-underline hover:border-hairline-firm hover:opacity-100")}
     >
       {body}

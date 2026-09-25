@@ -60,6 +60,39 @@ enum SpaceNotificationLevel {
   NONE
 }
 
+/// Where an event is in its life. Draft is invisible to members; canceled
+/// stays visible so the people who RSVP'd learn it is off rather than finding
+/// an empty room.
+enum EventStatus {
+  DRAFT
+  PUBLISHED
+  CANCELED
+}
+
+/// What a member said. WAITLIST is not a weaker "going" — it is a queue, and
+/// `waitlistPosition` is what makes it fair when a seat frees up.
+enum RsvpStatus {
+  GOING
+  WAITLIST
+  NOT_GOING
+}
+
+/// How far ahead a reminder goes out. The value is the name of the row that
+/// makes the job idempotent, not a duration to compute with.
+enum EventReminderKind {
+  T24H
+  T1H
+}
+
+/// The recurrence shapes this app offers. A full RFC 5545 RRULE is far more
+/// than a cooking school needs, and every extra shape is another way for the
+/// occurrence generator to be wrong.
+enum EventRecurrence {
+  DAILY
+  WEEKLY
+  MONTHLY
+}
+
 enum SpaceVisibility {
   PUBLIC
   MEMBERS
@@ -208,6 +241,8 @@ model User {
   pollVotes            PollVote[]
   votes                Vote[]
   eventRsvps           EventRsvp[]
+  eventReminders       EventReminder[]
+  hostedEvents         Event[]                 @relation("EventHost")
   conversationMembers  ConversationMember[]
   messages             Message[]
   subscriptions        Subscription[]
@@ -335,36 +370,36 @@ model Profile {
 }
 
 model Space {
-  id                   String            @id @default(cuid())
-  slug                 String            @unique
-  name                 String
-  description          String?
-  coverUrl             String?
-  icon                 String?
-  kind                 SpaceKind         @default(FEED)
-  visibility           SpaceVisibility   @default(MEMBERS)
-  postingPermission    PostingPermission @default(ALL_MEMBERS)
-  approvalRequired     Boolean           @default(false)
+  id                  String                 @id @default(cuid())
+  slug                String                 @unique
+  name                String
+  description         String?
+  coverUrl            String?
+  icon                String?
+  kind                SpaceKind              @default(FEED)
+  visibility          SpaceVisibility        @default(MEMBERS)
+  postingPermission   PostingPermission      @default(ALL_MEMBERS)
+  approvalRequired    Boolean                @default(false)
   /// What a member gets by default here, unless their membership overrides it.
-  notificationDefault  SpaceNotificationLevel @default(ALL)
+  notificationDefault SpaceNotificationLevel @default(ALL)
   /// The product that unlocks this space. Null means membership alone is
   /// enough, which is true of every general room.
-  productId            String?
-  sortOrder            Int               @default(0)
+  productId           String?
+  sortOrder           Int                    @default(0)
   /// Which nav group this space sits under. Null means ungrouped.
-  groupId              String?
-  hostUserId           String?
-  createdAt            DateTime          @default(now())
-  updatedAt            DateTime          @updatedAt
-  host                 User?             @relation("SpaceHost", fields: [hostUserId], references: [id])
-  product              Product?          @relation(fields: [productId], references: [id], onDelete: SetNull)
-  group                SpaceGroup?       @relation(fields: [groupId], references: [id], onDelete: SetNull)
-  memberships          SpaceMembership[]
-  posts                Post[]
-  events               Event[]
-  courses              Course[]
-  cohorts              Cohort[]
-  resources            SpaceResource[]
+  groupId             String?
+  hostUserId          String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  host                User?                  @relation("SpaceHost", fields: [hostUserId], references: [id])
+  product             Product?               @relation(fields: [productId], references: [id], onDelete: SetNull)
+  group               SpaceGroup?            @relation(fields: [groupId], references: [id], onDelete: SetNull)
+  memberships         SpaceMembership[]
+  posts               Post[]
+  events              Event[]
+  courses             Course[]
+  cohorts             Cohort[]
+  resources           SpaceResource[]
 
   @@index([groupId, sortOrder])
   @@index([visibility])
@@ -398,72 +433,73 @@ model SpaceResource {
 }
 
 model SpaceMembership {
-  id          String              @id @default(cuid())
-  spaceId     String
-  userId      String
-  role        SpaceMembershipRole @default(MEMBER)
+  id                String                  @id @default(cuid())
+  spaceId           String
+  userId            String
+  role              SpaceMembershipRole     @default(MEMBER)
   /// Pinned to the top of the member's rail. Null means not a favourite.
-  favoritedAt DateTime?
+  favoritedAt       DateTime?
   /// Last time this member opened the space. Null means never, so everything
   /// published counts as unread.
-  lastReadAt  DateTime?
+  lastReadAt        DateTime?
   /// Overrides the space default. Null means follow the space.
   notificationLevel SpaceNotificationLevel?
-  createdAt   DateTime            @default(now())
-  space       Space               @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  user        User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt         DateTime                @default(now())
+  space             Space                   @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  user              User                    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([spaceId, userId])
   @@index([userId, favoritedAt])
 }
 
 model Post {
-  id          String           @id @default(cuid())
-  spaceId     String
-  authorId    String
-  type        PostType         @default(SIMPLE)
-  status      PostStatus       @default(PUBLISHED)
-  title       String?
-  body        String
-  bodyHtml    String?
-  plainText   String
-  linkUrl     String?
-  recipeId    String?
-  eventId     String?
-  pinnedAt    DateTime?
-  publishedAt DateTime?
-  scheduledAt DateTime?
-  score       Int              @default(0)
+  id               String              @id @default(cuid())
+  spaceId          String
+  authorId         String
+  type             PostType            @default(SIMPLE)
+  status           PostStatus          @default(PUBLISHED)
+  title            String?
+  body             String
+  bodyHtml         String?
+  plainText        String
+  linkUrl          String?
+  recipeId         String?
+  eventId          String?
+  pinnedAt         DateTime?
+  publishedAt      DateTime?
+  scheduledAt      DateTime?
+  score            Int                 @default(0)
   /// The newest of: published, edited, commented on. "Recent activity" orders
   /// by this, and it has to be a column rather than something computed so the
   /// database can do the sort and seek straight to a cursor.
-  lastActivityAt DateTime      @default(now())
-  editedAt    DateTime?
+  lastActivityAt   DateTime            @default(now())
+  editedAt         DateTime?
   /// Kept in step with the rows they count, in the same transaction as the
   /// write. Counting on read means loading every comment and every reaction of
   /// every post in the feed.
-  commentCount  Int            @default(0)
-  reactionCount Int            @default(0)
+  commentCount     Int                 @default(0)
+  reactionCount    Int                 @default(0)
   /// Set when this post re-shares another into a different space.
   sharedFromPostId String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
-  space       Space            @relation(fields: [spaceId], references: [id], onDelete: Cascade)
-  author      User             @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  recipe      Recipe?          @relation(fields: [recipeId], references: [id])
-  event       Event?           @relation(fields: [eventId], references: [id])
-  sharedFrom  Post?            @relation("PostShare", fields: [sharedFromPostId], references: [id], onDelete: SetNull)
-  shares      Post[]           @relation("PostShare")
-  lessonThread Lesson?         @relation("LessonDiscussion")
-  reactionTallies PostReactionTally[]
-  attachments PostAttachment[]
-  mentions    PostMention[]
-  comments    Comment[]
-  reactions   Reaction[]
-  votes       Vote[]
-  bookmarks   Bookmark[]
-  reports     Report[]
-  pollOptions PollOption[]
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  space            Space               @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  author           User                @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  recipe           Recipe?             @relation(fields: [recipeId], references: [id])
+  event            Event?              @relation(fields: [eventId], references: [id])
+  sharedFrom       Post?               @relation("PostShare", fields: [sharedFromPostId], references: [id], onDelete: SetNull)
+  shares           Post[]              @relation("PostShare")
+  lessonThread     Lesson?             @relation("LessonDiscussion")
+  recordingOf      Event?              @relation("EventRecording")
+  reactionTallies  PostReactionTally[]
+  attachments      PostAttachment[]
+  mentions         PostMention[]
+  comments         Comment[]
+  reactions        Reaction[]
+  votes            Vote[]
+  bookmarks        Bookmark[]
+  reports          Report[]
+  pollOptions      PollOption[]
 
   @@index([spaceId, publishedAt])
   @@index([authorId])
@@ -504,7 +540,9 @@ model PostAttachment {
   mimeType     String?
   width        Int?
   height       Int?
-  /** Optional still shown before a video plays (composer thumbnail or class cover). */
+  /**
+   * Optional still shown before a video plays (composer thumbnail or class cover).
+   */
   thumbnailUrl String?
   sortOrder    Int     @default(0)
   post         Post    @relation(fields: [postId], references: [id], onDelete: Cascade)
@@ -717,47 +755,48 @@ model CourseSection {
 }
 
 model Lesson {
-  id          String           @id @default(cuid())
-  sectionId   String
-  title       String
-  slug        String
-  kind        LessonKind       @default(VIDEO)
+  id               String           @id @default(cuid())
+  sectionId        String
+  title            String
+  slug             String
+  kind             LessonKind       @default(VIDEO)
   /// One line under the title in the syllabus.
-  summary     String?
+  summary          String?
   /// Markdown. The lesson itself for a TEXT lesson, the prompt for a QUIZ,
   /// and the notes beneath the player for everything else.
-  body        String?
-  durationMin Int?
+  body             String?
+  durationMin      Int?
   /// A Cloudflare Stream uid, a path in our own bucket, or an absolute URL.
   /// Never sent to the browser: `lib/learn/media` decides how to serve it.
-  videoUid    String?
+  videoUid         String?
   /// Same three shapes as videoUid, for an AUDIO lesson.
-  audioUid    String?
+  audioUid         String?
   /// Same three shapes again, for a DOWNLOAD lesson.
-  downloadUid String?
+  downloadUid      String?
   /// Where a LIVE lesson happens, and when.
-  liveUrl     String?
-  liveAt      DateTime?
+  liveUrl          String?
+  liveAt           DateTime?
   /// Chapter markers: [{ "atSeconds": 0, "title": "Mise en place" }].
-  chapters    Json?
+  chapters         Json?
   /// A lesson anyone signed in may open, membership or not. The teaser.
-  isPreview   Boolean          @default(false)
+  isPreview        Boolean          @default(false)
   /// Drafts are invisible to members and excluded from progress totals.
-  published   Boolean          @default(true)
-  sortOrder   Int              @default(0)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  published        Boolean          @default(true)
+  sortOrder        Int              @default(0)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
   /// The community thread for this lesson, created the first time someone
   /// posts in it. A real Post in a real space, so it inherits moderation,
   /// notifications and the rest of the community rather than growing a second
   /// comment system beside it.
-  discussionPostId String?     @unique
-  section     CourseSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
-  discussion  Post?            @relation("LessonDiscussion", fields: [discussionPostId], references: [id], onDelete: SetNull)
-  progress    LessonProgress[]
-  responses   LessonResponse[]
-  resources   Resource[]
-  lastFor     CourseProgress[] @relation("CourseLastLesson")
+  discussionPostId String?          @unique
+  section          CourseSection    @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  discussion       Post?            @relation("LessonDiscussion", fields: [discussionPostId], references: [id], onDelete: SetNull)
+  progress         LessonProgress[]
+  responses        LessonResponse[]
+  resources        Resource[]
+  lastFor          CourseProgress[] @relation("CourseLastLesson")
+  recordingOf      Event?           @relation("EventRecording")
 
   @@unique([sectionId, slug])
   @@index([sectionId, sortOrder])
@@ -838,33 +877,103 @@ model Resource {
 }
 
 model Event {
-  id          String      @id @default(cuid())
-  spaceId     String?
-  title       String
-  description String?
-  startsAt    DateTime
-  endsAt      DateTime?
-  timezone    String      @default("UTC")
-  location    String?
-  zoomUrl     String?
-  capacity    Int?
-  coverUrl    String?
-  createdAt   DateTime    @default(now())
-  space       Space?      @relation(fields: [spaceId], references: [id])
-  rsvps       EventRsvp[]
-  posts       Post[]
+  id                String           @id @default(cuid())
+  /// Stable address. Titles repeat across a term ("Week three"), so the slug
+  /// carries a suffix rather than the calendar carrying two /events/week-three.
+  ///
+  /// The database default is a safety net, not the intended value: everything
+  /// that creates an event here gives it a real slug. It exists because the
+  /// feed composer also creates events, and a required column with no default
+  /// turns that path into a 500 the moment this column ships.
+  slug              String           @unique @default(cuid())
+  spaceId           String?
+  title             String
+  description       String?
+  /// The instant it begins, always stored in UTC.
+  startsAt          DateTime
+  endsAt            DateTime?
+  /// The zone the event was *scheduled* in — "7pm Eastern" is a fact about the
+  /// event, not about whoever is looking at it. Members see it in their own
+  /// zone; this is what a recurring series counts days in, and what the .ics
+  /// names so a calendar client survives a daylight-saving shift.
+  timezone          String           @default("UTC")
+  location          String?
+  zoomUrl           String?
+  capacity          Int?
+  coverUrl          String?
+  status            EventStatus      @default(PUBLISHED)
+  /// Who is running it. Null for a gathering with no named host.
+  hostId            String?
+  /// The recording, once there is one, and where it was published to.
+  recordingUrl      String?
+  recordingLessonId String?          @unique
+  recordingPostId   String?          @unique
+  /// Recurrence. A parent carries the rule; each occurrence is a real row
+  /// pointing back at it, so RSVPs, capacity and reminders need no special
+  /// case for a repeating event.
+  recurrence        EventRecurrence?
+  /// Every N days/weeks/months. 1 unless someone asked for fortnightly.
+  recurrenceEvery   Int?
+  /// The series stops after this instant. Null means "keep generating".
+  recurrenceUntil   DateTime?
+  seriesId          String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  space             Space?           @relation(fields: [spaceId], references: [id])
+  host              User?            @relation("EventHost", fields: [hostId], references: [id], onDelete: SetNull)
+  series            Event?           @relation("EventSeries", fields: [seriesId], references: [id], onDelete: Cascade)
+  occurrences       Event[]          @relation("EventSeries")
+  recordingLesson   Lesson?          @relation("EventRecording", fields: [recordingLessonId], references: [id], onDelete: SetNull)
+  recordingPost     Post?            @relation("EventRecording", fields: [recordingPostId], references: [id], onDelete: SetNull)
+  rsvps             EventRsvp[]
+  reminders         EventReminder[]
+  posts             Post[]
+
+  /// The calendar's only query: published events in a window, in order.
+  @@index([status, startsAt])
+  @@index([spaceId, startsAt])
+  @@index([seriesId, startsAt])
+  @@index([hostId, startsAt])
+}
+
+/// One reminder, sent once.
+///
+/// The row *is* the idempotency: the unique key means a second run of the job
+/// cannot insert a duplicate, so "have we already told them?" is a constraint
+/// rather than a query per member per event. The old job asked the
+/// notifications table one question per RSVP.
+model EventReminder {
+  id      String            @id @default(cuid())
+  eventId String
+  userId  String
+  kind    EventReminderKind
+  sentAt  DateTime          @default(now())
+  event   Event             @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId, kind])
+  @@index([eventId, kind])
 }
 
 model EventRsvp {
-  id        String   @id @default(cuid())
-  eventId   String
-  userId    String
-  status    String   @default("going")
-  createdAt DateTime @default(now())
-  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id               String     @id @default(cuid())
+  eventId          String
+  userId           String
+  status           RsvpStatus @default(GOING)
+  /// Where in the queue, for a WAITLIST row. Assigned when the seat runs out
+  /// and never reused, so promoting people is first-come order rather than
+  /// whoever happens to reload first.
+  waitlistPosition Int?
+  createdAt        DateTime   @default(now())
+  updatedAt        DateTime   @default(now()) @updatedAt
+  event            Event      @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
+  /// Counting the going list, and drawing the waitlist in order.
+  @@index([eventId, status, waitlistPosition])
+  /// "What am I going to?" on one member's calendar.
+  @@index([userId, status])
 }
 
 model Conversation {

@@ -1,6 +1,9 @@
-import { CalendarDays, MapPin } from "lucide-react";
+import Link from "next/link";
+import { CalendarDays, MapPin, Plus } from "lucide-react";
 import { listAdminEvents } from "@/lib/admin/spaces";
+import { formatEventTime, safeTimeZone } from "@/lib/events/timezone";
 import {
+  AdminLink,
   Badge,
   EmptyPanel,
   PageHeader,
@@ -17,8 +20,12 @@ export const metadata = { title: "Events" };
  * Every gathering, upcoming first.
  *
  * Capacity is shown against real RSVPs rather than as a target, so an event at
- * its limit reads as full and one past it shows a waitlist — which is the state
- * `rsvpToEvent` actually produces once capacity is reached.
+ * its limit reads as full and one past it shows a waitlist — which is the
+ * state `setRsvp` actually produces once capacity is reached.
+ *
+ * Times are rendered in each event's own zone with the zone named, because
+ * this is the screen where somebody schedules them and "7pm" without a zone
+ * is how an event ends up an hour out.
  */
 export default async function AdminEventsPage() {
   const events = await listAdminEvents();
@@ -37,6 +44,12 @@ export default async function AdminEventsPage() {
             ? "No events have been scheduled."
             : `${upcoming.length} upcoming of ${events.length} total.`
         }
+        actions={
+          <AdminLink href="/admin/events/new" variant="primary">
+            <Plus className="size-4" aria-hidden />
+            New event
+          </AdminLink>
+        }
       />
 
       <Panel>
@@ -45,6 +58,12 @@ export default async function AdminEventsPage() {
             icon={<CalendarDays className="size-6" aria-hidden />}
             title="Nothing scheduled"
             body="Live classes and gatherings appear here once they are created."
+            action={
+              <AdminLink href="/admin/events/new" variant="primary">
+                <Plus className="size-4" aria-hidden />
+                Schedule one
+              </AdminLink>
+            }
           />
         ) : (
           <Table
@@ -61,23 +80,28 @@ export default async function AdminEventsPage() {
             {ordered.map((event) => (
               <Tr key={event.id}>
                 <Td>
-                  <span className="flex items-center gap-2">
-                    <span className="text-[13.5px] font-bold text-foreground">
+                  <span className="flex flex-wrap items-center gap-2">
+                    <Link
+                      href={`/admin/events/${event.slug}`}
+                      className="text-[13.5px] font-bold text-foreground no-underline hover:underline"
+                    >
                       {event.title}
-                    </span>
+                    </Link>
                     {event.past ? <Badge tone="neutral">Past</Badge> : null}
+                    {event.status === "DRAFT" ? <Badge tone="warn">Draft</Badge> : null}
+                    {event.status === "CANCELED" ? (
+                      <Badge tone="bad">Canceled</Badge>
+                    ) : null}
                   </span>
                 </Td>
                 <Td className="whitespace-nowrap text-[12.5px] tabular-nums text-foreground-muted">
                   <time dateTime={event.startsAt.toISOString()}>
-                    {event.startsAt.toLocaleString("en-GB", {
-                      day: "numeric",
-                      month: "short",
+                    {formatEventTime(event.startsAt, safeTimeZone(event.timezone), {
+                      weekday: undefined,
                       year: "numeric",
-                      hour: "2-digit",
-                      minute: "2-digit",
                     })}
                   </time>
+                  <span className="ml-1 text-[11px]">{event.timezone}</span>
                 </Td>
                 <Td className="hidden text-[12.5px] text-foreground-muted md:table-cell">
                   {event.location ? (

@@ -306,6 +306,7 @@ async function SpaceEvents({ spaceId }: { spaceId: string }) {
     take: 30,
     select: {
       id: true,
+      slug: true,
       title: true,
       startsAt: true,
       _count: { select: { rsvps: true } },
@@ -328,7 +329,7 @@ async function SpaceEvents({ spaceId }: { spaceId: string }) {
       {events.map((event) => (
         <li key={event.id}>
           <Link
-            href="/calendar"
+            href={`/calendar/${event.slug}`}
             className="flex gap-2.5 rounded-card border border-border bg-surface p-3 no-underline transition hover:border-hairline-firm"
           >
             <span

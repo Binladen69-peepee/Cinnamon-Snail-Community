@@ -69,10 +69,10 @@ and the tests all exist.
 | GIF search | code done, no key | `TENOR_API_KEY` is unset, so the picker hides itself rather than offering a search that can never answer. |
 | Scheduled posts, to the minute | code done, plan-limited | Vercel Hobby allows one cron run a day, so `vercel.json` asks for 09:00 and a post scheduled for 14:00 waits until the next run. The endpoint is correct and idempotent; a five-minute cadence needs Vercel Pro or any external scheduler calling `/api/jobs/publish-scheduled` with `BILLING_JOB_SECRET`. |
 | `/search` | not built | Results page behind the command palette. `lib/search` is complete; only the page is missing. |
-| `/calendar` | not built | Events exist (6, all past). `searchHref('event')` points here. |
 | `/connect` | not built | Suggestions surface. `lib/social/suggestions` is complete. |
 | `/roadmap`, `/bulletin` | not built | BUILD.md §14, §19. No data model work done. |
 | Lesson playback | code done, no content | **Zero lessons exist.** `lib/learn/playback`, the signed-token routes and progress tracking are built and unused. Content, not code. |
+| Events content | code done, no content | `/calendar` (month + list), RSVP with capacity and waitlist, recurrence, `.ics` and Google Calendar, 24h/1h reminders and recording publishing are all built. The six events in the database are seeded placeholders, all in the past. Real dates are content, not engineering. |
 | Email + web push notifications | not built | BUILD.md §9.5 lists both unchecked. In-app only. |
 | Automation, AI cohost, challenges, recipe variations, SSO | not built | BUILD.md §15–20. Tables exist in the schema; nothing reads them. |
 | Mighty migration | not started | BUILD.md §21. No member export received. |
@@ -296,7 +296,7 @@ In the order I would take them.
    `discover.ts` are the two that will hurt first.
 4. **Rate limiting on the real paths** — magic link, password, webhook, upload.
    Requires the Upstash credentials.
-5. **The four remaining 404s**: `/search`, `/calendar`, `/connect`, then
-   `/bulletin`. `/search` is closest to done — the library is complete.
+5. **The three remaining 404s**: `/search`, `/connect`, then `/bulletin`.
+   `/search` is closest to done — the library is complete.
 6. **Look at it.** Six pages have shipped without anyone confirming how they
    render signed in, in either theme, at phone width.

@@ -76,7 +76,10 @@ export async function listAdminSpaces(): Promise<AdminSpaceRow[]> {
 
 export type AdminEventRow = {
   id: string;
+  slug: string;
   title: string;
+  timezone: string;
+  status: "DRAFT" | "PUBLISHED" | "CANCELED";
   startsAt: Date;
   endsAt: Date | null;
   location: string | null;
@@ -90,28 +93,50 @@ export type AdminEventRow = {
 export async function listAdminEvents(): Promise<AdminEventRow[]> {
   const events = await prisma.event.findMany({
     orderBy: { startsAt: "desc" },
+    take: 200,
     select: {
       id: true,
+      slug: true,
       title: true,
       startsAt: true,
       endsAt: true,
+      timezone: true,
       location: true,
       capacity: true,
+      status: true,
       space: { select: { name: true } },
-      rsvps: { select: { status: true } },
+      // Counted rather than fetched. Reading every RSVP row of every event to
+      // work out two numbers is fine for six seeded events and ruinous for a
+      // term's calendar with a waitlist on it.
+      _count: { select: { rsvps: true } },
     },
   });
+
+  const tallies = await prisma.eventRsvp.groupBy({
+    by: ["eventId", "status"],
+    where: { eventId: { in: events.map((event) => event.id) } },
+    _count: { _all: true },
+  });
+  const going = new Map<string, number>();
+  const waiting = new Map<string, number>();
+  for (const row of tallies) {
+    if (row.status === "GOING") going.set(row.eventId, row._count._all);
+    if (row.status === "WAITLIST") waiting.set(row.eventId, row._count._all);
+  }
 
   const now = Date.now();
   return events.map((event) => ({
     id: event.id,
+    slug: event.slug,
     title: event.title,
     startsAt: event.startsAt,
     endsAt: event.endsAt,
+    timezone: event.timezone,
     location: event.location,
     capacity: event.capacity,
-    going: event.rsvps.filter((r) => r.status === "going").length,
-    waitlist: event.rsvps.filter((r) => r.status === "waitlist").length,
+    status: event.status,
+    going: going.get(event.id) ?? 0,
+    waitlist: waiting.get(event.id) ?? 0,
     spaceName: event.space?.name ?? null,
     past: event.startsAt.getTime() < now,
   }));
