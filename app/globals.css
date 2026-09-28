@@ -3,12 +3,15 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Vegan University identity: forest and cream. One hue carries the brand --
-   a deep forest in light, a lit green in dark -- over a cream ground in light
-   and a black one in dark (DEC-015: the ground never goes green, because a
-   green-black floor turns every photograph in the feed slightly sick). Amber
-   and red are untouched: they carry warning and danger, and recolouring them
-   would take meaning out of the UI rather than decoration out of it. */
+/* Vegan University identity: monochrome. Ink on a cream ground in light, white
+   on pure black in dark, and no hue anywhere except the amber and red that
+   carry warning and danger -- stripping those would take meaning out of the
+   interface rather than decoration out of it.
+
+   The forest was tried and taken back out: on the black ground the pale green
+   it needed in order to stay legible read as a tint over every photograph in
+   the feed, and there is nothing a brand hue was doing here that contrast and
+   type were not already doing better. */
 @layer theme {
   :root,
   .light,
@@ -16,35 +19,37 @@
     color-scheme: light;
 
     --background: #f3f7f0;
-    --foreground: #11231a;
+    --foreground: #0a0a0a;
     --surface: #ffffff;
-    --surface-foreground: #11231a;
+    --surface-foreground: #0a0a0a;
     /* One step off the surface: hover fills, media placeholders, the ground a
        thumbnail sits on. */
-    --surface-muted: #eef2e8;
+    --surface-muted: #f4f4f4;
     --overlay: #ffffff;
-    --overlay-foreground: #11231a;
-    --muted: #586b5e;
-    --primary: #1f6b46;
+    --overlay-foreground: #0a0a0a;
+    --muted: #6e6e6e;
+    --primary: #0a0a0a;
     --primary-foreground: #ffffff;
-    --accent: #1f6b46;
+    --accent: #0a0a0a;
     --accent-foreground: #ffffff;
     --accent-gold: #8a6a00;
     --accent-magenta: #b4442a;
     --accent-coral: #b4442a;
-    --foreground-muted: #586b5e;
-    --border: #dde6d7;
-    --separator: #e8eee3;
-    --focus: #1f6b46;
-    --link: #13492e;
-    --default: #eef2e8;
-    --default-foreground: #11231a;
+    --foreground-muted: #6e6e6e;
+    --border: #e6e6e6;
+    --separator: #efefef;
+    --focus: #0a0a0a;
+    --link: #0a0a0a;
+    --default: #f4f4f4;
+    --default-foreground: #0a0a0a;
     --field-background: #ffffff;
-    --field-foreground: #11231a;
-    --field-placeholder: #63715c;
-    --field-border: #d3dccc;
+    --field-foreground: #0a0a0a;
+    /* A shade darker than the original monochrome grey, which measured 3.28:1
+       on white — placeholder text is text, and it is held to 4.5 like any. */
+    --field-placeholder: #757575;
+    --field-border: #dcdcdc;
     --field-border-width: 1px;
-    --success: #1f6b46;
+    --success: #0a0a0a;
     --success-foreground: #ffffff;
     --warning: #8a6a00;
     --warning-foreground: #ffffff;
@@ -64,13 +69,12 @@
     --e3: 0 18px 44px rgb(0 0 0 / 0.14), 0 2px 8px rgb(0 0 0 / 0.06);
     --lift: 0 0 #0000;
 
-    /* The forest, and a version of it that survives the dark theme. --brand is
-       the identity; --brand-strong is the one that carries text, so it darkens
-       in light and lightens in dark rather than staying put. */
-    --brand: #1f6b46;
-    --brand-strong: #13492e;
-    --brand-wash: #e4efe6;
-    --on-brand-wash: #13492e;
+    /* Ink is the brand. --brand-strong is the one that carries text, so it
+       goes darker here and lighter in dark mode rather than staying put. */
+    --brand: #0a0a0a;
+    --brand-strong: #000000;
+    --brand-wash: #f4f4f4;
+    --on-brand-wash: #0a0a0a;
     --on-brand: #ffffff;
 
     /* A filled brand control -- primary button, active tab, own chat bubble.
@@ -78,19 +82,18 @@
        green in light mode and the palest in dark, so a fill built on it with
        fixed white text measured 1.4:1 against WCAG's 4.5. Fill and foreground
        move together here, and neither is ever chosen at the call site. */
-    --brand-fill: #1f6b46;
-    --brand-fill-hover: #17573a;
+    --brand-fill: #0a0a0a;
+    --brand-fill-hover: #262626;
     --brand-fill-foreground: #ffffff;
 
-    /* White here, like the cards: on a cream ground the rail does not need to
-       shout to be a rail, and the border carries the edge. Dark mode is the
-       one that inverts. */
+    /* White, like the cards: on a cream ground the rail does not need to shout
+       to be a rail, and the border carries the edge. */
     --sidebar: #ffffff;
-    --sidebar-foreground: #11231a;
-    --sidebar-accent: #e4efe6;
-    --sidebar-accent-foreground: #13492e;
-    --sidebar-border: #dde6d7;
-    --sidebar-ring: #1f6b46;
+    --sidebar-foreground: #0a0a0a;
+    --sidebar-accent: #f4f4f4;
+    --sidebar-accent-foreground: #0a0a0a;
+    --sidebar-border: #e6e6e6;
+    --sidebar-ring: #0a0a0a;
 
     /* Radii live as runtime variables because @theme inline bakes literals in
        at build time, which would make them unswappable. 12px everywhere. */
@@ -101,27 +104,26 @@
 
     /* One step firmer than --border. Cards rest on a hairline and firm up on
        hover; without this the hover state was a no-op class. */
-    --hairline-firm: #bfcdb6;
+    --hairline-firm: #cfcfcf;
 
-    /* The literal names, with their meanings back. These were flattened to
-       greys when the product went monochrome; every one of them is still
-       referenced by older pages, so they resolve to the real hue again rather
-       than being deleted out from under that code. */
-    --forest: #1f6b46;
-    --deep-forest: #13492e;
-    --olive: #6b7a5e;
-    --sage: #cfdcc6;
-    --mint: #eef4ea;
-    --cream: #f3f7f0;
+    /* The literal names, flattened to greys. Older pages still reference every
+       one of them, so they resolve to the monochrome ladder rather than being
+       deleted out from under that code. */
+    --forest: #0a0a0a;
+    --deep-forest: #000000;
+    --olive: #6e6e6e;
+    --sage: #efefef;
+    --mint: #f7f7f7;
+    --cream: #ffffff;
     --paper: #ffffff;
-    --warm-white: #fbfcf8;
-    --sand: #e3e8da;
-    --taupe: #7a8472;
+    --warm-white: #ffffff;
+    --sand: #e6e6e6;
+    --taupe: #6e6e6e;
     --terracotta: #b4442a;
-    --apricot: #c2761f;
-    --ink: #11231a;
-    --cta-fill: #1f6b46;
-    --cta-fill-hover: #17573a;
+    --apricot: #8a6a00;
+    --ink: #0a0a0a;
+    --cta-fill: #0a0a0a;
+    --cta-fill-hover: #262626;
     --cta-fill-foreground: #ffffff;
   }
 
@@ -130,33 +132,33 @@
     color-scheme: dark;
 
     --background: #000000;
-    --foreground: #f2f6f1;
-    --surface: #0b0e0c;
-    --surface-foreground: #f2f6f1;
-    --surface-muted: #161a17;
-    --overlay: #141814;
-    --overlay-foreground: #f2f6f1;
-    --muted: #9aa79c;
-    --primary: #b7ecd0;
-    --primary-foreground: #04180e;
-    --accent: #b7ecd0;
-    --accent-foreground: #04180e;
+    --foreground: #ffffff;
+    --surface: #0b0b0b;
+    --surface-foreground: #ffffff;
+    --surface-muted: #171717;
+    --overlay: #141414;
+    --overlay-foreground: #ffffff;
+    --muted: #a1a1a1;
+    --primary: #ffffff;
+    --primary-foreground: #000000;
+    --accent: #ffffff;
+    --accent-foreground: #000000;
     --accent-gold: #e0b341;
     --accent-magenta: #ef8b6f;
     --accent-coral: #ef8b6f;
-    --foreground-muted: #9aa79c;
-    --border: #232a25;
-    --separator: #1a201c;
-    --focus: #b7ecd0;
-    --link: #bfead3;
-    --default: #1a201c;
-    --default-foreground: #f2f6f1;
-    --field-background: #0b0e0c;
-    --field-foreground: #f2f6f1;
-    --field-placeholder: #8b978d;
-    --field-border: #2a322c;
-    --success: #b7ecd0;
-    --success-foreground: #04180e;
+    --foreground-muted: #a1a1a1;
+    --border: #232323;
+    --separator: #1a1a1a;
+    --focus: #ffffff;
+    --link: #ffffff;
+    --default: #1a1a1a;
+    --default-foreground: #ffffff;
+    --field-background: #0b0b0b;
+    --field-foreground: #ffffff;
+    --field-placeholder: #8a8a8a;
+    --field-border: #2a2a2a;
+    --success: #ffffff;
+    --success-foreground: #000000;
     --warning: #e0b341;
     --warning-foreground: #000000;
     --danger: #ef6f6f;
@@ -171,51 +173,46 @@
        a lit top edge instead. */
     --lift: inset 0 1px 0 rgb(255 255 255 / 0.06);
 
-    /* The ground stays black (DEC-015) -- the forest lives in the brand, the
-       washes and the ink, not in the floor. A green-black ground turns every
-       photograph in the feed slightly sick. */
-    --brand: #bfead3;
-    --brand-strong: #d8f5e6;
-    /* A small tinted tile. Pale in dark mode, so an icon chip or a stat tile
-       reads as the same material as the rail beside it. */
-    --brand-wash: #9fd9b8;
-    --on-brand-wash: #062315;
-    --on-brand: #062315;
+    /* White is the accent on black. The only colour left anywhere is the amber
+       and red that carry warning and danger, because stripping those would
+       take meaning out of the interface rather than decoration. */
+    --brand: #ffffff;
+    --brand-strong: #ffffff;
+    --brand-wash: #1a1a1a;
+    --on-brand-wash: #ffffff;
+    --on-brand: #000000;
 
     /* Inverted: on black the fill is the lit colour and the label is the dark
-       one, which is what keeps a primary action legible here (8.65:1). */
-    --brand-fill: #bfead3;
-    --brand-fill-hover: #d6f2e2;
-    --brand-fill-foreground: #062315;
+       one, which is what keeps a primary action legible here (10.96:1). */
+    --brand-fill: #ffffff;
+    --brand-fill-hover: #e5e5e5;
+    --brand-fill-foreground: #000000;
 
-    /* The pale green panel on the black ground, and the colour the rest of
-       dark mode's furniture now borrows: a button, a chip and a small tile are
-       all the same green as the rail. */
-    --sidebar: #bfead3;
-    --sidebar-foreground: #0b2b1c;
-    --sidebar-accent: #9cd9b7;
-    --sidebar-accent-foreground: #04200f;
-    --sidebar-border: #a5dfbe;
-    --sidebar-ring: #13492e;
+    --sidebar: #070707;
+    --sidebar-foreground: #ffffff;
+    --sidebar-accent: #1a1a1a;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #1a1a1a;
+    --sidebar-ring: #ffffff;
 
-    --hairline-firm: #3a453d;
+    --hairline-firm: #3a3a3a;
 
-    --forest: #bfead3;
-    --deep-forest: #d8f5e6;
-    --olive: #9aa79c;
-    --sage: #1a201c;
-    --mint: #101612;
+    --forest: #ffffff;
+    --deep-forest: #e5e5e5;
+    --olive: #a1a1a1;
+    --sage: #1a1a1a;
+    --mint: #111111;
     --cream: #000000;
     --paper: #000000;
-    --warm-white: #0b0e0c;
-    --sand: #232a25;
-    --taupe: #9aa79c;
+    --warm-white: #0b0b0b;
+    --sand: #232323;
+    --taupe: #a1a1a1;
     --terracotta: #ef8b6f;
     --apricot: #e0b341;
-    --ink: #f2f6f1;
-    --cta-fill: #bfead3;
-    --cta-fill-hover: #d6f2e2;
-    --cta-fill-foreground: #062315;
+    --ink: #ffffff;
+    --cta-fill: #ffffff;
+    --cta-fill-hover: #e5e5e5;
+    --cta-fill-foreground: #000000;
   }
 }
 
@@ -722,56 +719,12 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
   background: var(--sidebar);
 }
 
-/* ---------------------------------------------------------------------------
-   The rails run inverted, so the roles are redefined for their subtree.
-
-   A deep-forest panel on a cream page, and a pale-green one on a black page,
-   means everything inside a rail has the *opposite* relationship to its
-   background than the rest of the app does. `text-foreground` would be
-   near-black ink on a near-black panel; a `bg-brand-fill` badge would be
-   forest on forest.
-
-   The fix is not to rewrite the classes inside — it is to restate what the
-   roles mean in here, which is the entire reason the product paints from role
-   tokens rather than from colours. Every component in a rail keeps the classes
-   it already had and comes out right.
-
-   Dark mode only. The light rail is white, like the cards beside it, so the
-   page's own roles are already correct in there; remapping them would paint
-   the rail's accents in ink instead of forest.
---------------------------------------------------------------------------- */
-.dark .vu-app-sidebar,
-.dark .vu-admin-rail,
-[data-theme="dark"] .vu-app-sidebar,
-[data-theme="dark"] .vu-admin-rail {
-  --background: var(--sidebar);
-  --surface: var(--sidebar-accent);
-  --surface-foreground: var(--sidebar-accent-foreground);
-  --overlay: var(--sidebar-accent);
-  --default: var(--sidebar-accent);
-  --default-foreground: var(--sidebar-accent-foreground);
-
-  --foreground: var(--sidebar-foreground);
-  --foreground-muted: color-mix(in oklab, var(--sidebar-foreground) 66%, transparent);
-  --muted: var(--foreground-muted);
-
-  --border: var(--sidebar-border);
-  --separator: var(--sidebar-border);
-  --hairline-firm: var(--sidebar-border);
-  --focus: var(--sidebar-ring);
-  --link: var(--sidebar-foreground);
-
-  /* Inside a rail the brand cannot be the page's brand: on the light-mode
-     panel the two are the same green. It becomes the rail's own contrast
-     instead, so a badge or an active pill still reads. */
-  --brand: var(--sidebar-foreground);
-  --brand-strong: var(--sidebar-accent-foreground);
-  --brand-wash: var(--sidebar-accent);
-  --on-brand: var(--sidebar);
-  --brand-fill: var(--sidebar-foreground);
-  --brand-fill-hover: var(--sidebar-accent-foreground);
-  --brand-fill-foreground: var(--sidebar);
-}
+/* The role remap that used to live here is gone with the inverted rails.
+   It existed because a coloured panel made `text-foreground` mean the opposite
+   of what it means on the page. Both rails now sit on the same ladder as the
+   surfaces beside them — white on the cream ground, near-black on the black —
+   so the page's own roles are already correct inside them. `.vu-admin-rail`
+   stays as a hook on the markup; it simply has nothing to restate. */
 
 .vu-thread-line {
   width: 1px;
@@ -1705,70 +1658,72 @@ button:hover .vu-media-zoom {
 
   /* Elevation ladder: ground -> card -> raised -> inert */
   --background: #000000;
-  --surface: #0c100e;
-  --surface-foreground: #eef3ec;
-  --overlay: #141915;
-  --overlay-foreground: #eef3ec;
-  --default: #191f1b;
-  --default-foreground: #eef3ec;
+  --surface: #0d0d0d;
+  --surface-foreground: #ededed;
+  --overlay: #151515;
+  --overlay-foreground: #ededed;
+  --default: #1a1a1a;
+  --default-foreground: #ededed;
 
-  --foreground: #eef3ec;
-  --foreground-muted: #97a399;
-  --muted: #97a399;
+  --foreground: #ededed;
+  --foreground-muted: #8c8c8c;
+  --muted: #8c8c8c;
 
-  --border: #262e28;
-  --separator: #1b211d;
-  --hairline-firm: #3a453d;
+  --border: #272727;
+  --separator: #1c1c1c;
+  --hairline-firm: #3a3a3a;
 
-  --field-background: #0c100e;
-  --field-foreground: #eef3ec;
-  --field-placeholder: #8b978d;
-  --field-border: #262e28;
+  --field-background: #0d0d0d;
+  --field-foreground: #ededed;
+  --field-placeholder: #7a7a7a;
+  /* One step up from #262626, which left an input's edge at 1.28:1 against
+     the console's denser field ground — too faint to find the box. */
+  --field-border: #2c2c2c;
 
-  --primary: #b7ecd0;
-  --primary-foreground: #04180e;
-  --link: #d8f5e6;
-  --focus: #b7ecd0;
+  --primary: #ededed;
+  --primary-foreground: #000000;
+  --link: #ffffff;
+  --focus: #ffffff;
 
-  /* The forest on black. Amber and red stay exactly where they were: they
-     carry warning and danger, and recolouring them would take meaning out
-     of the UI rather than decoration out of it. */
-  --brand: #bfead3;
-  --brand-strong: #d8f5e6;
-  --brand-wash: #9fd9b8;
-  --on-brand-wash: #062315;
-  --on-brand: #062315;
-  --brand-fill: #bfead3;
-  --brand-fill-hover: #d6f2e2;
-  --brand-fill-foreground: #062315;
+  /* Monochrome throughout: white is the accent on black, and the only colour
+     left anywhere is the amber and red that carry warning and danger, because
+     stripping those would take meaning out of the UI rather than decoration. */
+  --brand: #ffffff;
+  --brand-strong: #ffffff;
+  --brand-wash: #1a1a1a;
+  --on-brand-wash: #ffffff;
+  --on-brand: #000000;
+  --brand-fill: #ffffff;
+  --brand-fill-hover: #e5e5e5;
+  --brand-fill-foreground: #000000;
 
-  --accent: #b7ecd0;
-  --accent-foreground: #04180e;
-  --success: #b7ecd0;
-  --success-foreground: #04180e;
+  --accent: #ffffff;
+  --accent-foreground: #000000;
+  --success: #ffffff;
+  --success-foreground: #000000;
   --warning: #e0b341;
   --warning-foreground: #000000;
   --danger: #ef6f6f;
   --danger-foreground: #000000;
 
-  --sidebar: #bfead3;
-  --sidebar-foreground: #0b2b1c;
-  --sidebar-accent: #9cd9b7;
-  --sidebar-accent-foreground: #04200f;
-  --sidebar-border: #a5dfbe;
-  --sidebar-ring: #13492e;
+  --sidebar: #070707;
+  --sidebar-foreground: #ededed;
+  --sidebar-accent: #1a1a1a;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1a1a1a;
+  --sidebar-ring: #ffffff;
 
   /* Literal names still resolve, because older admin pages use them. */
-  --forest: #b7ecd0;
-  --deep-forest: #d8f5e6;
-  --mint: #101612;
-  --sage: #1a201c;
+  --forest: #ededed;
+  --deep-forest: #d4d4d4;
+  --mint: #141414;
+  --sage: #1a1a1a;
   --cream: #000000;
-  --paper: #eef3ec;
-  --warm-white: #0c100e;
-  --ink: #eef3ec;
-  --olive: #97a399;
-  --sand: #262e28;
+  --paper: #ededed;
+  --warm-white: #0d0d0d;
+  --ink: #ededed;
+  --olive: #8c8c8c;
+  --sand: #222222;
 
   --e1: 0 1px 2px rgb(0 0 0 / 0.6);
   --e2: 0 4px 16px rgb(0 0 0 / 0.65);
@@ -1850,57 +1805,57 @@ button:hover .vu-media-zoom {
 [data-theme="light"] .vu-admin {
   --background: #f3f7f0;
   --surface: #ffffff;
-  --surface-foreground: #11231a;
+  --surface-foreground: #0a0a0a;
   --overlay: #ffffff;
-  --overlay-foreground: #11231a;
-  --default: #eef2e8;
-  --default-foreground: #11231a;
-  --foreground: #11231a;
-  --foreground-muted: #586b5e;
-  --muted: #586b5e;
-  --border: #dde6d7;
-  --separator: #e8eee3;
-  --hairline-firm: #bfcdb6;
+  --overlay-foreground: #0a0a0a;
+  --default: #f4f4f4;
+  --default-foreground: #0a0a0a;
+  --foreground: #0a0a0a;
+  --foreground-muted: #6e6e6e;
+  --muted: #6e6e6e;
+  --border: #e6e6e6;
+  --separator: #efefef;
+  --hairline-firm: #cfcfcf;
   --field-background: #ffffff;
-  --field-foreground: #11231a;
-  --field-placeholder: #63715c;
-  --field-border: #d3dccc;
-  --primary: #1f6b46;
+  --field-foreground: #0a0a0a;
+  --field-placeholder: #757575;
+  --field-border: #dcdcdc;
+  --primary: #0a0a0a;
   --primary-foreground: #ffffff;
-  --link: #13492e;
-  --focus: #1f6b46;
-  --brand: #1f6b46;
-  --brand-strong: #13492e;
-  --brand-wash: #e4efe6;
-  --on-brand-wash: #13492e;
+  --link: #0a0a0a;
+  --focus: #0a0a0a;
+  --brand: #0a0a0a;
+  --brand-strong: #000000;
+  --brand-wash: #f4f4f4;
+  --on-brand-wash: #0a0a0a;
   --on-brand: #ffffff;
-  --brand-fill: #1f6b46;
-  --brand-fill-hover: #17573a;
+  --brand-fill: #0a0a0a;
+  --brand-fill-hover: #262626;
   --brand-fill-foreground: #ffffff;
-  --accent: #1f6b46;
+  --accent: #0a0a0a;
   --accent-foreground: #ffffff;
-  --success: #1f6b46;
+  --success: #0a0a0a;
   --success-foreground: #ffffff;
   --warning: #8a6a00;
   --warning-foreground: #ffffff;
   --danger: #b4442a;
   --danger-foreground: #ffffff;
   --sidebar: #ffffff;
-  --sidebar-foreground: #11231a;
-  --sidebar-accent: #e4efe6;
-  --sidebar-accent-foreground: #13492e;
-  --sidebar-border: #dde6d7;
-  --sidebar-ring: #1f6b46;
-  --forest: #1f6b46;
-  --deep-forest: #13492e;
-  --mint: #eef4ea;
-  --sage: #cfdcc6;
-  --cream: #f3f7f0;
+  --sidebar-foreground: #0a0a0a;
+  --sidebar-accent: #f4f4f4;
+  --sidebar-accent-foreground: #0a0a0a;
+  --sidebar-border: #e6e6e6;
+  --sidebar-ring: #0a0a0a;
+  --forest: #0a0a0a;
+  --deep-forest: #000000;
+  --mint: #f7f7f7;
+  --sage: #efefef;
+  --cream: #ffffff;
   --paper: #ffffff;
-  --warm-white: #fbfcf8;
-  --ink: #11231a;
-  --olive: #6b7a5e;
-  --sand: #e3e8da;
+  --warm-white: #ffffff;
+  --ink: #0a0a0a;
+  --olive: #6e6e6e;
+  --sand: #e6e6e6;
   --e1: 0 1px 2px rgb(0 0 0 / 0.06);
   --e2: 0 4px 14px rgb(0 0 0 / 0.08);
   --e3: 0 18px 44px rgb(0 0 0 / 0.14);

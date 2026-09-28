@@ -2435,10 +2435,11 @@ spaces, events, courses, billing, welcome DM.
 **Still 404:** `/search`, `/calendar`, `/connect`, `/bulletin`.
 **Blocked on content, not code:** lesson playback. `lib/learn` is complete and
 idle because zero lessons exist in the database.
-**Theme:** forest and cream, both modes (`DEC-044`). One brand hue -- `#1f6b46`
-in light, `#5fd39a` in dark -- over a cream ground in light and a black one in
-dark (`DEC-015`). Amber and red stay reserved for warning and danger. The
-headline texture stays gone.
+**Theme:** monochrome, both modes (`DEC-037`, reinstated by `DEC-068`). Ink on a
+cream ground in light, white on pure black in dark. Amber and red stay reserved
+for warning and danger; green is gone and the headline texture with it. Measured
+by `npm run check:theme`, which reads the tokens out of `globals.css` and holds
+84 pairs to WCAG.
 **Auth:** magic link and password verified. JWT sessions with a database
 revocation list, 5-minute revalidation (`DEC-022`). Google and Facebook are
 wired and dormant until credentials exist.

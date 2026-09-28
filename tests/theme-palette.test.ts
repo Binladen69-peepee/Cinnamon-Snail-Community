@@ -3,18 +3,18 @@ import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * The palette is forest and cream, and stays that way.
+ * The palette is monochrome, and stays that way.
  *
- * This file used to enforce the opposite — that the product had no hue at all
- * (`DEC-037`). `DEC-044` brought the forest back, so the policy inverted, but
- * the reason for guarding it did not: every surface paints from role tokens, so
- * one stray hue in `globals.css` repaints hundreds of components at once, and
- * one hardcoded hex in a component silently escapes the token system that makes
- * the light and dark pair work.
+ * This file has now enforced the policy in both directions — no hue at all
+ * (`DEC-037`), then one brand hue (`DEC-044`), and no hue again (`DEC-045`).
+ * The policy keeps moving; the reason for guarding it does not. Every surface
+ * paints from role tokens, so one stray hue in `globals.css` repaints hundreds
+ * of components at once, and one hardcoded hex in a component silently escapes
+ * the token system that makes the light and dark pair work.
  *
- * What is guarded now is that the palette stays *disciplined*: one brand hue,
- * plus the amber and red that carry warning and danger, and nothing else. A
- * stray blue is the failure this catches.
+ * Amber and red survive on purpose: they carry warning and danger, and
+ * stripping those would remove meaning from the interface rather than
+ * decoration.
  */
 
 const root = process.cwd();
@@ -39,13 +39,13 @@ function hue(hex: string): number | null {
 }
 
 /**
- * The three families the product is allowed to contain.
+ * The two families the product is allowed to contain.
  *
- * Forest is the identity. Gold and red are reserved: they mean warning and
- * danger, and they are never spent on decoration. Everything else is grey.
+ * Gold and red are reserved: they mean warning and danger, and they are never
+ * spent on decoration. Everything else is grey. Green is deliberately *not*
+ * here — a forest in this list is the regression this catches.
  */
 const FAMILIES: [string, number, number][] = [
-  ["forest", 75, 175],
   ["gold / amber", 25, 60],
   ["red / terracotta", 0, 24],
 ];
@@ -101,7 +101,7 @@ function walk(dir: string, out: string[] = []): string[] {
 }
 
 describe("theme palette", () => {
-  it("contains no hue outside the three families", () => {
+  it("contains no hue outside the two reserved families", () => {
     const hexes = css.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
     expect(hexes.length).toBeGreaterThan(50);
     const strays = [...new Set(hexes)]
@@ -110,18 +110,21 @@ describe("theme palette", () => {
     expect(strays).toEqual([]);
   });
 
-  it("actually carries the forest, rather than having gone grey again", () => {
-    // The inverse of the stray check: a palette of pure greys would pass the
-    // test above trivially. The identity has to be present.
+  it("has no green anywhere in the stylesheet", () => {
+    // Named separately from the stray check because green is the one that
+    // keeps coming back, and a failure here should say so rather than report
+    // an anonymous hue.
     const hexes = css.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
-    const forest = [...new Set(hexes)].filter((hex) => familyOf(hex) === "forest");
-    expect(forest.length).toBeGreaterThan(8);
+    const greens = [...new Set(hexes)].filter((hex) => {
+      const h = hue(hex);
+      return h !== null && h >= 75 && h <= 175;
+    });
+    expect(greens).toEqual([]);
   });
 
   it("keeps the two grounds Adam chose", () => {
-    // Light is the pale green-white Adam picked by hand; dark stays pure black
-    // (DEC-015). A green-black ground tints every photograph in the feed, so
-    // the forest is never allowed to reach the floor.
+    // Light is the pale off-white Adam picked by hand; dark stays pure black,
+    // which is what "truly black and white" means here.
     expect(tokenIn(blockAfter(":root,"), "background")).toBe("#f3f7f0");
     expect(tokenIn(blockAfter('[data-theme="dark"] {'), "background")).toBe("#000000");
   });
