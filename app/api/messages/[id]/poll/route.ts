@@ -6,12 +6,19 @@ import {
   setTyping,
 } from "@/lib/messages/conversations";
 import { isTyping } from "@/lib/messages/permissions";
+import { previewInternalLinks } from "@/lib/messages/link-preview";
+import { MessageRateLimitError } from "@/lib/messages/rate-limits";
 
 export const dynamic = "force-dynamic";
 
 /**
- * DEC-016: delivery is short-interval polling until a realtime vendor is wired.
- * The client asks for everything after the last message it holds.
+ * DEC-017: delivery is polling until a realtime vendor is wired. The client
+ * asks for everything after the last message it holds, and `useMessageStream`
+ * decides how often to ask.
+ *
+ * Membership is re-checked on every call — this is the endpoint a guessed
+ * conversation id would be pointed at, and it answers 404 rather than 403 so
+ * the existence of a thread is not confirmed either.
  */
 export async function GET(
   request: Request,
@@ -55,6 +62,15 @@ export async function GET(
     await markConversationRead(id, session.user.id);
   }
 
+  // Only for the messages in this batch: a poll that returns nothing does no
+  // preview work at all, which is the overwhelmingly common case.
+  const previews = messages.length
+    ? await previewInternalLinks({
+        bodies: messages.map((message) => message.body),
+        origin: url.origin,
+      }).catch(() => new Map())
+    : new Map();
+
   const others = membership.conversation.members.filter(
     (member) => member.userId !== session.user.id && !member.leftAt,
   );
@@ -78,6 +94,7 @@ export async function GET(
         name: member.user.profile?.displayName ?? member.user.handle,
         lastReadAt: member.lastReadAt?.toISOString() ?? null,
       })),
+      previews: [...previews.values()],
     },
     { headers: { "Cache-Control": "no-store" } },
   );
@@ -97,6 +114,18 @@ export async function POST(
   if (!membership) {
     return Response.json({ error: "Not found." }, { status: 404 });
   }
-  await setTyping(id, session.user.id);
+  try {
+    await setTyping(id, session.user.id);
+  } catch (error) {
+    // Over the limit. A typing flag is the least important thing in the
+    // system, so it is dropped quietly rather than surfaced to the sender.
+    if (error instanceof MessageRateLimitError) {
+      return Response.json(
+        { ok: false },
+        { status: 429, headers: { "Cache-Control": "no-store" } },
+      );
+    }
+    throw error;
+  }
   return Response.json({ ok: true }, { headers: { "Cache-Control": "no-store" } });
 }

@@ -9,13 +9,20 @@ import {
   useTransition,
 } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { ArrowLeft, ArrowDown } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { MessageBubble, type ThreadMessage } from "@/components/messages/message-bubble";
 import { ThreadComposer } from "@/components/messages/thread-composer";
 import { ThreadMenu } from "@/components/messages/thread-menu";
 import { groupByDay } from "@/lib/messages/day-groups";
-import { sendMessageAction } from "@/app/(member)/messages/actions";
+import {
+  loadOlderMessagesAction,
+  sendMessageAction,
+} from "@/app/(member)/messages/actions";
+import { useMessageStream } from "@/components/messages/use-message-stream";
+import type { LinkPreview } from "@/lib/messages/link-preview";
+import { StreamStatus } from "@/components/messages/stream-status";
 
 export type ThreadOther = {
   id: string;
@@ -26,18 +33,25 @@ export type ThreadOther = {
   blockedByViewer: boolean;
 };
 
-/** How often to ask for new messages. DEC-016: polling until realtime lands. */
-const POLL_MS = 4000;
 /** Below this many pixels from the bottom, we follow new messages down. */
 const STICK_PX = 120;
+/** How often an arrival may re-render the conversation list beside the thread. */
+const REFRESH_THROTTLE_MS = 5000;
+
+/** A key per composed message, so a retry cannot send it twice. */
+function newClientId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
 
 /**
  * A conversation.
  *
- * Delivery is the existing poll route, which already returns messages since a
- * cursor plus typing flags and read receipts — this only has to ask, and to
- * stop asking when the tab is hidden, because a background tab polling every
- * four seconds is how a phone battery disappears.
+ * Delivery is the poll route, driven by `useMessageStream` — which follows
+ * attention, backs off when the server is unwell, and knows when the browser
+ * is offline, so the thread says "reconnecting" instead of quietly going
+ * stale. DEC-017 keeps this polling until a realtime vendor exists.
  *
  * Scrolling follows the rule every chat client converges on: stay pinned to the
  * bottom while you are at the bottom, and never yank someone who has scrolled
@@ -50,6 +64,8 @@ export function Thread({
   isGroup,
   others,
   initialMessages,
+  initialPreviews,
+  hasMore,
   uploadsEnabled,
 }: {
   conversationId: string;
@@ -57,9 +73,16 @@ export function Thread({
   isGroup: boolean;
   others: ThreadOther[];
   initialMessages: ThreadMessage[];
+  initialPreviews: LinkPreview[];
+  /** True when there are older messages above the first one shown. */
+  hasMore: boolean;
   uploadsEnabled: boolean;
 }) {
   const [messages, setMessages] = useState<ThreadMessage[]>(initialMessages);
+  const [previews, setPreviews] = useState<Map<string, LinkPreview>>(
+    () => new Map(initialPreviews.map((preview) => [preview.url, preview])),
+  );
+  const [older, setOlder] = useState({ hasMore, loading: false });
   const [typing, setTyping] = useState<string[]>([]);
   const [receipts, setReceipts] = useState(
     others.map((other) => ({ name: other.name, lastReadAt: other.lastReadAt })),
@@ -83,6 +106,14 @@ export function Thread({
     (current, message) => [...current, message],
   );
 
+  const router = useRouter();
+  // The conversation list beside this thread is a server component, so a
+  // message arriving here leaves its preview and its unread badge stale —
+  // "no messages yet" next to a thread full of them. Refreshed only when a
+  // genuinely new message lands, and never more than once every few seconds,
+  // because a refresh on every poll would re-render the page for nothing.
+  const lastRefresh = useRef(0);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const stuckRef = useRef(true);
   const cursorRef = useRef<string | null>(
@@ -100,15 +131,59 @@ export function Thread({
     scrollToBottom();
   }, [scrollToBottom]);
 
+  const loadOlder = useCallback(async () => {
+    const oldest = messages[0];
+    if (!oldest || older.loading || !older.hasMore) return;
+    setOlder((current) => ({ ...current, loading: true }));
+
+    const node = scrollRef.current;
+    const anchorHeight = node?.scrollHeight ?? 0;
+
+    const result = await loadOlderMessagesAction({
+      conversationId,
+      before: oldest.id,
+    });
+    if (!result.ok) {
+      setOlder({ hasMore: false, loading: false });
+      return;
+    }
+
+    setMessages((current) => {
+      const known = new Set(current.map((message) => message.id));
+      const fresh = result.messages.filter((message) => !known.has(message.id));
+      return fresh.length > 0 ? [...fresh, ...current] : current;
+    });
+    if (result.previews.length) {
+      setPreviews((current) => {
+        const next = new Map(current);
+        for (const preview of result.previews) next.set(preview.url, preview);
+        return next;
+      });
+    }
+    setOlder({ hasMore: result.hasMore, loading: false });
+
+    // Keep the reader where they were. Prepending rows moves everything down
+    // by exactly the height that was added, so the scroll position is nudged
+    // by the same amount — otherwise the thread jumps and they lose the line
+    // they were reading.
+    requestAnimationFrame(() => {
+      const after = scrollRef.current;
+      if (!after) return;
+      after.scrollTop += after.scrollHeight - anchorHeight;
+    });
+  }, [conversationId, messages, older.hasMore, older.loading]);
+
   function onScroll() {
     const node = scrollRef.current;
     if (!node) return;
     const distance = node.scrollHeight - node.scrollTop - node.clientHeight;
     stuckRef.current = distance < STICK_PX;
     if (stuckRef.current) setBehind(false);
+    // Near the top: fetch the page above before they reach the end of it.
+    if (node.scrollTop < 200) void loadOlder();
   }
 
-  const poll = useCallback(async () => {
+  const poll = useCallback(async (): Promise<boolean> => {
     const since = cursorRef.current;
     const params = new URLSearchParams({ read: "1" });
     if (since) params.set("since", since);
@@ -117,14 +192,25 @@ export function Thread({
         `/api/messages/${conversationId}/poll?${params.toString()}`,
         { cache: "no-store" },
       );
-      if (!response.ok) return;
+      // A 4xx means this thread is gone or forbidden; retrying will not fix
+      // it, so it is reported as a success to stop the backoff spinning.
+      if (!response.ok) return response.status >= 400 && response.status < 500;
       const data = (await response.json()) as {
         messages: ThreadMessage[];
         typing: string[];
         readReceipts: { name: string; lastReadAt: string | null }[];
+        previews?: LinkPreview[];
       };
       setTyping(data.typing);
       setReceipts(data.readReceipts);
+      const fresh = data.previews;
+      if (fresh?.length) {
+        setPreviews((current) => {
+          const next = new Map(current);
+          for (const preview of fresh) next.set(preview.url, preview);
+          return next;
+        });
+      }
       if (data.messages.length > 0) {
         cursorRef.current = data.messages.at(-1)?.createdAt ?? since;
         setMessages((current) => {
@@ -138,32 +224,36 @@ export function Thread({
         } else {
           setBehind(true);
         }
-      }
-    } catch {
-      // A dropped poll is not worth an error state; the next one will catch up.
-    }
-  }, [conversationId, scrollToBottom]);
 
-  useEffect(() => {
-    let timer = window.setInterval(poll, POLL_MS);
-    function onVisibility() {
-      window.clearInterval(timer);
-      if (document.visibilityState === "visible") {
-        void poll();
-        timer = window.setInterval(poll, POLL_MS);
+        const now = Date.now();
+        if (now - lastRefresh.current > REFRESH_THROTTLE_MS) {
+          lastRefresh.current = now;
+          // The thread keeps its own state across this, because `useState`
+          // only reads its initial value on mount.
+          router.refresh();
+        }
       }
+      return true;
+    } catch {
+      // Reported rather than swallowed: one dropped poll is nothing, a run of
+      // them is the difference between a live thread and a stale one, and the
+      // stream is what decides when to say so.
+      return false;
     }
-    document.addEventListener("visibilitychange", onVisibility);
-    return () => {
-      window.clearInterval(timer);
-      document.removeEventListener("visibilitychange", onVisibility);
-    };
-  }, [poll]);
+  }, [conversationId, scrollToBottom, router]);
+
+  const { state: streamState, refresh, markActive } = useMessageStream({ poll });
 
   function submit(body: string, imageUrl: string | null) {
     setError(null);
+    markActive();
+
+    // Generated once per composed message and reused on any retry, so the
+    // server can recognise the second attempt as the same message rather than
+    // writing it twice.
+    const clientId = newClientId();
     const optimistic: ThreadMessage = {
-      id: `pending-${Date.now()}`,
+      id: `pending-${clientId}`,
       body,
       imageUrl,
       createdAt: new Date().toISOString(),
@@ -177,6 +267,7 @@ export function Thread({
     const data = new FormData();
     data.set("conversationId", conversationId);
     data.set("body", body);
+    data.set("clientId", clientId);
     if (imageUrl) data.set("imageUrl", imageUrl);
 
     startTransition(async () => {
@@ -185,11 +276,13 @@ export function Thread({
       requestAnimationFrame(() => scrollToBottom("smooth"));
       const result = await sendMessageAction(data);
       if (!result.ok) {
+        // Rolled back: the optimistic row goes with the transition, and what
+        // was typed comes back to the composer rather than being lost.
         setError(result.error);
         setRestore({ token: Date.now(), body, imageUrl });
         return;
       }
-      await poll();
+      await refresh();
     });
   }
 
@@ -243,11 +336,26 @@ export function Thread({
         />
       </header>
 
+      <StreamStatus state={streamState} />
+
       <div
         ref={scrollRef}
         onScroll={onScroll}
         className="relative min-h-0 flex-1 overflow-y-auto px-3 py-3"
       >
+        {older.hasMore && all.length > 0 ? (
+          <div className="mb-2 flex justify-center">
+            <button
+              type="button"
+              onClick={() => void loadOlder()}
+              disabled={older.loading}
+              className="h-8 rounded-full border border-border bg-surface px-3.5 text-[12.5px] font-semibold text-foreground-muted transition hover:border-hairline-firm hover:text-foreground disabled:opacity-60"
+            >
+              {older.loading ? "Loading…" : "Older messages"}
+            </button>
+          </div>
+        ) : null}
+
         {all.length === 0 ? (
           <p className="mx-auto mt-10 max-w-[38ch] text-center text-[14px] text-foreground-muted">
             No messages yet. Say hello — a first message is usually about what
@@ -277,6 +385,7 @@ export function Thread({
                       message.state === undefined &&
                       new Date(message.createdAt).getTime() <= readThrough
                     }
+                    previews={previews}
                   />
                 );
               })}

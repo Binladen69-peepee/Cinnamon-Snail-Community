@@ -8,18 +8,27 @@ import {
   createGroupConversation,
   findOrCreateDirectConversation,
   leaveConversation,
+  loadOlderMessages,
   MessagePermissionError,
   reportMessage,
   sendMessage,
   unblockMember,
 } from "@/lib/messages/conversations";
+import { previewInternalLinks } from "@/lib/messages/link-preview";
+import { resolveMemberAvatar } from "@/lib/community/member-avatars";
 import { prisma } from "@/lib/db";
 import { objectPathFromUrl, verifyUploaded } from "@/lib/uploads/storage";
+import { MessageRateLimitError } from "@/lib/messages/rate-limits";
 
 type Result = { ok: true } | { ok: false; error: string };
 
 function failed(error: unknown): Result {
-  if (error instanceof MessagePermissionError) {
+  if (
+    error instanceof MessagePermissionError ||
+    error instanceof MessageRateLimitError
+  ) {
+    // Both are things the member can understand and act on, so they come back
+    // as a message under the composer rather than as a thrown 500.
     return { ok: false, error: error.message };
   }
   throw error;
@@ -52,6 +61,8 @@ export async function sendMessageAction(formData: FormData): Promise<Result> {
   const conversationId = String(formData.get("conversationId") ?? "").trim();
   const body = String(formData.get("body") ?? "");
   const rawImage = String(formData.get("imageUrl") ?? "").trim() || null;
+  // Bounded: it is a client-supplied key that becomes a unique index entry.
+  const clientId = String(formData.get("clientId") ?? "").trim().slice(0, 64) || null;
   if (!conversationId) return { ok: false, error: "Missing conversation." };
 
   const image = await verifyImage(session.user.id, rawImage);
@@ -63,6 +74,7 @@ export async function sendMessageAction(formData: FormData): Promise<Result> {
       authorId: session.user.id,
       body,
       imageUrl: image.url,
+      clientId,
     });
   } catch (error) {
     return failed(error);
@@ -178,4 +190,54 @@ export async function leaveConversationAction(formData: FormData) {
   }
   revalidatePath("/messages");
   redirect("/messages");
+}
+
+/**
+ * The page of messages above the ones already on screen.
+ *
+ * A thread opens on its newest page — it used to open on the oldest two
+ * hundred, which meant a long conversation never showed anything recent — so
+ * scrolling up asks for more. Keyed on the oldest message the client holds
+ * rather than on an offset, because a thread gains messages while somebody
+ * reads back through it.
+ */
+export async function loadOlderMessagesAction(input: {
+  conversationId: string;
+  before: string;
+}) {
+  const session = await auth();
+  if (!session?.user.id) return { ok: false as const, error: "Sign in required." };
+
+  const page = await loadOlderMessages({
+    conversationId: input.conversationId,
+    userId: session.user.id,
+    before: input.before,
+  });
+  // Null means "not a member", which is the same answer as "no such thread".
+  if (!page) return { ok: false as const, error: "This conversation is not available." };
+
+  const previews = await previewInternalLinks({
+    bodies: page.messages.map((message) => message.body),
+    origin: "",
+  }).catch(() => new Map());
+
+  return {
+    ok: true as const,
+    hasMore: page.hasMore,
+    previews: [...previews.values()],
+    messages: page.messages.map((message) => ({
+      id: message.id,
+      body: message.body,
+      imageUrl: message.imageUrl,
+      createdAt: message.createdAt.toISOString(),
+      authorId: message.authorId,
+      authorName: message.author.profile?.displayName ?? message.author.handle,
+      authorAvatar: resolveMemberAvatar(
+        message.author.handle,
+        message.author.profile?.avatarUrl,
+        message.author.profile?.displayName,
+      ),
+      mine: message.authorId === session.user.id,
+    })),
+  };
 }

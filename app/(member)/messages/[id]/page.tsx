@@ -1,6 +1,8 @@
+import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { readConversation } from "@/lib/messages/conversations";
+import { previewInternalLinks } from "@/lib/messages/link-preview";
 import { resolveMemberAvatar } from "@/lib/community/member-avatars";
 import { uploadsConfigured } from "@/lib/uploads/storage";
 import { Thread } from "@/components/messages/thread";
@@ -29,6 +31,14 @@ export default async function ConversationPage({
   const { id } = await params;
   const conversation = await readConversation(id, session.user.id);
   if (!conversation) notFound();
+
+  // Resolved once for the whole page rather than per bubble, so a thread where
+  // somebody pasted six lessons costs one query, not six.
+  const origin = (await headers()).get("origin") ?? "";
+  const previews = await previewInternalLinks({
+    bodies: conversation.messages.map((message) => message.body),
+    origin,
+  });
 
   const messages: ThreadMessage[] = conversation.messages.map((message) => ({
     id: message.id,
@@ -59,6 +69,8 @@ export default async function ConversationPage({
         blockedByViewer: other.blockedByViewer,
       }))}
       initialMessages={messages}
+      initialPreviews={[...previews.values()]}
+      hasMore={conversation.hasMore}
       uploadsEnabled={uploadsConfigured()}
     />
   );

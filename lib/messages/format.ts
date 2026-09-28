@@ -24,3 +24,16 @@ export function autoLink(body: string): LinkPart[] {
   }
   return parts.length > 0 ? parts : [{ text: body }];
 }
+
+/**
+ * Every link in a body, trailing sentence punctuation trimmed.
+ *
+ * Shared with the preview resolver so the client and the server agree on what
+ * counts as a link — a bubble looking up a URL the server never resolved would
+ * simply render nothing, which is a silent bug rather than a visible one.
+ */
+export function linksIn(body: string): string[] {
+  return [...body.matchAll(URL_PATTERN)].map((match) =>
+    match[0].replace(/[.,;:!?)\]]+$/, ""),
+  );
+}

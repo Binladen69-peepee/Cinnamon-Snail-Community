@@ -1069,13 +1069,19 @@ model Message {
   authorId       String
   body           String
   imageUrl       String?
+  /// The key the sender's client generated for this message. Unique within a
+  /// conversation, which is what makes a retry, a double tap and an optimistic
+  /// resend all land as one message instead of three.
+  clientId       String?
   createdAt      DateTime     @default(now())
   deletedAt      DateTime?
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   author         User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
   reports        Report[]
 
-  @@index([conversationId, createdAt])
+  @@unique([conversationId, clientId])
+  /// The thread, newest first, and the cursor that pages back through it.
+  @@index([conversationId, createdAt, id])
 }
 
 /// Admin-editable settings for the welcome DM, as a single row keyed "default".

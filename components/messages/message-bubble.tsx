@@ -2,7 +2,9 @@
 
 import { AlertCircle, Check, CheckCheck, Clock } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
-import { autoLink } from "@/lib/messages/format";
+import { autoLink, linksIn } from "@/lib/messages/format";
+import { LinkCard } from "@/components/messages/link-card";
+import type { LinkPreview } from "@/lib/messages/link-preview";
 import { cn } from "@/lib/utils";
 
 export type ThreadMessage = {
@@ -36,6 +38,7 @@ export function MessageBubble({
   showName,
   readByAll,
   onRetry,
+  previews,
 }: {
   message: ThreadMessage;
   /** False when the previous message was from the same person. */
@@ -44,6 +47,8 @@ export function MessageBubble({
   showName: boolean;
   readByAll: boolean;
   onRetry?: (message: ThreadMessage) => void;
+  /** Unfurled internal links, keyed by URL. Empty for external ones. */
+  previews?: Map<string, LinkPreview>;
 }) {
   const at = new Date(message.createdAt);
   const time = at.toLocaleTimeString(undefined, {
@@ -124,6 +129,17 @@ export function MessageBubble({
               )}
             </p>
           ) : null}
+
+          {/* One card per distinct internal link in the message. External
+              links stay as links: see `lib/messages/link-preview.ts`. */}
+          {previews && message.body
+            ? [...new Set(linksIn(message.body))].flatMap((url) => {
+                const preview = previews.get(url);
+                return preview
+                  ? [<LinkCard key={url} preview={preview} mine={message.mine} />]
+                  : [];
+              })
+            : null}
         </div>
 
         <span

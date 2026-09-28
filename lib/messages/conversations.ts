@@ -1,6 +1,9 @@
 import "server-only";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notifications/create";
+import { afterResponse } from "@/lib/after-response";
+import { guardMessageAction } from "@/lib/messages/rate-limits";
 import {
   canCreateGroup,
   canSendDirectMessage,
@@ -62,6 +65,99 @@ async function priorConversationExists(a: string, b: string): Promise<boolean> {
     },
   });
   return count > 0;
+}
+
+/**
+ * The same gate, asked once for a whole group.
+ *
+ * `assertCanMessage` costs about five queries, and `sendMessage` called it
+ * once per recipient — so a message to a group of eight ran roughly thirty-five
+ * queries before it wrote anything. The rules are identical; only the number of
+ * round trips differs, and the decision still comes from the one pure function
+ * so the two paths cannot drift apart.
+ */
+export async function assertCanMessageAll(
+  senderId: string,
+  recipientIds: string[],
+): Promise<void> {
+  const others = [...new Set(recipientIds)].filter((id) => id !== senderId);
+  if (others.length === 0) return;
+
+  const [sender, recipients, blocks, senderSpaces, priorThreads] = await Promise.all([
+    loadSubject(senderId),
+    prisma.user.findMany({
+      where: { id: { in: others } },
+      select: {
+        id: true,
+        status: true,
+        profile: { select: { dmPreference: true } },
+      },
+    }),
+    prisma.userBlock.findMany({
+      where: {
+        OR: [
+          { blockerId: senderId, blockedId: { in: others } },
+          { blockerId: { in: others }, blockedId: senderId },
+        ],
+      },
+      select: { blockerId: true, blockedId: true },
+    }),
+    prisma.spaceMembership.findMany({
+      where: {
+        userId: senderId,
+        space: { visibility: { in: ["MEMBERS", "PRIVATE"] } },
+      },
+      select: { spaceId: true },
+    }),
+    prisma.conversation.findMany({
+      where: {
+        members: { some: { userId: senderId } },
+        messages: { some: {} },
+      },
+      select: { members: { select: { userId: true } } },
+    }),
+  ]);
+
+  if (!sender) throw new MessagePermissionError("That member could not be found.");
+
+  const spaceIds = senderSpaces.map((row) => row.spaceId);
+  const shared = spaceIds.length
+    ? await prisma.spaceMembership.groupBy({
+        by: ["userId"],
+        where: { userId: { in: others }, spaceId: { in: spaceIds } },
+        _count: { _all: true },
+      })
+    : [];
+  const sharedByUser = new Map(shared.map((row) => [row.userId, row._count._all]));
+
+  const blockedIds = new Set(
+    blocks.flatMap((row) => [row.blockerId, row.blockedId]).filter((id) => id !== senderId),
+  );
+  const priorIds = new Set(
+    priorThreads.flatMap((thread) =>
+      thread.members.map((member) => member.userId),
+    ),
+  );
+
+  const byId = new Map(recipients.map((row) => [row.id, row]));
+  for (const recipientId of others) {
+    const row = byId.get(recipientId);
+    if (!row) throw new MessagePermissionError("That member could not be found.");
+    const decision = canSendDirectMessage(
+      sender,
+      {
+        userId: row.id,
+        status: row.status,
+        dmPreference: row.profile?.dmPreference ?? "EVERYONE",
+      },
+      {
+        blocked: blockedIds.has(recipientId),
+        sharedSpaces: sharedByUser.get(recipientId) ?? 0,
+        priorConversation: priorIds.has(recipientId),
+      },
+    );
+    if (!decision.allowed) throw new MessagePermissionError(decision.reason);
+  }
 }
 
 /** The full server-side gate. Every write path calls this before touching data. */
@@ -134,6 +230,7 @@ export async function findOrCreateDirectConversation(
   senderId: string,
   recipientId: string,
 ) {
+  await guardMessageAction("start", senderId);
   await assertCanMessage(senderId, recipientId);
   const memberKey = conversationMemberKey([senderId, recipientId]);
   const existing = await prisma.conversation.findUnique({ where: { memberKey } });
@@ -161,12 +258,12 @@ export async function createGroupConversation(
   recipientIds: string[],
   title: string | null,
 ) {
+  await guardMessageAction("start", creatorId);
   const unique = [...new Set(recipientIds.filter((id) => id !== creatorId))];
   const decision = canCreateGroup(unique.length + 1);
   if (!decision.allowed) throw new MessagePermissionError(decision.reason);
-  for (const recipientId of unique) {
-    await assertCanMessage(creatorId, recipientId);
-  }
+  // One pass rather than a full gate per person invited.
+  await assertCanMessageAll(creatorId, unique);
   const memberIds = [creatorId, ...unique];
   return prisma.conversation.create({
     data: {
@@ -184,7 +281,16 @@ export async function sendMessage(input: {
   authorId: string;
   body: string;
   imageUrl?: string | null;
+  /**
+   * A key the client generates per composed message. Sending the same key
+   * twice returns the first message instead of writing a second — which is
+   * what makes a double tap, a retry after a timeout, and an optimistic
+   * resend all safe.
+   */
+  clientId?: string | null;
 }) {
+  await guardMessageAction("send", input.authorId);
+
   const membership = await requireMembership(input.conversationId, input.authorId);
   if (!membership) {
     throw new MessagePermissionError("This conversation is not available.");
@@ -201,51 +307,87 @@ export async function sendMessage(input: {
   const others = membership.conversation.members.filter(
     (member) => member.userId !== input.authorId && !member.leftAt,
   );
-  // Re-check the gate on every send: preferences and blocks change mid-thread.
-  for (const other of others) {
-    await assertCanMessage(input.authorId, other.userId);
-  }
+  // Re-checked on every send, because a preference or a block can change in
+  // the middle of a thread. One pass for the whole group rather than one gate
+  // per recipient.
+  await assertCanMessageAll(
+    input.authorId,
+    others.map((other) => other.userId),
+  );
 
-  const message = await prisma.message.create({
-    data: {
-      conversationId: input.conversationId,
-      authorId: input.authorId,
-      body,
-      imageUrl,
-    },
-  });
-  const now = new Date();
-  await prisma.$transaction([
-    prisma.conversation.update({
-      where: { id: input.conversationId },
-      data: { lastMessageAt: message.createdAt },
-    }),
-    // Sending is also reading, and it clears your own typing flag.
-    prisma.conversationMember.update({
-      where: {
-        conversationId_userId: {
+  const clientId = input.clientId?.trim() || null;
+
+  // The write is one transaction: the message, the thread's ordering, and the
+  // sender's own read mark. They were three statements with the insert outside
+  // the transaction, so a failure between them left a thread whose
+  // `lastMessageAt` disagreed with its newest message — which is what the
+  // inbox sorts on.
+  let message;
+  try {
+    message = await prisma.$transaction(async (tx) => {
+      const created = await tx.message.create({
+        data: {
           conversationId: input.conversationId,
-          userId: input.authorId,
+          authorId: input.authorId,
+          body,
+          imageUrl,
+          clientId,
         },
-      },
-      data: { lastReadAt: now, typingAt: null },
-    }),
-  ]);
+      });
+      await tx.conversation.update({
+        where: { id: input.conversationId },
+        data: { lastMessageAt: created.createdAt },
+      });
+      // Sending is also reading, and it clears your own typing flag.
+      await tx.conversationMember.update({
+        where: {
+          conversationId_userId: {
+            conversationId: input.conversationId,
+            userId: input.authorId,
+          },
+        },
+        data: { lastReadAt: created.createdAt, typingAt: null },
+      });
+      return created;
+    });
+  } catch (error) {
+    // P2002 on (conversationId, clientId): this exact message is already
+    // sent. Hand back the one that won rather than failing the caller, who
+    // would otherwise show an error for a message that did arrive.
+    if (
+      clientId &&
+      error instanceof Prisma.PrismaClientKnownRequestError &&
+      error.code === "P2002"
+    ) {
+      const existing = await prisma.message.findFirst({
+        where: { conversationId: input.conversationId, clientId },
+      });
+      if (existing) return existing;
+    }
+    throw error;
+  }
 
   const authorName =
     membership.conversation.members.find((member) => member.userId === input.authorId)
       ?.user.profile?.displayName ?? "A member";
-  await Promise.all(
-    others.map((other) =>
-      createNotification({
-        userId: other.userId,
-        category: "DMS",
-        title: `${authorName} sent you a message`,
-        body: body.slice(0, 140) || "Shared an image",
-        href: `/messages/${input.conversationId}`,
-      }),
-    ),
-  );
+
+  // After the response. Telling four people about a message is worth doing and
+  // not worth making the sender wait for, and `createNotification` honours
+  // each recipient's own preferences so a muted member is skipped there.
+  afterResponse(async () => {
+    await Promise.all(
+      others.map((other) =>
+        createNotification({
+          userId: other.userId,
+          category: "DMS",
+          title: `${authorName} sent you a message`,
+          body: body.slice(0, 140) || "Shared an image",
+          href: `/messages/${input.conversationId}`,
+        }).catch(() => undefined),
+      ),
+    );
+  });
+
   return message;
 }
 
@@ -331,44 +473,121 @@ export async function listConversations(userId: string) {
   });
 }
 
+/**
+ * The badge on the messages icon.
+ *
+ * This ran a `COUNT` per conversation, and it runs on **every** member page —
+ * twice, because the header and the shell each ask. A member with sixty
+ * threads therefore paid a hundred and twenty round trips to render any page
+ * in the app, which is the single most expensive thing in it. PROJECT.md
+ * listed it as known limit 1.
+ *
+ * One grouped count now, with the same per-conversation "since I last read"
+ * boundary expressed as an OR. The shape matches `listConversations`, which
+ * was fixed the same way earlier.
+ */
 export async function totalUnreadForUser(userId: string): Promise<number> {
   const memberships = await prisma.conversationMember.findMany({
     where: { userId, leftAt: null },
     select: { conversationId: true, lastReadAt: true },
   });
   if (memberships.length === 0) return 0;
-  const counts = await Promise.all(
-    memberships.map((membership) =>
-      prisma.message.count({
-        where: {
-          conversationId: membership.conversationId,
-          authorId: { not: userId },
-          deletedAt: null,
-          ...(membership.lastReadAt ? { createdAt: { gt: membership.lastReadAt } } : {}),
-        },
-      }),
-    ),
-  );
-  return counts.reduce((total, count) => total + count, 0);
+
+  const groups = await prisma.message.groupBy({
+    by: ["conversationId"],
+    where: {
+      authorId: { not: userId },
+      deletedAt: null,
+      OR: memberships.map((membership) => ({
+        conversationId: membership.conversationId,
+        ...(membership.lastReadAt
+          ? { createdAt: { gt: membership.lastReadAt } }
+          : {}),
+      })),
+    },
+    _count: { _all: true },
+  });
+
+  return groups.reduce((total, row) => total + row._count._all, 0);
 }
 
+/** One page of a thread. Enough to fill a screen and scroll a little. */
+export const MESSAGE_PAGE = 40;
+
+const MESSAGE_AUTHOR = {
+  select: {
+    id: true,
+    handle: true,
+    profile: { select: { displayName: true, avatarUrl: true } },
+  },
+} as const;
+
+/**
+ * Older messages, one page at a time.
+ *
+ * `before` is the id of the oldest message the client already holds. Keyed on
+ * `(createdAt, id)` rather than on an offset, because a thread gains messages
+ * while somebody scrolls back through it and an offset page would then repeat
+ * or skip one.
+ */
+export async function loadOlderMessages(input: {
+  conversationId: string;
+  userId: string;
+  before: string;
+  take?: number;
+}) {
+  const membership = await requireMembership(input.conversationId, input.userId);
+  if (!membership) return null;
+
+  const anchor = await prisma.message.findFirst({
+    where: { id: input.before, conversationId: input.conversationId },
+    select: { createdAt: true, id: true },
+  });
+  if (!anchor) return { messages: [], hasMore: false };
+
+  const take = Math.min(Math.max(input.take ?? MESSAGE_PAGE, 1), 100);
+  const rows = await prisma.message.findMany({
+    where: {
+      conversationId: input.conversationId,
+      deletedAt: null,
+      OR: [
+        { createdAt: { lt: anchor.createdAt } },
+        { createdAt: anchor.createdAt, id: { lt: anchor.id } },
+      ],
+    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: take + 1,
+    include: { author: MESSAGE_AUTHOR },
+  });
+
+  const page = rows.slice(0, take);
+  return {
+    // Back into reading order once the window has been chosen.
+    messages: page.reverse(),
+    hasMore: rows.length > take,
+  };
+}
+
+/**
+ * A thread, opened at the bottom.
+ *
+ * This took the **oldest** two hundred messages — `orderBy: asc, take: 200` —
+ * so a conversation with three hundred in it opened on the first two hundred
+ * and never showed anything recent. The newest page is what a messaging app
+ * opens on, so the window is taken from the end and turned back into reading
+ * order, with a cursor for scrolling up.
+ */
 export async function readConversation(conversationId: string, userId: string) {
   const membership = await requireMembership(conversationId, userId);
   if (!membership) return null;
-  const messages = await prisma.message.findMany({
+  const rows = await prisma.message.findMany({
     where: { conversationId, deletedAt: null },
-    orderBy: { createdAt: "asc" },
-    take: 200,
-    include: {
-      author: {
-        select: {
-          id: true,
-          handle: true,
-          profile: { select: { displayName: true, avatarUrl: true } },
-        },
-      },
-    },
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    take: MESSAGE_PAGE + 1,
+    include: { author: MESSAGE_AUTHOR },
   });
+  const hasMore = rows.length > MESSAGE_PAGE;
+  const messages = rows.slice(0, MESSAGE_PAGE).reverse();
   const others = membership.conversation.members.filter(
     (member) => member.userId !== userId,
   );
@@ -396,6 +615,7 @@ export async function readConversation(conversationId: string, userId: string) {
       blockedByViewer: blockedIds.some((row) => row.blockedId === member.userId),
     })),
     messages,
+    hasMore,
   };
 }
 
@@ -409,6 +629,9 @@ export async function markConversationRead(conversationId: string, userId: strin
 }
 
 export async function setTyping(conversationId: string, userId: string) {
+  // The one endpoint that takes a write on something close to every keystroke.
+  // The client throttles, but a client is not a control.
+  await guardMessageAction("typing", userId);
   const membership = await requireMembership(conversationId, userId);
   if (!membership) return;
   await prisma.conversationMember.update({
