@@ -8,6 +8,7 @@
     "start": "next start",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "check:theme": "node scripts/check-theme-contrast.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "db:generate": "prisma generate",

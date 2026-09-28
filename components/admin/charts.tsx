@@ -5,25 +5,15 @@ import type { SeriesPoint } from "@/lib/admin/analytics";
 import { cn } from "@/lib/utils";
 
 /**
- * The console's charts.
+ * The stat tile's sparkline.
  *
- * Two constraints shaped every decision here, and they pull the same way.
+ * This file held three marks; the dashboard rewrite left only this one using
+ * it, so the column chart and the funnel went with the page that used them.
+ * They are a `git log` away if a panel wants them back.
  *
- * The product is monochrome (DEC-037) — amber and red survive only because
- * they carry meaning. A monochrome palette cannot tell two series apart by
- * hue, so nothing here plots two series on one axis. Where several measures
- * matter they become **small multiples**: one chart each, one series each, no
- * legend needed because the title names the thing. That sidesteps the whole
- * categorical-colour problem rather than fighting it, and it is the more
- * readable answer anyway.
- *
- * BUILD.md rules out looking like a generic SaaS dashboard, so there are no
- * gradient fills, no donut of percentages, no dual axis. Marks are thin, grid
- * lines are hairline and recessive, and the data is the only loud thing.
- *
- * The ordinal ramp used by the funnel was validated rather than eyeballed:
- * monotone lightness, adjacent gaps above the floor, single hue, and a light
- * end that clears the surface in both modes.
+ * BUILD.md rules out looking like a generic SaaS dashboard, so there is no
+ * gradient fill, no dual axis, no chartjunk. The mark is thin, the wash is
+ * faint, and the number above it is the thing being read.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -131,183 +121,6 @@ export function Sparkline({
         </p>
       ) : null}
     </div>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Column chart                                                               */
-/* -------------------------------------------------------------------------- */
-
-/**
- * One measure over time, as columns.
- *
- * Columns rather than a line because these are counts of discrete events per
- * day — a line implies a continuous quantity that was sampled, and twelve
- * posts on Tuesday is not a sample of anything. Each column is capped in
- * thickness with the band's leftover left as air, rounded at the data end and
- * square on the baseline.
- */
-export function ColumnChart({
-  points,
-  label,
-  height = 120,
-}: {
-  points: SeriesPoint[];
-  label: string;
-  height?: number;
-}) {
-  const [hover, setHover] = useState<number | null>(null);
-  if (points.length === 0) return null;
-
-  const max = Math.max(...points.map((point) => point.value), 1);
-  const band = 100 / points.length;
-  // Capped, so a short series does not produce slabs.
-  const barWidth = Math.min(band * 0.6, 3.2);
-
-  const point = hover === null ? null : points[hover]!;
-  const total = points.reduce((sum, entry) => sum + entry.value, 0);
-
-  return (
-    <figure className="min-w-0">
-      <figcaption className="mb-1.5 flex items-baseline justify-between gap-2">
-        <span className="text-[12px] font-bold text-foreground">{label}</span>
-        <span className="text-[11.5px] tabular-nums text-foreground-muted">
-          {point ? `${point.value} on ${shortDate(point.date)}` : `${total} total`}
-        </span>
-      </figcaption>
-
-      <svg
-        viewBox={`0 0 100 ${height}`}
-        preserveAspectRatio="none"
-        role="img"
-        aria-label={`${label}. ${describe(points)}`}
-        className="w-full"
-        style={{ height }}
-        onMouseLeave={() => setHover(null)}
-      >
-        {/* One recessive hairline at the top of the scale, so the columns have
-            something to be read against without the grid competing. */}
-        <line
-          x1="0"
-          x2="100"
-          y1="2"
-          y2="2"
-          stroke="var(--border)"
-          strokeWidth="1"
-          vectorEffect="non-scaling-stroke"
-        />
-        {points.map((entry, index) => {
-          const barHeight = entry.value === 0 ? 0 : (entry.value / max) * (height - 6);
-          const x = index * band + (band - barWidth) / 2;
-          return (
-            <g key={entry.date}>
-              <rect
-                x={index * band}
-                y={0}
-                width={band}
-                height={height}
-                fill="transparent"
-                onMouseEnter={() => setHover(index)}
-              />
-              {barHeight > 0 ? (
-                <rect
-                  x={x}
-                  y={height - barHeight}
-                  width={barWidth}
-                  height={barHeight}
-                  rx="1.2"
-                  className={cn(
-                    "transition-opacity",
-                    hover !== null && hover !== index ? "opacity-40" : "opacity-100",
-                  )}
-                  fill="currentColor"
-                />
-              ) : null}
-            </g>
-          );
-        })}
-      </svg>
-
-      <p className="mt-1 flex justify-between text-[10.5px] tabular-nums text-foreground-muted">
-        <span>{shortDate(points[0]!.date)}</span>
-        <span>{shortDate(points.at(-1)!.date)}</span>
-      </p>
-    </figure>
-  );
-}
-
-/* -------------------------------------------------------------------------- */
-/* Funnel                                                                     */
-/* -------------------------------------------------------------------------- */
-
-/**
- * Where members stop.
- *
- * A horizontal bar per step, not the tapering trapezoid a "funnel chart"
- * usually means — a trapezoid encodes the value in an area whose width nobody
- * can compare, and the drop between two steps is the entire point. Bars share
- * one baseline, so the drop is a length difference and reads instantly.
- *
- * Ordered categories, so an ordinal ramp is the correct colour job: one hue,
- * monotone lightness, validated in both modes.
- */
-export function Funnel({
-  steps,
-}: {
-  steps: {
-    label: string;
-    help: string;
-    value: number;
-    ofPrevious: number | null;
-    href: string;
-  }[];
-}) {
-  const top = Math.max(...steps.map((step) => step.value), 1);
-
-  return (
-    <ol className="space-y-2.5">
-      {steps.map((step, index) => {
-        const width = Math.max((step.value / top) * 100, step.value > 0 ? 2 : 0);
-        // The ramp darkens down the funnel, which is the one place a value
-        // ramp is legitimate: the categories are genuinely ordered.
-        const shade = 0.25 + (index / Math.max(steps.length - 1, 1)) * 0.75;
-        const dropped =
-          index > 0 ? steps[index - 1]!.value - step.value : 0;
-
-        return (
-          <li key={step.label}>
-            <a
-              href={step.href}
-              className="group block no-underline"
-              title={step.help}
-            >
-              <span className="flex items-baseline justify-between gap-3">
-                <span className="text-[12.5px] font-semibold text-foreground group-hover:underline">
-                  {step.label}
-                </span>
-                <span className="shrink-0 text-[12px] tabular-nums text-foreground-muted">
-                  <span className="font-bold text-foreground">{step.value}</span>
-                  {step.ofPrevious !== null ? ` · ${step.ofPrevious}%` : ""}
-                </span>
-              </span>
-
-              <span className="mt-1 block h-2.5 w-full overflow-hidden rounded-chip bg-default">
-                <span
-                  className="block h-full rounded-chip bg-foreground transition-[width]"
-                  style={{ width: `${width}%`, opacity: shade }}
-                />
-              </span>
-
-              {dropped > 0 ? (
-                <span className="mt-0.5 block text-[11px] text-foreground-muted">
-                  {dropped} did not get this far
-                </span>
-              ) : null}
-            </a>
-          </li>
-        );
-      })}
-    </ol>
   );
 }
 

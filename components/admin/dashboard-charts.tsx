@@ -13,8 +13,9 @@ import { describe, shortDate } from "@/components/admin/charts";
  * enough to deserve a hover layer. Keeping them apart keeps the small marks
  * readable.
  *
- * Both obey the same constraint as everything else in the console: the product
- * is monochrome (DEC-037), so nothing here distinguishes anything by hue.
+ * Both obey the same constraint as everything else in the console: there is
+ * one brand hue, so nothing here distinguishes one series from another by
+ * colour. Identity comes from a title or a label, every time.
  */
 
 /* -------------------------------------------------------------------------- */
@@ -194,9 +195,9 @@ export function AreaChart({
  * the question is "what share of the total", the parts are few, and the total
  * is worth printing in the middle. All three hold here.
  *
- * Monochrome means the segments cannot be told apart by hue, so they step
- * through one ramp, ordered largest first, and **the legend carries the
- * identity** — name and percentage in text beside each swatch. Nothing on
+ * A single-hue system means the segments cannot be told apart by colour, so
+ * they step through one ramp of it, ordered largest first, and **the legend
+ * carries the identity** — name and percentage in text beside each swatch. Nothing on
  * screen depends on separating two greys. There is a 2px gap of surface
  * between neighbouring arcs for the same reason.
  */

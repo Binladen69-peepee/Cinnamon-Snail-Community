@@ -34,9 +34,9 @@ import { cn, formatRelativeTime } from "@/lib/utils";
  *
  * The composition follows the reference design the brief supplied — headline
  * tiles, a growth chart, a breakdown, three mid panels, and a right-hand
- * utility column. The *colour* does not: this product is monochrome
- * (`DEC-037`), so everything paints from the existing role tokens and the only
- * colour anywhere is the amber and red that carry meaning.
+ * utility column. The *colour* does not: everything paints from this product's
+ * own role tokens — forest and cream — and amber and red stay reserved for
+ * warning and danger.
  *
  * Where the reference shows a figure this database cannot produce, the panel
  * shows what it can actually answer rather than a plausible-looking number.
@@ -171,7 +171,7 @@ export function HeadlineCard({ kpi }: { kpi: HeadlineKpi }) {
               <Sparkline
                 points={kpi.series}
                 label={kpi.label}
-                className="w-16 shrink-0 text-foreground"
+                className="w-16 shrink-0 text-brand"
               />
             ) : null}
           </span>

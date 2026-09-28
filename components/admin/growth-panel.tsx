@@ -62,7 +62,10 @@ export function GrowthPanel({
         </div>
       </div>
 
-      <div className="mt-4 text-foreground">
+      {/* The chart wears the brand hue. A graphical object needs 3:1 against
+          its surface; this clears 6.46:1 in light and 10.28:1 in dark, and the
+          theme check asserts it. */}
+      <div className="mt-4 text-brand">
         {active.total === 0 ? (
           // A flat line along the axis reads as "measured, and flat". It
           // actually means nothing happened, which is a different thing to say.

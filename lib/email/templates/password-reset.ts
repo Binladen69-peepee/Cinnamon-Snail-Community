@@ -1,16 +1,20 @@
 /**
  * The reset email.
  *
- * Monochrome, like the rest of the product since the palette was stripped, and
- * built from tables and inline styles because email clients are not browsers.
+ * Ink on paper, with the brand green on the one button, and built from tables
+ * and inline styles because email clients are not browsers -- an email cannot
+ * read our CSS variables, so these few literals are the one place in the
+ * product where a colour is allowed to be written down twice.
  * It states the expiry and what to do if the request was not theirs, because a
  * reset email arriving unbidden is the first sign of an attempted takeover.
  */
-const INK = "#0a0a0a";
-const PAPER = "#ffffff";
-const CARD = "#fbfbfb";
-const LINE = "#e6e6e6";
-const MUTED = "#6b6b6b";
+const INK = "#11231a";
+const BRAND = "#1f6b46";
+const PAPER = "#f3f7f0";
+const ON_BRAND = "#ffffff";
+const CARD = "#fbfcf8";
+const LINE = "#dde6d7";
+const MUTED = "#586b5e";
 
 export function passwordResetSubject(): string {
   return "Reset your Vegan University password";
@@ -61,7 +65,7 @@ export function passwordResetHtml(url: string): string {
             </tr>
             <tr>
               <td align="center" style="padding:4px 32px 28px;">
-                <a href="${safeUrl}" style="display:inline-block;background:${INK};color:${PAPER};font-size:16px;font-weight:600;text-decoration:none;padding:14px 28px;border-radius:999px;">
+                <a href="${safeUrl}" style="display:inline-block;background:${BRAND};color:${ON_BRAND};font-size:16px;font-weight:600;text-decoration:none;padding:14px 28px;border-radius:999px;">
                   Choose a new password
                 </a>
               </td>

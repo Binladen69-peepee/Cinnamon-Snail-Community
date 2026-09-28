@@ -29,9 +29,9 @@ export const metadata = { title: "Dashboard" };
  * The composition follows the reference design supplied with the brief:
  * headline tiles across the top, a growth chart with a breakdown beside it,
  * three mid panels, and a right-hand utility column that collapses on tablet
- * and stacks on mobile. The colour does not follow the reference — the product
- * is monochrome (`DEC-037`), so every surface here paints from the existing
- * role tokens and the only colour is the amber and red that carry meaning.
+ * and stacks on mobile. The colour does not follow the reference — every
+ * surface here paints from this product's own role tokens, forest and cream,
+ * with amber and red reserved for warning and danger.
  *
  * **Everything on this page is counted from real rows.** Three things the
  * reference asks for have no source in this database and are not invented:
@@ -240,7 +240,7 @@ function AccessPanel({
             No member holds a live entitlement yet.
           </p>
         ) : (
-          <div className="text-foreground">
+          <div className="text-brand">
             <Donut
               slices={access.slices}
               total={access.total}

@@ -1,9 +1,10 @@
 // The product palette lost its colour; the emails that carry it followed.
-const FOREST = "#0a0a0a";
-const CREAM = "#ffffff";
-const TERRACOTTA = "#0a0a0a";
-const MUTED = "#6b6b6b";
-const INK = "#0a0a0a";
+const FOREST = "#1f6b46";
+const CREAM = "#f3f7f0";
+const BRAND = "#1f6b46";
+const ON_BRAND = "#ffffff";
+const MUTED = "#586b5e";
+const INK = "#11231a";
 
 export function magicLinkSubject(): string {
   return "Sign in to Vegan University";
@@ -36,7 +37,7 @@ export function magicLinkHtml(url: string): string {
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:${CREAM};padding:32px 16px;">
       <tr>
         <td align="center">
-          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#fbfbfb;border:1px solid #e6e6e6;border-radius:24px;">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#fbfcf8;border:1px solid #dde6d7;border-radius:24px;">
             <tr>
               <td style="padding:36px 32px 16px;font-family:Arial,Helvetica,sans-serif;color:${FOREST};font-size:15px;font-weight:700;letter-spacing:0.14em;text-transform:uppercase;">
                 Vegan University
@@ -54,7 +55,7 @@ export function magicLinkHtml(url: string): string {
             </tr>
             <tr>
               <td align="center" style="padding:8px 32px 28px;">
-                <a href="${safeUrl}" style="display:inline-block;background:${TERRACOTTA};color:${CREAM};font-family:Arial,sans-serif;font-size:16px;font-weight:600;text-decoration:none;padding:14px 28px;border-radius:999px;">
+                <a href="${safeUrl}" style="display:inline-block;background:${BRAND};color:${ON_BRAND};font-family:Arial,sans-serif;font-size:16px;font-weight:600;text-decoration:none;padding:14px 28px;border-radius:999px;">
                   Sign in to Vegan University
                 </a>
               </td>

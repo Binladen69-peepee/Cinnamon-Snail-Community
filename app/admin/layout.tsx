@@ -8,9 +8,9 @@ import { countOpenReports } from "@/lib/admin/overview";
 /**
  * The admin console.
  *
- * Monochrome, and it follows the theme: pure white in light, pure black in
- * dark. `.vu-admin` tightens the console's surfaces a step past the member
- * app's -- denser borders, a flatter elevation ladder -- without introducing a
+ * It follows the theme: cream in light, black in dark, forest in both.
+ * `.vu-admin` tightens the console's surfaces a step past the member app's --
+ * denser borders, a flatter elevation ladder -- without introducing a
  * second palette. Every component here paints from role tokens, so the whole
  * console re-skins from that one scope.
  *
