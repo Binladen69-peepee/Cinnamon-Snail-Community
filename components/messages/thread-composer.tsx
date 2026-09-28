@@ -175,7 +175,7 @@ export function ThreadComposer({
               onClick={() => fileRef.current?.click()}
               disabled={uploading || Boolean(image)}
               aria-label="Attach an image"
-              className="grid size-9 shrink-0 place-items-center rounded-full text-foreground-muted transition hover:bg-brand-wash hover:text-brand-strong disabled:opacity-40"
+              className="grid size-9 shrink-0 place-items-center rounded-full text-foreground-muted transition hover:bg-brand-wash hover:text-on-brand-wash disabled:opacity-40"
             >
               {uploading ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden />

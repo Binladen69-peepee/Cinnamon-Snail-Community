@@ -23,7 +23,7 @@ export function EventCard({ event }: { event: DiscoverEvent }) {
           "grid size-14 shrink-0 place-items-center rounded-ctl text-center",
           event.past
             ? "bg-default text-foreground-muted"
-            : "bg-brand-wash text-brand-strong",
+            : "bg-brand-wash text-on-brand-wash",
         )}
         aria-hidden
       >
@@ -46,7 +46,7 @@ export function EventCard({ event }: { event: DiscoverEvent }) {
             </span>
           ) : null}
           {event.viewerGoing ? (
-            <span className="inline-flex shrink-0 items-center gap-1 rounded-chip bg-brand-wash px-1.5 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-brand-strong">
+            <span className="inline-flex shrink-0 items-center gap-1 rounded-chip bg-brand-wash px-1.5 py-0.5 text-[10.5px] font-bold uppercase tracking-[0.08em] text-on-brand-wash">
               <Check className="size-2.5" aria-hidden />
               Going
             </span>

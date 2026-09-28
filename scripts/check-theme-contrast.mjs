@@ -85,7 +85,9 @@ const PAIRS = [
   ["foreground-muted", "background", 4.5, "secondary text on the ground"],
   ["foreground-muted", "default", 4.5, "secondary text on a hover fill"],
   ["brand-strong", "surface", 4.5, "brand text on a card"],
-  ["brand-strong", "brand-wash", 4.5, "brand text on its own wash"],
+  // The wash is a pale tile in dark mode and a pale tint in light, so what
+  // sits on it is its own foreground, not the brand text colour.
+  ["on-brand-wash", "brand-wash", 4.5, "text on a small tinted tile"],
   ["brand", "surface", 3, "brand icons and controls"],
   ["brand-fill-foreground", "brand-fill", 4.5, "label on a primary button"],
   ["danger", "surface", 4.5, "destructive text"],

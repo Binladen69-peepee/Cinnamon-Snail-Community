@@ -108,7 +108,7 @@ export function MonthGrid({
                           className={cn(
                             "block truncate rounded-chip px-1 py-0.5 text-[11px] font-semibold no-underline transition",
                             event.myStatus === "GOING"
-                              ? "bg-brand-wash text-brand-strong hover:bg-brand-wash/70"
+                              ? "bg-brand-wash text-on-brand-wash hover:bg-brand-wash/70"
                               : event.past
                                 ? "text-foreground-muted hover:bg-mint"
                                 : "text-foreground hover:bg-mint",

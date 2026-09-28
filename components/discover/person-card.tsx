@@ -43,7 +43,7 @@ export function PersonCard({ person }: { person: DiscoverPerson }) {
       </div>
 
       {person.reason ? (
-        <p className="mt-2.5 flex items-start gap-1.5 rounded-ctl bg-brand-wash px-2.5 py-1.5 text-[12.5px] leading-snug text-brand-strong">
+        <p className="mt-2.5 flex items-start gap-1.5 rounded-ctl bg-brand-wash px-2.5 py-1.5 text-[12.5px] leading-snug text-on-brand-wash">
           <Sparkles className="mt-px size-3 shrink-0" aria-hidden />
           <span className="line-clamp-2">{person.reason}</span>
         </p>

@@ -445,7 +445,7 @@ async function SpaceMembers({ spaceId }: { spaceId: string }) {
                   {member.user.profile?.displayName ?? member.user.handle}
                 </span>
                 {member.role !== "MEMBER" ? (
-                  <span className="shrink-0 rounded-full bg-brand-wash px-1.5 text-[9.5px] font-bold uppercase tracking-[0.08em] text-brand-strong">
+                  <span className="shrink-0 rounded-full bg-brand-wash px-1.5 text-[9.5px] font-bold uppercase tracking-[0.08em] text-on-brand-wash">
                     {member.role.toLowerCase()}
                   </span>
                 ) : null}

@@ -302,7 +302,7 @@ export function Thread({
         <Link
           href="/messages"
           aria-label="Back to conversations"
-          className="-ml-1 grid size-8 shrink-0 place-items-center rounded-full text-foreground-muted no-underline transition hover:bg-brand-wash hover:text-brand-strong lg:hidden"
+          className="-ml-1 grid size-8 shrink-0 place-items-center rounded-full text-foreground-muted no-underline transition hover:bg-brand-wash hover:text-on-brand-wash lg:hidden"
         >
           <ArrowLeft className="size-5" aria-hidden />
         </Link>

@@ -146,7 +146,7 @@ export function Stat({
 
 const BADGE_TONES = {
   neutral: "bg-default text-foreground-muted",
-  good: "bg-brand-wash text-brand-strong",
+  good: "bg-brand-wash text-on-brand-wash",
   warn: "bg-warning/15 text-warning",
   bad: "bg-danger/15 text-danger",
   solid: "bg-brand-fill text-brand-fill-foreground",
@@ -259,7 +259,7 @@ export function EmptyPanel({
 }) {
   return (
     <div className="px-6 py-14 text-center">
-      <span className="mx-auto grid size-12 place-items-center rounded-full bg-brand-wash text-brand-strong">
+      <span className="mx-auto grid size-12 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
         {icon}
       </span>
       <h3 className="mt-3 font-display text-[1.05rem] font-bold text-foreground">

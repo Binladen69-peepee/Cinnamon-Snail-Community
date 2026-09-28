@@ -237,7 +237,7 @@ function Chip({
         className={cn(
           "inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-[12.5px] font-semibold no-underline transition",
           active
-            ? "border-brand bg-brand-wash text-brand-strong"
+            ? "border-brand bg-brand-wash text-on-brand-wash"
             : "border-border bg-surface text-foreground-muted hover:border-hairline-firm hover:text-foreground",
         )}
       >

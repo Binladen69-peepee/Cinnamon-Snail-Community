@@ -70,6 +70,7 @@
     --brand: #1f6b46;
     --brand-strong: #13492e;
     --brand-wash: #e4efe6;
+    --on-brand-wash: #13492e;
     --on-brand: #ffffff;
 
     /* A filled brand control -- primary button, active tab, own chat bubble.
@@ -81,16 +82,15 @@
     --brand-fill-hover: #17573a;
     --brand-fill-foreground: #ffffff;
 
-    /* The rail runs inverted: a deep forest panel against the cream ground
-       here, a pale green one against the black in dark. It is the one piece of
-       furniture meant to read as a different material from the page, which is
-       why it does not follow the elevation ladder. */
-    --sidebar: #13492e;
-    --sidebar-foreground: #eaf5ee;
-    --sidebar-accent: #247a50;
-    --sidebar-accent-foreground: #ffffff;
-    --sidebar-border: #1b6140;
-    --sidebar-ring: #b7ecd0;
+    /* White here, like the cards: on a cream ground the rail does not need to
+       shout to be a rail, and the border carries the edge. Dark mode is the
+       one that inverts. */
+    --sidebar: #ffffff;
+    --sidebar-foreground: #11231a;
+    --sidebar-accent: #e4efe6;
+    --sidebar-accent-foreground: #13492e;
+    --sidebar-border: #dde6d7;
+    --sidebar-ring: #1f6b46;
 
     /* Radii live as runtime variables because @theme inline bakes literals in
        at build time, which would make them unswappable. 12px everywhere. */
@@ -148,7 +148,7 @@
     --border: #232a25;
     --separator: #1a201c;
     --focus: #b7ecd0;
-    --link: #d8f5e6;
+    --link: #bfead3;
     --default: #1a201c;
     --default-foreground: #f2f6f1;
     --field-background: #0b0e0c;
@@ -174,18 +174,23 @@
     /* The ground stays black (DEC-015) -- the forest lives in the brand, the
        washes and the ink, not in the floor. A green-black ground turns every
        photograph in the feed slightly sick. */
-    --brand: #b7ecd0;
+    --brand: #bfead3;
     --brand-strong: #d8f5e6;
-    --brand-wash: #12251b;
-    --on-brand: #04180e;
+    /* A small tinted tile. Pale in dark mode, so an icon chip or a stat tile
+       reads as the same material as the rail beside it. */
+    --brand-wash: #9fd9b8;
+    --on-brand-wash: #062315;
+    --on-brand: #062315;
 
     /* Inverted: on black the fill is the lit colour and the label is the dark
        one, which is what keeps a primary action legible here (8.65:1). */
-    --brand-fill: #a8e6c4;
-    --brand-fill-hover: #c6f0db;
-    --brand-fill-foreground: #04180e;
+    --brand-fill: #bfead3;
+    --brand-fill-hover: #d6f2e2;
+    --brand-fill-foreground: #062315;
 
-    /* Inverted the other way: a pale green panel on the black ground. */
+    /* The pale green panel on the black ground, and the colour the rest of
+       dark mode's furniture now borrows: a button, a chip and a small tile are
+       all the same green as the rail. */
     --sidebar: #bfead3;
     --sidebar-foreground: #0b2b1c;
     --sidebar-accent: #9cd9b7;
@@ -195,7 +200,7 @@
 
     --hairline-firm: #3a453d;
 
-    --forest: #b7ecd0;
+    --forest: #bfead3;
     --deep-forest: #d8f5e6;
     --olive: #9aa79c;
     --sage: #1a201c;
@@ -208,9 +213,9 @@
     --terracotta: #ef8b6f;
     --apricot: #e0b341;
     --ink: #f2f6f1;
-    --cta-fill: #a8e6c4;
-    --cta-fill-hover: #c6f0db;
-    --cta-fill-foreground: #04180e;
+    --cta-fill: #bfead3;
+    --cta-fill-hover: #d6f2e2;
+    --cta-fill-foreground: #062315;
   }
 }
 
@@ -255,6 +260,7 @@
   --color-brand: var(--brand);
   --color-brand-strong: var(--brand-strong);
   --color-brand-wash: var(--brand-wash);
+  --color-on-brand-wash: var(--on-brand-wash);
   --color-on-brand: var(--on-brand);
   --color-brand-fill: var(--brand-fill);
   --color-brand-fill-hover: var(--brand-fill-hover);
@@ -728,10 +734,16 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
    The fix is not to rewrite the classes inside — it is to restate what the
    roles mean in here, which is the entire reason the product paints from role
    tokens rather than from colours. Every component in a rail keeps the classes
-   it already had and comes out right in both modes.
+   it already had and comes out right.
+
+   Dark mode only. The light rail is white, like the cards beside it, so the
+   page's own roles are already correct in there; remapping them would paint
+   the rail's accents in ink instead of forest.
 --------------------------------------------------------------------------- */
-.vu-app-sidebar,
-.vu-admin-rail {
+.dark .vu-app-sidebar,
+.dark .vu-admin-rail,
+[data-theme="dark"] .vu-app-sidebar,
+[data-theme="dark"] .vu-admin-rail {
   --background: var(--sidebar);
   --surface: var(--sidebar-accent);
   --surface-foreground: var(--sidebar-accent-foreground);
@@ -1721,13 +1733,14 @@ button:hover .vu-media-zoom {
   /* The forest on black. Amber and red stay exactly where they were: they
      carry warning and danger, and recolouring them would take meaning out
      of the UI rather than decoration out of it. */
-  --brand: #b7ecd0;
+  --brand: #bfead3;
   --brand-strong: #d8f5e6;
-  --brand-wash: #12251b;
-  --on-brand: #04180e;
-  --brand-fill: #a8e6c4;
-  --brand-fill-hover: #c6f0db;
-  --brand-fill-foreground: #04180e;
+  --brand-wash: #9fd9b8;
+  --on-brand-wash: #062315;
+  --on-brand: #062315;
+  --brand-fill: #bfead3;
+  --brand-fill-hover: #d6f2e2;
+  --brand-fill-foreground: #062315;
 
   --accent: #b7ecd0;
   --accent-foreground: #04180e;
@@ -1859,6 +1872,7 @@ button:hover .vu-media-zoom {
   --brand: #1f6b46;
   --brand-strong: #13492e;
   --brand-wash: #e4efe6;
+  --on-brand-wash: #13492e;
   --on-brand: #ffffff;
   --brand-fill: #1f6b46;
   --brand-fill-hover: #17573a;
@@ -1871,12 +1885,12 @@ button:hover .vu-media-zoom {
   --warning-foreground: #ffffff;
   --danger: #b4442a;
   --danger-foreground: #ffffff;
-  --sidebar: #13492e;
-  --sidebar-foreground: #eaf5ee;
-  --sidebar-accent: #247a50;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #1b6140;
-  --sidebar-ring: #b7ecd0;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #11231a;
+  --sidebar-accent: #e4efe6;
+  --sidebar-accent-foreground: #13492e;
+  --sidebar-border: #dde6d7;
+  --sidebar-ring: #1f6b46;
   --forest: #1f6b46;
   --deep-forest: #13492e;
   --mint: #eef4ea;

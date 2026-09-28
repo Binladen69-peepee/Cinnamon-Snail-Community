@@ -11,7 +11,7 @@ import { MessageSquare, PenSquare } from "lucide-react";
 export default function MessagesIndexPage() {
   return (
     <div className="hidden h-full flex-col items-center justify-center gap-3 px-6 text-center lg:flex">
-      <span className="grid size-14 place-items-center rounded-full bg-brand-wash text-brand-strong">
+      <span className="grid size-14 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
         <MessageSquare className="size-7" aria-hidden />
       </span>
       <div>

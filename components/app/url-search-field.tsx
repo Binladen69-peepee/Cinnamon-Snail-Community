@@ -117,7 +117,7 @@ export function UrlSearchField({
               inputRef.current?.focus();
             }}
             aria-label="Clear search"
-            className="grid size-6 place-items-center rounded-full text-foreground-muted transition hover:bg-brand-wash hover:text-brand-strong"
+            className="grid size-6 place-items-center rounded-full text-foreground-muted transition hover:bg-brand-wash hover:text-on-brand-wash"
           >
             <X className="size-4" aria-hidden />
           </button>

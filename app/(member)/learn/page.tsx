@@ -206,7 +206,7 @@ function Blank({
 
   return (
     <div className="rounded-card border border-dashed border-border bg-surface px-6 py-14 text-center">
-      <span className="mx-auto grid size-12 place-items-center rounded-full bg-brand-wash text-brand-strong">
+      <span className="mx-auto grid size-12 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
         {empty ? (
           <BookOpen className="size-6" aria-hidden />
         ) : (

@@ -37,7 +37,7 @@ export function SpaceCard({ space }: { space: NavSpace }) {
         className="flex flex-1 gap-2.5 p-3 no-underline"
       >
         <span
-          className="grid size-10 shrink-0 place-items-center rounded-ctl bg-brand-wash text-brand-strong"
+          className="grid size-10 shrink-0 place-items-center rounded-ctl bg-brand-wash text-on-brand-wash"
           aria-hidden
         >
           <KindIcon className="size-5" />

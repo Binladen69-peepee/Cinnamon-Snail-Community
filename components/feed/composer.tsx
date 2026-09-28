@@ -234,7 +234,7 @@ export function Composer({
                   className={cn(
                     "inline-flex h-6.5 items-center rounded-full px-2 text-[12px] transition",
                     spaceId === space.id
-                      ? "bg-brand-wash text-brand ring-1 ring-brand/30"
+                      ? "bg-brand-wash text-on-brand-wash ring-1 ring-on-brand-wash/30"
                       : "text-foreground-muted hover:bg-surface-muted hover:text-foreground",
                   )}
                 >

@@ -87,7 +87,7 @@ export function RsvpButton({
               "inline-flex items-center gap-1.5 rounded-ctl border px-3.5 font-semibold transition",
               height,
               going
-                ? "border-brand/40 bg-brand-wash text-brand-strong hover:border-danger/50 hover:text-danger"
+                ? "border-brand/40 bg-brand-wash text-on-brand-wash hover:border-danger/50 hover:text-danger"
                 : "border-border bg-surface text-foreground hover:border-hairline-firm",
               pending && "opacity-70",
             )}

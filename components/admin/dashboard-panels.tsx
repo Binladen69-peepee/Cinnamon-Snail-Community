@@ -142,7 +142,7 @@ export function HeadlineCard({ kpi }: { kpi: HeadlineKpi }) {
       className="vu-raise group flex min-w-0 flex-col rounded-card border border-border bg-surface p-4 no-underline transition hover:border-hairline-firm"
     >
       <span className="flex items-center gap-2.5">
-        <span className="grid size-10 shrink-0 place-items-center rounded-ctl bg-brand-wash text-foreground">
+        <span className="grid size-10 shrink-0 place-items-center rounded-ctl bg-brand-wash text-on-brand-wash">
           {HEADLINE_ICONS[kpi.key]}
         </span>
         <span className="min-w-0 text-[12.5px] font-semibold leading-tight text-foreground-muted">
@@ -584,7 +584,7 @@ export function QuickActions() {
               href={action.href}
               className="flex items-center gap-2.5 px-4 py-2.5 text-[12.5px] font-semibold text-foreground no-underline transition hover:bg-default"
             >
-              <span className="grid size-7 shrink-0 place-items-center rounded-ctl bg-brand-wash text-foreground">
+              <span className="grid size-7 shrink-0 place-items-center rounded-ctl bg-brand-wash text-on-brand-wash">
                 {action.icon}
               </span>
               {action.label}

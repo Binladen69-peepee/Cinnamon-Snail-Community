@@ -476,7 +476,7 @@ export function ProfileView({
                         key={badge.id}
                         className="flex items-start gap-3 rounded-[12px] border border-border bg-background/50 p-3"
                       >
-                        <span className="grid size-11 place-items-center rounded-full bg-brand-wash text-brand">
+                        <span className="grid size-11 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
                           <Award className="size-5" aria-hidden />
                         </span>
                         <div className="min-w-0">
@@ -558,7 +558,7 @@ export function ProfileView({
                       className="flex w-[4.25rem] flex-col items-center gap-1 text-center"
                       title={badge.name}
                     >
-                      <span className="grid size-11 place-items-center rounded-full border border-border bg-brand-wash text-brand">
+                      <span className="grid size-11 place-items-center rounded-full border border-border bg-brand-wash text-on-brand-wash">
                         <Award className="size-4" aria-hidden />
                       </span>
                       <span className="line-clamp-2 text-[10.5px] leading-tight text-foreground-muted">

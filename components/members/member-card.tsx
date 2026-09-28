@@ -54,7 +54,7 @@ export function MemberCard({
               {member.displayName}
             </Link>
             {member.isHost ? (
-              <span className="shrink-0 rounded-chip bg-brand-wash px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-brand-strong">
+              <span className="shrink-0 rounded-chip bg-brand-wash px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-on-brand-wash">
                 Host
               </span>
             ) : null}
@@ -71,7 +71,7 @@ export function MemberCard({
       </div>
 
       {member.reason ? (
-        <p className="mt-2.5 flex items-start gap-1.5 rounded-ctl bg-brand-wash px-2.5 py-1.5 text-[12.5px] leading-snug text-brand-strong">
+        <p className="mt-2.5 flex items-start gap-1.5 rounded-ctl bg-brand-wash px-2.5 py-1.5 text-[12.5px] leading-snug text-on-brand-wash">
           <Sparkles className="mt-px size-3 shrink-0" aria-hidden />
           <span className="line-clamp-2">{member.reason}</span>
         </p>

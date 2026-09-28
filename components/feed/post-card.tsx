@@ -155,7 +155,7 @@ export function PostCard({
         )}
       >
         {post.pinnedAt ? (
-          <p className="flex items-center gap-1.5 border-b border-brand/20 bg-brand-wash px-4 py-1.5 text-[10.5px] uppercase tracking-[0.12em] text-brand-strong">
+          <p className="flex items-center gap-1.5 border-b border-brand/20 bg-brand-wash px-4 py-1.5 text-[10.5px] uppercase tracking-[0.12em] text-on-brand-wash">
             <Pin className="size-2.5" aria-hidden />
             Pinned by a host
           </p>

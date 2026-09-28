@@ -84,7 +84,7 @@ export function ThreadMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Conversation options"
-        className="grid size-8 place-items-center rounded-full text-foreground-muted transition hover:bg-brand-wash hover:text-brand-strong"
+        className="grid size-8 place-items-center rounded-full text-foreground-muted transition hover:bg-brand-wash hover:text-on-brand-wash"
       >
         <MoreHorizontal className="size-5" aria-hidden />
       </button>

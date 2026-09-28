@@ -12,7 +12,6 @@ import {
   unblockMember,
 } from "@/lib/messages/conversations";
 import { MESSAGE_LIMITS, MessageRateLimitError } from "@/lib/messages/rate-limits";
-import { consumeRateLimit } from "@/lib/auth/rate-limit";
 
 /**
  * The messaging write paths, against the database.
@@ -482,14 +481,23 @@ describe("rate limiting", () => {
     if (!reachable) return;
     const id = await freshThread();
 
-    // The window is spent directly rather than by sending a hundred and
-    // thirty messages: the property under test is that `sendMessage` consults
-    // the limiter, and a hundred and thirty sequential round trips is a slow
-    // way to ask that — slow enough to outrun the test timeout under load.
+    // The window is spent in one statement rather than by sending a hundred
+    // and twenty messages, or by calling the limiter a hundred and twenty
+    // times. The property under test is that `sendMessage` consults the
+    // limiter at all; the number of round trips it takes to fill the bucket is
+    // not part of that, and under the full parallel suite those round trips
+    // were slow enough to outrun the test timeout at random.
+    //
+    // The limiter refuses when the stored count goes *above* the limit, so a
+    // bucket sitting exactly at it is a window with nothing left in it.
     const { limit, windowMs } = MESSAGE_LIMITS.send;
-    for (let index = 0; index < limit; index += 1) {
-      await consumeRateLimit(`messages:send:${alice}`, limit, windowMs);
-    }
+    const key = `messages:send:${alice}`;
+    const resetAt = new Date(Date.now() + windowMs);
+    await prisma.rateLimitBucket.upsert({
+      where: { key },
+      create: { key, count: limit, resetAt },
+      update: { count: limit, resetAt },
+    });
 
     await expect(
       sendMessage({ conversationId: id, authorId: alice, body: "over the line" }),
@@ -500,18 +508,28 @@ describe("rate limiting", () => {
     await clearLimits();
   });
 
-  it("lets an ordinary burst through untouched", async () => {
-    if (!reachable) return;
-    const id = await freshThread();
-    // Ten messages in a row is an argument, not an attack.
-    for (let index = 0; index < 10; index += 1) {
-      await sendMessage({
-        conversationId: id,
-        authorId: alice,
-        body: `burst ${index}`,
-        clientId: `burst-${index}`,
-      });
-    }
-    expect(await prisma.message.count({ where: { conversationId: id } })).toBe(10);
-  });
+  it(
+    "lets an ordinary burst through untouched",
+    async () => {
+      if (!reachable) return;
+      const id = await freshThread();
+      // Ten messages in a row is an argument, not an attack.
+      //
+      // These are ten real sends, and they have to stay real — the claim is
+      // that the limiter lets a whole burst through `sendMessage`, which a
+      // shortcut past it would not test. Each send is several round trips, so
+      // under the full parallel suite ten of them outran vitest's five-second
+      // default at random. The time limit is raised rather than the work cut.
+      for (let index = 0; index < 10; index += 1) {
+        await sendMessage({
+          conversationId: id,
+          authorId: alice,
+          body: `burst ${index}`,
+          clientId: `burst-${index}`,
+        });
+      }
+      expect(await prisma.message.count({ where: { conversationId: id } })).toBe(10);
+    },
+    30_000,
+  );
 });

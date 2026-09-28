@@ -143,7 +143,7 @@ export default async function EditCoursePage({
               Manage membership billing
             </Link>
 
-            <p className="mt-3 flex items-start gap-2 rounded-ctl bg-brand-wash px-3 py-2.5 text-[12.5px] leading-snug text-brand-strong">
+            <p className="mt-3 flex items-start gap-2 rounded-ctl bg-brand-wash px-3 py-2.5 text-[12.5px] leading-snug text-on-brand-wash">
               <Lightbulb className="mt-px size-3.5 shrink-0" aria-hidden />
               <span>
                 Need help pricing your course? Membership pricing lives in{" "}

@@ -116,7 +116,7 @@ export function CommentThread({
           <p className="flex flex-wrap items-center gap-x-1.5 text-[13px] leading-tight">
             <span className="font-semibold text-foreground">{name}</span>
             {isHost ? (
-              <span className="rounded-full bg-brand-wash px-1.5 py-px text-[10px] uppercase tracking-[0.08em] text-brand-strong">
+              <span className="rounded-full bg-brand-wash px-1.5 py-px text-[10px] uppercase tracking-[0.08em] text-on-brand-wash">
                 Host
               </span>
             ) : null}
@@ -145,7 +145,7 @@ export function CommentThread({
               className={cn(
                 "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] transition",
                 replyOpen
-                  ? "bg-brand-wash text-brand"
+                  ? "bg-brand-wash text-on-brand-wash"
                   : "text-foreground-muted hover:bg-mint hover:text-foreground",
               )}
             >

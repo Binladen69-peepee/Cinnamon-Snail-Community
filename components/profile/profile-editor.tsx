@@ -332,7 +332,7 @@ export function ProfileEditor({
                   defaultChecked={(profile.skill ?? "") === option.value}
                   className="peer sr-only"
                 />
-                <span className="inline-flex h-9 items-center rounded-full border border-border bg-background px-3.5 text-[13px] font-semibold text-foreground-muted transition peer-checked:border-brand peer-checked:bg-brand-wash peer-checked:text-brand-strong peer-focus-visible:ring-2 peer-focus-visible:ring-brand/40 hover:border-hairline-firm">
+                <span className="inline-flex h-9 items-center rounded-full border border-border bg-background px-3.5 text-[13px] font-semibold text-foreground-muted transition peer-checked:border-brand peer-checked:bg-brand-wash peer-checked:text-on-brand-wash peer-focus-visible:ring-2 peer-focus-visible:ring-on-brand-wash/40 hover:border-hairline-firm">
                   {option.label}
                 </span>
               </label>
@@ -360,7 +360,7 @@ export function ProfileEditor({
                       className={cn(
                         "inline-flex h-8 items-center gap-1 rounded-full border px-3 text-[12.5px] font-semibold transition",
                         on
-                          ? "border-brand bg-brand-wash text-brand-strong"
+                          ? "border-brand bg-brand-wash text-on-brand-wash"
                           : "border-border bg-background text-foreground-muted hover:border-hairline-firm hover:text-foreground",
                         full && "cursor-not-allowed opacity-40",
                       )}

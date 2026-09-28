@@ -44,7 +44,7 @@ export function CommentSort({
                 "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-bold no-underline transition",
                 "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
                 active
-                  ? "bg-brand-wash text-brand"
+                  ? "bg-brand-wash text-on-brand-wash"
                   : "text-foreground-muted hover:bg-surface-muted hover:text-foreground",
               )}
             >

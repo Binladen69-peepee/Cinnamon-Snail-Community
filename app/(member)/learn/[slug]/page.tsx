@@ -158,7 +158,7 @@ export default async function ClassPage({
         ) : null}
 
         {!cls.entitled ? (
-          <p className="flex items-start gap-2 rounded-card border border-border bg-brand-wash px-3.5 py-3 text-[13.5px] text-brand-strong">
+          <p className="flex items-start gap-2 rounded-card border border-border bg-brand-wash px-3.5 py-3 text-[13.5px] text-on-brand-wash">
             <Lock className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
               Your membership is not active, so the full class will not play.

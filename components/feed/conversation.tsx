@@ -140,7 +140,7 @@ function Node({
               {name}
             </Link>
             {isHost ? (
-              <span className="rounded-full bg-brand-wash px-1.5 text-[9.5px] uppercase tracking-[0.08em] text-brand-strong">
+              <span className="rounded-full bg-brand-wash px-1.5 text-[9.5px] uppercase tracking-[0.08em] text-on-brand-wash">
                 Host
               </span>
             ) : null}
@@ -169,7 +169,7 @@ function Node({
               className={cn(
                 "inline-flex h-7 items-center gap-1.5 rounded-full px-2 text-[12px] transition",
                 replyOpen
-                  ? "bg-brand-wash text-brand"
+                  ? "bg-brand-wash text-on-brand-wash"
                   : "text-foreground-muted hover:bg-mint hover:text-foreground",
               )}
             >

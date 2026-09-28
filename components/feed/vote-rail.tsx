@@ -111,7 +111,7 @@ function Arrow({
             ? "text-brand"
             : "text-terracotta"
           : dir === "up"
-            ? "text-foreground-muted hover:bg-brand-wash hover:text-brand"
+            ? "text-foreground-muted hover:bg-brand-wash hover:text-on-brand-wash"
             : "text-foreground-muted hover:bg-terracotta/10 hover:text-terracotta",
       )}
     >

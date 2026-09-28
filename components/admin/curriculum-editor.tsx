@@ -169,7 +169,7 @@ export function CurriculumEditor({
 
       {sections.length === 0 && !addingSection ? (
         <div className="px-4 py-9 text-center">
-          <span className="mx-auto grid size-11 place-items-center rounded-full bg-brand-wash text-brand-strong">
+          <span className="mx-auto grid size-11 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
             <ListChecks className="size-5" aria-hidden />
           </span>
           <p className="mt-2.5 text-[13.5px] font-bold text-foreground">
@@ -279,7 +279,7 @@ export function CurriculumEditor({
                   <li key={lesson.id} className="min-w-0">
                     <div className="flex items-center gap-2.5 px-4 py-2">
                       <span
-                        className="grid size-8 shrink-0 place-items-center rounded-ctl bg-brand-wash text-brand-strong"
+                        className="grid size-8 shrink-0 place-items-center rounded-ctl bg-brand-wash text-on-brand-wash"
                         aria-hidden
                       >
                         <Icon className="size-4" />

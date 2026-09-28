@@ -74,7 +74,7 @@ export function LinkCard({
         <span
           className={cn(
             "grid size-9 shrink-0 place-items-center rounded-ctl",
-            mine ? "bg-white/15" : "bg-brand-wash text-brand-strong",
+            mine ? "bg-white/15" : "bg-brand-wash text-on-brand-wash",
           )}
           aria-hidden
         >

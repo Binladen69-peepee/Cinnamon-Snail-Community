@@ -290,7 +290,7 @@ function CategoryFilter({
               className={cn(
                 "inline-flex h-8 items-center whitespace-nowrap rounded-full border px-3 text-[12.5px] font-semibold no-underline transition",
                 current
-                  ? "border-brand bg-brand-wash text-brand-strong"
+                  ? "border-brand bg-brand-wash text-on-brand-wash"
                   : "border-border bg-surface text-foreground-muted hover:border-hairline-firm hover:text-foreground",
               )}
             >
@@ -316,7 +316,7 @@ function Blank({
 }) {
   return (
     <div className="rounded-card border border-dashed border-border bg-surface px-6 py-14 text-center">
-      <span className="mx-auto grid size-12 place-items-center rounded-full bg-brand-wash text-brand-strong">
+      <span className="mx-auto grid size-12 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
         {icon}
       </span>
       <h2 className="mt-3 font-display text-[1.15rem] font-bold text-foreground">

@@ -30,7 +30,7 @@ const TYPES = [
     title: "Online Courses",
     body: "Create a series of lessons with files, posts, and quizzes.",
     icon: GraduationCap,
-    tone: "bg-brand-wash text-brand-strong",
+    tone: "bg-brand-wash text-on-brand-wash",
     disabled: null as string | null,
   },
   {

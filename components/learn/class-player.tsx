@@ -43,7 +43,7 @@ export function ClassPlayer({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={photo} alt="" className="size-full object-cover" />
       ) : (
-        <span className="grid size-full place-items-center bg-brand-wash text-brand-strong/40">
+        <span className="grid size-full place-items-center bg-brand-wash text-on-brand-wash/40">
           <ChefHat className="size-12" aria-hidden />
         </span>
       )}

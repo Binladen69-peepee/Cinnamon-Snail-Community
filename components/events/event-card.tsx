@@ -150,7 +150,7 @@ function DateBlock({
         "grid size-14 place-items-center rounded-ctl text-center",
         event.past
           ? "bg-default text-foreground-muted"
-          : "bg-brand-wash text-brand-strong",
+          : "bg-brand-wash text-on-brand-wash",
       )}
     >
       <span className="block text-[9.5px] font-bold uppercase tracking-[0.12em]">

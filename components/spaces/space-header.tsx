@@ -75,7 +75,7 @@ export function SpaceHeader({
       <div className="p-3 sm:p-4">
         <div className="flex flex-wrap items-start gap-3">
           <span
-            className="grid size-10 shrink-0 place-items-center rounded-ctl bg-brand-wash text-brand-strong"
+            className="grid size-10 shrink-0 place-items-center rounded-ctl bg-brand-wash text-on-brand-wash"
             aria-hidden
           >
             <KindIcon className="size-5" />
@@ -137,7 +137,7 @@ export function SpaceHeader({
                 {/* A host cannot leave their own space, so they are not shown a
                     button that would only refuse. */}
                 {isHost ? (
-                  <span className="inline-flex h-9 items-center rounded-full bg-brand-wash px-3 text-[12.5px] font-bold text-brand-strong">
+                  <span className="inline-flex h-9 items-center rounded-full bg-brand-wash px-3 text-[12.5px] font-bold text-on-brand-wash">
                     Host
                   </span>
                 ) : (

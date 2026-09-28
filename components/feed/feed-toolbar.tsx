@@ -122,7 +122,7 @@ function DensityButton({
         "grid size-8 place-items-center rounded-full transition",
         "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
         active
-          ? "bg-brand-wash text-brand"
+          ? "bg-brand-wash text-on-brand-wash"
           : "text-foreground-muted hover:bg-mint hover:text-foreground",
       )}
     >
