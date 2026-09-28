@@ -36,7 +36,9 @@ export async function AppHeader() {
       className="sticky top-0 z-50 border-b border-border bg-background/92 backdrop-blur-md"
     >
       <div className="flex h-14 w-full items-center gap-3 px-3 sm:gap-4 sm:px-5">
-        <BrandMark href="/home" className="shrink-0" compactBelowSm />
+        {/* The rail carries the wordmark from `lg` up, where it is visible.
+            Below that there is no rail, so the bar keeps it. */}
+        <BrandMark href="/home" className="shrink-0 lg:hidden" compactBelowSm />
 
         <div className="mx-auto hidden min-w-0 max-w-xl flex-1 md:block">
           <NavSearch />

@@ -30,17 +30,17 @@ export function AdminSidebar({
   const active = activeAdminHref(pathname);
 
   return (
-    <div className="flex h-full flex-col gap-1 overflow-y-auto p-3">
+    <div className="flex h-full flex-col gap-0.5 overflow-y-auto p-2.5">
       <Link
         href="/admin"
-        className="mb-3 flex items-center gap-2 rounded-ctl px-2 py-1.5 no-underline"
+        className="mb-2 flex items-center gap-2 rounded-ctl px-1.5 py-1 no-underline"
       >
-        <BrandLogo className="size-6 text-brand" />
+        <BrandLogo className="size-5 text-brand" />
         <span className="min-w-0">
-          <span className="block truncate font-display text-[15px] font-bold leading-tight tracking-[-0.01em] text-foreground">
+          <span className="block truncate font-display text-[13.5px] font-bold leading-tight tracking-[-0.01em] text-foreground">
             Vegan University
           </span>
-          <span className="block text-[10px] font-bold uppercase tracking-[0.14em] text-foreground-muted">
+          <span className="block text-[9px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
             Console
           </span>
         </span>
@@ -49,11 +49,11 @@ export function AdminSidebar({
       {ADMIN_NAV.map((group) => (
         <div key={group.label ?? "main"}>
           {group.label ? (
-            <p className="mt-4 px-2 pb-1 text-[10px] font-bold uppercase tracking-[0.14em] text-foreground-muted">
+            <p className="mt-3 px-2 pb-0.5 text-[9.5px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
               {group.label}
             </p>
           ) : null}
-          <ul className="space-y-0.5">
+          <ul className="space-y-px">
             {group.items.map((item) => {
               const Icon = item.icon;
               const current = active === item.href;
@@ -64,7 +64,7 @@ export function AdminSidebar({
                     href={item.href}
                     aria-current={current ? "page" : undefined}
                     className={cn(
-                      "flex items-center gap-2.5 rounded-ctl px-2.5 py-2 text-[13px] font-semibold no-underline transition",
+                      "flex items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] font-semibold no-underline transition",
                       current
                         ? "bg-sidebar-accent text-sidebar-accent-foreground"
                         : "text-foreground-muted hover:bg-default hover:text-foreground",
@@ -88,19 +88,19 @@ export function AdminSidebar({
       <div className="mt-auto space-y-2 pt-4">
         <Link
           href="/home"
-          className="flex items-center gap-1.5 rounded-ctl px-2.5 py-2 text-[12.5px] font-semibold text-foreground-muted no-underline transition hover:bg-default hover:text-foreground"
+          className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[12px] font-semibold text-foreground-muted no-underline transition hover:bg-default hover:text-foreground"
         >
           <ArrowUpRight className="size-3.5" aria-hidden />
           Back to the community
         </Link>
 
-        <div className="vu-raise flex items-center gap-2.5 rounded-ctl border border-border bg-surface px-2.5 py-2">
-          <Avatar name={name} src={avatarUrl} size="sm" className="size-8" />
+        <div className="flex items-center gap-2 rounded-lg border border-border bg-surface px-2 py-1.5">
+          <Avatar name={name} src={avatarUrl} size="sm" className="size-7" />
           <span className="min-w-0 flex-1">
-            <span className="block truncate text-[12.5px] font-bold text-foreground">
+            <span className="block truncate text-[12px] font-bold text-foreground">
               {name}
             </span>
-            <span className="block truncate text-[11px] font-semibold text-foreground-muted">
+            <span className="block truncate text-[10.5px] font-semibold text-foreground-muted">
               {role}
             </span>
           </span>

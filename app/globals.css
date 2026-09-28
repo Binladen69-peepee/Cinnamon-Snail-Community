@@ -81,13 +81,16 @@
     --brand-fill-hover: #17573a;
     --brand-fill-foreground: #ffffff;
 
-    /* Member sidebar: white in light mode, near-black in dark. */
-    --sidebar: #ffffff;
-    --sidebar-foreground: var(--foreground);
-    --sidebar-accent: var(--brand-wash);
-    --sidebar-accent-foreground: var(--brand-strong);
-    --sidebar-border: var(--border);
-    --sidebar-ring: var(--brand);
+    /* The rail runs inverted: a deep forest panel against the cream ground
+       here, a pale green one against the black in dark. It is the one piece of
+       furniture meant to read as a different material from the page, which is
+       why it does not follow the elevation ladder. */
+    --sidebar: #13492e;
+    --sidebar-foreground: #eaf5ee;
+    --sidebar-accent: #247a50;
+    --sidebar-accent-foreground: #ffffff;
+    --sidebar-border: #1b6140;
+    --sidebar-ring: #b7ecd0;
 
     /* Radii live as runtime variables because @theme inline bakes literals in
        at build time, which would make them unswappable. 12px everywhere. */
@@ -134,9 +137,9 @@
     --overlay: #141814;
     --overlay-foreground: #f2f6f1;
     --muted: #9aa79c;
-    --primary: #5fd39a;
+    --primary: #b7ecd0;
     --primary-foreground: #04180e;
-    --accent: #5fd39a;
+    --accent: #b7ecd0;
     --accent-foreground: #04180e;
     --accent-gold: #e0b341;
     --accent-magenta: #ef8b6f;
@@ -144,15 +147,15 @@
     --foreground-muted: #9aa79c;
     --border: #232a25;
     --separator: #1a201c;
-    --focus: #5fd39a;
-    --link: #84e3b3;
+    --focus: #b7ecd0;
+    --link: #d8f5e6;
     --default: #1a201c;
     --default-foreground: #f2f6f1;
     --field-background: #0b0e0c;
     --field-foreground: #f2f6f1;
     --field-placeholder: #8b978d;
     --field-border: #2a322c;
-    --success: #5fd39a;
+    --success: #b7ecd0;
     --success-foreground: #04180e;
     --warning: #e0b341;
     --warning-foreground: #000000;
@@ -171,28 +174,29 @@
     /* The ground stays black (DEC-015) -- the forest lives in the brand, the
        washes and the ink, not in the floor. A green-black ground turns every
        photograph in the feed slightly sick. */
-    --brand: #5fd39a;
-    --brand-strong: #84e3b3;
+    --brand: #b7ecd0;
+    --brand-strong: #d8f5e6;
     --brand-wash: #12251b;
     --on-brand: #04180e;
 
     /* Inverted: on black the fill is the lit colour and the label is the dark
        one, which is what keeps a primary action legible here (8.65:1). */
-    --brand-fill: #4ec78d;
-    --brand-fill-hover: #62d49d;
+    --brand-fill: #a8e6c4;
+    --brand-fill-hover: #c6f0db;
     --brand-fill-foreground: #04180e;
 
-    --sidebar: #060807;
-    --sidebar-foreground: #f2f6f1;
-    --sidebar-accent: #12251b;
-    --sidebar-accent-foreground: #84e3b3;
-    --sidebar-border: #1a201c;
-    --sidebar-ring: #5fd39a;
+    /* Inverted the other way: a pale green panel on the black ground. */
+    --sidebar: #bfead3;
+    --sidebar-foreground: #0b2b1c;
+    --sidebar-accent: #9cd9b7;
+    --sidebar-accent-foreground: #04200f;
+    --sidebar-border: #a5dfbe;
+    --sidebar-ring: #13492e;
 
     --hairline-firm: #3a453d;
 
-    --forest: #5fd39a;
-    --deep-forest: #84e3b3;
+    --forest: #b7ecd0;
+    --deep-forest: #d8f5e6;
     --olive: #9aa79c;
     --sage: #1a201c;
     --mint: #101612;
@@ -204,8 +208,8 @@
     --terracotta: #ef8b6f;
     --apricot: #e0b341;
     --ink: #f2f6f1;
-    --cta-fill: #4ec78d;
-    --cta-fill-hover: #62d49d;
+    --cta-fill: #a8e6c4;
+    --cta-fill-hover: #c6f0db;
     --cta-fill-foreground: #04180e;
   }
 }
@@ -710,6 +714,51 @@ body:has([data-hero-dark]) [data-app-nav][data-scrolled="false"] .vu-wordmark-ta
 /* Member shell: fixed left destinations + pill search in the app bar. */
 .vu-app-sidebar {
   background: var(--sidebar);
+}
+
+/* ---------------------------------------------------------------------------
+   The rails run inverted, so the roles are redefined for their subtree.
+
+   A deep-forest panel on a cream page, and a pale-green one on a black page,
+   means everything inside a rail has the *opposite* relationship to its
+   background than the rest of the app does. `text-foreground` would be
+   near-black ink on a near-black panel; a `bg-brand-fill` badge would be
+   forest on forest.
+
+   The fix is not to rewrite the classes inside — it is to restate what the
+   roles mean in here, which is the entire reason the product paints from role
+   tokens rather than from colours. Every component in a rail keeps the classes
+   it already had and comes out right in both modes.
+--------------------------------------------------------------------------- */
+.vu-app-sidebar,
+.vu-admin-rail {
+  --background: var(--sidebar);
+  --surface: var(--sidebar-accent);
+  --surface-foreground: var(--sidebar-accent-foreground);
+  --overlay: var(--sidebar-accent);
+  --default: var(--sidebar-accent);
+  --default-foreground: var(--sidebar-accent-foreground);
+
+  --foreground: var(--sidebar-foreground);
+  --foreground-muted: color-mix(in oklab, var(--sidebar-foreground) 66%, transparent);
+  --muted: var(--foreground-muted);
+
+  --border: var(--sidebar-border);
+  --separator: var(--sidebar-border);
+  --hairline-firm: var(--sidebar-border);
+  --focus: var(--sidebar-ring);
+  --link: var(--sidebar-foreground);
+
+  /* Inside a rail the brand cannot be the page's brand: on the light-mode
+     panel the two are the same green. It becomes the rail's own contrast
+     instead, so a badge or an active pill still reads. */
+  --brand: var(--sidebar-foreground);
+  --brand-strong: var(--sidebar-accent-foreground);
+  --brand-wash: var(--sidebar-accent);
+  --on-brand: var(--sidebar);
+  --brand-fill: var(--sidebar-foreground);
+  --brand-fill-hover: var(--sidebar-accent-foreground);
+  --brand-fill-foreground: var(--sidebar);
 }
 
 .vu-thread-line {
@@ -1664,41 +1713,41 @@ button:hover .vu-media-zoom {
   --field-placeholder: #8b978d;
   --field-border: #262e28;
 
-  --primary: #5fd39a;
+  --primary: #b7ecd0;
   --primary-foreground: #04180e;
-  --link: #84e3b3;
-  --focus: #5fd39a;
+  --link: #d8f5e6;
+  --focus: #b7ecd0;
 
   /* The forest on black. Amber and red stay exactly where they were: they
      carry warning and danger, and recolouring them would take meaning out
      of the UI rather than decoration out of it. */
-  --brand: #5fd39a;
-  --brand-strong: #84e3b3;
+  --brand: #b7ecd0;
+  --brand-strong: #d8f5e6;
   --brand-wash: #12251b;
   --on-brand: #04180e;
-  --brand-fill: #4ec78d;
-  --brand-fill-hover: #62d49d;
+  --brand-fill: #a8e6c4;
+  --brand-fill-hover: #c6f0db;
   --brand-fill-foreground: #04180e;
 
-  --accent: #5fd39a;
+  --accent: #b7ecd0;
   --accent-foreground: #04180e;
-  --success: #5fd39a;
+  --success: #b7ecd0;
   --success-foreground: #04180e;
   --warning: #e0b341;
   --warning-foreground: #000000;
   --danger: #ef6f6f;
   --danger-foreground: #000000;
 
-  --sidebar: #060807;
-  --sidebar-foreground: #eef3ec;
-  --sidebar-accent: #12251b;
-  --sidebar-accent-foreground: #84e3b3;
-  --sidebar-border: #1b211d;
-  --sidebar-ring: #5fd39a;
+  --sidebar: #bfead3;
+  --sidebar-foreground: #0b2b1c;
+  --sidebar-accent: #9cd9b7;
+  --sidebar-accent-foreground: #04200f;
+  --sidebar-border: #a5dfbe;
+  --sidebar-ring: #13492e;
 
   /* Literal names still resolve, because older admin pages use them. */
-  --forest: #5fd39a;
-  --deep-forest: #84e3b3;
+  --forest: #b7ecd0;
+  --deep-forest: #d8f5e6;
   --mint: #101612;
   --sage: #1a201c;
   --cream: #000000;
@@ -1822,12 +1871,12 @@ button:hover .vu-media-zoom {
   --warning-foreground: #ffffff;
   --danger: #b4442a;
   --danger-foreground: #ffffff;
-  --sidebar: #fbfcf8;
-  --sidebar-foreground: #11231a;
-  --sidebar-accent: #e4efe6;
-  --sidebar-accent-foreground: #13492e;
-  --sidebar-border: #dde6d7;
-  --sidebar-ring: #1f6b46;
+  --sidebar: #13492e;
+  --sidebar-foreground: #eaf5ee;
+  --sidebar-accent: #247a50;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1b6140;
+  --sidebar-ring: #b7ecd0;
   --forest: #1f6b46;
   --deep-forest: #13492e;
   --mint: #eef4ea;

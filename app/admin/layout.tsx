@@ -52,14 +52,14 @@ export default async function AdminLayout({
     <div className="vu-admin min-h-screen bg-background text-foreground">
       <aside
         aria-label="Admin"
-        className="fixed inset-y-0 left-0 z-40 hidden w-60 border-r border-sidebar-border bg-sidebar lg:block"
+        className="vu-admin-rail fixed inset-y-0 left-0 z-50 hidden w-56 border-r border-sidebar-border bg-sidebar lg:block"
       >
         <AdminSidebar {...identity} badges={{ openReports }} />
       </aside>
 
       <AdminMobileNav {...identity} />
 
-      <div className="lg:pl-60">
+      <div className="lg:pl-56">
         {/* The rail carries navigation; this carries the three things that are
             wanted from any page in the console — find a member, clear the
             queue, check who you are signed in as. */}

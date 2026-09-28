@@ -77,7 +77,7 @@ export function AdminMobileNav({
             className="absolute inset-0 bg-black/70"
             onClick={() => setOpen(false)}
           />
-          <div className="absolute inset-y-0 left-0 w-[270px] border-r border-sidebar-border bg-sidebar">
+          <div className="vu-admin-rail absolute inset-y-0 left-0 w-64 border-r border-sidebar-border bg-sidebar">
             <button
               type="button"
               onClick={() => setOpen(false)}

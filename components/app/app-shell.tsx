@@ -1,17 +1,22 @@
-import { redirect } from "next/navigation";
-import { auth } from "@/auth";
-import { listNavSpaces } from "@/lib/spaces";
-import { totalUnreadForUser } from "@/lib/messages/conversations";
-import { AppHeader } from "@/components/app/app-header";
-import { SideRail } from "@/components/app/side-rail";
-import { MobileTabs } from "@/components/app/mobile-tabs";
 import { cn } from "@/lib/utils";
 
 /**
- * Member frame: fixed left destinations, scrolling feed, optional discovery
- * rail. Theme is toggled from the account menu / FAB (not the top navbar).
+ * A member page's content column, and its optional right rail.
+ *
+ * This used to be the whole frame — header, sidebar, mobile tabs, auth guard
+ * and two queries — rendered fresh by every page. That is now
+ * `app/(member)/layout.tsx`, which keeps it mounted across navigations. What is
+ * left here is the part that genuinely differs per page: how wide the column
+ * is, whether it sits flush, and what goes in the rail beside it.
+ *
+ * The rail stays a real slot rather than a layout concern, for the reason it
+ * always was: the feed shows what to do next, a space shows its About card,
+ * and Settings wants nothing there at all. A layout cannot know that without
+ * every page pushing data upward.
+ *
+ * It takes the same props it always did, so no call site changed.
  */
-export async function AppShell({
+export function AppShell({
   children,
   rail,
   wide = false,
@@ -24,64 +29,31 @@ export async function AppShell({
   /** Edge-to-edge content (profile cover sits flush under the header). */
   flush?: boolean;
 }) {
-  const session = await auth();
-  if (!session?.sessionId) redirect("/login");
-
-  const [nav, unreadMessages] = await Promise.all([
-    listNavSpaces(session.user.id),
-    totalUnreadForUser(session.user.id).catch(() => 0),
-  ]);
-
   return (
-    <div data-app-shell className="min-h-screen bg-background text-foreground">
-      <AppHeader />
-
-      <aside
-        aria-label="Destinations"
-        className="vu-app-sidebar fixed bottom-0 left-0 top-14 z-40 hidden w-64 flex-col border-r border-sidebar-border bg-sidebar lg:flex"
+    <div
+      className={cn(
+        "mx-auto flex w-full",
+        wide || flush ? "max-w-none" : rail ? "max-w-350" : "max-w-275",
+      )}
+    >
+      <main
+        className={cn(
+          "min-w-0 flex-1 pb-24 md:pb-6",
+          flush ? "px-0 pt-0" : "px-3 py-4 sm:px-5",
+        )}
       >
-        <SideRail
-          favorites={nav.favorites}
-          groups={nav.groups}
-          unread={{
-            "/messages": unreadMessages,
-            "/spaces": nav.totalUnread,
-          }}
-        />
-      </aside>
-
-      <div className="lg:pl-64">
         <div
-          className={cn(
-            "mx-auto flex w-full",
-            wide || flush ? "max-w-none" : rail ? "max-w-[1400px]" : "max-w-[1100px]",
-          )}
+          className={cn("mx-auto w-full", wide || flush ? "max-w-none" : "max-w-170")}
         >
-          <main
-            className={cn(
-              "min-w-0 flex-1 pb-24 md:pb-6",
-              flush ? "px-0 pt-0" : "px-3 py-5 sm:px-6",
-            )}
-          >
-            <div
-              className={cn(
-                "mx-auto w-full",
-                wide || flush ? "max-w-none" : "max-w-[680px]",
-              )}
-            >
-              {children}
-            </div>
-          </main>
-
-          {rail && !wide && !flush ? (
-            <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-[300px] shrink-0 overflow-y-auto py-5 pr-4 xl:block">
-              {rail}
-            </aside>
-          ) : null}
+          {children}
         </div>
-      </div>
+      </main>
 
-      <MobileTabs />
+      {rail && !wide && !flush ? (
+        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-72 shrink-0 overflow-y-auto py-4 pr-4 xl:block">
+          {rail}
+        </aside>
+      ) : null}
     </div>
   );
 }

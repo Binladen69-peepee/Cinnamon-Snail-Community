@@ -20,6 +20,7 @@ import {
   Users,
   type LucideIcon,
 } from "lucide-react";
+import { BrandMark } from "@/components/brand/brand-mark";
 import { LeafCluster } from "@/components/marketing/hero-decor";
 import { SPACE_KIND_ICON } from "@/lib/spaces/kinds";
 import type { NavSpace, SpaceGroupWithSpaces } from "@/lib/spaces";
@@ -118,11 +119,19 @@ export function SideRail({
 
   return (
     <div className="flex h-full min-h-0 flex-col">
+      {/* The lockup lives in the rail rather than the bar above it, so the
+          panel reads as the product's own edge instead of as a list tucked
+          under a header. It keeps the bar's height, which is what lines the
+          two up across the fold. */}
+      <div className="flex h-14 shrink-0 items-center border-b border-sidebar-border/70 px-3">
+        <BrandMark href="/home" className="min-w-0" />
+      </div>
+
       <nav
         aria-label="Main"
-        className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto px-3 py-4"
+        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto px-2 py-3"
       >
-        <ul className="flex flex-col gap-0.5">
+        <ul className="flex flex-col gap-px">
           {PRIMARY.map((link) => (
             <Row
               key={link.href}
@@ -136,11 +145,11 @@ export function SideRail({
         </ul>
 
         {SECTIONS.map((section) => (
-          <div key={section.label} className="flex flex-col gap-1.5">
-            <p className="px-2.5 text-[10.5px] uppercase tracking-[0.16em] text-sidebar-foreground/40">
+          <div key={section.label} className="flex flex-col gap-1">
+            <p className="px-2 text-[9.5px] uppercase tracking-[0.14em] text-sidebar-foreground/50">
               {section.label}
             </p>
-            <ul className="flex flex-col gap-0.5">
+            <ul className="flex flex-col gap-px">
               {section.links.map((link) => (
                 <Row
                   key={link.href}
@@ -163,13 +172,13 @@ export function SideRail({
           const collapsible = spaceGroups.length > 1 && key !== "favorites";
 
           return (
-            <div key={key} className="flex flex-col gap-1.5">
+            <div key={key} className="flex flex-col gap-1">
               {collapsible ? (
                 <button
                   type="button"
                   onClick={() => toggle(key)}
                   aria-expanded={!isCollapsed}
-                  className="flex w-full items-center gap-1 px-2.5 text-[10.5px] uppercase tracking-[0.16em] text-sidebar-foreground/40 transition hover:text-sidebar-foreground"
+                  className="flex w-full items-center gap-1 px-2 text-[9.5px] uppercase tracking-[0.14em] text-sidebar-foreground/50 transition hover:text-sidebar-foreground"
                 >
                   <ChevronDown
                     className={cn(
@@ -184,12 +193,12 @@ export function SideRail({
                   ) : null}
                 </button>
               ) : (
-                <p className="px-2.5 text-[10.5px] uppercase tracking-[0.16em] text-sidebar-foreground/40">
+                <p className="px-2 text-[9.5px] uppercase tracking-[0.14em] text-sidebar-foreground/50">
                   {heading}
                 </p>
               )}
               {!isCollapsed ? (
-                <ul className="flex flex-col gap-0.5">
+                <ul className="flex flex-col gap-px">
                   {group.spaces.map((space) => (
                     <SpaceRow key={space.id} space={space} pathname={pathname} />
                   ))}
@@ -200,10 +209,10 @@ export function SideRail({
         })}
       </nav>
 
-      <div className="relative mt-auto overflow-hidden border-t border-sidebar-border/60 px-4 pb-5 pt-6">
+      <div className="relative mt-auto overflow-hidden border-t border-sidebar-border/60 px-3 pb-3.5 pt-4">
         <LeafCluster className="pointer-events-none absolute -left-5 bottom-0 w-[7.5rem] rotate-[-14deg] text-brand/20" />
         <LeafCluster className="pointer-events-none absolute -right-3 top-1 w-[5.5rem] rotate-[20deg] text-brand/15" />
-        <p className="relative font-hand text-[1.15rem] leading-snug text-sidebar-foreground/65">
+        <p className="relative font-hand text-[0.95rem] leading-snug text-sidebar-foreground/70">
           <Leaf className="mr-1.5 inline size-3.5 -translate-y-0.5 text-brand/70" aria-hidden />
           Better food.
           <br />
@@ -233,14 +242,14 @@ function Row({
         href={href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex h-10 items-center gap-2.5 rounded-xl px-2.5 text-[13.5px] no-underline transition",
+          "flex h-8 items-center gap-2 rounded-lg px-2 text-[12.5px] no-underline transition",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring",
           active
             ? "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_0_0_0_1px_color-mix(in_oklab,var(--brand)_18%,transparent)]"
             : "text-sidebar-foreground/68 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground",
         )}
       >
-        <Icon className="size-[1.05rem] shrink-0 opacity-90" aria-hidden />
+        <Icon className="size-4 shrink-0 opacity-90" aria-hidden />
         <span className="min-w-0 flex-1 truncate">{label}</span>
         {count > 0 ? <Badge count={count} /> : null}
       </Link>
@@ -261,7 +270,7 @@ function SpaceRow({ space, pathname }: { space: NavSpace; pathname: string }) {
         href={href}
         aria-current={active ? "page" : undefined}
         className={cn(
-          "flex h-9 items-center gap-2.5 rounded-xl px-2.5 text-[13px] no-underline transition",
+          "flex h-7 items-center gap-2 rounded-lg px-2 text-[12px] no-underline transition",
           "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sidebar-ring",
           active
             ? "bg-sidebar-accent text-sidebar-accent-foreground"
@@ -295,7 +304,7 @@ function Badge({ count, className }: { count: number; className?: string }) {
   return (
     <span
       className={cn(
-        "inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-brand-fill px-1.5 text-[10px] tabular-nums text-brand-fill-foreground",
+        "inline-flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-brand-fill px-1 text-[9.5px] font-bold tabular-nums text-brand-fill-foreground",
         className,
       )}
     >
