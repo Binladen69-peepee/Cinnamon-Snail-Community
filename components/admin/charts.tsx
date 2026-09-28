@@ -313,7 +313,7 @@ export function Funnel({
 
 /* -------------------------------------------------------------------------- */
 
-function shortDate(iso: string): string {
+export function shortDate(iso: string): string {
   const date = new Date(`${iso}T00:00:00Z`);
   return new Intl.DateTimeFormat("en-GB", {
     day: "numeric",
@@ -323,7 +323,7 @@ function shortDate(iso: string): string {
 }
 
 /** What the shape says, for anyone who cannot see it. */
-function describe(points: SeriesPoint[]): string {
+export function describe(points: SeriesPoint[]): string {
   const total = points.reduce((sum, point) => sum + point.value, 0);
   const peak = points.reduce((best, point) =>
     point.value > best.value ? point : best,

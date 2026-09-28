@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
+import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { countOpenReports } from "@/lib/admin/overview";
 
 /**
@@ -59,6 +60,10 @@ export default async function AdminLayout({
       <AdminMobileNav {...identity} />
 
       <div className="lg:pl-60">
+        {/* The rail carries navigation; this carries the three things that are
+            wanted from any page in the console — find a member, clear the
+            queue, check who you are signed in as. */}
+        <AdminTopbar {...identity} openReports={openReports} />
         <main className="mx-auto w-full max-w-[1180px] px-4 pb-16 pt-4 sm:px-6">
           {children}
         </main>

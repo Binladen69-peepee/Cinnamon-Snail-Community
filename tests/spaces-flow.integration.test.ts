@@ -39,13 +39,23 @@ beforeAll(async () => {
     prisma.user.findFirst({ where: { handle: "sam" }, select: { id: true } }),
     prisma.user.findFirst({ where: { handle: "adam" }, select: { id: true } }),
   ]);
+  // Seeded rooms only, and with a tiebreak.
+  //
+  // `community-flow` creates its own `MEMBERS` space at the default sortOrder
+  // and posts into it throughout. Picking "the first space by sortOrder" with
+  // no tiebreak sometimes landed on *that* space, and this file's unread
+  // assertions then counted the other file's posts — which is what made
+  // "counts a post from someone else" fail at random. Integration fixtures are
+  // prefixed `it-`, so excluding them keeps the two files off each other.
+  const notATestFixture = { slug: { not: { startsWith: "it-" } } } as const;
   const open = await prisma.space.findFirst({
-    where: { visibility: { in: ["PUBLIC", "MEMBERS"] } },
-    orderBy: { sortOrder: "asc" },
+    where: { visibility: { in: ["PUBLIC", "MEMBERS"] }, ...notATestFixture },
+    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     select: { id: true },
   });
   const secret = await prisma.space.findFirst({
-    where: { visibility: "PRIVATE" },
+    where: { visibility: "PRIVATE", ...notATestFixture },
+    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
     select: { id: true },
   });
 
@@ -161,6 +171,15 @@ describe("unread counts", () => {
     const before = await unreadFor(memberId, openSpaceId);
     expect(before).toBe(0);
 
+    // Unread is `publishedAt > lastReadAt`, strictly, and both timestamps come
+    // from the same JS clock at millisecond precision. When the two writes
+    // landed in the same millisecond the post was not unread and this test
+    // failed at random. Publishing a tick after the recorded read makes the
+    // case the test is actually about — a post that arrives *after* you looked.
+    const read = await prisma.spaceMembership.findUniqueOrThrow({
+      where: { spaceId_userId: { spaceId: openSpaceId, userId: memberId } },
+      select: { lastReadAt: true },
+    });
     const post = await prisma.post.create({
       data: {
         spaceId: openSpaceId,
@@ -169,7 +188,7 @@ describe("unread counts", () => {
         status: "PUBLISHED",
         body: "unread probe",
         plainText: "unread probe",
-        publishedAt: new Date(),
+        publishedAt: new Date((read.lastReadAt?.getTime() ?? Date.now()) + 1),
       },
       select: { id: true },
     });
