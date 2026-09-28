@@ -252,6 +252,16 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-hairline-firm: var(--hairline-firm);
+  /* Authored in :root since the console was built, but never mapped here,
+     so `bg-default`, `border-separator` and `bg-overlay` generated nothing.
+     The softer line and the subtle fill are deliberate steps below --border
+     and --surface; wiring them turns 54 dead classes back into the surfaces
+     they were written to paint. */
+  --color-default: var(--default);
+  --color-default-foreground: var(--default-foreground);
+  --color-separator: var(--separator);
+  --color-overlay: var(--overlay);
+  --color-overlay-foreground: var(--overlay-foreground);
   /* App radii: 12px cards/controls. Marketing pages keep vu-* overrides. */
   --radius-chip: var(--r-chip);
   --radius-ctl: var(--r-ctl);
