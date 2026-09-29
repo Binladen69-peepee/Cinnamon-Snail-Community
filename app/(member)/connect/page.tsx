@@ -17,7 +17,7 @@ import { auth } from "@/auth";
 import { loadConnect, type ConnectData, type WeeklyMatch } from "@/lib/social/connect";
 import { AppShell } from "@/components/app/app-shell";
 import { Avatar } from "@/components/ui/avatar";
-import { PendingButton } from "@/components/connect/pending-button";
+import { PendingButton } from "@/components/ui/pending-button";
 import { respondToMatchAction, setMatchingAction } from "./actions";
 import { cn } from "@/lib/utils";
 
@@ -338,7 +338,7 @@ function Cohorts({ cohorts }: { cohorts: ConnectData["cohorts"] }) {
                 </Link>
               ) : null}
             </div>
-            <dl className="mt-3 grid gap-2 text-[13.5px] sm:grid-cols-3">
+            <dl className="mt-3 grid grid-cols-1 gap-2 text-[13.5px] sm:grid-cols-3">
               {[
                 ["Say hello", cohort.introPrompt],
                 ["First cook", cohort.firstCook],
