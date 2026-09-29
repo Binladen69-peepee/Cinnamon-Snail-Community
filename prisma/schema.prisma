@@ -281,6 +281,11 @@ model User {
   cohortMemberships    CohortMember[]
   matchesOwned         MemberMatch[]           @relation("MatchOwner")
   matchesToward        MemberMatch[]           @relation("MatchTarget")
+  memberCard           MemberCard?
+  hostedHappenings     Happening[]             @relation("HappeningHost")
+  happeningRsvps       HappeningRsvp[]         @relation("HappeningGuest")
+  placesSubmitted      Place[]                 @relation("PlaceSubmitter")
+  placeTestimonials    PlaceTestimonial[]
   welcomeMessageJob    WelcomeMessageJob?
   welcomeMessagesSent  WelcomeMessageSetting[] @relation("WelcomeSender")
 }
@@ -1483,53 +1488,103 @@ model RecipeVariation {
   recipe      Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
 }
 
+/// A member's offer on the bulletin board: one card per member (BUILD.md §19,
+/// "Member Services"). Every edit goes back to "pending" and staff review it
+/// before it is listed, for accuracy, vegan compliance, no medical claims and
+/// no MLM.
 model MemberCard {
-  id     String @id @default(cuid())
-  userId String @unique
-  title  String
-  body   String
-  status String @default("pending")
+  id         String    @id @default(cuid())
+  userId     String    @unique
+  title      String
+  body       String
+  /// "pending" | "approved" | "rejected"
+  status     String    @default("pending")
+  category   String?
+  city       String?
+  reviewedAt DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, updatedAt])
 }
 
+/// A member-hosted gathering (BUILD.md §19, "Happenings"). The exact address is
+/// stored encrypted and is only ever decrypted for the host and for guests the
+/// host has approved. Only the city is public.
 model Happening {
   id               String          @id @default(cuid())
   hostUserId       String
+  /// potluck | meal | tea | class | market | art | volunteer | other
   kind             String
   title            String
+  description      String?
   city             String
   region           String?
   country          String?
   encryptedAddress String?
   startsAt         DateTime
+  /// Home gatherings default to host approval; a market stall can be open.
+  approvalRequired Boolean         @default(true)
+  capacity         Int?
+  canceledAt       DateTime?
+  createdAt        DateTime        @default(now())
+  host             User            @relation("HappeningHost", fields: [hostUserId], references: [id], onDelete: Cascade)
   rsvps            HappeningRsvp[]
+
+  @@index([startsAt])
+  @@index([hostUserId])
 }
 
 model HappeningRsvp {
   id          String    @id @default(cuid())
   happeningId String
   userId      String
+  /// "requested" | "approved" | "declined"
   status      String    @default("requested")
+  createdAt   DateTime  @default(now())
   happening   Happening @relation(fields: [happeningId], references: [id], onDelete: Cascade)
+  user        User      @relation("HappeningGuest", fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([happeningId, userId])
+  @@index([userId])
 }
 
+/// A vegan business on the member map (BUILD.md §19, "The Map"). Members
+/// submit; staff review before it is listed.
 model Place {
   id              String             @id @default(cuid())
   name            String
   category        String
+  /// "fully-vegan" | "vegan-friendly"
   veganStatus     String
   city            String
+  region          String?
+  country         String?
+  /// A business's public street address. Never a member's home.
+  address         String?
+  website         String?
+  /// "pending" | "approved" | "rejected"
+  status          String             @default("pending")
+  submittedById   String?
   providerPlaceId String?
+  createdAt       DateTime           @default(now())
+  submittedBy     User?              @relation("PlaceSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
   testimonials    PlaceTestimonial[]
+
+  @@index([status, city])
 }
 
 model PlaceTestimonial {
-  id      String @id @default(cuid())
-  placeId String
-  userId  String
-  body    String
-  place   Place  @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  id        String   @id @default(cuid())
+  placeId   String
+  userId    String
+  body      String
+  createdAt DateTime @default(now())
+  place     Place    @relation(fields: [placeId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([placeId, userId])
 }
 
 model AuditLog {

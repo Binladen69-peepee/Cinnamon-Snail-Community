@@ -1,6 +1,7 @@
 import {
   BookOpen,
   CalendarDays,
+  ClipboardList,
   FileClock,
   Flag,
   LayoutDashboard,
@@ -44,6 +45,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/moderation", label: "Moderation", icon: Flag, badgeKey: "openReports" },
       { href: "/admin/spaces", label: "Spaces", icon: BookOpen },
       { href: "/admin/events", label: "Events", icon: CalendarDays },
+      { href: "/admin/bulletin", label: "Bulletin review", icon: ClipboardList },
     ],
   },
   {
