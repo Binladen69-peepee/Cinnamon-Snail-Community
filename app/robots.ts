@@ -11,6 +11,7 @@ export default function robots(): MetadataRoute.Robots {
         "/posts",
         "/compose",
         "/members",
+        "/connect",
         "/learn",
         "/roadmap",
         "/calendar",

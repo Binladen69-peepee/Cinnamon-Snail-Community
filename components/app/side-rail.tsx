@@ -10,6 +10,7 @@ import {
   ClipboardList,
   Compass,
   FileText,
+  Handshake,
   Hash,
   Home,
   Leaf,
@@ -39,6 +40,7 @@ const SECTIONS: { label: string; links: Dest[] }[] = [
     links: [
       { href: "/spaces", label: "Spaces", icon: Users },
       { href: "/members", label: "Members", icon: UserRound },
+      { href: "/connect", label: "Connect", icon: Handshake },
       { href: "/messages", label: "Messages", icon: MessageSquare },
       { href: "/drafts", label: "Drafts", icon: FileText },
     ],
