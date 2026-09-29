@@ -58,6 +58,7 @@ and the tests all exist.
 | Messages | `/messages` | List-detail, polling delivery, typing, read receipts, groups, images, block/report. |
 | Class library | `/learn`, `/learn/[slug]` | 52 classes with real stills and teasers. |
 | Composer | `/compose`, `/drafts` | Seven post types, including events and recipes that write a row of their own. Formatting toolbar, mention autocomplete, emoji, GIF search, drafts, scheduling. |
+| Search | `/search` | Results behind the command palette, narrowable by kind, URL-driven. Every hit is checked against the live record: posts and comments only from rooms the viewer may enter, hidden members dropped, removed rows skipped. The palette reads through the same loader. |
 | Notifications | `/notifications` | Six filters. Reading is an action, never a render (DEC-028). |
 | Admin console | `/admin/*` | Overview, members, moderation, spaces, events, courses, billing, welcome DM. |
 | Billing | `/billing`, `/admin/billing` | SamCart webhooks, entitlements, reconciliation, cancellation, deletion. |
@@ -68,7 +69,6 @@ and the tests all exist.
 | --- | --- | --- |
 | GIF search | code done, no key | `TENOR_API_KEY` is unset, so the picker hides itself rather than offering a search that can never answer. |
 | Scheduled posts, to the minute | code done, plan-limited | Vercel Hobby allows one cron run a day, so `vercel.json` asks for 09:00 and a post scheduled for 14:00 waits until the next run. The endpoint is correct and idempotent; a five-minute cadence needs Vercel Pro or any external scheduler calling `/api/jobs/publish-scheduled` with `BILLING_JOB_SECRET`. |
-| `/search` | not built | Results page behind the command palette. `lib/search` is complete; only the page is missing. |
 | `/connect` | not built | Suggestions surface. `lib/social/suggestions` is complete. |
 | `/roadmap`, `/bulletin` | not built | BUILD.md §14, §19. No data model work done. |
 | Lesson playback | code done, no content | **Zero lessons exist.** `lib/learn/playback`, the signed-token routes and progress tracking are built and unused. Content, not code. |
@@ -297,7 +297,6 @@ In the order I would take them.
    `discover.ts` are the two that will hurt first.
 4. **Rate limiting on the real paths** — magic link, password, webhook, upload.
    Requires the Upstash credentials.
-5. **The three remaining 404s**: `/search`, `/connect`, then `/bulletin`.
-   `/search` is closest to done — the library is complete.
+5. **The remaining 404s**: `/connect`, `/roadmap`, then `/bulletin`.
 6. **Look at it.** Six pages have shipped without anyone confirming how they
    render signed in, in either theme, at phone width.

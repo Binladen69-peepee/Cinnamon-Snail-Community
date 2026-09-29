@@ -40,8 +40,9 @@ export function searchHref(entityType: string, entityId: string): string {
       return `/posts/${entityId}`;
     case "member":
       return `/members/${entityId}`;
+    // Events are indexed by slug, and every event has its own page.
     case "event":
-      return "/calendar";
+      return `/calendar/${entityId}`;
     // Courses and lessons are indexed by their address, not their id: a
     // course row holds its slug and a lesson row holds "course-slug/lesson-slug".
     case "course":
