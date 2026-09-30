@@ -16,7 +16,7 @@ export const metadata = { title: "Calendar" };
  * The campus calendar.
  *
  * The route four other surfaces already pointed at — the space events tab,
- * Discover's event cards, `searchHref('event')` and the notification href —
+ * the event cards, `searchHref('event')` and the notification href —
  * all of which 404'd until now.
  *
  * Two views of the same rows. The month grid answers "what is this week

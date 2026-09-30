@@ -28,7 +28,6 @@ async function requireUserId() {
  */
 function revalidateSpaces(slug?: string) {
   revalidatePath("/spaces", "layout");
-  revalidatePath("/discover");
   revalidatePath("/home");
   if (slug) revalidatePath(`/spaces/${slug}`);
 }

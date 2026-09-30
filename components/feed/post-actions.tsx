@@ -100,8 +100,63 @@ export function PostActions({
   const total = Object.values(state.counts).reduce((sum, n) => sum + n, 0);
   const tops = topReactions(state.counts, 3);
 
+  /* ---------------------------------------------------------------- compact */
+  // A slim strip: icon and count, no labels, no summary row. The picker is
+  // left to the card — a hover menu has no room on a row this tight, and a
+  // second tap on the post opens the full card anyway.
+  if (compact) {
+    const strip =
+      "inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded-full px-2 text-[12px] tabular-nums transition hover:bg-mint/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand";
+    return (
+      <div className="-ml-2 mt-1.5 flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => react(mine ? mine.emoji : DEFAULT_REACTION)}
+          aria-pressed={Boolean(mine)}
+          aria-label={`${mine ? mine.label : "Like"}${total > 0 ? `, ${formatCount(total)}` : ""}`}
+          className={cn(strip, mine ? "font-semibold text-link" : "text-foreground-muted hover:text-foreground")}
+        >
+          {mine ? (
+            <ReactionIcon name={mine.icon} className="size-4" filled />
+          ) : (
+            <ThumbsUp className="size-4" aria-hidden />
+          )}
+          {total > 0 ? formatCount(total) : null}
+        </button>
+        <button
+          type="button"
+          onClick={onToggleComments}
+          aria-pressed={commentsOpen}
+          aria-label={`Comments${commentCount > 0 ? `, ${formatCount(commentCount)}` : ""}`}
+          className={cn(strip, commentsOpen ? "font-semibold text-brand" : "text-foreground-muted hover:text-foreground")}
+        >
+          <MessageSquare className="size-4" aria-hidden />
+          {commentCount > 0 ? formatCount(commentCount) : null}
+        </button>
+        <button
+          type="button"
+          onClick={save}
+          aria-pressed={state.saved}
+          aria-label={state.saved ? "Remove from saved" : "Save"}
+          className={cn(strip, state.saved ? "font-semibold text-brand" : "text-foreground-muted hover:text-foreground")}
+        >
+          <Bookmark className="size-4" fill={state.saved ? "currentColor" : "none"} aria-hidden />
+        </button>
+        <button
+          type="button"
+          onClick={share}
+          aria-label={copied ? "Link copied" : "Send"}
+          className={cn(strip, "text-foreground-muted hover:text-foreground")}
+        >
+          <Send className="size-4" aria-hidden />
+          {copied ? "Copied" : null}
+        </button>
+      </div>
+    );
+  }
+
   return (
-    <div className={cn(compact ? "mt-1" : "mt-0")}>
+    <div className="mt-0">
       {/* Metrics: stacked reactions + counts */}
       {(total > 0 || commentCount > 0 || state.saved) && (
         <div className="flex items-center justify-between gap-3 px-1 pb-2 pt-1">

@@ -4,10 +4,10 @@ import {
   ClipboardList,
   Compass,
   Handshake,
-  Home,
   Map,
   MessageSquare,
   Plus,
+  Search,
   UserRound,
   Users,
   type LucideIcon,
@@ -27,8 +27,7 @@ export const MEMBER_NAV_GROUPS: { label: string | null; links: NavLink[] }[] = [
   {
     label: null,
     links: [
-      { href: "/home", label: "Home", icon: Home },
-      { href: "/discover", label: "Discover", icon: Compass },
+      { href: "/home", label: "Explorer", icon: Compass },
     ],
   },
   {
@@ -60,13 +59,13 @@ export const MEMBER_NAV_LINKS: NavLink[] = MEMBER_NAV_GROUPS.flatMap(
 );
 
 /**
- * Mobile tab bar, per the blueprint: Home, Discover, Events, Messages, Profile,
- * with create as the centre action. Was Home / Community / Create / Messages /
- * Profile, which buried both discovery and events.
+ * Mobile tab bar: Explorer, Search, Events, Messages, Profile, with create as
+ * the centre action. Search took Discover's slot when that page was removed —
+ * it is the same job (find a class, a room, a person) done across everything.
  */
 export const MOBILE_TABS: NavLink[] = [
-  { href: "/home", label: "Home", icon: Home },
-  { href: "/discover", label: "Discover", icon: Compass },
+  { href: "/home", label: "Explorer", icon: Compass },
+  { href: "/search", label: "Search", icon: Search },
   { href: "/calendar", label: "Events", icon: Calendar },
   { href: "/messages", label: "Messages", icon: MessageSquare },
   { href: "/settings", label: "Profile", icon: UserRound },

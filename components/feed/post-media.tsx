@@ -58,8 +58,8 @@ export function PostMedia({
   const single = items.length === 1;
 
   /* ---------------------------------------------------------------- compact */
-  // The round thumbnail beside a dense row. Too small to play anything in, so
-  // on a phone it goes to the post rather than opening an overlay.
+  // The thumbnail beside a compact row. Too small to play anything in, so on
+  // a phone it goes to the post rather than opening an overlay.
   if (compact) {
     const first = items[0]!;
     const inner = (
@@ -70,8 +70,8 @@ export function PostMedia({
             className="pointer-events-none absolute inset-0 grid place-items-center bg-black/30"
             aria-hidden
           >
-            <span className="grid size-8 place-items-center rounded-full bg-white/90 text-black">
-              <Play className="size-3.5 translate-x-px" />
+            <span className="grid size-7 place-items-center rounded-full bg-white/90 text-black">
+              <Play className="size-3 translate-x-px" />
             </span>
           </span>
         ) : null}
@@ -83,7 +83,7 @@ export function PostMedia({
       </>
     );
     const shell =
-      "relative block size-[5.75rem] shrink-0 overflow-hidden rounded-full border border-border bg-surface-muted ring-1 ring-border/40";
+      "relative block size-16 shrink-0 overflow-hidden rounded-[10px] border border-border bg-surface-muted";
 
     if (isMobile && href) {
       return (

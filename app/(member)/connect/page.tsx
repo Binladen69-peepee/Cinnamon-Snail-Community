@@ -39,7 +39,7 @@ const quietBtn =
  * Connect — BUILD.md §12.
  *
  * The weekly match, the cohorts you were placed in, and recognition. People
- * suggestions already sit on Home, Discover and the directory, so this page
+ * suggestions already sit on Explorer and the directory, so this page
  * points there instead of repeating them.
  *
  * What is deliberately absent, per §12.4: points, a leaderboard, anything

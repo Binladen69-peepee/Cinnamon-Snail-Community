@@ -21,7 +21,7 @@ export const metadata = {
  *
  * The rail remounted on every navigation, re-running `listNavSpaces` and the
  * unread count each time. Worse, four routes have a `loading.tsx`, and a
- * loading file replaces the whole page subtree — so navigating to Discover,
+ * loading file replaces the whole page subtree — so navigating to
  * Courses, Members or a thread made the sidebar and the header *disappear*
  * until the data arrived, then snap back. The chrome was being treated as page
  * content, so it flickered like page content.

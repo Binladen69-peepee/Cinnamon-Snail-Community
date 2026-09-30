@@ -27,16 +27,10 @@ export const NAV_SECTION_SUGGESTIONS: SearchSuggestion[] = [
     detail: "Section · /learn",
   },
   {
-    label: "Kitchen Table",
+    label: "Explorer",
     href: "/home",
     group: "Sections",
     detail: "Section · /home",
-  },
-  {
-    label: "Discover",
-    href: "/discover",
-    group: "Sections",
-    detail: "Section · /discover",
   },
   {
     label: "Members",

@@ -40,7 +40,6 @@ function revalidateEvent(slug?: string) {
   revalidatePath("/admin/events");
   revalidatePath("/calendar");
   revalidatePath("/events");
-  revalidatePath("/discover");
   if (slug) {
     revalidatePath(`/admin/events/${slug}`);
     revalidatePath(`/calendar/${slug}`);

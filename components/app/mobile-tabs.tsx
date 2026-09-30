@@ -2,20 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, Home, MessageSquare, Plus, Users } from "lucide-react";
+import { Compass, MessageSquare, Plus, Search, Users } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Tab = {
   href: string;
   label: string;
-  icon: typeof Home;
+  icon: typeof Compass;
   /** The raised centre action rather than a destination. */
   primary?: boolean;
 };
 
 const TABS: Tab[] = [
-  { href: "/home", label: "Home", icon: Home },
-  { href: "/discover", label: "Discover", icon: Compass },
+  { href: "/home", label: "Explorer", icon: Compass },
+  { href: "/search", label: "Search", icon: Search },
   { href: "/compose", label: "Create", icon: Plus, primary: true },
   { href: "/spaces", label: "Spaces", icon: Users },
   { href: "/messages", label: "Messages", icon: MessageSquare },

@@ -19,7 +19,7 @@ import { youTubeEmbed } from "@/lib/marketing/teasers";
  * `photoForKnownClass` falls back to the course's own cover and rejects stock.
  *
  * This lives under `lib/learn` rather than beside a page because three surfaces
- * now render a class — the library, a class page, and Discover — and a second
+ * now render a class — the library, a class page, and search — and a second
  * copy of this join is a second thing to keep in step.
  */
 

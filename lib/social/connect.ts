@@ -10,7 +10,7 @@ import { weekStart } from "@/lib/social/scoring";
  * Everything `/connect` shows, in one call.
  *
  * BUILD.md §12 has four parts. "People you should meet" already lives on Home,
- * Discover and the directory, so this page carries the other three, which had
+ * Explorer and the directory, so this page carries the other three, which had
  * no surface at all: the weekly match (§12.1), cohorts (§12.3) and recognition
  * (§12.4).
  *

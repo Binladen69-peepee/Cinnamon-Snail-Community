@@ -18,7 +18,7 @@ import { cn } from "@/lib/utils";
  * someone still typing. Focus is held in state rather than read off the ref,
  * because render must not touch a ref.
  *
- * Shared by Discover and the member directory: both narrow a server-rendered
+ * Shared by search and the member directory: both narrow a server-rendered
  * list from `?q`, and two copies of this would have drifted the first time one
  * of them fixed a debounce.
  */

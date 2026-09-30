@@ -139,6 +139,155 @@ export function PostCard({
 
   const bodyText = post.plainText?.trim() ?? "";
   const longBody = bodyText.length > 180;
+  // The row shows text, not HTML, so it reads the rendered body with its tags
+  // removed. Reading `plainText` instead showed raw markdown markers on posts
+  // whose stored plain text predates the renderer.
+  const compactText = previewText(post.bodyHtml, bodyText);
+
+  /* ---------------------------------------------------------------- compact */
+  // A dense list row rather than a shorter card: thumbnail on the left where a
+  // list expects it, who-and-where on one line, the text on two, and the
+  // actions as a slim strip. The old compact view kept the card's full header
+  // and dropped a round thumbnail into a band beneath it, which was neither a
+  // card nor a list.
+  if (compact) {
+    return (
+      <>
+        <article
+          className={cn(
+            // No `content-visibility:auto` here: its paint containment clips
+            // the overflow menu to a row only ~110px tall, so Delete and
+            // Report fell off the bottom. Rows are cheap enough to skip it.
+            "group/post rounded-card border bg-surface shadow-e1 transition-[border-color,box-shadow]",
+            post.pinnedAt ? "border-brand/40" : "border-border hover:border-hairline-firm",
+          )}
+        >
+          <div className="flex gap-3 px-3 py-2.5 sm:px-3.5">
+            {hasMedia ? (
+              <PostMedia
+                items={media}
+                compact
+                onOpen={openGallery}
+                href={`/posts/${post.id}`}
+              />
+            ) : (
+              <Link
+                href={`/members/${post.author.handle}`}
+                className="shrink-0 no-underline"
+                aria-label={name}
+              >
+                <Avatar
+                  name={name}
+                  src={post.author.profile?.avatarUrl}
+                  size="md"
+                  className="size-16 rounded-[10px] text-[14px]"
+                />
+              </Link>
+            )}
+
+            <div className="min-w-0 flex-1">
+              <div className="flex items-start gap-2">
+                <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 text-[12.5px] leading-tight text-foreground-muted">
+                  <Link
+                    href={`/members/${post.author.handle}`}
+                    className="truncate font-semibold text-foreground no-underline hover:underline"
+                  >
+                    {name}
+                  </Link>
+                  {isHost ? (
+                    <BadgeCheck className="size-3.5 shrink-0 text-link" aria-label="Host" />
+                  ) : null}
+                  {post.pinnedAt ? (
+                    <Pin className="size-3 shrink-0 text-brand" aria-label="Pinned" />
+                  ) : null}
+                  {showSpace ? (
+                    <>
+                      <span aria-hidden>·</span>
+                      <Link
+                        href={`/spaces/${post.space.slug}`}
+                        className="truncate no-underline hover:text-foreground hover:underline"
+                      >
+                        {spaceLabel}
+                      </Link>
+                    </>
+                  ) : null}
+                  <span aria-hidden>·</span>
+                  <time dateTime={stamp.toISOString()} title={stamp.toLocaleString()}>
+                    {formatShortTime(stamp)}
+                  </time>
+                </p>
+                <div className="-mr-1.5 -mt-1 shrink-0">
+                  <PostOverflow
+                    postId={post.id}
+                    pinned={Boolean(post.pinnedAt)}
+                    canPin={canPin}
+                    canDelete={isOwn || canPin}
+                  />
+                </div>
+              </div>
+
+              <Link
+                href={`/posts/${post.id}`}
+                className="mt-1 block text-[14px] leading-snug text-foreground no-underline"
+              >
+                {post.title ? (
+                  <span className="block truncate font-semibold">{post.title}</span>
+                ) : null}
+                {compactText ? (
+                  <span
+                    className={cn(
+                      "block text-foreground/90",
+                      post.title ? "line-clamp-1" : "line-clamp-2",
+                    )}
+                  >
+                    {compactText}
+                  </span>
+                ) : post.recipe ? (
+                  <span className="block truncate text-foreground-muted">
+                    Recipe: {post.recipe.title}
+                  </span>
+                ) : post.event ? (
+                  <span className="block truncate text-foreground-muted">
+                    {new Date(post.event.startsAt).toLocaleString(undefined, {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                ) : null}
+              </Link>
+
+              <PostFooter
+                postId={post.id}
+                commentCount={post._count.comments}
+                myReaction={post.myReaction ?? null}
+                counts={post.reactionCounts ?? {}}
+                saved={post.myBookmark ?? false}
+                viewer={viewer}
+                compact
+                previewComments={previewComments}
+                totalComments={post._count.comments}
+              />
+            </div>
+          </div>
+        </article>
+
+        {hasMedia ? (
+          <PostGalleryModal
+            open={galleryOpen}
+            onClose={() => setGalleryOpen(false)}
+            post={galleryPayload}
+            media={media}
+            viewer={viewer}
+            startIndex={galleryIndex}
+            canPin={canPin}
+          />
+        ) : null}
+      </>
+    );
+  }
 
   return (
     <>
@@ -148,10 +297,7 @@ export function PostCard({
           post.pinnedAt
             ? "border-brand/40"
             : "border-border hover:border-hairline-firm",
-          "[content-visibility:auto]",
-          compact
-            ? "[contain-intrinsic-size:auto_10rem]"
-            : "[contain-intrinsic-size:auto_28rem]",
+          "[content-visibility:auto] [contain-intrinsic-size:auto_28rem]",
         )}
       >
         {post.pinnedAt ? (
@@ -241,7 +387,7 @@ export function PostCard({
             <div className={cn(post.title && "mt-1")}>
               <div
                 className={cn(
-                  "prose-vu text-[14.5px] leading-[1.5] text-foreground [&_a]:text-link",
+                  "prose-vu text-[14.5px] leading-normal text-foreground [&_a]:text-link",
                   !expanded && longBody && "line-clamp-3",
                 )}
                 dangerouslySetInnerHTML={{
@@ -310,23 +456,12 @@ export function PostCard({
         {/* Media — full bleed */}
         {hasMedia ? (
           <div className="border-y border-border">
-            {compact ? (
-              <div className="flex justify-center bg-surface-muted/60 p-3">
-                <PostMedia
-                  items={media}
-                  compact
-                  onOpen={openGallery}
-                  href={`/posts/${post.id}`}
-                />
-              </div>
-            ) : (
-              <PostMedia
-                items={media}
-                flush
-                onOpen={openGallery}
-                href={`/posts/${post.id}`}
-              />
-            )}
+            <PostMedia
+              items={media}
+              flush
+              onOpen={openGallery}
+              href={`/posts/${post.id}`}
+            />
           </div>
         ) : null}
 
@@ -339,7 +474,6 @@ export function PostCard({
             counts={post.reactionCounts ?? {}}
             saved={post.myBookmark ?? false}
             viewer={viewer}
-            compact={compact}
             previewComments={previewComments}
             totalComments={post._count.comments}
           />
@@ -359,4 +493,23 @@ export function PostCard({
       ) : null}
     </>
   );
+}
+
+/**
+ * A post's text for a one-line preview: the rendered body with its tags
+ * removed, falling back to the stored plain text. Regex rather than a DOM
+ * parse because this runs on the server as well as in the browser.
+ */
+function previewText(bodyHtml: string | null, plainText: string): string {
+  const source = bodyHtml?.trim() ? bodyHtml : plainText;
+  return source
+    .replace(/<[^>]+>/g, " ")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/\s+/g, " ")
+    .trim();
 }

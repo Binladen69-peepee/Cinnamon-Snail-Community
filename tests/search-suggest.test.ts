@@ -20,9 +20,9 @@ describe("nav search suggestions", () => {
   });
 
   it("finds a section by partial name", () => {
-    const rows = filterSuggestions(NAV_SECTION_SUGGESTIONS, "kitchen");
+    const rows = filterSuggestions(NAV_SECTION_SUGGESTIONS, "explor");
     expect(rows).toEqual([
-      expect.objectContaining({ label: "Kitchen Table", href: "/home" }),
+      expect.objectContaining({ label: "Explorer", href: "/home" }),
     ]);
   });
 });

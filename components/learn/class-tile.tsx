@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
  * exist and fifty-two cards pointing at a missing route would have been
  * fifty-two 404s. The route exists now, so the card is a link and the panel is
  * gone — one destination for a class, reached the same way from the library and
- * from Discover.
+ * from search.
  *
  * Fixed aspect on the still and a clamped title keep a grid of these the same
  * height whatever a class is called.

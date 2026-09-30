@@ -3,7 +3,6 @@ import type { NextRequest } from "next/server";
 
 const memberPrefixes = [
   "/home",
-  "/discover",
   "/spaces",
   "/posts",
   "/compose",

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/auth";
-import { listFeed } from "@/lib/community/feed";
+import { listFeed, parseFeedKind } from "@/lib/community/feed";
 import { toFeedCard } from "@/lib/community/feed-card";
 import { prisma } from "@/lib/db";
 
@@ -36,6 +36,7 @@ export async function GET(request: Request) {
     spaceId,
     sort: url.searchParams.get("sort") ?? undefined,
     cursor: url.searchParams.get("cursor"),
+    kind: parseFeedKind(url.searchParams.get("kind")),
   });
 
   return NextResponse.json({

@@ -55,7 +55,7 @@ export function PostFooter({
         compact={compact}
       />
 
-      {!open && previewComments.length > 0 ? (
+      {!open && !compact && previewComments.length > 0 ? (
         <ul className="mt-1 space-y-2 border-t border-border px-1 pt-2">
           {previewComments.map((comment) => {
             const who =

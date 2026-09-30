@@ -13,7 +13,7 @@ import { prisma } from "@/lib/db";
  * as "hide me".
  *
  * So the rule moves here, and every surface that can name a member filters
- * through it: search, the palette, Discover and the directory. A rule enforced
+ * through it: search, the palette and the directory. A rule enforced
  * in four places is a rule; enforced in one of four it is a suggestion.
  *
  * Staff are not exempt from the hiding, only from the blocking — a member who

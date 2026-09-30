@@ -12,7 +12,6 @@ import {
   FileText,
   Handshake,
   Hash,
-  Home,
   Leaf,
   Lock,
   Map,
@@ -30,8 +29,7 @@ import { cn } from "@/lib/utils";
 type Dest = { href: string; label: string; icon: LucideIcon };
 
 const PRIMARY: Dest[] = [
-  { href: "/home", label: "Home", icon: Home },
-  { href: "/discover", label: "Discover", icon: Compass },
+  { href: "/home", label: "Explorer", icon: Compass },
 ];
 
 const SECTIONS: { label: string; links: Dest[] }[] = [

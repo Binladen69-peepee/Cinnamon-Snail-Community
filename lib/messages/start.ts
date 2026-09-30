@@ -2,7 +2,7 @@ import "server-only";
 import { prisma } from "@/lib/db";
 import { canSendDirectMessage, type DmSubject } from "@/lib/messages/permissions";
 import { resolveMemberAvatar } from "@/lib/community/member-avatars";
-import { matchesQuery } from "@/lib/community/discover";
+import { matchesQuery } from "@/lib/community/match";
 
 /**
  * Who the viewer may start a conversation with.

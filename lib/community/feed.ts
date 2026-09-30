@@ -181,12 +181,22 @@ export type FeedPage = {
   sort: FeedSort;
 };
 
+/** What a feed may be narrowed to. `video` is the Reels view: posts with a video on them. */
+export type FeedKind = "all" | "video";
+
+export function parseFeedKind(value: string | string[] | null | undefined): FeedKind {
+  const first = Array.isArray(value) ? value[0] : value;
+  return first === "video" ? "video" : "all";
+}
+
 export async function listFeed(input: {
   userId: string;
   spaceId?: string;
   sort?: FeedSort | string;
   cursor?: string | null;
   take?: number;
+  /** Narrow to posts carrying a video. Everything else about the feed is unchanged. */
+  kind?: FeedKind;
 }): Promise<FeedPage> {
   const sort = parseFeedSort(input.sort);
   const auth = await getUserAuth(input.userId);
@@ -201,6 +211,10 @@ export async function listFeed(input: {
     status: "PUBLISHED",
     publishedAt: { not: null, lte: new Date() },
     ...(input.spaceId ? { spaceId: input.spaceId } : {}),
+    // Reels: only posts with a video attachment. The filter is on the
+    // attachment rather than the post type, because a SIMPLE post with a clip
+    // on it is a reel and a VIDEO post whose upload failed is not.
+    ...(input.kind === "video" ? { attachments: { some: { kind: "video" } } } : {}),
     ...feedVisibilityFilter(auth, memberSpaceIds),
   };
 

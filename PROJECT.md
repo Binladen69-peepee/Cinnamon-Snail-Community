@@ -22,7 +22,7 @@ school. Three surfaces in one Next.js app:
 | Surface | Who | Routes |
 | --- | --- | --- |
 | Marketing | public | `/`, `/membership`, `/courses`, `/events`, `/about`, `/faq`, … |
-| Member app | signed in | `/home`, `/discover`, `/spaces`, `/members`, `/messages`, `/learn`, `/compose`, `/notifications`, `/settings`, `/billing` |
+| Member app | signed in | `/home`, `/spaces`, `/members`, `/messages`, `/learn`, `/compose`, `/notifications`, `/settings`, `/billing` |
 | Admin console | staff | `/admin` and below |
 
 **Stack:** Next.js 16 (App Router, RSC, server actions) · React 19 ·
@@ -53,13 +53,13 @@ and the tests all exist.
 | Feed | `/home` | Cursor-paginated in SQL across three orders: recent activity, new, top this week. Pinned head, rich composer, drafts and scheduling, reactions with kept tallies, one-level replies. |
 | Post detail | `/posts/[id]` | Depth-capped threads, permalinks, comment sort. |
 | Spaces | `/spaces`, `/spaces/[slug]` | Five kinds, three visibilities, product-gated access, grouped nav with unread counts. Host settings and an approval queue per space, notification level per member. |
-| Discover | `/discover` | Search across classes, rooms, people, events. URL-driven. |
+| Explorer | `/home` | The feed, with a Feed / Reels toggle at the top (`?view=reels`). Reels is the feed narrowed to posts carrying a video, one per screen, playing on scroll; still images never appear there. Compact view is a dense list row. Discover was removed; `/search` does its job across everything. |
 | Member directory | `/members` | SQL-paginated, facets, five filters. |
 | Messages | `/messages` | List-detail, polling delivery, typing, read receipts, groups, images, block/report. |
 | Class library | `/learn`, `/learn/[slug]` | 52 classes with real stills and teasers. |
 | Composer | `/compose`, `/drafts` | Seven post types, including events and recipes that write a row of their own. Formatting toolbar, mention autocomplete, emoji, GIF search, drafts, scheduling. |
 | Search | `/search` | Results behind the command palette, narrowable by kind, URL-driven. Every hit is checked against the live record: posts and comments only from rooms the viewer may enter, hidden members dropped, removed rows skipped. The palette reads through the same loader. |
-| Connect | `/connect` | BUILD.md §12: the weekly match (drawn once a week, save / pass / say hello, pause and opt-out), cohorts and recognition. Hidden and blocking members drop out of the match and the recognition list. People suggestions stay on Home, Discover and the directory. |
+| Connect | `/connect` | BUILD.md §12: the weekly match (drawn once a week, save / pass / say hello, pause and opt-out), cohorts and recognition. Hidden and blocking members drop out of the match and the recognition list. People suggestions stay on Explorer and the directory. |
 | Roadmap | `/roadmap` | BUILD.md §14, member side: answer the four questions, choose a published track (the cook-vibe answer marks the matching one), pace, pause, **skip**, **recipe swap**, restart, switch, leave. Milestones unlock in order; ticking one needs the goal marked done **and** the lesson watched to 80% or a cook post since it opened. A skip settles a milestone without completing it, so it never counts towards anything earned. Gluten free swaps the recipe; primary benefit and suckiest thing supply the framing and the constraint line. |
 | Bulletin board | `/bulletin`, `/admin/bulletin` | BUILD.md §19. Happenings: host a gathering, the exact address stored encrypted (AES-GCM) and shown only to the host and approved guests, RSVP requests, approval, capacity, call-off. Member services: one card per member, listed only after staff review, every edit re-reviewed. Places: member-submitted, staff-reviewed, searchable by city, one testimonial per member. Blocks hold across all three. |
 | Notifications | `/notifications` | Six filters. Reading is an action, never a render (DEC-028). |
@@ -139,7 +139,7 @@ components/feed     posts, composer, comments, uploads
 components/admin    console primitives + forms
 components/marketing  sales-page pieces
 
-lib/community       feed, directory, discover, privacy, reactions
+lib/community       feed, directory, match, privacy, reactions
 lib/messages        DMs: permissions, conversations, welcome DM
 lib/learn           classes, playback, progress, events
 lib/billing         SamCart: verify, normalize, policy, apply, reconcile
@@ -254,11 +254,11 @@ The brief is millions of users. This is where the code stands against that.
 
 1. **`totalUnreadForUser` is still N+1.** It runs on every member page via
    `AppShell`. Same fix as the inbox; not yet applied.
-2. **In-memory filtering remains in `lib/community/discover.ts`,
-   `lib/learn/library.ts` and `lib/messages/start.ts`.** Each loads a whole
-   table before filtering. Fine at 52 classes and 14 members; not at scale.
-   `discover.ts` is the worst — it loads courses, spaces, profiles and follows
-   on every keystroke. The feed, the member directory and the space rail no
+2. **In-memory filtering remains in `lib/learn/library.ts` and
+   `lib/messages/start.ts`.** Each loads a whole table before filtering. Fine
+   at 52 classes and 14 members; not at scale. (`discover.ts`, which was the
+   worst of them — it loaded courses, spaces, profiles and follows
+   on every keystroke — is gone.) The feed, the member directory and the space rail no
    longer do this.
 3. **Interests are a JSON column.** They cannot be indexed, aggregated or
    filtered in SQL, so the directory's interest filter runs over the page and
@@ -297,7 +297,7 @@ In the order I would take them.
    environment variables and an hour. Without them nothing above is measurable
    and BUILD.md §31–32 stay unchecked.
 3. **Finish the scale list**, items 1–4. The `totalUnreadForUser` N+1 and
-   `discover.ts` are the two that will hurt first.
+   `lib/learn/library.ts` are the two that will hurt first.
 4. **Rate limiting on the real paths** — magic link, password, webhook, upload.
    Requires the Upstash credentials.
 5. **A published roadmap track.** The authoring screen is built (`/admin/roadmap`) and the member side has been ready for a while; what is missing is now editorial, not code. Every member-navigation route resolves.

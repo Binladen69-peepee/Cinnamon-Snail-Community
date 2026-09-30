@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import type { LessonKind } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { matchesQuery } from "@/lib/community/discover";
+import { matchesQuery } from "@/lib/community/match";
 import { CLASS_SELECT, shapeClass, type ClassSummary } from "@/lib/learn/classes";
 import {
   gateLesson,

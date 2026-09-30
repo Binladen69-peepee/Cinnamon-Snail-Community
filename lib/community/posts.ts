@@ -27,7 +27,8 @@ import { nestComments, parseCommentSort, type CommentSort } from "@/lib/communit
 import { encodeFeedCursor, safeDecodeFeedCursor } from "@/lib/community/cursor";
 
 export { getUserAuth } from "@/lib/community/viewer";
-export { listFeed, listOwnUnpublished } from "@/lib/community/feed";
+export { listFeed, listOwnUnpublished, parseFeedKind } from "@/lib/community/feed";
+export type { FeedKind } from "@/lib/community/feed";
 export type { FeedPost, FeedPage } from "@/lib/community/feed";
 
 /** Replies stop one level down. See the comment on Comment.depth. */

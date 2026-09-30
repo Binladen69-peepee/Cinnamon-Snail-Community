@@ -167,7 +167,7 @@ export default async function EditCoursePage({
 
           <HelpCard
             title="How members find this class"
-            body="Published courses appear in the class library and in Discover, filtered by their category."
+            body="Published courses appear in the class library and in search, filtered by their category."
             href="/learn"
             cta="See the library"
           />

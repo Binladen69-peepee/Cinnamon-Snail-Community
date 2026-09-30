@@ -87,7 +87,6 @@ describe("route protection", () => {
   it("guards every signed-in area at the edge", () => {
     for (const route of [
       "/home",
-      "/discover",
       "/spaces",
       "/members",
       "/messages",
