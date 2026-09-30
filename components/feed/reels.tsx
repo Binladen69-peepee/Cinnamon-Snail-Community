@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import {
+  ArrowLeft,
   ArrowUpRight,
   Bookmark,
   Clapperboard,
@@ -14,10 +15,12 @@ import {
   Send,
   Volume2,
   VolumeX,
+  X,
 } from "lucide-react";
 import { reactAction, saveAction } from "@/app/(member)/community-actions";
 import { runAction } from "@/components/feed/run-action";
 import { PostFollowButton } from "@/components/feed/post-follow-button";
+import { CommentPanel } from "@/components/feed/comment-panel";
 import { Avatar } from "@/components/ui/avatar";
 import { DEFAULT_REACTION } from "@/lib/community/reactions";
 import { formatCount } from "@/lib/community/format-count";
@@ -150,11 +153,15 @@ export function Reels({
   return (
     // Fills whatever height the page gives it; the page owns the viewport
     // arithmetic, so this cannot disagree with the toggle above it.
-    <div className="relative mx-auto h-full w-full md:max-w-110 md:pb-3">
+    // On a phone the column takes the whole screen, over the app bar and the
+    // tab bar, the way a reels surface is expected to; the arrow at the top
+    // left is the way back. From `md` up it sits in the page as a column.
+    <div className="fixed inset-0 z-50 bg-black md:static md:z-auto md:mx-auto md:h-full md:w-full md:max-w-130 md:bg-transparent md:pb-3">
       <div
         ref={scroller}
         className={cn(
           "vu-reels relative h-full snap-y snap-mandatory overflow-y-auto overscroll-y-contain bg-black",
+          "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           "md:rounded-card md:border md:border-border",
         )}
       >
@@ -202,6 +209,14 @@ export function Reels({
         ) : null}
       </div>
 
+      <Link
+        href={`/home?sort=${sort}`}
+        aria-label="Back to the feed"
+        className="absolute left-3 top-3 z-20 grid size-10 place-items-center rounded-full bg-black/45 text-white no-underline backdrop-blur-sm transition hover:bg-black/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:hidden"
+      >
+        <ArrowLeft className="size-5" aria-hidden />
+      </Link>
+
       {/* Outside the scroller, so it stays put while the reels move under it.
           Inside, it scrolled away with the first reel. */}
       <button
@@ -244,6 +259,8 @@ function Reel({
   const video = useRef<HTMLVideoElement>(null);
   const [paused, setPaused] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [commentsOpen, setCommentsOpen] = useState(false);
+  const [commentCount, setCommentCount] = useState(post._count.comments);
 
   const clip = post.attachments.find((file) => file.kind === "video")!;
   const embed = videoEmbedSrc(clip.url);
@@ -349,7 +366,12 @@ function Reel({
       />
 
       {/* -------------------------------------------------------- actions */}
-      <ReelActions post={post} />
+      <ReelActions
+        post={post}
+        commentCount={commentCount}
+        commentsOpen={commentsOpen}
+        onOpenComments={() => setCommentsOpen(true)}
+      />
 
       {/* --------------------------------------------------------- author */}
       <div className="absolute bottom-0 left-0 right-16 z-10 px-4 pb-4 text-white">
@@ -403,6 +425,47 @@ function Reel({
           </span>
         </Link>
       </div>
+
+      {/* Comments slide up over the reel, the way they do on Instagram, rather
+          than sending the reader to the post page. The article is
+          `overflow-hidden` and `relative`, so the sheet is clipped to this reel
+          and never covers the next one. */}
+      {commentsOpen ? (
+        <div
+          className="absolute inset-0 z-30 flex flex-col justify-end"
+          onClick={() => setCommentsOpen(false)}
+        >
+          <div className="absolute inset-0 bg-black/40" aria-hidden />
+          <div
+            role="dialog"
+            aria-label="Comments"
+            onClick={(event) => event.stopPropagation()}
+            className="relative flex max-h-[75%] flex-col rounded-t-2xl bg-surface text-foreground shadow-e3"
+          >
+            <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
+              <span className="text-[14px] font-bold">
+                Comments{commentCount > 0 ? ` · ${formatCount(commentCount)}` : ""}
+              </span>
+              <button
+                type="button"
+                onClick={() => setCommentsOpen(false)}
+                aria-label="Close comments"
+                className="grid size-8 place-items-center rounded-full text-foreground-muted transition hover:bg-mint hover:text-foreground"
+              >
+                <X className="size-4" aria-hidden />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
+              <CommentPanel
+                postId={post.id}
+                open
+                viewer={viewer}
+                onCountChange={setCommentCount}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {!active && !paused && !embed ? (
         // The frame the reader is scrolling past: its video is paused, so it
@@ -460,7 +523,17 @@ type ReelState = {
  * shows as the same reaction on the post everywhere else — the two views are
  * one post, not two.
  */
-function ReelActions({ post }: { post: RevivedFeedCard }) {
+function ReelActions({
+  post,
+  commentCount,
+  commentsOpen,
+  onOpenComments,
+}: {
+  post: RevivedFeedCard;
+  commentCount: number;
+  commentsOpen: boolean;
+  onOpenComments: () => void;
+}) {
   const [, startTransition] = useTransition();
   const [state, setState] = useState<ReelState>({
     myReaction: post.myReaction ?? null,
@@ -538,26 +611,26 @@ function ReelActions({ post }: { post: RevivedFeedCard }) {
         className={button}
       >
         <Heart
-          className={cn("size-7", liked && "text-danger")}
+          className={cn("size-6 md:size-7", liked && "text-danger")}
           fill={liked ? "currentColor" : "none"}
           aria-hidden
         />
-        <span className={count}>{total > 0 ? formatCount(total) : "Like"}</span>
+        {total > 0 ? <span className={count}>{formatCount(total)}</span> : null}
       </button>
 
-      <Link
-        href={`/posts/${post.id}`}
-        aria-label={`Comments${post._count.comments > 0 ? `, ${formatCount(post._count.comments)}` : ""}`}
-        className={cn(button, "no-underline")}
+      <button
+        type="button"
+        onClick={onOpenComments}
+        aria-expanded={commentsOpen}
+        aria-label={`Comments${commentCount > 0 ? `, ${formatCount(commentCount)}` : ""}`}
+        className={button}
       >
-        <MessageCircle className="size-7" aria-hidden />
-        <span className={count}>
-          {post._count.comments > 0 ? formatCount(post._count.comments) : "Comment"}
-        </span>
-      </Link>
+        <MessageCircle className="size-6 md:size-7" aria-hidden />
+        {commentCount > 0 ? <span className={count}>{formatCount(commentCount)}</span> : null}
+      </button>
 
       <button type="button" onClick={share} aria-label="Send" className={button}>
-        <Send className="size-7" aria-hidden />
+        <Send className="size-6 md:size-7" aria-hidden />
         <span className={count}>{copied ? "Copied" : "Send"}</span>
       </button>
 
@@ -569,7 +642,7 @@ function ReelActions({ post }: { post: RevivedFeedCard }) {
         className={button}
       >
         <Bookmark
-          className="size-7"
+          className="size-6 md:size-7"
           fill={state.saved ? "currentColor" : "none"}
           aria-hidden
         />
@@ -583,8 +656,9 @@ function ReelActions({ post }: { post: RevivedFeedCard }) {
       >
         {/* An arrow, not a "⋯": this opens the post, it does not open a menu.
             The post page carries the overflow (report, delete, pin). */}
-        <ArrowUpRight className="size-7" aria-hidden />
+        <ArrowUpRight className="size-6 md:size-7" aria-hidden />
       </Link>
+
     </div>
   );
 }

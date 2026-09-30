@@ -57,7 +57,7 @@ export default async function HomePage({
             tab bar. The negative bottom margin cancels the shell's page
             padding so the page itself has nothing left to scroll. */}
         <div className="-mb-24 flex h-[calc(100dvh-3.5rem-var(--vu-tabbar,0px))] flex-col md:-mb-6 md:h-[calc(100dvh-3.5rem)]">
-          <div className="shrink-0 px-3 pt-3 md:mx-auto md:w-full md:max-w-110 md:px-0">
+          <div className="shrink-0 px-3 pt-3 md:mx-auto md:w-full md:max-w-130 md:px-0">
             <FeedModeToggle mode={mode} sort={sort} />
           </div>
           <div className="mt-3 min-h-0 flex-1">
