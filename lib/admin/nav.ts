@@ -6,6 +6,7 @@ import {
   Flag,
   LayoutDashboard,
   Mail,
+  Map,
   Receipt,
   Users,
   Webhook,
@@ -50,7 +51,10 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   },
   {
     label: "Products",
-    items: [{ href: "/admin/courses", label: "Courses", icon: BookOpen }],
+    items: [
+      { href: "/admin/courses", label: "Courses", icon: BookOpen },
+      { href: "/admin/roadmap", label: "Roadmap", icon: Map },
+    ],
   },
   {
     label: "Revenue",

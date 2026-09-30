@@ -60,7 +60,7 @@ and the tests all exist.
 | Composer | `/compose`, `/drafts` | Seven post types, including events and recipes that write a row of their own. Formatting toolbar, mention autocomplete, emoji, GIF search, drafts, scheduling. |
 | Search | `/search` | Results behind the command palette, narrowable by kind, URL-driven. Every hit is checked against the live record: posts and comments only from rooms the viewer may enter, hidden members dropped, removed rows skipped. The palette reads through the same loader. |
 | Connect | `/connect` | BUILD.md §12: the weekly match (drawn once a week, save / pass / say hello, pause and opt-out), cohorts and recognition. Hidden and blocking members drop out of the match and the recognition list. People suggestions stay on Home, Discover and the directory. |
-| Roadmap | `/roadmap` | BUILD.md §14, member side: choose a published track (the cook-vibe answer marks the matching one), pace, pause, restart, switch, leave. Milestones unlock in order; ticking one needs the goal marked done **and** the lesson watched to 80% or a cook post since it opened. |
+| Roadmap | `/roadmap` | BUILD.md §14, member side: answer the four questions, choose a published track (the cook-vibe answer marks the matching one), pace, pause, **skip**, **recipe swap**, restart, switch, leave. Milestones unlock in order; ticking one needs the goal marked done **and** the lesson watched to 80% or a cook post since it opened. A skip settles a milestone without completing it, so it never counts towards anything earned. Gluten free swaps the recipe; primary benefit and suckiest thing supply the framing and the constraint line. |
 | Bulletin board | `/bulletin`, `/admin/bulletin` | BUILD.md §19. Happenings: host a gathering, the exact address stored encrypted (AES-GCM) and shown only to the host and approved guests, RSVP requests, approval, capacity, call-off. Member services: one card per member, listed only after staff review, every edit re-reviewed. Places: member-submitted, staff-reviewed, searchable by city, one testimonial per member. Blocks hold across all three. |
 | Notifications | `/notifications` | Six filters. Reading is an action, never a render (DEC-028). |
 | Admin console | `/admin/*` | Overview, members, moderation, spaces, events, courses, billing, welcome DM. |
@@ -72,7 +72,7 @@ and the tests all exist.
 | --- | --- | --- |
 | GIF search | code done, no key | `TENOR_API_KEY` is unset, so the picker hides itself rather than offering a search that can never answer. |
 | Scheduled posts, to the minute | code done, plan-limited | Vercel Hobby allows one cron run a day, so `vercel.json` asks for 09:00 and a post scheduled for 14:00 waits until the next run. The endpoint is correct and idempotent; a five-minute cadence needs Vercel Pro or any external scheduler calling `/api/jobs/publish-scheduled` with `BILLING_JOB_SECRET`. |
-| Roadmap track authoring | not built | `/roadmap` works for members, but **no track exists** and there is no admin screen to write one (BUILD.md §14 "Admin authoring"). Until a track is published, every member sees an honest empty state. Skip and recipe swap also need a column the schema does not have. |
+| Roadmap track authoring | `/admin/roadmap` | BUILD.md §14 "Admin authoring", all ten: create tracks, reorder milestones, pick lessons and recipes, a gluten-free variant per milestone, framing and constraint text keyed by the member answers, preview a combination, draft/publish, version, and the per-track numbers. Publishing an empty track is refused and a track members are on cannot be deleted. **No track is published yet** — until one is, members still see the empty state. |
 | Bulletin extras | not built | BUILD.md §19 items the schema and approvals do not yet allow: a drawn map and Google Places lookup (no approved provider), place photos, place reports, closure checks. |
 | Lesson playback | code done, no content | **Zero lessons exist.** `lib/learn/playback`, the signed-token routes and progress tracking are built and unused. Content, not code. |
 | Events content | code done, no content | `/calendar` (month + list), RSVP with capacity and waitlist, recurrence, `.ics` and Google Calendar, 24h/1h reminders and recording publishing are all built. The six events in the database are seeded placeholders, all in the past. Real dates are content, not engineering. |
@@ -300,6 +300,6 @@ In the order I would take them.
    `discover.ts` are the two that will hurt first.
 4. **Rate limiting on the real paths** — magic link, password, webhook, upload.
    Requires the Upstash credentials.
-5. **Roadmap track authoring**, without which `/roadmap` stays empty. Every member-navigation route now resolves.
+5. **A published roadmap track.** The authoring screen is built (`/admin/roadmap`) and the member side has been ready for a while; what is missing is now editorial, not code. Every member-navigation route resolves.
 6. **Look at it.** Six pages have shipped without anyone confirming how they
    render signed in, in either theme, at phone width.

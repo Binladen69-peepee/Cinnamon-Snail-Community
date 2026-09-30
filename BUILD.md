@@ -1692,13 +1692,15 @@ Admin modules:
 
 ## Roadmap
 
-- Tracks
-- Milestones
-- Variants
-- Preview
-- Publishing
-- Versioning
-- Analytics
+- Tracks — `/admin/roadmap`
+- Milestones — reorder, four slots plus the optional community action
+- Variants — a gluten-free recipe per milestone; framing and constraint text
+  keyed by the member's answers
+- Preview — any combination of the four answers, as the member would read it
+- Publishing — refused on a track with no milestones
+- Versioning — records the change; deliberately does not reset progress
+- Analytics — members on each track, how many finished, done/skipped per
+  milestone
 
 ---
 

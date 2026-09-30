@@ -21,17 +21,45 @@ import {
  */
 
 describe("roadmap rules", () => {
-  it("has exactly one current milestone, after the done ones", () => {
-    expect(milestoneStates([true, true, false, false])).toEqual([
+  // Shorthand so the cases below read as the states they describe.
+  const done = { done: true, skipped: false };
+  const skipped = { done: false, skipped: true };
+  const open = { done: false, skipped: false };
+
+  it("has exactly one current milestone, after the settled ones", () => {
+    expect(milestoneStates([done, done, open, open])).toEqual([
       "done",
       "done",
       "current",
       "upcoming",
     ]);
-    expect(milestoneStates([true, true])).toEqual(["done", "done"]);
+    expect(milestoneStates([done, done])).toEqual(["done", "done"]);
     // A gap cannot happen through the actions, but if a row says so the first
     // open one is still the current one.
-    expect(milestoneStates([false, true])).toEqual(["current", "done"]);
+    expect(milestoneStates([open, done])).toEqual(["current", "done"]);
+  });
+
+  it("lets a skip settle a milestone without it counting as done", () => {
+    // The point of the separate state: a skip moves the member on, and it must
+    // never render as a tick or be counted towards anything earned.
+    expect(milestoneStates([skipped, open, open])).toEqual([
+      "skipped",
+      "current",
+      "upcoming",
+    ]);
+    expect(milestoneStates([done, skipped, open])).toEqual(["done", "skipped", "current"]);
+    // Every milestone settled, none current, even though one was never done.
+    expect(milestoneStates([done, skipped])).toEqual(["done", "skipped"]);
+  });
+
+  it("treats a milestone that is somehow both as done", () => {
+    // `completeMilestone` clears `skippedAt` and `skipMilestone` clears
+    // `completedAt`, so this should not arise — but if two writes raced, the
+    // achievement is the one that survives, not the skip.
+    expect(milestoneStates([{ done: true, skipped: true }, open])).toEqual([
+      "done",
+      "current",
+    ]);
   });
 
   it("schedules one milestone per cadence interval, and none when self-paced", () => {

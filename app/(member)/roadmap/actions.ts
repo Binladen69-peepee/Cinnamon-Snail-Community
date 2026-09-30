@@ -10,9 +10,12 @@ import {
   leaveRoadmap,
   restartTrack,
   RoadmapError,
+  saveAnswers,
   setCadence,
   setPaused,
+  skipMilestone,
   startTrack,
+  swapRecipe,
 } from "@/lib/roadmap";
 
 /**
@@ -94,5 +97,49 @@ export async function completeMilestoneAction(formData: FormData) {
     // Celebrated on the page itself: a notification about a tick the member
     // made a second ago would only be noise in their inbox.
     return trackComplete ? "?done=track" : "?done=milestone#current";
+  });
+}
+
+/**
+ * The four answers — §14 "Four member answers".
+ *
+ * Saving them is what makes the recommended track, the gluten-free filter and
+ * the framing do anything at all; they were columns nothing ever wrote.
+ */
+export async function saveAnswersAction(formData: FormData) {
+  const userId = await viewerOrLogin();
+  await run(userId, async () => {
+    await saveAnswers(userId, {
+      cookVibe: formData.get("cookVibe"),
+      suckiestThing: formData.get("suckiestThing"),
+      glutenFree: formData.get("glutenFree"),
+      primaryBenefit: formData.get("primaryBenefit"),
+    });
+    return "?done=answers";
+  });
+}
+
+/** Skip the current milestone — §14 "Support". Never counted as a completion. */
+export async function skipMilestoneAction(formData: FormData) {
+  const userId = await viewerOrLogin();
+  const milestoneId = String(formData.get("milestoneId") ?? "");
+  await run(userId, async () => {
+    const { trackComplete } = await skipMilestone(userId, milestoneId);
+    return trackComplete ? "?done=track" : "?done=skipped#current";
+  });
+}
+
+/**
+ * Swap the recipe on the current milestone — §14 "Support".
+ *
+ * An empty value clears the swap, which is how a member undoes it.
+ */
+export async function swapRecipeAction(formData: FormData) {
+  const userId = await viewerOrLogin();
+  const milestoneId = String(formData.get("milestoneId") ?? "");
+  const recipeId = String(formData.get("recipeId") ?? "").trim();
+  await run(userId, async () => {
+    await swapRecipe(userId, milestoneId, recipeId || null);
+    return "#current";
   });
 }

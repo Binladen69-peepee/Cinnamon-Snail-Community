@@ -1382,7 +1382,7 @@ model RoadmapTrack {
 }
 
 model RoadmapMilestone {
-  id              String                    @id @default(cuid())
+  id              String  @id @default(cuid())
   trackId         String
   sortOrder       Int
   topic           String
@@ -1390,8 +1390,25 @@ model RoadmapMilestone {
   recipeId        String?
   learningGoal    String
   communityAction String?
-  track           RoadmapTrack              @relation(fields: [trackId], references: [id], onDelete: Cascade)
-  progress        MemberMilestoneProgress[]
+
+  /// "Gluten Free = Filter" (BUILD.md §14). One milestone, two recipes: the
+  /// member's answer picks which one they are shown. Null means the ordinary
+  /// recipe is already safe, or no substitute has been authored.
+  recipeIdGlutenFree String?
+
+  /// "Primary Benefit = Framing" (§14). The same milestone said in the words of
+  /// why the member said they are here, keyed by their answer. A JSON map so a
+  /// new benefit does not need a migration; unknown keys are ignored.
+  framing Json?
+
+  /// "Suckiest Thing = Constraint" (§14). Keyed by the thing the member said
+  /// gets in their way — the one line that addresses it on this milestone.
+  constraintNote Json?
+
+  track    RoadmapTrack              @relation(fields: [trackId], references: [id], onDelete: Cascade)
+  progress MemberMilestoneProgress[]
+
+  @@index([trackId, sortOrder])
 }
 
 model MemberRoadmap {
@@ -1409,12 +1426,22 @@ model MemberRoadmap {
 }
 
 model MemberMilestoneProgress {
-  id              String           @id @default(cuid())
+  id              String    @id @default(cuid())
   memberRoadmapId String
   milestoneId     String
   completedAt     DateTime?
-  memberRoadmap   MemberRoadmap    @relation(fields: [memberRoadmapId], references: [id], onDelete: Cascade)
-  milestone       RoadmapMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+
+  /// Skipped, not completed (§14 "Support"). Kept in its own column precisely
+  /// so it is not a completion: a skip unlocks the next milestone but must
+  /// never count towards a streak or a badge that was not earned.
+  skippedAt DateTime?
+
+  /// Recipe swap (§14 "Support"): the member cooked something else here. The
+  /// authored recipe stays on the milestone; this is what *they* made.
+  swappedRecipeId String?
+
+  memberRoadmap MemberRoadmap    @relation(fields: [memberRoadmapId], references: [id], onDelete: Cascade)
+  milestone     RoadmapMilestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
 
   @@unique([memberRoadmapId, milestoneId])
 }
