@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { AlertTriangle, RotateCw } from "lucide-react";
+import * as Sentry from "@sentry/nextjs";
 
 /**
  * When a console page throws.
@@ -24,6 +25,7 @@ export default function AdminError({
 }) {
   useEffect(() => {
     console.error("[admin]", error);
+    Sentry.captureException(error, { tags: { area: "admin" } });
   }, [error]);
 
   return (

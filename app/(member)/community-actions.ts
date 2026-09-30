@@ -25,6 +25,7 @@ import {
 import { toggleVote } from "@/lib/community/votes";
 import { guardCommunityAction } from "@/lib/community/rate-limits";
 import { awardBadges } from "@/lib/social/badges";
+import { track } from "@/lib/analytics/server";
 import { kindOf } from "@/lib/uploads/policy";
 import { objectPathFromUrl, verifyUploaded } from "@/lib/uploads/storage";
 
@@ -326,6 +327,11 @@ export async function createPostAction(
     revalidateFeeds();
     // Recognition is checked off the request path so posting stays fast.
     after(() => awardBadges(userId));
+    track(userId, "post_created", {
+      post_type: type,
+      has_media: attachments.files.length > 0,
+      scheduled: scheduledAt !== null,
+    });
     return { ok: true };
   } catch (error) {
     return {
@@ -353,6 +359,9 @@ export async function commentAction(formData: FormData): Promise<ActionResult> {
   if (result.ok) {
     revalidateFeeds(postId);
     after(() => awardBadges(userId));
+    track(userId, "comment_created", {
+      is_reply: Boolean(formData.get("parentId")),
+    });
   }
   return result;
 }

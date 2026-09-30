@@ -19,6 +19,7 @@ import { resolveMemberAvatar } from "@/lib/community/member-avatars";
 import { prisma } from "@/lib/db";
 import { objectPathFromUrl, verifyUploaded } from "@/lib/uploads/storage";
 import { MessageRateLimitError } from "@/lib/messages/rate-limits";
+import { track } from "@/lib/analytics/server";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -82,6 +83,8 @@ export async function sendMessageAction(formData: FormData): Promise<Result> {
 
   revalidatePath("/messages");
   revalidatePath(`/messages/${conversationId}`);
+  // Only that a message was sent: never its text, recipient or conversation.
+  track(session.user.id, "message_sent", { has_image: image.url !== null });
   return { ok: true };
 }
 

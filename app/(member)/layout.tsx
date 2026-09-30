@@ -5,6 +5,7 @@ import { totalUnreadForUser } from "@/lib/messages/conversations";
 import { AppHeader } from "@/components/app/app-header";
 import { SideRail } from "@/components/app/side-rail";
 import { MobileTabs } from "@/components/app/mobile-tabs";
+import { AnalyticsIdentity } from "@/components/analytics/identity";
 
 export const dynamic = "force-dynamic";
 
@@ -77,6 +78,7 @@ export default async function MemberLayout({
       </div>
 
       <MobileTabs />
+      <AnalyticsIdentity userId={session.user.id} />
     </div>
   );
 }

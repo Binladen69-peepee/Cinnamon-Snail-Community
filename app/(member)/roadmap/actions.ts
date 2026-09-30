@@ -2,7 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import * as Sentry from "@sentry/nextjs";
 import { auth } from "@/auth";
+import { track } from "@/lib/analytics/server";
 import { consumeRateLimit } from "@/lib/auth/rate-limit";
 import {
   completeMilestone,
@@ -47,6 +49,7 @@ async function run(
     if (error instanceof RoadmapError) code = error.code;
     else {
       console.error("[roadmap] action failed", error);
+      Sentry.captureException(error, { tags: { area: "roadmap" } });
       code = "failed";
     }
   }
@@ -61,6 +64,7 @@ export async function startTrackAction(formData: FormData) {
   await run(userId, async () => {
     if (!isCadence(cadence)) throw new RoadmapError("cadence");
     await startTrack(userId, trackId, cadence);
+    track(userId, "roadmap_track_started", { cadence });
   });
 }
 
@@ -94,6 +98,7 @@ export async function completeMilestoneAction(formData: FormData) {
   const milestoneId = String(formData.get("milestoneId") ?? "");
   await run(userId, async () => {
     const { trackComplete } = await completeMilestone(userId, milestoneId);
+    track(userId, "roadmap_milestone_completed", { track_complete: trackComplete });
     // Celebrated on the page itself: a notification about a tick the member
     // made a second ago would only be noise in their inbox.
     return trackComplete ? "?done=track" : "?done=milestone#current";
@@ -125,6 +130,7 @@ export async function skipMilestoneAction(formData: FormData) {
   const milestoneId = String(formData.get("milestoneId") ?? "");
   await run(userId, async () => {
     const { trackComplete } = await skipMilestone(userId, milestoneId);
+    track(userId, "roadmap_milestone_skipped", {});
     return trackComplete ? "?done=track" : "?done=skipped#current";
   });
 }

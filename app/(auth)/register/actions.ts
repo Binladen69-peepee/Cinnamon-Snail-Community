@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { signIn } from "@/auth";
 import { registerAccount } from "@/lib/auth/register";
 import { isRedirectAuthError } from "@/lib/auth/tokens";
+import { track } from "@/lib/analytics/server";
 
 export type RegisterState = {
   error?: string;
@@ -44,6 +45,7 @@ export async function registerAction(
   if (!result.ok) {
     return { error: result.message, field: result.field };
   }
+  track(result.userId, "member_signed_up", {});
 
   try {
     await signIn("credentials", {

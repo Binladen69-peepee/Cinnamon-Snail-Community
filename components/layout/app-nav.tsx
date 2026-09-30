@@ -11,6 +11,7 @@ import { NavMobileSheet } from "@/components/layout/nav-mobile-sheet";
 import { CheckoutButton } from "@/components/marketing/checkout-button";
 import { NavShell } from "@/components/layout/nav-shell";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AnalyticsIdentity } from "@/components/analytics/identity";
 
 const signedOutLinks = [
   { href: "/membership", label: "Membership" },
@@ -50,6 +51,9 @@ export async function AppNav() {
 
   return (
     <NavShell>
+      {/* Signed out here means reset: every sign-out lands on a page with
+          this bar. */}
+      <AnalyticsIdentity userId={signedIn ? (session?.user.id ?? null) : null} />
       {/* Transparent by default so the hero video shows through; the surface
           fades in on scroll (see .vu-nav-surface in globals.css) once cream
           content starts passing underneath. Kept as its own element so the
