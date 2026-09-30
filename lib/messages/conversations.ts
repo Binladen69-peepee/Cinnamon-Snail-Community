@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notifications/create";
@@ -486,30 +487,32 @@ export async function listConversations(userId: string) {
  * boundary expressed as an OR. The shape matches `listConversations`, which
  * was fixed the same way earlier.
  */
-export async function totalUnreadForUser(userId: string): Promise<number> {
-  const memberships = await prisma.conversationMember.findMany({
-    where: { userId, leftAt: null },
-    select: { conversationId: true, lastReadAt: true },
-  });
-  if (memberships.length === 0) return 0;
-
-  const groups = await prisma.message.groupBy({
-    by: ["conversationId"],
-    where: {
-      authorId: { not: userId },
-      deletedAt: null,
-      OR: memberships.map((membership) => ({
-        conversationId: membership.conversationId,
-        ...(membership.lastReadAt
-          ? { createdAt: { gt: membership.lastReadAt } }
-          : {}),
-      })),
-    },
-    _count: { _all: true },
-  });
-
-  return groups.reduce((total, row) => total + row._count._all, 0);
-}
+/**
+ * The unread badge: every message from someone else, in a conversation the
+ * member is still in, newer than the point they last read it to.
+ *
+ * One join rather than a membership read plus a `groupBy` whose `OR` grew by
+ * a clause for every conversation the member had ever joined. The
+ * `(conversationId, createdAt, id)` index answers each side of the join.
+ *
+ * Memoised per request with `cache()`: the member layout and the app header
+ * both ask for it while rendering the same page, and without this every
+ * member page paid for it twice.
+ */
+export const totalUnreadForUser = cache(async (userId: string): Promise<number> => {
+  const rows = await prisma.$queryRaw<{ unread: number }[]>`
+    SELECT count(*)::int AS unread
+    FROM "Message" m
+    JOIN "ConversationMember" cm
+      ON cm."conversationId" = m."conversationId"
+    WHERE cm."userId" = ${userId}
+      AND cm."leftAt" IS NULL
+      AND m."authorId" <> ${userId}
+      AND m."deletedAt" IS NULL
+      AND (cm."lastReadAt" IS NULL OR m."createdAt" > cm."lastReadAt")
+  `;
+  return rows[0]?.unread ?? 0;
+});
 
 /** One page of a thread. Enough to fill a screen and scroll a little. */
 export const MESSAGE_PAGE = 40;

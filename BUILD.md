@@ -2509,13 +2509,13 @@ Seeded local accounts (password `vegan-local-dev`):
 - [x] Recognition — badge awards surface in the home feed rail and at `/connect/recognition`
 
 ## Phase 4B
-- [ ] Survey answers
-- [ ] Roadmap tracks
-- [ ] Milestones
-- [ ] Personalization
-- [ ] Cadence
-- [ ] Progress
-- [ ] Admin authoring
+- [x] Survey answers
+- [x] Roadmap tracks
+- [x] Milestones
+- [x] Personalization
+- [x] Cadence
+- [x] Progress
+- [x] Admin authoring — `/admin/roadmap`, all ten §14 capabilities; no track published yet
 - [ ] Kit roadmap sync
 
 ## Phase 4C
@@ -2544,12 +2544,12 @@ Seeded local accounts (password `vegan-local-dev`):
 - [ ] Badges
 
 ## Phase 4F
-- [ ] Happenings
-- [ ] Member Services
+- [x] Happenings — exact address AES-GCM encrypted, shown to host and approved guests only
+- [x] Member Services
 - [ ] Map
-- [ ] Places
-- [ ] Testimonials
-- [ ] Privacy controls
+- [x] Places
+- [x] Testimonials
+- [x] Privacy controls
 
 ## Phase 4G
 - [ ] Clean Plate Club SSO

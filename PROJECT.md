@@ -252,8 +252,8 @@ The brief is millions of users. This is where the code stands against that.
 
 ### Known limits, in priority order
 
-1. **`totalUnreadForUser` is still N+1.** It runs on every member page via
-   `AppShell`. Same fix as the inbox; not yet applied.
+1. ~~**`totalUnreadForUser` is N+1.**~~ Fixed: one SQL join, memoised per
+   request, so the layout and the header no longer each pay for it.
 2. **In-memory filtering remains in `lib/learn/library.ts` and
    `lib/messages/start.ts`.** Each loads a whole table before filtering. Fine
    at 52 classes and 14 members; not at scale. (`discover.ts`, which was the
@@ -296,8 +296,8 @@ In the order I would take them.
 2. **Observability before more features.** Sentry and PostHog are two
    environment variables and an hour. Without them nothing above is measurable
    and BUILD.md §31–32 stay unchecked.
-3. **Finish the scale list**, items 1–4. The `totalUnreadForUser` N+1 and
-   `lib/learn/library.ts` are the two that will hurt first.
+3. **Finish the scale list**, items 2–4. `lib/learn/library.ts` is the one
+   that will hurt first.
 4. **Rate limiting on the real paths** — magic link, password, webhook, upload.
    Requires the Upstash credentials.
 5. **A published roadmap track.** The authoring screen is built (`/admin/roadmap`) and the member side has been ready for a while; what is missing is now editorial, not code. Every member-navigation route resolves.
