@@ -134,6 +134,9 @@ export async function toggleFollowAction(
         title: `${session.user.name ?? session.user.handle} followed you`,
         body: "Take a look at their profile and say hello.",
         href: `/members/${session.user.handle}`,
+        actorId: session.user.id,
+        // Follow, unfollow, follow again: one notification, not three.
+        dedupeKey: `follow:${session.user.id}`,
       }).catch(() => undefined);
     });
   }

@@ -20,6 +20,7 @@ import {
   INBOX_FILTER_LABEL,
   loadInbox,
   parseInboxFilter,
+  parsePage,
   type InboxFilter,
 } from "@/lib/notifications/inbox";
 import { formatShortTime } from "@/lib/community/format-count";
@@ -61,14 +62,22 @@ const CATEGORY_ICON: Record<NotificationCategory, typeof Bell> = {
 export default async function NotificationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ filter?: string }>;
+  searchParams: Promise<{ filter?: string; page?: string }>;
 }) {
   const session = await auth();
   if (!session?.user.id) redirect("/login");
 
   const params = await searchParams;
   const filter = parseInboxFilter(params.filter);
-  const data = await loadInbox({ userId: session.user.id, filter });
+  const page = parsePage(params.page);
+  const data = await loadInbox({ userId: session.user.id, filter, page });
+  const pageHref = (target: number) => {
+    const query = new URLSearchParams();
+    if (filter !== "all") query.set("filter", filter);
+    if (target > 1) query.set("page", String(target));
+    const text = query.toString();
+    return text ? `/notifications?${text}` : "/notifications";
+  };
 
   return (
     <AppShell>
@@ -87,7 +96,7 @@ export default async function NotificationsPage({
 
           <div className="flex items-center gap-2">
             <Link
-              href="/settings"
+              href="/settings#notifications"
               className="vu-btn vu-btn-secondary inline-flex h-9 items-center gap-1.5 px-3 text-[13px] no-underline"
             >
               <Settings2 className="size-4" aria-hidden />
@@ -203,6 +212,35 @@ export default async function NotificationsPage({
             })}
           </ul>
         )}
+
+        {page > 1 || data.hasMore ? (
+          <nav
+            aria-label="More notifications"
+            className="flex items-center justify-between gap-3"
+          >
+            {page > 1 ? (
+              <Link
+                href={pageHref(page - 1)}
+                className="vu-btn vu-btn-secondary inline-flex h-9 items-center px-3 text-[13px] no-underline"
+              >
+                Newer
+              </Link>
+            ) : (
+              <span />
+            )}
+            <span className="text-[12px] tabular-nums text-foreground-muted">Page {page}</span>
+            {data.hasMore ? (
+              <Link
+                href={pageHref(page + 1)}
+                className="vu-btn vu-btn-secondary inline-flex h-9 items-center px-3 text-[13px] no-underline"
+              >
+                Older
+              </Link>
+            ) : (
+              <span />
+            )}
+          </nav>
+        ) : null}
       </div>
     </AppShell>
   );

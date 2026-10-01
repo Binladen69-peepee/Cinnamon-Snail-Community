@@ -1,6 +1,7 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notifications/create";
+import { dispatchNotifications } from "@/lib/notifications/dispatch";
 import { writeAuditLog } from "@/lib/audit";
 import { decryptAddress, encryptAddress } from "@/lib/bulletin/address";
 
@@ -347,6 +348,8 @@ export async function requestRsvp(userId: string, happeningId: string, now = new
     title: status === "requested" ? "Someone asked to join" : "A new guest is coming",
     body: `For “${happening.title}” on the bulletin board.`,
     href: "/bulletin",
+    actorId: userId,
+    dedupeKey: `happening-rsvp:${happeningId}:${userId}`,
   }).catch(() => undefined);
   return status;
 }
@@ -382,6 +385,8 @@ export async function decideRsvp(hostId: string, rsvpId: string, approve: boolea
       title: "You’re in",
       body: `The host approved you for “${happening.title}”. The address is on the bulletin board.`,
       href: "/bulletin",
+      actorId: hostId,
+      dedupeKey: `happening-approved:${rsvp.id}`,
     }).catch(() => undefined);
   }
 }
@@ -394,16 +399,20 @@ export async function cancelHappening(hostId: string, happeningId: string) {
   if (!happening || happening.canceledAt) throw new BulletinError("gone");
   if (happening.hostUserId !== hostId) throw new BulletinError("not-host");
   await prisma.happening.update({ where: { id: happeningId }, data: { canceledAt: new Date() } });
-  for (const rsvp of happening.rsvps) {
-    if (rsvp.status === "declined") continue;
-    await createNotification({
-      userId: rsvp.userId,
-      category: "EVENTS",
-      title: "A gathering was called off",
-      body: `“${happening.title}” is no longer happening.`,
-      href: "/bulletin",
-    }).catch(() => undefined);
-  }
+  // One batched write for every guest rather than one round trip each.
+  await dispatchNotifications(
+    happening.rsvps
+      .filter((rsvp) => rsvp.status !== "declined")
+      .map((rsvp) => ({
+        userId: rsvp.userId,
+        category: "EVENTS" as const,
+        title: "A gathering was called off",
+        body: `“${happening.title}” is no longer happening.`,
+        href: "/bulletin",
+        actorId: hostId,
+        dedupeKey: `happening-canceled:${happeningId}`,
+      })),
+  ).catch(() => undefined);
 }
 
 // ---------------------------------------------------------------------------
@@ -725,6 +734,7 @@ export async function reviewPlace(staffId: string, placeId: string, approve: boo
         ? "Thanks for adding it. Members can find it on the bulletin board now."
         : "It did not pass review. Places need to be vegan or clearly vegan-friendly.",
       href: "/bulletin?tab=places",
+      dedupeKey: `place-review:${place.id}`,
     }).catch(() => undefined);
   }
 }

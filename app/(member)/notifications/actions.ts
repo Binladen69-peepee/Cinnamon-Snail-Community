@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { markNotificationsRead } from "@/lib/notifications/create";
+import { consumeRateLimit } from "@/lib/auth/rate-limit";
 
 /**
  * The two ways a notification gets read.
@@ -26,7 +27,7 @@ export async function openNotificationAction(formData: FormData) {
   const session = await auth();
   if (!session?.user.id) redirect("/login");
 
-  const id = String(formData.get("id") ?? "").trim();
+  const id = String(formData.get("id") ?? "").trim().slice(0, 64);
   if (!id) redirect("/notifications");
 
   // Scoped to the viewer: a guessed id must not mark someone else's
@@ -36,6 +37,11 @@ export async function openNotificationAction(formData: FormData) {
     select: { id: true, href: true },
   });
   if (!notification) redirect("/notifications");
+
+  // Generous: opening notifications quickly is normal. Past the limit the
+  // member still goes where the notification points; only the read mark waits.
+  const limit = await consumeRateLimit(`notif-read:${session.user.id}`, 240, 60 * 1000);
+  if (!limit.ok) redirect(notification.href ?? "/notifications");
 
   await prisma.notification.updateMany({
     where: { id: notification.id, userId: session.user.id, readAt: null },
@@ -54,6 +60,9 @@ export async function openNotificationAction(formData: FormData) {
 export async function markAllReadAction(): Promise<void> {
   const session = await auth();
   if (!session?.user.id) redirect("/login");
+
+  const limit = await consumeRateLimit(`notif-read-all:${session.user.id}`, 20, 60 * 1000);
+  if (!limit.ok) return;
 
   await markNotificationsRead(session.user.id);
 

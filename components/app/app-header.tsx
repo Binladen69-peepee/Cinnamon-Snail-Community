@@ -20,7 +20,7 @@ export async function AppHeader() {
 
   const [notifications, messages] = await Promise.all([
     prisma.notification
-      .count({ where: { userId: session.user.id, readAt: null } })
+      .count({ where: { userId: session.user.id, inApp: true, readAt: null } })
       .catch(() => 0),
     totalUnreadForUser(session.user.id).catch(() => 0),
   ]);

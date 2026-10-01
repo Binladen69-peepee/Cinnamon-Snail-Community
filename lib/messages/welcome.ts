@@ -395,6 +395,7 @@ async function deliverWelcomeDm(input: {
     title: "Welcome to Vegan University",
     body: input.body.slice(0, 140),
     href: "/messages",
+    dedupeKey: "welcome-dm",
   }).catch(() => undefined);
 
   return true;

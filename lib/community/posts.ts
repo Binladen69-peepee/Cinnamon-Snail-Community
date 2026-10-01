@@ -307,6 +307,7 @@ async function publishSideEffects(input: {
     actorName: input.actorName,
     spaceName: input.spaceName,
     href: `/posts/${input.postId}`,
+    source: `post:${input.postId}`,
   }).catch(() => [] as string[]);
 
   await notifySpacePost({
@@ -713,6 +714,7 @@ export async function addComment(input: {
       parentAuthorId,
       postTitle: "a post",
       href: `/posts/${input.postId}`,
+      commentId: comment.id,
     }).catch(() => undefined);
     await notifyMentions({
       handles: parseMentions(body),
@@ -720,6 +722,7 @@ export async function addComment(input: {
       actorName,
       spaceName: post.space.name,
       href: `/posts/${input.postId}`,
+      source: `comment:${comment.id}`,
     }).catch(() => undefined);
   });
 

@@ -1,6 +1,8 @@
 import { prisma } from "@/lib/db";
-import type { NotificationCategory } from "@prisma/client";
-import { parsePrefs, wants } from "@/lib/notifications/preferences";
+import {
+  dispatchNotifications,
+  type NotificationDraft,
+} from "@/lib/notifications/dispatch";
 
 /**
  * Every notification the community feature sends.
@@ -12,62 +14,21 @@ import { parsePrefs, wants } from "@/lib/notifications/preferences";
  *
  * Fan-out is the reason this is written in bulk. A mention of twenty people, or
  * a new post in a space with a thousand members, must not become a thousand
- * round trips: preferences are read in one query and the rows are inserted in
- * one statement.
- */
-
-export type NotificationDraft = {
-  userId: string;
-  category: NotificationCategory;
-  title: string;
-  body: string;
-  href?: string;
-};
-
-/** Nobody is notified about their own action, ever. */
-function withoutActor(drafts: NotificationDraft[], actorId: string) {
-  return drafts.filter((draft) => draft.userId !== actorId);
-}
-
-/**
- * Writes many notifications, honouring each recipient's preferences.
+ * round trips: `dispatchNotifications` reads preferences, blocks and push
+ * subscriptions in one query each and writes the rows in one statement.
  *
- * SYSTEM is never suppressed, matching the single-notification path: billing
- * and account notices are not opt-out.
+ * Every notifier passes the actor (so self-notifications and blocked senders
+ * are dropped there) and a `dedupeKey` naming its source, so the same mention
+ * or the same new post can never notify the same member twice — not when a
+ * post is edited, not when a job is retried.
  */
-export async function createNotifications(
-  drafts: NotificationDraft[],
-): Promise<number> {
-  if (drafts.length === 0) return 0;
-  const userIds = [...new Set(drafts.map((draft) => draft.userId))];
-  const profiles = await prisma.profile.findMany({
-    where: { userId: { in: userIds } },
-    select: { userId: true, notificationPrefs: true },
-  });
-  const prefsByUser = new Map(
-    profiles.map((profile) => [profile.userId, parsePrefs(profile.notificationPrefs)]),
-  );
 
-  const allowed = drafts.filter((draft) => {
-    const prefs = prefsByUser.get(draft.userId);
-    // No profile row means no stated preference, so the default applies rather
-    // than silence.
-    if (!prefs) return true;
-    return wants(prefs, "inApp", draft.category);
-  });
-  if (allowed.length === 0) return 0;
+export type { NotificationDraft };
 
-  const result = await prisma.notification.createMany({
-    data: allowed.map((draft) => ({
-      userId: draft.userId,
-      channel: "IN_APP" as const,
-      category: draft.category,
-      title: draft.title,
-      body: draft.body,
-      href: draft.href,
-    })),
-  });
-  return result.count;
+/** Writes many notifications, honouring each recipient's preferences. */
+export async function createNotifications(drafts: NotificationDraft[]): Promise<number> {
+  const result = await dispatchNotifications(drafts);
+  return result.created;
 }
 
 /** People named with an @handle in a post or comment. */
@@ -77,6 +38,8 @@ export async function notifyMentions(input: {
   actorName: string;
   spaceName: string;
   href: string;
+  /** The post or comment the mention is in, e.g. `post:<id>`. */
+  source: string;
 }): Promise<string[]> {
   if (input.handles.length === 0) return [];
   const mentioned = await prisma.user.findMany({
@@ -84,16 +47,15 @@ export async function notifyMentions(input: {
     select: { id: true, handle: true },
   });
   await createNotifications(
-    withoutActor(
-      mentioned.map((user) => ({
-        userId: user.id,
-        category: "MENTIONS" as const,
-        title: "You were mentioned",
-        body: `${input.actorName} mentioned you in ${input.spaceName}.`,
-        href: input.href,
-      })),
-      input.actorId,
-    ),
+    mentioned.map((user) => ({
+      userId: user.id,
+      category: "MENTIONS" as const,
+      title: "You were mentioned",
+      body: `${input.actorName} mentioned you in ${input.spaceName}.`,
+      href: input.href,
+      actorId: input.actorId,
+      dedupeKey: `mention:${input.source}`,
+    })),
   );
   return mentioned.map((user) => user.id);
 }
@@ -112,6 +74,7 @@ export async function notifyReply(input: {
   parentAuthorId?: string | null;
   postTitle: string;
   href: string;
+  commentId: string;
 }) {
   const recipients = new Set<string>();
   recipients.add(input.postAuthorId);
@@ -128,6 +91,8 @@ export async function notifyReply(input: {
           : "New reply to your post",
       body: `${input.actorName} replied to ${input.postTitle}.`,
       href: input.href,
+      actorId: input.actorId,
+      dedupeKey: `reply:${input.commentId}`,
     })),
   );
 }
@@ -191,6 +156,8 @@ export async function notifySpacePost(input: {
       title: `New in ${input.spaceName}`,
       body: `${input.actorName}: ${input.title}`,
       href: `/posts/${input.postId}`,
+      actorId: input.actorId,
+      dedupeKey: `space-post:${input.postId}`,
     })),
   );
 }
@@ -209,16 +176,15 @@ export async function notifyPendingPost(input: {
     take: 50,
   });
   await createNotifications(
-    withoutActor(
-      hosts.map((host) => ({
-        userId: host.userId,
-        category: "HOST_ANNOUNCEMENTS" as const,
-        title: "A post is waiting for review",
-        body: `${input.actorName} posted in ${input.spaceName}.`,
-        href: `/spaces/${input.spaceId}/review`,
-      })),
-      input.actorId,
-    ),
+    hosts.map((host) => ({
+      userId: host.userId,
+      category: "HOST_ANNOUNCEMENTS" as const,
+      title: "A post is waiting for review",
+      body: `${input.actorName} posted in ${input.spaceName}.`,
+      href: `/spaces/${input.spaceId}/review`,
+      actorId: input.actorId,
+      dedupeKey: `pending-post:${input.postId}`,
+    })),
   );
 }
 
@@ -238,6 +204,7 @@ export async function notifyApprovalDecision(input: {
         ? `A host approved your post in ${input.spaceName}.`
         : `A host declined your post in ${input.spaceName}.`,
       href: input.approved ? `/posts/${input.postId}` : undefined,
+      dedupeKey: `post-decision:${input.postId}`,
     },
   ]);
 }

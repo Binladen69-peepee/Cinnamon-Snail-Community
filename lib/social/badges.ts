@@ -115,6 +115,8 @@ export async function awardBadges(userId: string) {
       title: `${rule.icon} ${rule.name}`,
       body: rule.reason(activity),
       href: "/connect/recognition",
+      // Two overlapping award checks both upsert the badge; only one tells.
+      dedupeKey: `badge:${badge.id}`,
     });
   }
   return awarded;

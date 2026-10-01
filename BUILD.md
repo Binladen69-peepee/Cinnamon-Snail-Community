@@ -658,8 +658,8 @@ Use cursor pagination.
 Channels:
 
 - [x] In-app
-- [ ] Email
-- [ ] Web push
+- [x] Email
+- [x] Web push
 
 Categories:
 
@@ -2473,7 +2473,7 @@ Seeded local accounts (password `vegan-local-dev`):
 - [x] Posts
 - [x] Comments
 - [x] Reactions
-- [x] Notifications — in-app; email/web push later
+- [x] Notifications — in-app, email and web push, per-member preferences
 - [x] Search — FTS + trigram/ilike fallback, type and space filters
 - [x] Admin shell
 

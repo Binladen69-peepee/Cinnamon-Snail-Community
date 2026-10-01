@@ -397,24 +397,24 @@ export async function attachRecordingAction(formData: FormData): Promise<Result>
   return { ok: true };
 }
 
-/** Tell everyone who said they were coming. One query, then one write each. */
+/** Tell everyone who said they were coming. One query, then one batched write. */
 async function notifyAttendees(
   eventId: string,
   message: { title: string; body: string; href: string },
 ): Promise<void> {
-  const { createNotification } = await import("@/lib/notifications/create");
+  const { dispatchNotifications } = await import("@/lib/notifications/dispatch");
   const attendees = await prisma.eventRsvp.findMany({
     where: { eventId, status: { in: ["GOING", "WAITLIST"] } },
     select: { userId: true },
     take: 500,
   });
-  for (const attendee of attendees) {
-    await createNotification({
+  await dispatchNotifications(
+    attendees.map((attendee) => ({
       userId: attendee.userId,
-      category: "EVENTS",
+      category: "EVENTS" as const,
       ...message,
-    }).catch(() => undefined);
-  }
+    })),
+  ).catch(() => undefined);
 }
 
 async function indexEvent(id: string): Promise<void> {

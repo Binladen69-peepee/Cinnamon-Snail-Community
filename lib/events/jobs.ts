@@ -122,6 +122,7 @@ export async function sendEventReminders(now = new Date()): Promise<ReminderResu
               : `Starting soon: ${event.title}`,
           body: reminderBody(event, kind),
           href: `/calendar/${event.slug}`,
+          dedupeKey: `event-reminder:${event.id}:${kind}`,
         }).catch(() => null);
 
         if (notified) sent += 1;

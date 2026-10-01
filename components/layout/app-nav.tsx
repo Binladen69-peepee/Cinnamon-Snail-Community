@@ -39,7 +39,7 @@ export async function AppNav() {
   if (signedIn && session?.user.id && process.env.DATABASE_URL) {
     try {
       unread = await prisma.notification.count({
-        where: { userId: session.user.id, readAt: null },
+        where: { userId: session.user.id, inApp: true, readAt: null },
       });
     } catch {
       unread = 0;

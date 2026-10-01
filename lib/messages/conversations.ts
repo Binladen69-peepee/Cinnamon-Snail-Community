@@ -2,7 +2,7 @@ import "server-only";
 import { cache } from "react";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { createNotification } from "@/lib/notifications/create";
+import { dispatchNotifications } from "@/lib/notifications/dispatch";
 import { afterResponse } from "@/lib/after-response";
 import { guardMessageAction } from "@/lib/messages/rate-limits";
 import {
@@ -373,20 +373,23 @@ export async function sendMessage(input: {
       ?.user.profile?.displayName ?? "A member";
 
   // After the response. Telling four people about a message is worth doing and
-  // not worth making the sender wait for, and `createNotification` honours
-  // each recipient's own preferences so a muted member is skipped there.
+  // not worth making the sender wait for. One batched write for every
+  // recipient, honouring each one's preferences and blocks, keyed to the
+  // message so a retried send cannot notify twice. The text stays in the
+  // inbox only: email and push say who wrote, never what.
+  const sentId = message.id;
   afterResponse(async () => {
-    await Promise.all(
-      others.map((other) =>
-        createNotification({
-          userId: other.userId,
-          category: "DMS",
-          title: `${authorName} sent you a message`,
-          body: body.slice(0, 140) || "Shared an image",
-          href: `/messages/${input.conversationId}`,
-        }).catch(() => undefined),
-      ),
-    );
+    await dispatchNotifications(
+      others.map((other) => ({
+        userId: other.userId,
+        category: "DMS" as const,
+        title: `${authorName} sent you a message`,
+        body: body.slice(0, 140) || "Shared an image",
+        href: `/messages/${input.conversationId}`,
+        actorId: input.authorId,
+        dedupeKey: `dm:${sentId}`,
+      })),
+    ).catch(() => undefined);
   });
 
   return message;

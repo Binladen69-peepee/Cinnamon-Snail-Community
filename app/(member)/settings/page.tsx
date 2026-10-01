@@ -13,6 +13,12 @@ import { readPrivacy } from "@/lib/community/privacy";
 import { AppShell } from "@/components/app/app-shell";
 import { ProfileEditor } from "@/components/profile/profile-editor";
 import { uploadsConfigured } from "@/lib/uploads/storage";
+import {
+  NotificationSettings,
+  type PrefMatrix,
+} from "@/components/notifications/notification-settings";
+import { parsePrefs, PREF_CHANNELS, PREF_ROWS, wants } from "@/lib/notifications/preferences";
+import { pushConfigured, vapidPublicKey } from "@/lib/notifications/push";
 
 export default async function SettingsPage({
   searchParams,
@@ -21,7 +27,7 @@ export default async function SettingsPage({
 }) {
   const session = await auth();
   if (!session?.user.id) redirect("/login");
-  const [user, options] = await Promise.all([
+  const [user, options, pushDevices] = await Promise.all([
     prisma.user.findUnique({
       where: { id: session.user.id },
       include: {
@@ -41,10 +47,20 @@ export default async function SettingsPage({
       orderBy: { sortOrder: "asc" },
       select: { slug: true, label: true, kind: true },
     }),
+    prisma.pushSubscription.count({ where: { userId: session.user.id } }),
   ]);
   if (!user?.profile) redirect("/home");
   const saved = (await searchParams).saved === "1";
   const privacy = readPrivacy(user.profile.privacy);
+  // What each switch shows is the effective value: the member's own choice, or
+  // the default they would get without one.
+  const prefs = parsePrefs(user.profile.notificationPrefs);
+  const notificationValues = Object.fromEntries(
+    PREF_CHANNELS.map(({ channel }) => [
+      channel,
+      Object.fromEntries(PREF_ROWS.map(({ category }) => [category, wants(prefs, channel, category)])),
+    ]),
+  ) as PrefMatrix;
   const links = Array.isArray(user.profile.links)
     ? (user.profile.links as string[]).filter(
         (item): item is string => typeof item === "string",
@@ -90,6 +106,16 @@ export default async function SettingsPage({
         }}
         options={options}
         uploadsEnabled={uploadsConfigured()}
+      />
+
+      <NotificationSettings
+        rows={PREF_ROWS}
+        values={notificationValues}
+        push={{
+          available: pushConfigured(),
+          publicKey: vapidPublicKey(),
+          devices: pushDevices,
+        }}
       />
 
       <form action={setPasswordAction} className="space-y-3">

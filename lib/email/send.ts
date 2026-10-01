@@ -27,10 +27,31 @@ export function getTransactionalInbox() {
   return [...transactionalInbox];
 }
 
+/**
+ * A send Resend refused. `permanent` is true for a 4xx other than rate
+ * limiting: retrying a bad address or an unverified sender only repeats the
+ * refusal, so the caller should stop rather than back off.
+ */
+export class EmailSendError extends Error {
+  constructor(
+    message: string,
+    readonly status: number | null,
+  ) {
+    super(message);
+    this.name = "EmailSendError";
+  }
+
+  get permanent(): boolean {
+    return this.status !== null && this.status >= 400 && this.status < 500 && this.status !== 429;
+  }
+}
+
 export async function sendTransactionalEmail(input: {
   to: string;
   subject: string;
   html: string;
+  text?: string;
+  headers?: Record<string, string>;
 }): Promise<SendMagicLinkResult> {
   if (process.env.RESEND_API_KEY) {
     try {
@@ -45,10 +66,14 @@ export async function sendTransactionalEmail(input: {
           to: [input.to],
           subject: input.subject,
           html: input.html,
+          ...(input.text ? { text: input.text } : {}),
+          ...(input.headers ? { headers: input.headers } : {}),
         }),
       });
       const body = (await response.json().catch(() => ({}))) as { id?: string; message?: string };
-      if (!response.ok) throw new Error(body.message || `Resend failed: ${response.status}`);
+      if (!response.ok) {
+        throw new EmailSendError(body.message || `Resend failed: ${response.status}`, response.status);
+      }
       return { delivered: true, providerId: body.id };
     } catch (error) {
       const message = error instanceof Error ? error.message : "unknown error";

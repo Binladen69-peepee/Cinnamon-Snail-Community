@@ -54,6 +54,8 @@ export function inboxWhere(filter: InboxFilter, userId: string) {
   const category = CATEGORY_FOR[filter];
   return {
     userId,
+    // Rows written only to carry an email or push the member muted in-app.
+    inApp: true,
     ...(filter === "unread" ? { readAt: null } : {}),
     ...(category ? { category } : {}),
   };
@@ -72,6 +74,8 @@ export type InboxRow = {
 export type InboxData = {
   filter: InboxFilter;
   rows: InboxRow[];
+  page: number;
+  hasMore: boolean;
   counts: Record<InboxFilter, number>;
   unread: number;
   /** True when this member has never received one, as opposed to this tab
@@ -79,41 +83,64 @@ export type InboxData = {
   empty: boolean;
 };
 
-const PAGE_SIZE = 60;
+export const PAGE_SIZE = 40;
+const MAX_PAGE = 50;
 
+export function parsePage(value: string | string[] | undefined): number {
+  const raw = Number(Array.isArray(value) ? value[0] : value);
+  return Number.isInteger(raw) && raw >= 1 ? Math.min(raw, MAX_PAGE) : 1;
+}
+
+/**
+ * Three queries, whatever the tab: the page of rows, the per-category totals
+ * in one GROUP BY, and the unread total. It was seven — a count per tab.
+ */
 export async function loadInbox(input: {
   userId: string;
   filter: InboxFilter;
+  page?: number;
 }): Promise<InboxData> {
   const { userId, filter } = input;
+  const page = input.page ?? 1;
 
-  const [rows, total, unread, mentions, replies, events, system] =
-    await Promise.all([
-      prisma.notification.findMany({
-        where: inboxWhere(filter, userId),
-        orderBy: [{ readAt: "asc" }, { createdAt: "desc" }],
-        take: PAGE_SIZE,
-        select: {
-          id: true,
-          category: true,
-          title: true,
-          body: true,
-          href: true,
-          createdAt: true,
-          readAt: true,
-        },
-      }),
-      prisma.notification.count({ where: { userId } }),
-      prisma.notification.count({ where: { userId, readAt: null } }),
-      prisma.notification.count({ where: { userId, category: "MENTIONS" } }),
-      prisma.notification.count({ where: { userId, category: "REPLIES" } }),
-      prisma.notification.count({ where: { userId, category: "EVENTS" } }),
-      prisma.notification.count({ where: { userId, category: "SYSTEM" } }),
-    ]);
+  const [rows, byCategory, unread] = await Promise.all([
+    prisma.notification.findMany({
+      where: inboxWhere(filter, userId),
+      orderBy: [{ readAt: { sort: "asc", nulls: "first" } }, { createdAt: "desc" }, { id: "desc" }],
+      skip: (page - 1) * PAGE_SIZE,
+      // One extra row says whether there is another page without a count.
+      take: PAGE_SIZE + 1,
+      select: {
+        id: true,
+        category: true,
+        title: true,
+        body: true,
+        href: true,
+        createdAt: true,
+        readAt: true,
+      },
+    }),
+    prisma.notification.groupBy({
+      by: ["category"],
+      where: { userId, inApp: true },
+      _count: { _all: true },
+    }),
+    prisma.notification.count({ where: { userId, inApp: true, readAt: null } }),
+  ]);
+
+  const count = (category: NotificationCategory) =>
+    byCategory.find((row) => row.category === category)?._count._all ?? 0;
+  const total = byCategory.reduce((sum, row) => sum + row._count._all, 0);
+  const mentions = count("MENTIONS");
+  const replies = count("REPLIES");
+  const events = count("EVENTS");
+  const system = count("SYSTEM");
 
   return {
     filter,
-    rows: rows.map((row) => ({
+    page,
+    hasMore: rows.length > PAGE_SIZE,
+    rows: rows.slice(0, PAGE_SIZE).map((row) => ({
       id: row.id,
       category: row.category,
       title: row.title,

@@ -256,6 +256,7 @@ model User {
   bookmarks            Bookmark[]
   reports              Report[]                @relation("ReportReporter")
   notifications        Notification[]
+  pushSubscriptions    PushSubscription[]
   pollVotes            PollVote[]
   votes                Vote[]
   eventRsvps           EventRsvp[]
@@ -751,19 +752,77 @@ model Report {
 }
 
 model Notification {
-  id          String               @id @default(cuid())
+  id          String                 @id @default(cuid())
   userId      String
-  channel     NotificationChannel  @default(IN_APP)
+  channel     NotificationChannel    @default(IN_APP)
   category    NotificationCategory
   title       String
   body        String
   href        String?
   readAt      DateTime?
   emailSentAt DateTime?
-  createdAt   DateTime             @default(now())
-  user        User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// False when the member turned this category off in-app but still wants it
+  /// by email or push: the row exists to drive that delivery and is never
+  /// shown in the inbox or counted in the bell.
+  inApp       Boolean                @default(true)
+  /// Idempotency. The same source event (a mention in one post, a reminder for
+  /// one event) can only ever produce one notification per member; a retried
+  /// job or an edited post hits the unique index and writes nothing.
+  dedupeKey   String?
+  createdAt   DateTime               @default(now())
+  user        User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  deliveries  NotificationDelivery[]
 
+  @@unique([userId, dedupeKey])
   @@index([userId, readAt, createdAt])
+  @@index([userId, inApp, category])
+}
+
+enum DeliveryStatus {
+  PENDING
+  SENDING
+  SENT
+  FAILED
+  SKIPPED
+}
+
+/// The outbox for email and web push. One row per notification per channel,
+/// written in the same request as the notification, then claimed and sent by
+/// the after-response kick or the cron sweep. The unique index is what makes a
+/// second send impossible; the claim (PENDING -> SENDING with a lock time) is
+/// what keeps two workers from sending the same row at once.
+model NotificationDelivery {
+  id             String              @id @default(cuid())
+  notificationId String
+  channel        NotificationChannel
+  status         DeliveryStatus      @default(PENDING)
+  attempts       Int                 @default(0)
+  nextAttemptAt  DateTime            @default(now())
+  lockedAt       DateTime?
+  sentAt         DateTime?
+  lastError      String?
+  createdAt      DateTime            @default(now())
+  notification   Notification        @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+
+  @@unique([notificationId, channel])
+  @@index([status, nextAttemptAt])
+}
+
+/// A browser that agreed to receive web push for this member. One member can
+/// have several (phone, laptop). Deleted when the push service says the
+/// endpoint is gone (404/410).
+model PushSubscription {
+  id         String    @id @default(cuid())
+  userId     String
+  endpoint   String    @unique
+  p256dh     String
+  auth       String
+  userAgent  String?
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
 }
 
 model SearchIndex {

@@ -229,6 +229,8 @@ async function announce(
         ? `${when}. Add it to your own calendar from the event page.`
         : `${when}. We'll tell you the moment a place opens up.`,
     href: `/calendar/${event.slug}`,
+    // Toggling going/not going/going must not say "You're going" twice.
+    dedupeKey: `rsvp:${event.id}:${status}`,
   });
 }
 
@@ -243,5 +245,6 @@ async function announcePromotion(
     title: `A place opened up: ${event.title}`,
     body: `You're off the waitlist and going. ${when}.`,
     href: `/calendar/${event.slug}`,
+    dedupeKey: `rsvp-promoted:${event.id}`,
   });
 }

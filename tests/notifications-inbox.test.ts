@@ -48,7 +48,15 @@ describe("inboxWhere", () => {
   });
 
   it("filters all by nothing else", () => {
-    expect(inboxWhere("all", me)).toEqual({ userId: me });
+    // `inApp` excludes rows that exist only to carry an email or a push the
+    // member muted in-app; it is not a filter the member chose.
+    expect(inboxWhere("all", me)).toEqual({ userId: me, inApp: true });
+  });
+
+  it("never shows email- or push-only rows, on any tab", () => {
+    for (const filter of INBOX_FILTERS) {
+      expect(inboxWhere(filter, me).inApp).toBe(true);
+    }
   });
 
   it("reads unread as a null readAt, not a category", () => {

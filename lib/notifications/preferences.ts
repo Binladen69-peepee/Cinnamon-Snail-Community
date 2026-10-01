@@ -14,9 +14,16 @@ import { NotificationCategory } from "@prisma/client";
 export type NotificationPrefs = {
   inApp: Partial<Record<NotificationCategory, boolean>>;
   email: Partial<Record<NotificationCategory, boolean>>;
+  push: Partial<Record<NotificationCategory, boolean>>;
 };
 
 export type PrefChannel = keyof NotificationPrefs;
+
+export const PREF_CHANNELS: { channel: PrefChannel; label: string }[] = [
+  { channel: "inApp", label: "In app" },
+  { channel: "email", label: "Email" },
+  { channel: "push", label: "Push" },
+];
 
 /** Every category a member can actually control, with plain-language labels. */
 export const PREF_ROWS: {
@@ -60,7 +67,7 @@ export const PREF_ROWS: {
  */
 export const UNSWITCHABLE: NotificationCategory[] = ["SYSTEM"];
 
-const EMPTY: NotificationPrefs = { inApp: {}, email: {} };
+const EMPTY: NotificationPrefs = { inApp: {}, email: {}, push: {} };
 
 /** Read whatever is stored, tolerating anything that is not the shape. */
 export function parsePrefs(raw: unknown): NotificationPrefs {
@@ -69,6 +76,7 @@ export function parsePrefs(raw: unknown): NotificationPrefs {
   return {
     inApp: pickChannel(record.inApp),
     email: pickChannel(record.email),
+    push: pickChannel(record.push),
   };
 }
 
@@ -85,9 +93,18 @@ function pickChannel(value: unknown): Partial<Record<NotificationCategory, boole
 
 /**
  * In-app defaults to on; email defaults to off for everything except the
- * things a member would want to know about while away from the app.
+ * things a member would want to know about while away from the app. Push
+ * defaults match email, but push only ever reaches a browser the member
+ * explicitly enabled, so "on" there still starts as nobody.
  */
 const EMAIL_DEFAULT_ON: NotificationCategory[] = ["DMS", "EVENTS", "SYSTEM"];
+const PUSH_DEFAULT_ON: NotificationCategory[] = [
+  "DMS",
+  "EVENTS",
+  "REPLIES",
+  "MENTIONS",
+  "SYSTEM",
+];
 
 export function wants(
   prefs: NotificationPrefs,
@@ -97,5 +114,31 @@ export function wants(
   if (UNSWITCHABLE.includes(category)) return true;
   const explicit = prefs[channel][category];
   if (typeof explicit === "boolean") return explicit;
-  return channel === "inApp" ? true : EMAIL_DEFAULT_ON.includes(category);
+  if (channel === "inApp") return true;
+  return (channel === "email" ? EMAIL_DEFAULT_ON : PUSH_DEFAULT_ON).includes(category);
+}
+
+/**
+ * Reads the preference form. Every switchable category gets an explicit
+ * boolean per channel, so what is saved is exactly what was on screen rather
+ * than "whatever was ticked, plus defaults for the rest".
+ */
+export function prefsFromForm(formData: FormData): NotificationPrefs {
+  const out: NotificationPrefs = { inApp: {}, email: {}, push: {} };
+  for (const { channel } of PREF_CHANNELS) {
+    for (const { category } of PREF_ROWS) {
+      out[channel][category] = formData.get(`${channel}:${category}`) === "on";
+    }
+  }
+  return out;
+}
+
+/** One category switched off for one channel, everything else untouched. */
+export function withChannelOff(
+  prefs: NotificationPrefs,
+  channel: PrefChannel,
+  category: NotificationCategory,
+): NotificationPrefs {
+  if (UNSWITCHABLE.includes(category)) return prefs;
+  return { ...prefs, [channel]: { ...prefs[channel], [category]: false } };
 }
