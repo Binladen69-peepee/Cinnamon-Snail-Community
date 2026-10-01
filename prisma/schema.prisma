@@ -257,6 +257,7 @@ model User {
   reports              Report[]                @relation("ReportReporter")
   notifications        Notification[]
   pushSubscriptions    PushSubscription[]
+  kitRoadmapSync       KitRoadmapSync?
   pollVotes            PollVote[]
   votes                Vote[]
   eventRsvps           EventRsvp[]
@@ -1430,14 +1431,52 @@ model AiPromptDraft {
 }
 
 model RoadmapTrack {
-  id          String             @id @default(cuid())
-  slug        String             @unique
-  name        String
-  description String?
-  published   Boolean            @default(false)
-  version     Int                @default(1)
-  milestones  RoadmapMilestone[]
-  members     MemberRoadmap[]
+  id              String             @id @default(cuid())
+  slug            String             @unique
+  name            String
+  description     String?
+  published       Boolean            @default(false)
+  version         Int                @default(1)
+  /// Kit tag id applied while a member is on this track, removed when they
+  /// switch or leave. Optional: a track with none still syncs Kit fields.
+  kitTag          String?
+  /// Kit tag id applied once a member finishes the track. Kept afterwards —
+  /// finishing is history, so a restart does not take it away.
+  kitCompletedTag String?
+  milestones      RoadmapMilestone[]
+  members         MemberRoadmap[]
+}
+
+enum KitSyncStatus {
+  PENDING
+  SYNCING
+  SYNCED
+  SKIPPED
+  FAILED
+}
+
+/// One row per member: the roadmap state Kit last confirmed, and whether Kit
+/// is behind. A roadmap change bumps `version`; a sync computes the member's
+/// state from the database, sends only what differs from `applied`, and
+/// records what Kit accepted. Retrying is therefore always safe — it re-derives
+/// the truth and sends nothing that already landed.
+model KitRoadmapSync {
+  userId        String        @id
+  status        KitSyncStatus @default(PENDING)
+  version       Int           @default(1)
+  syncedVersion Int           @default(0)
+  /// `{ fields: Record<string,string>, tags: string[] }` as last confirmed by Kit.
+  applied       Json?
+  subscriberId  String?
+  attempts      Int           @default(0)
+  nextAttemptAt DateTime      @default(now())
+  lockedAt      DateTime?
+  lastError     String?
+  lastSyncedAt  DateTime?
+  updatedAt     DateTime      @updatedAt
+  user          User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([status, nextAttemptAt])
 }
 
 model RoadmapMilestone {

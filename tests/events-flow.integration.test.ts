@@ -1,7 +1,12 @@
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import { RsvpError, cancelRsvp, setRsvp } from "@/lib/events/rsvp";
 import { sendEventReminders, materialiseRecurringEvents } from "@/lib/events/jobs";
+
+// These race dozens of RSVPs against the real database, and outside a request
+// every notification they cause is delivered inline. Alone they take 2–5s;
+// alongside the rest of the suite's database work, 5s is not enough room.
+vi.setConfig({ testTimeout: 20_000 });
 
 /**
  * The event write paths, against the database.

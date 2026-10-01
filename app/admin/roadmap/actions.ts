@@ -103,6 +103,8 @@ export async function updateTrackAction(form: FormData): Promise<ActionResult> {
     await updateTrack(text(form, "trackId"), {
       name: text(form, "name"),
       description: optional(form, "description"),
+      kitTag: optional(form, "kitTag"),
+      kitCompletedTag: optional(form, "kitCompletedTag"),
     });
     revalidatePath(`/admin/roadmap/${slug}`);
     revalidatePath("/admin/roadmap");

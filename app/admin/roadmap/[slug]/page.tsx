@@ -197,6 +197,8 @@ export default async function AdminTrackPage({
                   slug: track.slug,
                   name: track.name,
                   description: track.description,
+                  kitTag: track.kitTag,
+                  kitCompletedTag: track.kitCompletedTag,
                   published: track.published,
                   version: track.version,
                   enrolled: track.enrolled,

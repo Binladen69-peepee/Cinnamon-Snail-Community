@@ -157,6 +157,8 @@ export function TrackSettingsForm({
     slug: string;
     name: string;
     description: string | null;
+    kitTag: string | null;
+    kitCompletedTag: string | null;
     published: boolean;
     version: number;
     enrolled: number;
@@ -202,6 +204,38 @@ export function TrackSettingsForm({
             className={TEXTAREA}
           />
         </Field>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          <Field
+            label="Kit tag while on this track"
+            htmlFor="edit-kit-tag"
+            help="The tag's number from Kit. Removed when a member switches or leaves."
+          >
+            <input
+              id="edit-kit-tag"
+              name="kitTag"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={15}
+              defaultValue={track.kitTag ?? ""}
+              className={INPUT}
+            />
+          </Field>
+          <Field
+            label="Kit tag when finished"
+            htmlFor="edit-kit-completed-tag"
+            help="Added once a member finishes the track, and kept."
+          >
+            <input
+              id="edit-kit-completed-tag"
+              name="kitCompletedTag"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={15}
+              defaultValue={track.kitCompletedTag ?? ""}
+              className={INPUT}
+            />
+          </Field>
+        </div>
         <div className="flex items-center gap-3">
           <button type="submit" disabled={busy} className={PRIMARY}>
             {busy ? "Saving…" : "Save"}

@@ -16,6 +16,10 @@
     {
       "path": "/api/jobs/notifications",
       "schedule": "30 9 * * *"
+    },
+    {
+      "path": "/api/jobs/kit-roadmap",
+      "schedule": "45 9 * * *"
     }
   ]
 }

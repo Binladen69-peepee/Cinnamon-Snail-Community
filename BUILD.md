@@ -2516,7 +2516,7 @@ Seeded local accounts (password `vegan-local-dev`):
 - [x] Cadence
 - [x] Progress
 - [x] Admin authoring — `/admin/roadmap`, all ten §14 capabilities; no track published yet
-- [ ] Kit roadmap sync
+- [x] Kit roadmap sync — fields + per-track tags, active subscribers only, idempotent diff sync with retries
 
 ## Phase 4C
 - [ ] Automation engine

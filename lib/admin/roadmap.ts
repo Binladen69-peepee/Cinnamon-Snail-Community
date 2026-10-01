@@ -1,6 +1,7 @@
 import "server-only";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { queueRoadmapKitSyncForTrack } from "@/lib/roadmap/kit-sync";
 import {
   PRIMARY_BENEFITS,
   SUCKIEST_THINGS,
@@ -155,6 +156,8 @@ export type TrackDetail = {
   slug: string;
   name: string;
   description: string | null;
+  kitTag: string | null;
+  kitCompletedTag: string | null;
   published: boolean;
   version: number;
   enrolled: number;
@@ -169,6 +172,8 @@ export async function loadTrack(slug: string): Promise<TrackDetail | null> {
       slug: true,
       name: true,
       description: true,
+      kitTag: true,
+      kitCompletedTag: true,
       published: true,
       version: true,
       _count: { select: { members: true } },
@@ -231,6 +236,8 @@ export async function loadTrack(slug: string): Promise<TrackDetail | null> {
     slug: track.slug,
     name: track.name,
     description: track.description,
+    kitTag: track.kitTag,
+    kitCompletedTag: track.kitCompletedTag,
     published: track.published,
     version: track.version,
     enrolled: track._count.members,
@@ -320,14 +327,47 @@ export async function createTrack(input: { name: string; description: string | n
 
 export async function updateTrack(
   trackId: string,
-  input: { name: string; description: string | null },
+  input: {
+    name: string;
+    description: string | null;
+    kitTag?: string | null;
+    kitCompletedTag?: string | null;
+  },
 ) {
   const name = input.name.trim();
   if (!name) throw new TrackError("Give the track a name.");
+  const kitTag = kitTagId(input.kitTag);
+  const kitCompletedTag = kitTagId(input.kitCompletedTag);
+
+  const before = await prisma.roadmapTrack.findUnique({
+    where: { id: trackId },
+    select: { kitTag: true, kitCompletedTag: true },
+  });
   await prisma.roadmapTrack.update({
     where: { id: trackId },
-    data: { name, description: input.description?.trim() || null },
+    data: {
+      name,
+      description: input.description?.trim() || null,
+      ...(input.kitTag !== undefined ? { kitTag } : {}),
+      ...(input.kitCompletedTag !== undefined ? { kitCompletedTag } : {}),
+    },
   });
+
+  // New tags mean every member on the track is now behind in Kit.
+  const tagsChanged =
+    (input.kitTag !== undefined && kitTag !== (before?.kitTag ?? null)) ||
+    (input.kitCompletedTag !== undefined && kitCompletedTag !== (before?.kitCompletedTag ?? null));
+  if (tagsChanged) await queueRoadmapKitSyncForTrack(trackId).catch(() => 0);
+}
+
+/** A Kit tag id is a number. Blank clears it; anything else is a typo. */
+function kitTagId(value: string | null | undefined): string | null {
+  const trimmed = value?.trim() ?? "";
+  if (!trimmed) return null;
+  if (!/^\d{1,15}$/.test(trimmed)) {
+    throw new TrackError("A Kit tag is its number from Kit (Subscribers → Tags), not its name.");
+  }
+  return trimmed;
 }
 
 /**
@@ -343,6 +383,9 @@ export async function setPublished(trackId: string, published: boolean) {
     if (count === 0) throw new TrackError("Add a milestone before publishing this track.");
   }
   await prisma.roadmapTrack.update({ where: { id: trackId }, data: { published } });
+  // Withdrawing a track takes its members off it as far as Kit is concerned,
+  // and publishing brings them back.
+  await queueRoadmapKitSyncForTrack(trackId).catch(() => 0);
 }
 
 /**

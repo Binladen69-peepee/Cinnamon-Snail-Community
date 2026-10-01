@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import * as Sentry from "@sentry/nextjs";
 import { auth } from "@/auth";
 import { track } from "@/lib/analytics/server";
+import { queueRoadmapKitSync } from "@/lib/roadmap/kit-sync";
 import { consumeRateLimit } from "@/lib/auth/rate-limit";
 import {
   completeMilestone,
@@ -53,6 +54,9 @@ async function run(
       code = "failed";
     }
   }
+  // Kit hears about it after the response. Queueing never throws and never
+  // blocks: a Kit problem is a delay in Kit, not a failed roadmap action.
+  if (!code) await queueRoadmapKitSync(userId);
   revalidatePath("/roadmap");
   redirect(code ? `/roadmap?error=${code}` : `/roadmap${suffix}`);
 }
