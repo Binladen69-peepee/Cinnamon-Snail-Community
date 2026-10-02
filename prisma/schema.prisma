@@ -1391,25 +1391,70 @@ model KitSyncLog {
 }
 
 model AutomationRule {
-  id         String          @id @default(cuid())
-  name       String
-  trigger    String
-  conditions Json
-  actions    Json
-  enabled    Boolean         @default(false)
-  createdAt  DateTime        @default(now())
+  id          String    @id @default(cuid())
+  /// Stable key, so the shipped rules can be re-seeded without duplicating.
+  slug        String    @unique
+  name        String
+  description String?
+  trigger     String
+  conditions  Json
+  actions     Json
+  /// Off by default: a rule that emails members must be switched on by hand.
+  enabled     Boolean   @default(false)
+  lastRunAt   DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
   executions RuleExecution[]
 }
 
 model RuleExecution {
-  id        String         @id @default(cuid())
-  ruleId    String
-  userId    String?
-  dryRun    Boolean        @default(false)
+  id     String  @id @default(cuid())
+  ruleId String
+  userId String?
+  dryRun Boolean @default(false)
+
+  /// What this firing was *about*, derived from the member's state (see
+  /// lib/automation/triggers.ts). The unique index below is the whole
+  /// idempotency story: the same member in the same state cannot be acted on
+  /// twice, however often the job runs. Null for dry runs, and Postgres allows
+  /// many nulls in a unique index, so a preview never consumes a key.
+  dedupeKey String?
+
   success   Boolean
   output    Json?
-  createdAt DateTime       @default(now())
-  rule      AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  rule AutomationRule @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+
+  @@unique([ruleId, dedupeKey])
+  @@index([ruleId, createdAt])
+  @@index([userId, createdAt])
+}
+
+/// One row, holding the global kill switch. A table rather than an env var so
+/// "pause all automations" is one click in the console and takes effect on the
+/// next run, without a deploy.
+model AutomationSettings {
+  id        String    @id @default("singleton")
+  pausedAt  DateTime?
+  pausedBy  String?
+  updatedAt DateTime  @updatedAt
+}
+
+/// The "Admin task" action: something a rule decided a human should look at.
+model AdminTask {
+  id         String    @id @default(cuid())
+  title      String
+  detail     String?
+  userId     String?
+  ruleId     String?
+  status     String    @default("open")
+  createdAt  DateTime  @default(now())
+  resolvedAt DateTime?
+  resolvedBy String?
+
+  @@index([status, createdAt])
 }
 
 model AiPromptSchedule {

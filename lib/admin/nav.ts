@@ -10,6 +10,7 @@ import {
   Receipt,
   Users,
   Webhook,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 
@@ -66,7 +67,10 @@ export const ADMIN_NAV: AdminNavGroup[] = [
   },
   {
     label: "Messaging",
-    items: [{ href: "/admin/welcome", label: "Welcome DM", icon: Mail }],
+    items: [
+      { href: "/admin/welcome", label: "Welcome DM", icon: Mail },
+      { href: "/admin/automation", label: "Automation", icon: Workflow },
+    ],
   },
 ];
 

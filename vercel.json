@@ -28,6 +28,10 @@
     {
       "path": "/api/jobs/billing?job=retry",
       "schedule": "15 6 * * *"
+    },
+    {
+      "path": "/api/jobs/automation",
+      "schedule": "0 10 * * *"
     }
   ]
 }

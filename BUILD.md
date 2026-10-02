@@ -2519,13 +2519,13 @@ Seeded local accounts (password `vegan-local-dev`):
 - [x] Kit roadmap sync — fields + per-track tags, active subscribers only, idempotent diff sync with retries
 
 ## Phase 4C
-- [ ] Automation engine
-- [ ] Rules
-- [ ] Conditions
-- [ ] Actions
-- [ ] Dry run
-- [ ] Execution logs
-- [ ] Initial rules
+- [x] Automation engine — state-based, idempotent per member per state, capped
+- [x] Rules — `AutomationRule`, authored and switched on in `/admin/automation`
+- [x] Conditions — typed tests over the facts a trigger produces, all must hold
+- [x] Actions — notification, email, Kit tag, Kit field, space, badge, admin task, AI draft
+- [x] Dry run — previews who would be acted on, consuming nothing
+- [x] Execution logs — `RuleExecution` per member per firing, with retry
+- [x] Initial rules — all fourteen, shipped disabled
 
 ## Phase 4D
 - [ ] AI voice profile
