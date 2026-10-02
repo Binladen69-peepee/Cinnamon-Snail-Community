@@ -1458,21 +1458,90 @@ model AdminTask {
 }
 
 model AiPromptSchedule {
-  id       String          @id @default(cuid())
-  spaceId  String?
-  timezone String          @default("America/Los_Angeles")
-  config   Json
-  paused   Boolean         @default(true)
-  drafts   AiPromptDraft[]
+  id      String  @id @default(cuid())
+  name    String  @default("Cohost")
+  spaceId String?
+
+  timezone String @default("America/Los_Angeles")
+
+  /// Day-of-week controls, per-day publish time, draft count, lead time,
+  /// blackout dates and the stale-draft threshold. Parsed by
+  /// lib/ai/schedule.ts; anything unreadable falls back to the defaults there.
+  config Json
+
+  /// Starts paused. Generation also pauses itself under backpressure — see
+  /// `autoPausedAt`, which is distinct so an operator can tell "I paused this"
+  /// from "it paused because nobody is reviewing".
+  paused          Boolean   @default(true)
+  autoPausedAt    DateTime?
+  autoPauseReason String?
+
+  /// Who an approved prompt is published as. Null means it cannot publish.
+  authorUserId String?
+
+  lastGeneratedAt DateTime?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  drafts AiPromptDraft[]
+
+  @@index([paused])
 }
 
 model AiPromptDraft {
-  id         String           @id @default(cuid())
+  id         String @id @default(cuid())
   scheduleId String
+
+  /// What the model wrote. `editedBody` is what a human changed it to; the
+  /// original is kept so an edit can be compared against what was generated.
   body       String
-  status     String           @default("pending")
-  createdAt  DateTime         @default(now())
-  schedule   AiPromptSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  editedBody String?
+
+  /// One of the seven types in BUILD.md §16.
+  promptType String @default("experience")
+
+  /// pending | approved | rejected | snoozed | published | failed
+  status String @default("pending")
+
+  /// Why the guardrails let this through, or what they caught. Kept on
+  /// rejected drafts so a pattern of refusals is visible rather than silent.
+  guardrail Json?
+
+  /// Model, inputs summary and similarity score — what produced this.
+  generation Json?
+
+  /// When an approved draft should go live. There is no auto-publish: this is
+  /// only ever set once a human has approved it.
+  publishAt       DateTime?
+  publishedAt     DateTime?
+  publishedPostId String?
+
+  snoozedUntil    DateTime?
+  rejectionReason String?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  schedule AiPromptSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+
+  @@index([status, createdAt])
+  @@index([scheduleId, status])
+  @@index([status, publishAt])
+}
+
+/// Adam's voice, as the generator is told it. One row.
+model AiVoiceProfile {
+  id          String   @id @default("singleton")
+  /// How he sounds, in his own framing.
+  voice       String
+  /// Words and claims that must never appear (guardrails read this too).
+  bannedTerms String[] @default([])
+  /// Subjects worth returning to.
+  themes      String[] @default([])
+  updatedAt   DateTime @updatedAt
+  updatedBy   String?
 }
 
 model RoadmapTrack {

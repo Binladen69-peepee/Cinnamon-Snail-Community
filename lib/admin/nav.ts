@@ -1,4 +1,5 @@
 import {
+  Bot,
   BookOpen,
   CalendarDays,
   ClipboardList,
@@ -70,6 +71,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { href: "/admin/welcome", label: "Welcome DM", icon: Mail },
       { href: "/admin/automation", label: "Automation", icon: Workflow },
+      { href: "/admin/cohost", label: "AI cohost", icon: Bot },
     ],
   },
 ];

@@ -2528,14 +2528,14 @@ Seeded local accounts (password `vegan-local-dev`):
 - [x] Initial rules — all fourteen, shipped disabled
 
 ## Phase 4D
-- [ ] AI voice profile
-- [ ] Prompt schedules
-- [ ] Prompt generation
-- [ ] Guardrails
-- [ ] Similarity detection
-- [ ] Approval queue
-- [ ] Publishing
-- [ ] Analytics
+- [x] AI voice profile — `AiVoiceProfile`, with a default in `lib/ai/context.ts`
+- [x] Prompt schedules — days, per-day time, draft count, lead time, blackout dates, timezone, pause, backpressure
+- [x] Prompt generation — Claude via the Anthropic SDK, structured output, seven prompt types
+- [x] Guardrails — health claims, banned terms, approving non-vegan references, similarity, length, stacked questions
+- [x] Similarity detection — bigram overlap against recent prompts
+- [x] Approval queue — approve, edit + approve, regenerate, reject, snooze, bulk approve; no auto-publish
+- [x] Publishing — approved drafts only, claimed before posting; polls publish as polls
+- [x] Analytics — replies and reactions on each published prompt
 
 ## Phase 4E
 - [ ] Challenges
