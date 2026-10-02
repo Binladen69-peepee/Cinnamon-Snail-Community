@@ -20,6 +20,14 @@
     {
       "path": "/api/jobs/kit-roadmap",
       "schedule": "45 9 * * *"
+    },
+    {
+      "path": "/api/jobs/billing?job=reconcile",
+      "schedule": "0 6 * * *"
+    },
+    {
+      "path": "/api/jobs/billing?job=retry",
+      "schedule": "15 6 * * *"
     }
   ]
 }

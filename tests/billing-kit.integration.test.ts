@@ -1,0 +1,234 @@
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { PrismaClient } from "@prisma/client";
+import { ingestSamcartPayload, processBillingEvent } from "@/lib/billing/process-event";
+import { confirmCancellation, startCancellation } from "@/lib/billing/cancel";
+import { clearKitTagCache, retryFailedKitSyncs } from "@/lib/billing/kit";
+import { runNightlyReconciliation } from "@/lib/billing/reconcile";
+import { userHasActiveEntitlement } from "@/lib/entitlements/server";
+import { getTransactionalInbox } from "@/lib/email/send";
+
+/**
+ * BUILD.md §30's open billing acceptance tests, against the database:
+ *
+ * - Purchase applies the Kit tag (immediately, inside webhook processing).
+ * - Kit state updates: a refund removes that one tag — never a global
+ *   unsubscribe — and a failed Kit call is retried from current access.
+ * - Cancellation propagates to SamCart, and SamCart's period end is honoured.
+ * - The daily reconciliation email is sent and recorded.
+ *
+ * Kit and SamCart are replaced at the network edge only: `fetch` to their
+ * hosts is answered here and every request is recorded, so the real request
+ * shapes are what is asserted. Needs the local Docker Postgres.
+ */
+// Before any import reads them: samcart-api.ts fixes its base URL at load.
+vi.hoisted(() => {
+  process.env.KIT_API_KEY = "test-key";
+  process.env.KIT_API_SECRET = "test-secret";
+  process.env.KIT_API_BASE = "https://kit.test/v3";
+  process.env.SAMCART_API_KEY = "test-samcart";
+  process.env.SAMCART_API_BASE = "https://samcart.test/v1";
+});
+
+const prisma = new PrismaClient();
+const stamp = Date.now().toString(36);
+const email = `billing-kit-${stamp}@veganuniversity.test`;
+const tagName = `vu-test-${stamp}`;
+const samcartProduct = `77${Date.now() % 1_000_000}`;
+let reachable = true;
+let userId = "";
+let productId = "";
+
+type Seen = { method: string; host: string; path: string; body: Record<string, unknown> | null; headers: Headers };
+const seen: Seen[] = [];
+let kitFailures = 0;
+const KIT_TAG_ID = "424242";
+
+function installNetwork() {
+  const real = globalThis.fetch;
+  vi.stubGlobal("fetch", async (input: URL | string | Request, init?: RequestInit) => {
+    const url = new URL(typeof input === "string" || input instanceof URL ? input : input.url);
+    const body = init?.body ? (JSON.parse(String(init.body)) as Record<string, unknown>) : null;
+    const record: Seen = { method: init?.method ?? "GET", host: url.host, path: url.pathname, body, headers: new Headers(init?.headers) };
+    if (url.host === "kit.test") {
+      seen.push(record);
+      if (kitFailures > 0 && record.method === "POST") {
+        kitFailures -= 1;
+        return new Response("down", { status: 503 });
+      }
+      if (url.pathname === "/v3/tags" && record.method === "GET") {
+        return Response.json({ tags: [{ id: Number(KIT_TAG_ID), name: tagName }] });
+      }
+      return Response.json({ subscription: { id: 1 } });
+    }
+    if (url.host === "samcart.test") {
+      seen.push(record);
+      if (url.pathname.endsWith("/cancel")) return Response.json({ data: { status: "canceled" } });
+      if (url.pathname.startsWith("/v1/subscriptions/")) {
+        return Response.json({ data: { id: "x", status: "canceled", service_end_date: "2099-01-31T00:00:00Z" } });
+      }
+      if (url.pathname === "/v1/subscriptions") return Response.json({ data: [] });
+      return Response.json({});
+    }
+    return real(input as RequestInfo, init);
+  });
+}
+
+beforeAll(async () => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+  } catch {
+    reachable = false;
+    return;
+  }
+  delete process.env.RESEND_API_KEY;
+  process.env.BILLING_ALERT_EMAIL = `alerts-${stamp}@veganuniversity.test`;
+  installNetwork();
+
+  const product = await prisma.product.create({
+    data: { slug: `kit-test-${stamp}`, name: "Kit test product", kind: "COURSE", kitTag: tagName },
+  });
+  productId = product.id;
+  await prisma.samcartProductMap.create({ data: { productId, samcartProductId: samcartProduct } });
+  const user = await prisma.user.create({
+    data: {
+      email,
+      handle: `billkit${stamp}`,
+      emails: { create: { email, verifiedAt: new Date(), isPrimary: true } },
+    },
+  });
+  userId = user.id;
+});
+
+beforeEach(() => {
+  seen.length = 0;
+  kitFailures = 0;
+  clearKitTagCache();
+});
+
+afterAll(async () => {
+  vi.unstubAllGlobals();
+  if (reachable && userId) {
+    await prisma.cancellationRequest.deleteMany({ where: { userId } });
+    await prisma.entitlement.deleteMany({ where: { userId } });
+    const subs = await prisma.subscription.findMany({ where: { userId }, select: { id: true } });
+    await prisma.billingEvent.deleteMany({ where: { subscriptionId: { in: subs.map((sub) => sub.id) } } });
+    await prisma.subscription.deleteMany({ where: { userId } });
+    await prisma.kitSyncLog.deleteMany({ where: { userId } });
+    await prisma.auditLog.deleteMany({ where: { actorId: userId } });
+    await prisma.userEmail.deleteMany({ where: { userId } });
+    await prisma.user.deleteMany({ where: { id: userId } });
+    await prisma.samcartProductMap.deleteMany({ where: { productId } });
+    await prisma.product.deleteMany({ where: { id: productId } });
+  }
+  await prisma.$disconnect();
+});
+
+const orderId = Date.now();
+const subscriptionId = Date.now() + 1;
+
+async function webhook(type: string, order = orderId, subscription = subscriptionId) {
+  const payload = {
+    type,
+    product: { id: Number(samcartProduct), name: "Kit test product", price: 49 },
+    customer: { email },
+    order: { id: order, total: 49, subscription_id: subscription },
+  };
+  const ingest = await ingestSamcartPayload({ rawBody: JSON.stringify(payload), payload });
+  return processBillingEvent(ingest.event.id);
+}
+
+const kitCalls = () => seen.filter((call) => call.host === "kit.test");
+
+describe("billing → Kit", () => {
+  it("purchase applies the product's Kit tag, by id, in the same webhook", async ({ skip }) => {
+    if (!reachable) skip();
+    const result = await webhook("Product Purchased");
+    expect(result.ok).toBe(true);
+    expect(await userHasActiveEntitlement(userId)).toBe(true);
+
+    const calls = kitCalls();
+    // The configured name is resolved to Kit's numeric id first.
+    expect(calls[0]).toMatchObject({ method: "GET", path: "/v3/tags" });
+    const subscribe = calls.find((call) => call.path === `/v3/tags/${KIT_TAG_ID}/subscribe`);
+    expect(subscribe?.method).toBe("POST");
+    expect(subscribe?.body).toMatchObject({ email, api_key: "test-key" });
+
+    const log = await prisma.kitSyncLog.findFirst({ where: { userId }, orderBy: { createdAt: "desc" } });
+    expect(log).toMatchObject({ action: "kit.grant", success: true });
+  });
+
+  it("a refund removes only that tag and never unsubscribes the person", async ({ skip }) => {
+    if (!reachable) skip();
+    await webhook("Product Refunded");
+    expect(await userHasActiveEntitlement(userId)).toBe(false);
+    const paths = kitCalls().map((call) => `${call.method} ${call.path}`);
+    expect(paths).toContain(`POST /v3/tags/${KIT_TAG_ID}/unsubscribe`);
+    expect(paths).not.toContain("POST /v3/unsubscribe");
+    const log = await prisma.kitSyncLog.findFirst({ where: { userId }, orderBy: { createdAt: "desc" } });
+    expect(log).toMatchObject({ action: "kit.revoke", success: true });
+  });
+
+  it("retries a failed Kit call from current access, once it recovers", async ({ skip }) => {
+    if (!reachable) skip();
+    // A new purchase while Kit is down: access is granted regardless.
+    kitFailures = 1;
+    const result = await webhook("Product Purchased", orderId + 10, subscriptionId + 10);
+    expect(result.ok).toBe(true);
+    expect(await userHasActiveEntitlement(userId)).toBe(true);
+    const failed = await prisma.kitSyncLog.findFirst({ where: { userId }, orderBy: { createdAt: "desc" } });
+    expect(failed).toMatchObject({ action: "kit.grant", success: false });
+
+    seen.length = 0;
+    const retry = await retryFailedKitSyncs();
+    expect(retry).toMatchObject({ retried: 1, succeeded: 1 });
+    expect(kitCalls().some((call) => call.path === `/v3/tags/${KIT_TAG_ID}/subscribe`)).toBe(true);
+    // Nothing left to retry.
+    expect((await retryFailedKitSyncs()).retried).toBe(0);
+  });
+});
+
+describe("cancellation → SamCart", () => {
+  it("cancels in SamCart with the API key and keeps access until SamCart's period end", async ({ skip }) => {
+    if (!reachable) skip();
+    const subscription = await prisma.subscription.create({
+      data: {
+        userId,
+        productId,
+        status: "ACTIVE",
+        samcartSubscriptionId: `sc-${stamp}`,
+      },
+    });
+    await prisma.entitlement.create({
+      data: { userId, productId, subscriptionId: subscription.id, source: "SUBSCRIPTION", status: "ACTIVE" },
+    });
+    const { request } = await startCancellation(userId, subscription.id);
+    const result = await confirmCancellation({ requestId: request.id, userId, reason: "test" });
+
+    expect(result.ok).toBe(true);
+    const cancel = seen.find((call) => call.host === "samcart.test" && call.path.endsWith("/cancel"));
+    expect(cancel).toMatchObject({ method: "POST", path: `/v1/subscriptions/sc-${stamp}/cancel` });
+    expect(cancel?.headers.get("sc-api")).toBe("test-samcart");
+
+    const after = await prisma.subscription.findUniqueOrThrow({ where: { id: subscription.id } });
+    expect(after.status).not.toBe("ACTIVE");
+    const done = await prisma.cancellationRequest.findUniqueOrThrow({ where: { id: request.id } });
+    expect(done.status).toBe("succeeded");
+    // SamCart said 2099: access runs until then.
+    expect(await userHasActiveEntitlement(userId)).toBe(true);
+  });
+});
+
+describe("daily reconciliation", () => {
+  it("sends its email and records that it did", async ({ skip }) => {
+    if (!reachable) skip();
+    const before = getTransactionalInbox().length;
+    const result = await runNightlyReconciliation();
+    const inbox = getTransactionalInbox().slice(before);
+    const mail = inbox.find((item) => item.to === process.env.BILLING_ALERT_EMAIL);
+    expect(mail?.subject).toMatch(/billing reconciliation (is clean|found drift)/);
+    const run = await prisma.reconciliationRun.findUniqueOrThrow({ where: { id: result.runId } });
+    expect(run.emailSentAt).not.toBeNull();
+    // It compared against SamCart rather than giving up.
+    expect(seen.some((call) => call.host === "samcart.test" && call.path === "/v1/subscriptions")).toBe(true);
+  });
+});

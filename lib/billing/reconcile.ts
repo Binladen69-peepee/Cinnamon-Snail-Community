@@ -169,28 +169,47 @@ export async function runNightlyReconciliation() {
       if (finding.kind === "paying_no_access" && finding.subscriptionId && finding.userId) {
         const subscription = subscriptions.find((item) => item.id === finding.subscriptionId);
         if (subscription) {
-          await applyEntitlementEffect({
-            userId: subscription.userId,
-            productId: subscription.productId,
-            subscriptionId: subscription.id,
-            source: "SUBSCRIPTION",
-            effect: { kind: "grant" },
-          });
-          fixed = true;
-          autoFixed += 1;
+          // One row that cannot be fixed must not stop the run, or the
+          // nightly email, for every other row. It is recorded as unfixed.
+          try {
+            await applyEntitlementEffect({
+              userId: subscription.userId,
+              productId: subscription.productId,
+              subscriptionId: subscription.id,
+              source: "SUBSCRIPTION",
+              effect: { kind: "grant" },
+            });
+            fixed = true;
+            autoFixed += 1;
+          } catch (error) {
+            finding.detail = {
+              ...finding.detail,
+              autoFixError: error instanceof Error ? error.message.slice(0, 300) : "failed",
+            };
+          }
         }
       }
-      await prisma.reconciliationFinding.create({
-        data: {
-          runId: run.id,
-          kind: finding.kind,
-          severity: finding.severity,
-          userId: finding.userId ?? null,
-          subscriptionId: finding.subscriptionId ?? null,
-          detail: finding.detail as Prisma.InputJsonValue,
-          autoFixed: fixed,
-        },
-      });
+      await prisma.reconciliationFinding
+        .create({
+          data: {
+            runId: run.id,
+            kind: finding.kind,
+            severity: finding.severity,
+            userId: finding.userId ?? null,
+            subscriptionId: finding.subscriptionId ?? null,
+            detail: finding.detail as Prisma.InputJsonValue,
+            autoFixed: fixed,
+          },
+        })
+        .catch((error) => {
+          // A row deleted mid-run (its member just closed their account) must
+          // not cost the rest of the report.
+          console.error("[billing] could not record reconciliation finding", {
+            runId: run.id,
+            kind: finding.kind,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
     }
 
     const alerts = findings.filter((item) => item.severity === "alert").length;
@@ -209,7 +228,16 @@ export async function runNightlyReconciliation() {
       },
     });
 
-    await sendReconciliationEmail(run.id, status, autoFixed, alerts, findings.length === 0);
+    // The email reports the run; it must not decide whether the run happened.
+    // A mail outage leaves `emailSentAt` empty, which is the signal it failed.
+    await sendReconciliationEmail(run.id, status, autoFixed, alerts, findings.length === 0).catch(
+      (error) => {
+        console.error("[billing] reconciliation email failed", {
+          runId: run.id,
+          error: error instanceof Error ? error.message : String(error),
+        });
+      },
+    );
     await writeAuditLog({
       action: "billing.reconciliation",
       targetType: "reconciliation_run",
