@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertTriangle, RotateCw } from "lucide-react";
+import { RotateCw } from "lucide-react";
 import * as Sentry from "@sentry/nextjs";
+import { Button, ErrorState } from "@/components/app/ui";
 
 /**
  * When a console page throws.
@@ -29,32 +30,16 @@ export default function AdminError({
   }, [error]);
 
   return (
-    <div className="grid min-h-[60vh] place-items-center px-4">
-      <div className="vu-raise w-full max-w-[44ch] rounded-card border border-border bg-surface p-6 text-center">
-        <span className="mx-auto grid size-11 place-items-center rounded-full bg-danger/12 text-danger">
-          <AlertTriangle className="size-5" aria-hidden />
-        </span>
-        <h1 className="mt-3 font-display text-[1.15rem] font-bold text-foreground">
-          This page could not load
-        </h1>
-        <p className="mt-1.5 text-[13px] leading-snug text-foreground-muted">
-          Something failed on the way to the database. Nothing was changed by
-          this, so it is safe to try again.
-        </p>
-        <button
-          type="button"
-          onClick={reset}
-          className="vu-btn vu-btn-primary mt-4 inline-flex h-9 items-center gap-1.5 px-3.5 text-[13px]"
-        >
-          <RotateCw className="size-3.5" aria-hidden />
+    <ErrorState
+      title="This page could not load"
+      description="Something failed on the way to the database. Nothing was changed by this, so it is safe to try again."
+      digest={error.digest}
+      action={
+        <Button variant="primary" onClick={reset}>
+          <RotateCw className="size-4" aria-hidden />
           Try again
-        </button>
-        {error.digest ? (
-          <p className="mt-3 text-[11px] tabular-nums text-foreground-muted">
-            Reference {error.digest}
-          </p>
-        ) : null}
-      </div>
-    </div>
+        </Button>
+      }
+    />
   );
 }

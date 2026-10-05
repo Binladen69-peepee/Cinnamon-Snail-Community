@@ -106,22 +106,47 @@ const PAIRS = [
 const SIDEBAR = [
   ["sidebar-foreground", "sidebar", 4.5, "nav label"],
   ["sidebar-accent-foreground", "sidebar-accent", 4.5, "the active nav item"],
+  ["foreground-muted", "sidebar", 4.5, "an inactive nav item"],
+];
+
+/**
+ * Pairs held only in the app design system (DEC-076): its own roles, and a
+ * field edge raised to WCAG 1.4.11's 3:1. The marketing site is frozen as it
+ * is, so these are not applied to its blocks.
+ */
+const APP_PAIRS = [
+  ["foreground-muted", "surface-muted", 4.5, "secondary text on a hover fill"],
+  ["foreground-muted", "overlay", 4.5, "secondary text in a menu"],
+  ["field-border", "field-background", 3, "an input's edge (WCAG 1.4.11)"],
+  ["field-border", "background", 3, "an input's edge on the ground"],
+  ["brand-fill", "background", 3, "a primary button against the ground"],
+  ["highlight-ink", "surface", 4.5, "terracotta text on a card"],
+  ["highlight-ink", "highlight-wash", 4.5, "terracotta text on its wash"],
+  ["on-highlight", "highlight", 4.5, "a count on its terracotta badge"],
+  ["highlight", "surface", 3, "a terracotta mark"],
+  ["on-accent-sage", "accent-sage", 4.5, "text on a sage fill"],
+  ["brand-strong", "accent-sage-wash", 4.5, "brand text on a sage wash"],
+  ["success", "success-wash", 4.5, "a success badge"],
+  ["warning", "warning-wash", 4.5, "a warning badge"],
+  ["danger", "danger-wash", 4.5, "a danger badge"],
+  ["info", "surface", 4.5, "info text"],
+  ["info", "info-wash", 4.5, "an info badge"],
 ];
 
 const SCOPES = [
-  ["member / marketing — light", block(":root,\n  .light,")],
-  ["member / marketing — dark", block(".dark,\n  [data-theme=\"dark\"]")],
-  ["admin console — dark", block(".vu-admin {")],
-  ["admin console — light", block(":root:not(.dark) .vu-admin,")],
+  ["marketing — light", block(":root,\n  .light,"), false],
+  ["marketing — dark", block(".dark,\n  [data-theme=\"dark\"]"), false],
+  ["member app + console — light", block(":root:has([data-app-shell], .vu-admin) {"), true],
+  ["member app + console — dark", block(":root.dark:has([data-app-shell], .vu-admin) {"), true],
 ];
 
 let failures = 0;
 let checked = 0;
 let skipped = 0;
 
-for (const [name, tokens] of SCOPES) {
+for (const [name, tokens, isApp] of SCOPES) {
   console.log(`\n=== ${name} ===`);
-  for (const [fg, bg, min, what] of [...PAIRS, ...SIDEBAR]) {
+  for (const [fg, bg, min, what] of [...PAIRS, ...SIDEBAR, ...(isApp ? APP_PAIRS : [])]) {
     const a = tokens[fg];
     const b = tokens[bg];
     // A scope inherits anything it does not restate; only judge what it sets.

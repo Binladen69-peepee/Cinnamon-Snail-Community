@@ -1,5 +1,23 @@
 import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { extendTailwindMerge } from "tailwind-merge";
+
+/**
+ * tailwind-merge only knows Tailwind's default scales. Without these, the
+ * app's own radii (`rounded-card`) never replaced a `rounded-xl` passed in by
+ * a caller, its shadows (`shadow-e2`) were filed as shadow *colours*, and its
+ * type scale (`text-label`) would be mistaken for a text colour and dropped
+ * next to `text-foreground`. Registered here, an override on a primitive
+ * actually overrides.
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    theme: {
+      radius: ["chip", "ctl", "card", "modal"],
+      shadow: ["e1", "e2", "e3", "lift"],
+      text: ["micro", "caption", "label", "body", "reading", "title", "heading", "display"],
+    },
+  },
+});
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

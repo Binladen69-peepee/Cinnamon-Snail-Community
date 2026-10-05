@@ -5,6 +5,6 @@ import { cn } from "@/lib/utils";
 
 export function Skeleton({ className }: { className?: string }) {
   return (
-    <HeroSkeleton className={cn("rounded-xl", className)} aria-hidden />
+    <HeroSkeleton className={cn("rounded-ctl", className)} aria-hidden />
   );
 }

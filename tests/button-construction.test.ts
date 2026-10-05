@@ -68,15 +68,24 @@ describe("button construction", () => {
   });
 
   it("is actually used by the buttons people click", () => {
+    // The app's Button (components/app/ui.tsx) is built on `vu-btn`, and is
+    // what the console and the member app render. A surface counts as using
+    // the construction if it writes the class or renders that Button.
+    const app = readFileSync(resolve(process.cwd(), "components/app/ui.tsx"), "utf8");
+    expect(app).toContain("vu-btn");
     const surfaces = [
-      "components/admin/ui.tsx",
       "components/feed/feed-rail.tsx",
       "components/app/app-header.tsx",
       "components/feed/post-follow-button.tsx",
     ];
     for (const file of surfaces) {
       const source = readFileSync(resolve(process.cwd(), file), "utf8");
-      expect(source, `${file} does not use the button`).toContain("vu-btn");
+      const usesButton =
+        source.includes("vu-btn") ||
+        /import \{[^}]*\b(Button|ButtonLink|buttonClass)\b[^}]*\} from "@\/components\/app\/ui"/.test(
+          source,
+        );
+      expect(usesButton, `${file} does not use the button`).toBe(true);
     }
   });
 });

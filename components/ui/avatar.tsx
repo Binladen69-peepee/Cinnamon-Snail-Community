@@ -3,9 +3,11 @@
 import { cn } from "@/lib/utils";
 
 const sizeClass = {
+  xs: "size-6 text-[9px]",
   sm: "size-9 text-[11px]",
   md: "size-11 text-xs",
   lg: "size-16 text-base",
+  xl: "size-24 text-xl",
 } as const;
 
 export function Avatar({
@@ -16,7 +18,7 @@ export function Avatar({
 }: {
   name: string;
   src?: string | null;
-  size?: "sm" | "md" | "lg";
+  size?: keyof typeof sizeClass;
   className?: string;
 }) {
   const initials = name

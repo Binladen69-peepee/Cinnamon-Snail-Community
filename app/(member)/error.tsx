@@ -7,12 +7,15 @@ import { AppShell } from "@/components/app/app-shell";
 import { Button, ButtonLink, ErrorState } from "@/components/app/ui";
 
 /**
- * When the inbox cannot load.
+ * When a member page throws.
  *
- * Says so plainly and offers a retry. Nothing was read or changed by the
- * failure — loading the inbox never writes — so retrying is always safe.
+ * Only the inbox had a boundary of its own, so every other member page fell
+ * through to the global error page, which replaces the whole document: no
+ * header, no rail, no way back but the browser. This keeps the frame, says
+ * what happened, and offers the one action that usually fixes a transient
+ * failure. `digest` ties the render to the server log; the stack stays there.
  */
-export default function NotificationsError({
+export default function MemberError({
   error,
   reset,
 }: {
@@ -20,14 +23,14 @@ export default function NotificationsError({
   reset: () => void;
 }) {
   useEffect(() => {
-    Sentry.captureException(error, { tags: { area: "notifications" } });
+    Sentry.captureException(error, { tags: { area: "member" } });
   }, [error]);
 
   return (
     <AppShell>
       <ErrorState
-        title="Notifications could not load"
-        description="Nothing was marked read. Try again in a moment."
+        title="This page could not load"
+        description="Something failed on our side. Nothing you did was lost, and it is safe to try again."
         digest={error.digest}
         action={
           <>

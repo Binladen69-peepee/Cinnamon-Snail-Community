@@ -9,11 +9,10 @@ import { AnalyticsIdentity } from "@/components/analytics/identity";
 /**
  * The admin console.
  *
- * It follows the theme: cream in light, black in dark, forest in both.
- * `.vu-admin` tightens the console's surfaces a step past the member app's --
- * denser borders, a flatter elevation ladder -- without introducing a
- * second palette. Every component here paints from role tokens, so the whole
- * console re-skins from that one scope.
+ * It follows the theme and shares the member app's design system (DEC-076):
+ * the same palette and the same parts from components/app/ui.tsx. Every
+ * component here paints from role tokens, so the whole console re-skins from
+ * one place.
  *
  * Admin is deliberately not the member shell. Moderation and billing should not
  * sit inside the same furniture as the feed, and a surface that looks nothing
@@ -53,19 +52,19 @@ export default async function AdminLayout({
     <div className="vu-admin min-h-screen bg-background text-foreground">
       <aside
         aria-label="Admin"
-        className="vu-admin-rail fixed inset-y-0 left-0 z-50 hidden w-56 border-r border-sidebar-border bg-sidebar lg:block"
+        className="vu-admin-rail fixed inset-y-0 left-0 z-50 hidden w-60 border-r border-sidebar-border bg-sidebar lg:block"
       >
         <AdminSidebar {...identity} badges={{ openReports }} />
       </aside>
 
       <AdminMobileNav {...identity} />
 
-      <div className="lg:pl-56">
+      <div className="lg:pl-60">
         {/* The rail carries navigation; this carries the three things that are
             wanted from any page in the console — find a member, clear the
             queue, check who you are signed in as. */}
         <AdminTopbar {...identity} openReports={openReports} />
-        <main className="mx-auto w-full max-w-[1180px] px-4 pb-16 pt-4 sm:px-6">
+        <main className="mx-auto w-full max-w-300 px-4 pb-16 pt-6 sm:px-6 sm:pt-8 lg:px-8">
           {children}
         </main>
       </div>

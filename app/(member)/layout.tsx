@@ -5,6 +5,7 @@ import { totalUnreadForUser } from "@/lib/messages/conversations";
 import { AppHeader } from "@/components/app/app-header";
 import { SideRail } from "@/components/app/side-rail";
 import { MobileTabs } from "@/components/app/mobile-tabs";
+import { NavDrawer } from "@/components/app/nav-drawer";
 import { AnalyticsIdentity } from "@/components/analytics/identity";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +53,17 @@ export default async function MemberLayout({
     totalUnreadForUser(session.user.id).catch(() => 0),
   ]);
 
+  const rail = (
+    <SideRail
+      favorites={nav.favorites}
+      groups={nav.groups}
+      unread={{
+        "/messages": unreadMessages,
+        "/spaces": nav.totalUnread,
+      }}
+    />
+  );
+
   return (
     <div data-app-shell className="min-h-screen bg-background text-foreground">
       {/* Full height and above the header, so the rail reads as one panel
@@ -62,18 +74,12 @@ export default async function MemberLayout({
         aria-label="Destinations"
         className="vu-app-sidebar fixed inset-y-0 left-0 z-50 hidden w-60 flex-col border-r border-sidebar-border bg-sidebar lg:flex"
       >
-        <SideRail
-          favorites={nav.favorites}
-          groups={nav.groups}
-          unread={{
-            "/messages": unreadMessages,
-            "/spaces": nav.totalUnread,
-          }}
-        />
+        {rail}
       </aside>
 
       <div className="lg:pl-60">
-        <AppHeader />
+        {/* Below `lg` the same rail opens as a drawer from the bar. */}
+        <AppHeader menu={<NavDrawer>{rail}</NavDrawer>} />
         {children}
       </div>
 

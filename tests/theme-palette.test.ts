@@ -3,22 +3,31 @@ import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * The palette is monochrome, and stays that way.
+ * Two palettes, each held to its own rules.
  *
- * This file has now enforced the policy in both directions — no hue at all
- * (`DEC-037`), then one brand hue (`DEC-044`), and no hue again (`DEC-045`).
- * The policy keeps moving; the reason for guarding it does not. Every surface
- * paints from role tokens, so one stray hue in `globals.css` repaints hundreds
- * of components at once, and one hardcoded hex in a component silently escapes
- * the token system that makes the light and dark pair work.
+ * The marketing site and the sign-in pages are monochrome, and stay that way.
+ * This file has enforced that policy in both directions before — no hue
+ * (`DEC-037`), one brand hue (`DEC-044`), no hue again (`DEC-045`) — and the
+ * reason for guarding it has not changed: every surface paints from role
+ * tokens, so one stray hue in those blocks repaints hundreds of components.
  *
- * Amber and red survive on purpose: they carry warning and danger, and
- * stripping those would remove meaning from the interface rather than
- * decoration.
+ * Everything signed in — the member app and the admin console — carries the
+ * forest palette (`DEC-076`): forest for action, sage for tint, terracotta for
+ * the one thing to notice, and amber, red and blue for status. It is declared
+ * once, in the "App design system" section at the end of `globals.css`, and
+ * nowhere else. So the policy is now about *where* a hue may live, which is a
+ * stricter property than "none at all": a forest anywhere outside that section
+ * is still the regression this catches.
  */
 
 const root = process.cwd();
-const css = readFileSync(resolve(root, "app/globals.css"), "utf8");
+const css = readFileSync(resolve(root, "app/globals.css"), "utf8").replace(/\r\n/g, "\n");
+
+/** Where the app's palette starts. Everything before it is the marketing sheet. */
+const APP_MARKER = "App design system: the member app and the admin console.";
+const appStart = css.indexOf(APP_MARKER);
+const marketingCss = css.slice(0, appStart);
+const appCss = css.slice(appStart);
 
 /** Hue in degrees, or null for a grey. */
 function hue(hex: string): number | null {
@@ -39,22 +48,29 @@ function hue(hex: string): number | null {
 }
 
 /**
- * The two families the product is allowed to contain.
- *
- * Gold and red are reserved: they mean warning and danger, and they are never
- * spent on decoration. Everything else is grey. Green is deliberately *not*
- * here — a forest in this list is the regression this catches.
+ * The marketing sheet's families. Gold and red are reserved: they mean warning
+ * and danger, and they are never spent on decoration. Everything else is grey.
  */
-const FAMILIES: [string, number, number][] = [
+const MARKETING_FAMILIES: [string, number, number][] = [
   ["gold / amber", 25, 60],
   ["red / terracotta", 0, 24],
 ];
 
-const familyOf = (hex: string): string | null => {
-  const h = hue(hex);
-  if (h === null) return "grey";
-  return FAMILIES.find(([, lo, hi]) => h >= lo && h <= hi)?.[0] ?? null;
-};
+/** The app's families: the brand's greens, its terracotta, and status. */
+const APP_FAMILIES: [string, number, number][] = [
+  ["red / terracotta", 0, 24],
+  ["amber / warm neutral", 25, 60],
+  ["forest / sage", 120, 165],
+  ["info blue", 200, 215],
+];
+
+const familyIn =
+  (families: [string, number, number][]) =>
+  (hex: string): string | null => {
+    const h = hue(hex);
+    if (h === null) return "grey";
+    return families.find(([, lo, hi]) => h >= lo && h <= hi)?.[0] ?? null;
+  };
 
 const contrast = (a: string, b: string): number => {
   const lum = (hex: string) => {
@@ -87,8 +103,11 @@ function blockAfter(marker: string): string {
 const tokenIn = (block: string, name: string): string => {
   const found = new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})\\s*;`).exec(block);
   expect(found, `--${name} not set in this block`).not.toBeNull();
-  return found![1]!;
+  return found![1]!.toLowerCase();
 };
+
+const APP_LIGHT = ":root:has([data-app-shell], .vu-admin) {";
+const APP_DARK = ":root.dark:has([data-app-shell], .vu-admin) {";
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -100,21 +119,30 @@ function walk(dir: string, out: string[] = []): string[] {
   return out;
 }
 
-describe("theme palette", () => {
+describe("marketing palette", () => {
+  it("keeps the app palette in its own section, after everything else", () => {
+    expect(appStart).toBeGreaterThan(-1);
+    // Exactly one declaration of each app scope, both inside that section.
+    for (const scope of [APP_LIGHT, APP_DARK]) {
+      expect(css.split(scope).length - 1, scope).toBe(1);
+      expect(css.indexOf(scope)).toBeGreaterThan(appStart);
+    }
+  });
+
   it("contains no hue outside the two reserved families", () => {
-    const hexes = css.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
+    const hexes = marketingCss.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
     expect(hexes.length).toBeGreaterThan(50);
     const strays = [...new Set(hexes)]
-      .filter((hex) => familyOf(hex) === null)
+      .filter((hex) => familyIn(MARKETING_FAMILIES)(hex) === null)
       .map((hex) => `${hex} (hue ${hue(hex)}°)`);
     expect(strays).toEqual([]);
   });
 
-  it("has no green anywhere in the stylesheet", () => {
+  it("has no green anywhere outside the app section", () => {
     // Named separately from the stray check because green is the one that
     // keeps coming back, and a failure here should say so rather than report
     // an anonymous hue.
-    const hexes = css.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
+    const hexes = marketingCss.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
     const greens = [...new Set(hexes)].filter((hex) => {
       const h = hue(hex);
       return h !== null && h >= 75 && h <= 175;
@@ -129,38 +157,93 @@ describe("theme palette", () => {
     expect(tokenIn(blockAfter('[data-theme="dark"] {'), "background")).toBe("#000000");
   });
 
+  it("still keeps warning and danger exactly where they were", () => {
+    // These two are reserved. Bringing a brand hue back is not licence to
+    // restyle the colours that carry meaning.
+    expect(marketingCss).toMatch(/--danger: #b4442a;/);
+    expect(marketingCss).toMatch(/--warning: #8a6a00;/);
+    expect(marketingCss).toMatch(/--danger: #ef6f6f;/);
+    expect(marketingCss).toMatch(/--warning: #e0b341;/);
+  });
+
+  it("no longer paints the headline speckle texture", () => {
+    // Removed alongside the green, but for its own reason: a worn overlay on
+    // the lettering reads as noise rather than craft, at any colour.
+    expect(css).not.toContain(".vu-title-anim::before");
+    expect(css).not.toMatch(/mix-blend-mode: multiply;[\s\S]{0,80}opacity: 0\.45/);
+  });
+});
+
+describe("app palette", () => {
+  it("is the palette the client briefed", () => {
+    const light = blockAfter(APP_LIGHT);
+    expect(tokenIn(light, "background")).toBe("#f7f5ef");
+    expect(tokenIn(light, "surface")).toBe("#ffffff");
+    expect(tokenIn(light, "foreground")).toBe("#18221e");
+    expect(tokenIn(light, "brand-fill")).toBe("#1f5a45");
+    expect(tokenIn(light, "accent-sage")).toBe("#8faf96");
+    expect(tokenIn(light, "highlight")).toBe("#d47755");
+
+    const dark = blockAfter(APP_DARK);
+    expect(tokenIn(dark, "background")).toBe("#0d1512");
+    expect(tokenIn(dark, "surface")).toBe("#14201b");
+  });
+
+  it("uses only the brand's families and status hues", () => {
+    const hexes = appCss.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
+    const strays = [...new Set(hexes)]
+      .filter((hex) => familyIn(APP_FAMILIES)(hex) === null)
+      .map((hex) => `${hex} (hue ${hue(hex)}°)`);
+    expect(strays).toEqual([]);
+  });
+
+  it("designs dark mode rather than inverting light", () => {
+    // Forest is 2.3:1 on the dark ground, so dark mode must not reuse it for
+    // brand text or for the fill.
+    const light = blockAfter(APP_LIGHT);
+    const dark = blockAfter(APP_DARK);
+    expect(tokenIn(dark, "brand-strong")).not.toBe(tokenIn(light, "brand-strong"));
+    expect(tokenIn(dark, "brand-fill")).not.toBe(tokenIn(light, "brand-fill"));
+    expect(
+      contrast(tokenIn(dark, "brand-strong"), tokenIn(dark, "surface")),
+      "brand text on a dark card",
+    ).toBeGreaterThanOrEqual(4.5);
+    expect(
+      contrast(tokenIn(dark, "brand-fill"), tokenIn(dark, "background")),
+      "a dark-mode button against its ground",
+    ).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe("both palettes", () => {
   it("keeps the dark ladder above its own ground", () => {
-    // A card darker than the page it sits on reads as a hole.
-    //
-    // This assertion used to locate the block with `indexOf(".dark,")`, which
-    // matches the `@custom-variant` line at the top of the file — so it was
-    // silently measuring the *light* ladder, and passed only because those
-    // values happened to clear the light ground by two points. It is anchored
-    // to a selector that appears once now.
-    const dark = blockAfter('[data-theme="dark"] {');
+    // A card darker than the page it sits on reads as a hole. Anchored to
+    // selectors that appear once, not to `.dark,`, which matches the
+    // `@custom-variant` line at the top of the file.
     const weight = (hex: string) =>
       (hex.replace("#", "").match(/../g) ?? []).reduce(
         (total, part) => total + parseInt(part, 16),
         0,
       );
-    const ground = weight(tokenIn(dark, "background"));
-    for (const step of ["surface", "surface-muted", "overlay", "default"]) {
-      expect(weight(tokenIn(dark, step)), `--${step} vs the ground`).toBeGreaterThan(
-        ground,
-      );
+    for (const marker of ['[data-theme="dark"] {', APP_DARK]) {
+      const dark = blockAfter(marker);
+      const ground = weight(tokenIn(dark, "background"));
+      for (const step of ["surface", "surface-muted", "overlay", "default"]) {
+        expect(weight(tokenIn(dark, step)), `${marker} --${step} vs the ground`).toBeGreaterThan(
+          ground,
+        );
+      }
     }
   });
 
-  it("carries a legible fill pair in both modes, not one shared colour", () => {
-    // The fill and its ink must invert together. The bug this caught once was
-    // a fill token that flipped while the label stayed fixed white, at 1.4:1.
-    // Asserting the ratio rather than the hex means it still holds the next
-    // time the palette moves.
+  it("carries a legible fill pair in every mode, not one shared colour", () => {
+    // The fill and its ink must move together. The bug this caught once was a
+    // fill token that flipped while the label stayed fixed white, at 1.4:1.
     for (const [name, marker] of [
-      ["light", ":root,"],
-      ["dark", '[data-theme="dark"] {'],
-      ["admin dark", ".vu-admin {"],
-      ["admin light", ":root:not(.dark) .vu-admin,"],
+      ["marketing light", ":root,"],
+      ["marketing dark", '[data-theme="dark"] {'],
+      ["app light", APP_LIGHT],
+      ["app dark", APP_DARK],
     ] as const) {
       const block = blockAfter(marker);
       const ratio = contrast(
@@ -170,15 +253,9 @@ describe("theme palette", () => {
       expect(ratio, `${name}: label on a primary button`).toBeGreaterThanOrEqual(4.5);
     }
   });
+});
 
-  it("no longer paints the headline speckle texture", () => {
-    // Removed alongside the green, but for its own reason: a worn overlay on
-    // the lettering reads as noise rather than craft, at any colour. The hue
-    // came back; this does not.
-    expect(css).not.toContain(".vu-title-anim::before");
-    expect(css).not.toMatch(/mix-blend-mode: multiply;[\s\S]{0,80}opacity: 0\.45/);
-  });
-
+describe("components", () => {
   /**
    * Third-party brand marks are exempt, and only these.
    *
@@ -187,34 +264,34 @@ describe("theme palette", () => {
    */
   const BRAND_MARK_FILES = ["app/(auth)/login/social-buttons.tsx"];
 
-  it("has no palette colour hardcoded into a component", () => {
-    // A component that writes #1f6b46 is a component that stays forest-green
-    // in dark mode. The token system only works if nothing opts out of it.
+  const sources = () =>
+    walk(resolve(root, "components"))
+      .concat(walk(resolve(root, "app")))
+      .map((file) => ({
+        file,
+        relative: file.replace(root, "").replace(/\\/g, "/").slice(1),
+      }))
+      .filter(({ relative }) => !BRAND_MARK_FILES.includes(relative));
+
+  it("has no colour hardcoded into a component", () => {
+    // A component that writes #1f5a45 is a component that stays light-mode
+    // forest in dark mode. Any hue counts, not only the reserved ones: the
+    // token system only works if nothing opts out of it.
     const offenders: string[] = [];
-    for (const file of walk(resolve(root, "components")).concat(
-      walk(resolve(root, "app")),
-    )) {
-      const relative = file.replace(root, "").replace(/\\/g, "/").slice(1);
-      if (BRAND_MARK_FILES.includes(relative)) continue;
-      if (relative === "app/globals.css") continue;
+    for (const { file, relative } of sources()) {
       const source = readFileSync(file, "utf8");
       for (const hex of source.match(/#[0-9a-fA-F]{6}\b/g) ?? []) {
-        const family = familyOf(hex);
-        if (family && family !== "grey") offenders.push(`${relative}: ${hex} (${family})`);
+        if (hue(hex) !== null) offenders.push(`${relative}: ${hex}`);
       }
     }
     expect(offenders).toEqual([]);
   });
 
-  it("has no palette colour smuggled in as rgb() or rgba() either", () => {
-    // Shadows and gradients are written as rgba, not hex. Same hue test,
-    // applied to the channel form.
+  it("has no colour smuggled in as rgb() or rgba() either", () => {
+    // Shadows and gradients are written as rgba, not hex. Same test, applied
+    // to the channel form.
     const offenders: string[] = [];
-    for (const file of walk(resolve(root, "components")).concat(
-      walk(resolve(root, "app")),
-    )) {
-      const relative = file.replace(root, "").replace(/\\/g, "/").slice(1);
-      if (BRAND_MARK_FILES.includes(relative)) continue;
+    for (const { file, relative } of sources()) {
       const source = readFileSync(file, "utf8");
       for (const m of source.matchAll(/rgba?\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/g)) {
         const hex =
@@ -222,8 +299,7 @@ describe("theme palette", () => {
           [m[1], m[2], m[3]]
             .map((c) => Math.min(255, Number(c)).toString(16).padStart(2, "0"))
             .join("");
-        const family = familyOf(hex);
-        if (family && family !== "grey") offenders.push(`${relative}: ${m[0]} (${family})`);
+        if (hue(hex) !== null) offenders.push(`${relative}: ${m[0]}`);
       }
     }
     expect(offenders).toEqual([]);
@@ -231,22 +307,10 @@ describe("theme palette", () => {
 
   it("confines third-party brand colour to the sign-in marks", () => {
     expect(BRAND_MARK_FILES).toHaveLength(1);
-    const marks = readFileSync(
-      resolve(root, "app/(auth)/login/social-buttons.tsx"),
-      "utf8",
-    );
+    const marks = readFileSync(resolve(root, "app/(auth)/login/social-buttons.tsx"), "utf8");
     // And only inside SVGs — not leaking into buttons, text or backgrounds.
     for (const hex of marks.match(/#[0-9a-fA-F]{6}\b/g) ?? []) {
       expect(marks).toMatch(new RegExp(`fill="${hex}"`, "i"));
     }
-  });
-
-  it("still keeps warning and danger exactly where they were", () => {
-    // These two are reserved. Bringing a brand hue back is not licence to
-    // restyle the colours that carry meaning.
-    expect(css).toMatch(/--danger: #b4442a;/);
-    expect(css).toMatch(/--warning: #8a6a00;/);
-    expect(css).toMatch(/--danger: #ef6f6f;/);
-    expect(css).toMatch(/--warning: #e0b341;/);
   });
 });

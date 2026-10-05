@@ -248,7 +248,21 @@
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
-  --color-info: var(--accent);
+  /* --info is an app-only role; elsewhere it falls back to the accent. */
+  --color-info: var(--info, var(--accent));
+  /* App design system roles (declared under "App design system"). */
+  --color-info-wash: var(--info-wash);
+  --color-success-wash: var(--success-wash);
+  --color-warning-wash: var(--warning-wash);
+  --color-danger-wash: var(--danger-wash);
+  --color-highlight: var(--highlight);
+  --color-highlight-ink: var(--highlight-ink);
+  --color-highlight-wash: var(--highlight-wash);
+  --color-on-highlight: var(--on-highlight);
+  --color-accent-sage: var(--accent-sage);
+  --color-accent-sage-wash: var(--accent-sage-wash);
+  --color-on-accent-sage: var(--on-accent-sage);
+  --color-backdrop: var(--backdrop);
   --font-sans: var(--font-poppins);
   /* Tailwind `font-display` must not paint Momo onto prices, stats, or labels.
      Major headings pick Momo up from the h1–h3 rules below. */
@@ -289,6 +303,25 @@
   --shadow-e2: var(--e2);
   --shadow-e3: var(--e3);
   --shadow-lift: var(--lift);
+  /* The app type scale. Eight steps replace the thirty-five arbitrary sizes
+     the member and admin pages had drifted into; lib/utils.ts registers them
+     with tailwind-merge so they are not mistaken for colours. */
+  --text-micro: 0.6875rem;
+  --text-micro--line-height: 1rem;
+  --text-caption: 0.75rem;
+  --text-caption--line-height: 1.125rem;
+  --text-label: 0.8125rem;
+  --text-label--line-height: 1.25rem;
+  --text-body: 0.875rem;
+  --text-body--line-height: 1.375rem;
+  --text-reading: 0.9375rem;
+  --text-reading--line-height: 1.5rem;
+  --text-title: 1rem;
+  --text-title--line-height: 1.375rem;
+  --text-heading: 1.1875rem;
+  --text-heading--line-height: 1.625rem;
+  --text-display: 1.5rem;
+  --text-display--line-height: 1.875rem;
   /* One motion scale, inside the 150-250ms band the blueprint asks for. */
   --ease-out: cubic-bezier(0.2, 0, 0.2, 1);
 }
@@ -1640,98 +1673,15 @@ button:hover .vu-media-zoom {
 /* Look-switcher palettes removed — theme is system light/dark via next-themes. */
 
 /* ---------------------------------------------------------------------------
-   Admin console: always dark, whatever the member app is set to.
+   Admin console.
 
-   Unlayered on purpose. The role tokens live in `@layer theme`, and unlayered
-   rules beat layered ones in the cascade regardless of specificity, so this
-   re-skins every role-token class inside the console without touching the
-   member app or fighting it with `!important`.
-
-   The scale is a shading ladder rather than flat black: a pure-black ground
-   with each level of elevation one step lighter. On black a drop shadow is
-   invisible, so depth has to come from the surface colour and a lit top edge,
-   which is what --lift does.
+   The console follows the theme and shares the member app's palette: one
+   design system for everything signed in, declared once under "App design
+   system" at the end of this file. Its tokens sit on <html> whenever
+   `.vu-admin` is on the page, so nothing here restates a colour. What is left
+   is the console's own ground and its type, below.
 --------------------------------------------------------------------------- */
 .vu-admin {
-  /* Console surfaces sit one step denser than the member app in both modes.
-     The values below are the dark ladder; the light overrides follow. */
-
-  /* Elevation ladder: ground -> card -> raised -> inert */
-  --background: #000000;
-  --surface: #0d0d0d;
-  --surface-foreground: #ededed;
-  --overlay: #151515;
-  --overlay-foreground: #ededed;
-  --default: #1a1a1a;
-  --default-foreground: #ededed;
-
-  --foreground: #ededed;
-  --foreground-muted: #8c8c8c;
-  --muted: #8c8c8c;
-
-  --border: #272727;
-  --separator: #1c1c1c;
-  --hairline-firm: #3a3a3a;
-
-  --field-background: #0d0d0d;
-  --field-foreground: #ededed;
-  --field-placeholder: #7a7a7a;
-  /* One step up from #262626, which left an input's edge at 1.28:1 against
-     the console's denser field ground — too faint to find the box. */
-  --field-border: #2c2c2c;
-
-  --primary: #ededed;
-  --primary-foreground: #000000;
-  --link: #ffffff;
-  --focus: #ffffff;
-
-  /* Monochrome throughout: white is the accent on black, and the only colour
-     left anywhere is the amber and red that carry warning and danger, because
-     stripping those would take meaning out of the UI rather than decoration. */
-  --brand: #ffffff;
-  --brand-strong: #ffffff;
-  --brand-wash: #1a1a1a;
-  --on-brand-wash: #ffffff;
-  --on-brand: #000000;
-  --brand-fill: #ffffff;
-  --brand-fill-hover: #e5e5e5;
-  --brand-fill-foreground: #000000;
-
-  --accent: #ffffff;
-  --accent-foreground: #000000;
-  --success: #ffffff;
-  --success-foreground: #000000;
-  --warning: #e0b341;
-  --warning-foreground: #000000;
-  --danger: #ef6f6f;
-  --danger-foreground: #000000;
-
-  --sidebar: #070707;
-  --sidebar-foreground: #ededed;
-  --sidebar-accent: #1a1a1a;
-  --sidebar-accent-foreground: #ffffff;
-  --sidebar-border: #1a1a1a;
-  --sidebar-ring: #ffffff;
-
-  /* Literal names still resolve, because older admin pages use them. */
-  --forest: #ededed;
-  --deep-forest: #d4d4d4;
-  --mint: #141414;
-  --sage: #1a1a1a;
-  --cream: #000000;
-  --paper: #ededed;
-  --warm-white: #0d0d0d;
-  --ink: #ededed;
-  --olive: #8c8c8c;
-  --sand: #222222;
-
-  --e1: 0 1px 2px rgb(0 0 0 / 0.6);
-  --e2: 0 4px 16px rgb(0 0 0 / 0.65);
-  --e3: 0 24px 60px rgb(0 0 0 / 0.8);
-  --lift: inset 0 1px 0 rgb(255 255 255 / 0.05);
-  --surface-shadow: 0 10px 30px rgb(0 0 0 / 0.7);
-  --overlay-shadow: 0 24px 60px rgb(0 0 0 / 0.8);
-
   background-color: var(--background);
   color: var(--foreground);
 }
@@ -1787,80 +1737,10 @@ button:hover .vu-media-zoom {
 .vu-admin .font-extrabold,
 .vu-admin .font-black { font-weight: 700; }
 
-/* Headings lead; a 700 heading over 600 body is the only weight step needed. */
-.vu-admin h1.font-display,
-.vu-admin .font-display.font-bold { font-weight: 700; }
-
 /* Numbers in a console are compared down a column, so they line up. */
 .vu-admin .tabular-nums {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
-}
-
-/* The console in light mode: the same ladder, inverted. Pure white ground with
-   each level of elevation one step darker, which is how depth reads when the
-   ground is the lightest thing on screen. */
-:root:not(.dark) .vu-admin,
-.light .vu-admin,
-[data-theme="light"] .vu-admin {
-  --background: #f3f7f0;
-  --surface: #ffffff;
-  --surface-foreground: #0a0a0a;
-  --overlay: #ffffff;
-  --overlay-foreground: #0a0a0a;
-  --default: #f4f4f4;
-  --default-foreground: #0a0a0a;
-  --foreground: #0a0a0a;
-  --foreground-muted: #6e6e6e;
-  --muted: #6e6e6e;
-  --border: #e6e6e6;
-  --separator: #efefef;
-  --hairline-firm: #cfcfcf;
-  --field-background: #ffffff;
-  --field-foreground: #0a0a0a;
-  --field-placeholder: #757575;
-  --field-border: #dcdcdc;
-  --primary: #0a0a0a;
-  --primary-foreground: #ffffff;
-  --link: #0a0a0a;
-  --focus: #0a0a0a;
-  --brand: #0a0a0a;
-  --brand-strong: #000000;
-  --brand-wash: #f4f4f4;
-  --on-brand-wash: #0a0a0a;
-  --on-brand: #ffffff;
-  --brand-fill: #0a0a0a;
-  --brand-fill-hover: #262626;
-  --brand-fill-foreground: #ffffff;
-  --accent: #0a0a0a;
-  --accent-foreground: #ffffff;
-  --success: #0a0a0a;
-  --success-foreground: #ffffff;
-  --warning: #8a6a00;
-  --warning-foreground: #ffffff;
-  --danger: #b4442a;
-  --danger-foreground: #ffffff;
-  --sidebar: #ffffff;
-  --sidebar-foreground: #0a0a0a;
-  --sidebar-accent: #f4f4f4;
-  --sidebar-accent-foreground: #0a0a0a;
-  --sidebar-border: #e6e6e6;
-  --sidebar-ring: #0a0a0a;
-  --forest: #0a0a0a;
-  --deep-forest: #000000;
-  --mint: #f7f7f7;
-  --sage: #efefef;
-  --cream: #ffffff;
-  --paper: #ffffff;
-  --warm-white: #ffffff;
-  --ink: #0a0a0a;
-  --olive: #6e6e6e;
-  --sand: #e6e6e6;
-  --e1: 0 1px 2px rgb(0 0 0 / 0.06);
-  --e2: 0 4px 14px rgb(0 0 0 / 0.08);
-  --e3: 0 18px 44px rgb(0 0 0 / 0.14);
-  --lift: 0 0 #0000;
-  color-scheme: light;
 }
 
 /* ---------------------------------------------------------------------------
@@ -2209,4 +2089,523 @@ button:hover .vu-media-zoom {
     transition: none;
     transform: none;
   }
+}
+
+/* ===========================================================================
+   App design system: the member app and the admin console.
+
+   Scope. The marketing site and the sign-in pages keep the monochrome palette
+   at the top of this file, untouched. Everything signed in takes the forest
+   palette below: the member app (`[data-app-shell]`, app/(member)/layout.tsx)
+   and the console (`.vu-admin`, app/admin/layout.tsx). See DEC-076.
+
+   The roles are declared on <html> whenever one of those roots is on the page
+   (`:root:has(...)`) rather than on the roots themselves, for three reasons:
+     1. HeroUI derives its hover, soft and field tones on <html> from these
+        roles. Declared lower down, its buttons, inputs and toasts would keep
+        deriving from the marketing palette.
+     2. Toasts portal to <body>, outside both roots.
+     3. The html/body ground and `color-scheme` are what show on overscroll.
+   Unlayered, so these beat the `@layer theme` defaults whatever their
+   specificity, and the dark block carries one more class than the light one.
+
+   Light is a warm paper ground with white surfaces. Dark is a forest-black
+   ground with lifted green-black surfaces, and it is designed, not inverted:
+   forest #1f5a45 is 2.3:1 on the dark ground, so dark mode fills with a
+   lifted forest and writes brand text in sage. Every pair below is checked by
+   `npm run check:theme`.
+   =========================================================================== */
+:root:has([data-app-shell], .vu-admin) {
+  color-scheme: light;
+
+  /* Grounds and text. */
+  --background: #f7f5ef;
+  --foreground: #18221e;
+  --surface: #ffffff;
+  --surface-foreground: #18221e;
+  /* One step off a surface: hover fills, inset wells, media placeholders. */
+  --surface-muted: #f3f0e8;
+  --surface-secondary: #f3f0e8;
+  /* HeroUI paints skeletons from this; its own default is a cool blue-grey. */
+  --surface-tertiary: #ebe7dd;
+  --overlay: #ffffff;
+  --overlay-foreground: #18221e;
+  /* The brief's #6b756f measures 4.38:1 on this ground; one step darker
+     clears 4.5 on every surface it is used on. */
+  --foreground-muted: #646e68;
+  --muted: #646e68;
+  /* Neutral fill: segmented tracks, neutral badges, pressed states. */
+  --default: #f1eee7;
+  --default-foreground: #18221e;
+  --segment: #ffffff;
+  --backdrop: rgb(24 34 30 / 0.42);
+
+  /* Lines. A resting card edge is a hairline; a field edge is a boundary. */
+  --border: #e5e1d6;
+  --separator: #edeae2;
+  --hairline-firm: #d4cfc3;
+
+  /* Fields. The edge clears 3:1 (WCAG 1.4.11), so an empty input is findable
+     on white and on the ground alike. */
+  --field-background: #ffffff;
+  --field-foreground: #18221e;
+  --field-placeholder: #6e7570;
+  --field-border: #928d81;
+
+  /* Forest carries action and identity. */
+  --brand: #1f5a45;
+  --brand-strong: #1f5a45;
+  --brand-wash: #e7f0ea;
+  --on-brand-wash: #1f5a45;
+  --on-brand: #ffffff;
+  --brand-fill: #1f5a45;
+  --brand-fill-hover: #184a38;
+  --brand-fill-foreground: #ffffff;
+  --primary: #1f5a45;
+  --primary-foreground: #ffffff;
+  --accent: #1f5a45;
+  --accent-foreground: #ffffff;
+  --focus: #1f5a45;
+  --link: #1f5a45;
+
+  /* Sage tints. It is 2.4:1 on white, so it is a fill under dark text or a
+     wash, never a line or a label on its own. */
+  --accent-sage: #8faf96;
+  --accent-sage-wash: #e3ece5;
+  --on-accent-sage: #18221e;
+
+  /* Terracotta highlights: unread counts, "new", the one thing to notice.
+     It is 3.2:1 on white, so text in that hue uses the darker ink. */
+  --highlight: #d47755;
+  --highlight-ink: #a9502f;
+  --highlight-wash: #fbede6;
+  --on-highlight: #18221e;
+
+  /* Status: each with a wash for callouts and badges. */
+  --success: #2b6e48;
+  --success-foreground: #ffffff;
+  --success-wash: #e5f1e9;
+  --warning: #8f5300;
+  --warning-foreground: #ffffff;
+  --warning-wash: #fcf1dd;
+  --danger: #b3261e;
+  --danger-foreground: #ffffff;
+  --danger-wash: #fcebe9;
+  --info: #2f5f86;
+  --info-foreground: #ffffff;
+  --info-wash: #e6eff7;
+
+  /* Rails. */
+  --sidebar: #fbfaf6;
+  --sidebar-foreground: #18221e;
+  --sidebar-accent: #e7f0ea;
+  --sidebar-accent-foreground: #1f5a45;
+  --sidebar-border: #e5e1d6;
+  --sidebar-ring: #1f5a45;
+
+  /* The literal names older components still use, re-pointed at the role
+     each one actually plays, so those call sites land on this palette and
+     stay legible (initials on an avatar wash are 6.7:1). */
+  --forest: #1f5a45;
+  --deep-forest: #173f31;
+  --olive: #646e68;
+  --taupe: #646e68;
+  --sage: #e3ece5;
+  --mint: #f3f0e8;
+  --cream: #f7f5ef;
+  --paper: #ffffff;
+  --warm-white: #ffffff;
+  --sand: #e5e1d6;
+  --ink: #18221e;
+  --terracotta: #a9502f;
+  --apricot: #8f5300;
+  --accent-gold: #8f5300;
+  --accent-magenta: #a9502f;
+  --accent-coral: #a9502f;
+  --cta-fill: #1f5a45;
+  --cta-fill-hover: #184a38;
+  --cta-fill-foreground: #ffffff;
+
+  /* Shape: chips, controls, cards, dialogs. */
+  --r-chip: 0.375rem;
+  --r-ctl: 0.625rem;
+  --r-card: 0.875rem;
+  --r-modal: 1.125rem;
+  --field-radius: 0.625rem;
+
+  /* Elevation, tinted with the ink rather than pure black, which reads as
+     grime on a warm ground. Most surfaces need only e1. */
+  --e1: 0 1px 2px rgb(24 34 30 / 0.05);
+  --e2: 0 1px 2px rgb(24 34 30 / 0.04), 0 6px 16px -4px rgb(24 34 30 / 0.1);
+  --e3: 0 2px 6px rgb(24 34 30 / 0.05), 0 18px 40px -8px rgb(24 34 30 / 0.18);
+  --lift: 0 0 #0000;
+  --surface-shadow: 0 1px 2px rgb(24 34 30 / 0.04);
+  --overlay-shadow: 0 2px 6px rgb(24 34 30 / 0.05), 0 18px 40px -8px rgb(24 34 30 / 0.18);
+  --field-shadow: 0 0 0 0 transparent;
+}
+
+:root.dark:has([data-app-shell], .vu-admin) {
+  color-scheme: dark;
+
+  --background: #0d1512;
+  --foreground: #e8eeea;
+  --surface: #14201b;
+  --surface-foreground: #e8eeea;
+  --surface-muted: #1a2822;
+  --surface-secondary: #1a2822;
+  --surface-tertiary: #213129;
+  --overlay: #1b2a24;
+  --overlay-foreground: #e8eeea;
+  /* #6b756f is 3.5:1 here. Muted text needs its own, lighter step. */
+  --foreground-muted: #9ba79f;
+  --muted: #9ba79f;
+  --default: #1d2c26;
+  --default-foreground: #e8eeea;
+  --segment: #23342c;
+  --backdrop: rgb(4 8 6 / 0.66);
+
+  --border: #23342c;
+  --separator: #1c2b24;
+  --hairline-firm: #34493f;
+
+  --field-background: #101a16;
+  --field-foreground: #e8eeea;
+  --field-placeholder: #8c988f;
+  --field-border: #5a7466;
+
+  /* Sage is the brand ink here (7.7:1 on the ground); a lifted forest is the
+     fill, with a white label at 5.2:1. */
+  --brand: #8faf96;
+  --brand-strong: #a3c2ab;
+  --brand-wash: #1a3228;
+  --on-brand-wash: #b9d3bf;
+  --on-brand: #0d1512;
+  --brand-fill: #2e7a5d;
+  --brand-fill-hover: #28694f;
+  --brand-fill-foreground: #ffffff;
+  --primary: #2e7a5d;
+  --primary-foreground: #ffffff;
+  --accent: #2e7a5d;
+  --accent-foreground: #ffffff;
+  --focus: #8faf96;
+  --link: #a3c2ab;
+
+  --accent-sage: #8faf96;
+  --accent-sage-wash: #1e2f27;
+  --on-accent-sage: #0d1512;
+
+  --highlight: #d47755;
+  --highlight-ink: #e89474;
+  --highlight-wash: #3a231a;
+  --on-highlight: #0d1512;
+
+  --success: #7dcb9c;
+  --success-foreground: #0d1512;
+  --success-wash: #163024;
+  --warning: #f0b866;
+  --warning-foreground: #0d1512;
+  --warning-wash: #33281a;
+  --danger: #f2958b;
+  --danger-foreground: #1a0b09;
+  --danger-wash: #3a1f1c;
+  --info: #8db9de;
+  --info-foreground: #0d1512;
+  --info-wash: #182838;
+
+  --sidebar: #101a16;
+  --sidebar-foreground: #e8eeea;
+  --sidebar-accent: #1a3228;
+  --sidebar-accent-foreground: #b9d3bf;
+  --sidebar-border: #1f2e27;
+  --sidebar-ring: #8faf96;
+
+  --forest: #a3c2ab;
+  --deep-forest: #c5dacb;
+  --olive: #9ba79f;
+  --taupe: #9ba79f;
+  --sage: #1e2f27;
+  --mint: #1a2822;
+  --cream: #0d1512;
+  --paper: #0d1512;
+  --warm-white: #14201b;
+  --sand: #23342c;
+  --ink: #e8eeea;
+  --terracotta: #e89474;
+  --apricot: #f0b866;
+  --accent-gold: #f0b866;
+  --accent-magenta: #e89474;
+  --accent-coral: #e89474;
+  --cta-fill: #2e7a5d;
+  --cta-fill-hover: #28694f;
+  --cta-fill-foreground: #ffffff;
+
+  /* A drop shadow barely registers on a near-black ground, so depth is
+     mostly the surface step, plus a faint lit top edge. */
+  --e1: 0 1px 2px rgb(0 0 0 / 0.4);
+  --e2: 0 1px 2px rgb(0 0 0 / 0.35), 0 8px 20px -6px rgb(0 0 0 / 0.55);
+  --e3: 0 2px 8px rgb(0 0 0 / 0.4), 0 24px 48px -12px rgb(0 0 0 / 0.7);
+  --lift: inset 0 1px 0 rgb(232 238 234 / 0.04);
+  --surface-shadow: 0 1px 2px rgb(0 0 0 / 0.3);
+  --overlay-shadow: 0 2px 8px rgb(0 0 0 / 0.4), 0 24px 48px -12px rgb(0 0 0 / 0.7);
+}
+
+/* ---------------------------------------------------------------------------
+   App typography: one family, real weights.
+
+   The marketing site sets h1-h3 in Momo Trust Display and flattens every
+   weight to 400 (see "keeps the site flat at 400" in tests/marketing.test.ts).
+   The member app is a tool people read all day, and a hierarchy built from
+   size alone was the main reason its pages looked flat. So, as the console
+   already does, it uses Poppins throughout with the 500/600/700 cuts that
+   app/layout.tsx loads. These selectors carry one more attribute than the
+   rules they override, so they win without !important.
+--------------------------------------------------------------------------- */
+[data-app-shell] {
+  --ui-display: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --ui-copy: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  --ui-display-tracking: -0.02em;
+}
+
+[data-app-shell] h1,
+[data-app-shell] h2,
+[data-app-shell] h3,
+[data-app-shell] h4,
+[data-app-shell] h5,
+[data-app-shell] h6,
+[data-app-shell] .font-display {
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+}
+
+[data-app-shell] .font-medium { font-weight: 500; }
+[data-app-shell] .font-semibold { font-weight: 600; }
+[data-app-shell] .font-bold,
+[data-app-shell] b,
+[data-app-shell] strong,
+[data-app-shell] h1,
+[data-app-shell] h2,
+[data-app-shell] h3 { font-weight: 600; }
+[data-app-shell] .font-extrabold,
+[data-app-shell] .font-black { font-weight: 700; }
+[data-app-shell] .prose-vu strong,
+[data-app-shell] .prose-vu b { font-weight: 600; }
+
+[data-app-shell] .tabular-nums {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* ---------------------------------------------------------------------------
+   App controls.
+
+   One construction for every button in the app: a 10px radius, a flat face,
+   a hairline edge on secondary, a one-step-darker hover, and the focus ring.
+   The Polaris bevel above stays for the sign-in pages, which this does not
+   reach. The variants map one to one onto `Button` in components/app/ui.tsx.
+--------------------------------------------------------------------------- */
+:is([data-app-shell], .vu-admin) .vu-btn {
+  border-radius: var(--r-ctl);
+  font-weight: 500;
+  letter-spacing: -0.005em;
+  transition:
+    background-color 150ms cubic-bezier(0.2, 0, 0.2, 1),
+    box-shadow 150ms cubic-bezier(0.2, 0, 0.2, 1),
+    color 150ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+:is([data-app-shell], .vu-admin) .vu-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+:is([data-app-shell], .vu-admin) .vu-btn-secondary {
+  background-color: var(--surface);
+  color: var(--foreground);
+  box-shadow:
+    inset 0 0 0 1px var(--hairline-firm),
+    var(--e1);
+}
+
+:is([data-app-shell], .vu-admin) .vu-btn-secondary:hover:not(:disabled) {
+  background-color: var(--surface-muted);
+}
+
+:is([data-app-shell], .vu-admin) .vu-btn-secondary:active:not(:disabled) {
+  background-color: var(--default);
+  box-shadow: inset 0 0 0 1px var(--hairline-firm);
+}
+
+:is([data-app-shell], .vu-admin) .vu-btn-primary {
+  background-color: var(--brand-fill);
+  color: var(--brand-fill-foreground);
+  box-shadow:
+    inset 0 1px 0 rgb(255 255 255 / 0.1),
+    var(--e1);
+}
+
+:is([data-app-shell], .vu-admin) .vu-btn-primary:hover:not(:disabled) {
+  background-color: var(--brand-fill-hover);
+}
+
+:is([data-app-shell], .vu-admin) .vu-btn-primary:active:not(:disabled) {
+  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.25);
+}
+
+:is([data-app-shell], .vu-admin) .vu-btn-ghost {
+  background-color: transparent;
+  color: var(--foreground-muted);
+  box-shadow: none;
+}
+
+:is([data-app-shell], .vu-admin) .vu-btn-ghost:hover:not(:disabled) {
+  background-color: var(--surface-muted);
+  color: var(--foreground);
+}
+
+/* Destructive actions read as secondary until they are hovered: a red fill
+   on every delete button would turn a list of rows into a list of alarms. */
+:is([data-app-shell], .vu-admin) .vu-btn-danger {
+  background-color: var(--surface);
+  color: var(--danger);
+  box-shadow:
+    inset 0 0 0 1px var(--hairline-firm),
+    var(--e1);
+}
+
+:is([data-app-shell], .vu-admin) .vu-btn-danger:hover:not(:disabled) {
+  background-color: var(--danger-wash);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--danger) 35%, transparent);
+}
+
+:is([data-app-shell], .vu-admin) .vu-btn:disabled,
+:is([data-app-shell], .vu-admin) .vu-btn[aria-disabled="true"] {
+  cursor: not-allowed;
+  opacity: 0.5;
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+/* HeroUI's Button is a pill by the global rule; in the app it is a control. */
+:is([data-app-shell], .vu-admin) [data-slot="button"] {
+  border-radius: var(--r-ctl);
+}
+
+/* The marketing CTA fill's dark-mode hairline is a white ring on black; on a
+   forest fill it is a stray outline. */
+:is([data-app-shell], .vu-admin) .vu-cta-fill {
+  box-shadow: var(--e1);
+}
+
+/* Toasts portal to <body>, so they are styled from <html>. */
+:root:has([data-app-shell], .vu-admin) .toast {
+  border: 1px solid var(--border);
+  border-radius: var(--r-card);
+}
+
+/* ---------------------------------------------------------------------------
+   Member header search.
+
+   The command palette is shared with the marketing bar, so it is restyled
+   here through the member header only. A field rather than a pill: it sits
+   among the app's other controls and takes their radius and focus ring.
+--------------------------------------------------------------------------- */
+[data-app-shell] [data-app-header] .vu-nav-search-shell {
+  height: 2.375rem;
+  border-radius: var(--r-ctl);
+  border-color: var(--border);
+  background: var(--surface);
+  box-shadow: var(--e1);
+}
+
+[data-app-shell] [data-app-header] .vu-nav-search-shell:hover {
+  border-color: var(--hairline-firm);
+}
+
+[data-app-shell] [data-app-header] .vu-nav-search-shell:focus-within {
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 16%, transparent);
+}
+
+[data-app-shell] [data-app-header] .vu-nav-palette.is-open .vu-nav-search-shell {
+  border-color: var(--border);
+  border-bottom-color: transparent;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  background: var(--overlay);
+  box-shadow: none;
+}
+
+[data-app-shell] .vu-nav-suggest {
+  border-color: var(--border);
+  border-radius: 0 0 var(--r-ctl) var(--r-ctl);
+  box-shadow: var(--e3);
+}
+
+[data-app-shell] .vu-nav-suggest-row[aria-selected="true"],
+[data-app-shell] .vu-nav-suggest-row:hover {
+  background: var(--surface-muted);
+}
+
+[data-app-shell] .vu-nav-search-kbd,
+[data-app-shell] .vu-nav-suggest-keys kbd {
+  border-color: var(--border);
+  background: var(--surface-muted);
+}
+
+/* Reply connectors take the hairline colour, not a tint of the ink. */
+[data-app-shell] .vu-thread-curve,
+[data-app-shell] .vu-thread-spine {
+  border-color: var(--hairline-firm);
+}
+
+[data-app-shell] .vu-thread-node:hover > .vu-thread-curve,
+[data-app-shell] .vu-thread-node:hover > .vu-thread-spine {
+  border-color: color-mix(in oklab, var(--brand) 60%, transparent);
+}
+
+/* Links in member-authored HTML take the link colour. */
+[data-app-shell] .prose-vu a {
+  color: var(--link);
+}
+
+/* ---------------------------------------------------------------------------
+   App fields: one focus treatment for every input built from `fieldClass`.
+   A ring in the brand colour rather than the global outline, which sits two
+   pixels off a field's edge and reads as a second border.
+--------------------------------------------------------------------------- */
+.vu-field:focus,
+.vu-field:focus-visible {
+  outline: none;
+  border-color: var(--brand);
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 18%, transparent);
+}
+
+.vu-field:hover:not(:focus):not(:disabled) {
+  border-color: color-mix(in oklab, var(--field-border) 65%, var(--foreground));
+}
+
+.vu-field[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+.vu-field[aria-invalid="true"]:focus {
+  box-shadow: 0 0 0 3px color-mix(in oklab, var(--danger) 18%, transparent);
+}
+
+/* A native select with the system chevron replaced, so it matches the
+   inputs beside it. The stroke is a mid grey that reads on both fields. */
+.vu-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23848b86' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-position: right 0.625rem center;
+  background-repeat: no-repeat;
+  background-size: 1rem;
+}
+
+/* The leaf in the app's lockup takes the brand colour; the wordmark stays ink. */
+[data-app-shell] [data-brand] > svg {
+  color: var(--brand);
+}
+
+/* Native checkboxes, radios and ranges take the brand fill in the app. */
+:is([data-app-shell], .vu-admin) :is(input[type="checkbox"], input[type="radio"], input[type="range"], progress) {
+  accent-color: var(--brand-fill);
 }

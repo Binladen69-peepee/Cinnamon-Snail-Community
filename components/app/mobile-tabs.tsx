@@ -35,7 +35,7 @@ export function MobileTabs() {
   return (
     <nav
       aria-label="Primary"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface pb-[env(safe-area-inset-bottom)] md:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
     >
       <ul className="grid grid-cols-5">
         {TABS.map((tab) => {
@@ -51,7 +51,7 @@ export function MobileTabs() {
                 <Link
                   href={tab.href}
                   aria-label="Create a post"
-                  className="my-1.5 grid size-10 place-items-center rounded-full bg-brand-fill text-brand-fill-foreground no-underline transition active:scale-95"
+                  className="my-1.5 grid size-10 place-items-center rounded-ctl bg-brand-fill text-brand-fill-foreground no-underline shadow-e1 transition hover:bg-brand-fill-hover active:scale-95"
                 >
                   <Icon className="size-5" aria-hidden />
                 </Link>
@@ -65,11 +65,11 @@ export function MobileTabs() {
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
                 className={cn(
-                  "flex min-h-13 flex-col items-center justify-center gap-0.5 text-[10px] font-bold no-underline transition",
-                  active ? "text-brand" : "text-foreground-muted",
+                  "flex min-h-13 flex-col items-center justify-center gap-1 text-[10.5px] font-medium no-underline transition",
+                  active ? "font-semibold text-brand" : "text-foreground-muted hover:text-foreground",
                 )}
               >
-                <Icon className="size-[1.15rem]" aria-hidden />
+                <Icon className="size-5" strokeWidth={active ? 2.25 : 2} aria-hidden />
                 {tab.label}
               </Link>
             </li>

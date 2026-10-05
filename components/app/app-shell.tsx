@@ -14,13 +14,24 @@ import { cn } from "@/lib/utils";
  * and Settings wants nothing there at all. A layout cannot know that without
  * every page pushing data upward.
  *
- * It takes the same props it always did, so no call site changed.
+ * Widths come from one scale, so pages stop choosing their own:
+ * - default: the 680px reading column (feed, a post, a thread, settings)
+ * - `size="page"`: 960px, for pages with a little more to show side by side
+ * - `size="wide"`: 1200px, for grids and directories
+ * - `wide`: no limit, for pages that lay out their own columns (profile)
  */
+const COLUMN = {
+  default: "max-w-170",
+  page: "max-w-240",
+  wide: "max-w-300",
+} as const;
+
 export function AppShell({
   children,
   rail,
   wide = false,
   flush = false,
+  size = "default",
 }: {
   children: React.ReactNode;
   rail?: React.ReactNode;
@@ -28,29 +39,30 @@ export function AppShell({
   wide?: boolean;
   /** Edge-to-edge content (profile cover sits flush under the header). */
   flush?: boolean;
+  /** The content column's width, from the scale above. */
+  size?: keyof typeof COLUMN;
 }) {
+  const unbounded = wide || flush;
   return (
     <div
       className={cn(
         "mx-auto flex w-full",
-        wide || flush ? "max-w-none" : rail ? "max-w-350" : "max-w-275",
+        unbounded || size !== "default" ? "max-w-none" : rail ? "max-w-350" : "max-w-275",
       )}
     >
       <main
         className={cn(
-          "min-w-0 flex-1 pb-24 md:pb-6",
-          flush ? "px-0 pt-0" : "px-3 py-4 sm:px-5",
+          "min-w-0 flex-1 pb-24 md:pb-10",
+          flush ? "px-0 pt-0" : "px-4 pt-5 sm:px-6 sm:pt-7",
         )}
       >
-        <div
-          className={cn("mx-auto w-full", wide || flush ? "max-w-none" : "max-w-170")}
-        >
+        <div className={cn("mx-auto w-full", unbounded ? "max-w-none" : COLUMN[size])}>
           {children}
         </div>
       </main>
 
-      {rail && !wide && !flush ? (
-        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-72 shrink-0 overflow-y-auto py-4 pr-4 xl:block">
+      {rail && !unbounded && size === "default" ? (
+        <aside className="sticky top-14 hidden h-[calc(100dvh-3.5rem)] w-80 shrink-0 overflow-y-auto py-7 pr-6 xl:block">
           {rail}
         </aside>
       ) : null}

@@ -328,8 +328,9 @@ describe("site typography", () => {
 
   it("keeps the site flat at 400 however many weights are loaded", () => {
     const css = readFileSync(resolve(process.cwd(), "app/globals.css"), "utf8");
-    // This rule, not the font loader, is what holds the marketing and member
-    // look to one weight. Loading more weights is only safe while it stands.
+    // This rule, not the font loader, is what holds the marketing look to one
+    // weight. Loading more weights is only safe while it stands. (The member
+    // app and the console restore real weights inside their own scopes.)
     expect(css).toMatch(
       /\.font-medium,[\s\S]{0,120}?\.font-bold,[\s\S]*?font-weight: 400;/,
     );

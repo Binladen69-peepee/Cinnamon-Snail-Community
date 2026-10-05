@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { Menu, X } from "lucide-react";
 import { BrandLogo } from "@/components/brand/brand-mark";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
+import { backdropClass } from "@/components/app/ui";
+import { cn } from "@/lib/utils";
 
 /**
  * The console on a phone.
@@ -50,19 +52,19 @@ export function AdminMobileNav({
 
   return (
     <>
-      <div className="sticky top-0 z-30 flex items-center gap-2 border-b border-border bg-background/95 px-3 py-2.5 backdrop-blur lg:hidden">
+      <div className="sticky top-0 z-30 flex h-14 items-center gap-2.5 border-b border-border bg-background/90 px-3 backdrop-blur-md lg:hidden">
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Open admin menu"
           aria-expanded={open}
-          className="grid size-9 place-items-center rounded-ctl border border-border text-foreground-muted transition hover:border-hairline-firm hover:text-foreground"
+          className="grid size-9 place-items-center rounded-ctl text-foreground-muted transition hover:bg-surface-muted hover:text-foreground"
         >
           <Menu className="size-5" aria-hidden />
         </button>
-        <BrandLogo className="size-5 text-brand" />
-        <span className="font-display text-[14px] font-bold text-foreground">
-          Console
+        <BrandLogo className="size-6 text-brand" />
+        <span className="text-label font-semibold text-foreground">
+          Admin console
         </span>
       </div>
 
@@ -74,15 +76,15 @@ export function AdminMobileNav({
           aria-label="Admin menu"
         >
           <div
-            className="absolute inset-0 bg-black/70"
+            className={cn(backdropClass, "absolute")}
             onClick={() => setOpen(false)}
           />
-          <div className="vu-admin-rail absolute inset-y-0 left-0 w-64 border-r border-sidebar-border bg-sidebar">
+          <div className="vu-admin-rail absolute inset-y-0 left-0 w-72 max-w-[85vw] border-r border-sidebar-border bg-sidebar shadow-e3">
             <button
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close admin menu"
-              className="absolute right-2 top-2 z-10 grid size-8 place-items-center rounded-full text-foreground-muted transition hover:bg-default hover:text-foreground"
+              className="absolute right-2.5 top-2.5 z-10 grid size-9 place-items-center rounded-ctl text-foreground-muted transition hover:bg-surface-muted hover:text-foreground"
             >
               <X className="size-4.5" aria-hidden />
             </button>

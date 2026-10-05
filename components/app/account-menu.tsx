@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { CreditCard, LogOut, Settings, User } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { menuClass, menuItemClass } from "@/components/app/ui";
+import { cn } from "@/lib/utils";
 
 const LINKS = [
   { href: "/settings", label: "Settings", icon: Settings },
@@ -57,7 +59,7 @@ export function AccountMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Account"
-        className="ml-1 grid place-items-center rounded-full ring-2 ring-transparent transition hover:ring-brand/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+        className="ml-1 grid place-items-center rounded-full ring-2 ring-transparent transition hover:ring-hairline-firm"
       >
         {children}
       </button>
@@ -65,20 +67,20 @@ export function AccountMenu({
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+0.5rem)] z-50 w-56 overflow-hidden rounded-modal border border-border bg-overlay shadow-e2"
+          className={cn(menuClass, "absolute right-0 top-[calc(100%+0.5rem)] z-50 w-60")}
         >
-          <div className="border-b border-border px-3 py-2.5">
-            <p className="truncate text-[14px] font-bold text-foreground">{name}</p>
-            <p className="truncate text-[12.5px] text-foreground-muted">@{handle}</p>
+          <div className="mb-1 border-b border-separator px-2.5 pb-2.5 pt-1.5">
+            <p className="truncate text-body font-semibold text-foreground">{name}</p>
+            <p className="truncate text-caption text-foreground-muted">@{handle}</p>
           </div>
 
           <Link
             href={`/members/${handle}`}
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="flex items-center gap-2.5 px-3 py-2.5 text-[14px] font-semibold text-foreground no-underline transition hover:bg-mint"
+            className={menuItemClass}
           >
-            <User className="size-4 text-foreground-muted" aria-hidden />
+            <User aria-hidden />
             Your profile
           </Link>
 
@@ -88,22 +90,22 @@ export function AccountMenu({
               href={link.href}
               role="menuitem"
               onClick={() => setOpen(false)}
-              className="flex items-center gap-2.5 px-3 py-2.5 text-[14px] font-semibold text-foreground no-underline transition hover:bg-mint"
+              className={menuItemClass}
             >
-              <link.icon className="size-4 text-foreground-muted" aria-hidden />
+              <link.icon aria-hidden />
               {link.label}
             </Link>
           ))}
 
-          <ThemeToggle variant="menu" />
+          <ThemeToggle variant="menu" className={menuItemClass} />
 
-          <form action={signOutAction} className="border-t border-border">
+          <form action={signOutAction} className="mt-1 border-t border-separator pt-1">
             <button
               type="submit"
               role="menuitem"
-              className="flex w-full items-center gap-2.5 px-3 py-2.5 text-left text-[14px] font-semibold text-foreground transition hover:bg-danger/10 hover:text-danger"
+              className={cn(menuItemClass, "hover:bg-danger-wash hover:text-danger")}
             >
-              <LogOut className="size-4 text-foreground-muted" aria-hidden />
+              <LogOut aria-hidden />
               Sign out
             </button>
           </form>

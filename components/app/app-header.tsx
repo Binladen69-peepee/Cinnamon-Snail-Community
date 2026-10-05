@@ -8,13 +8,17 @@ import { BrandMark } from "@/components/brand/brand-mark";
 import { NavSearch } from "@/components/layout/nav-search";
 import { Avatar } from "@/components/ui/avatar";
 import { AccountMenu } from "@/components/app/account-menu";
+import { CountBadge } from "@/components/app/ui";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 /**
  * Member app bar — brand, command search, create + account actions.
  * See PROJECT.md — the member shell and feed layout.
+ *
+ * `menu` is the navigation drawer's trigger, shown below `lg` where the rail
+ * is not; the layout passes it because the layout owns the rail's data.
  */
-export async function AppHeader() {
+export async function AppHeader({ menu }: { menu?: React.ReactNode }) {
   const session = await auth();
   if (!session?.user.id) return null;
 
@@ -33,9 +37,11 @@ export async function AppHeader() {
   return (
     <header
       data-app-header
-      className="sticky top-0 z-50 border-b border-border bg-background/92 backdrop-blur-md"
+      className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur-md"
     >
-      <div className="flex h-14 w-full items-center gap-3 px-3 sm:gap-4 sm:px-5">
+      <div className="flex h-14 w-full items-center gap-2 px-3 sm:gap-3 sm:px-6">
+        {menu}
+
         {/* The rail carries the wordmark from `lg` up, where it is visible.
             Below that there is no rail, so the bar keeps it. */}
         <BrandMark href="/home" className="shrink-0 lg:hidden" compactBelowSm />
@@ -47,7 +53,7 @@ export async function AppHeader() {
         <div className="ml-auto flex shrink-0 items-center gap-0.5 sm:gap-1">
           <Link
             href="/compose"
-            className="vu-btn vu-btn-primary mr-1.5 hidden h-9 items-center gap-1.5 px-3.5 text-[13.5px] no-underline sm:inline-flex"
+            className="vu-btn vu-btn-primary mr-2 hidden h-9 items-center gap-1.5 px-3.5 text-label no-underline sm:inline-flex"
           >
             <Plus className="size-4" aria-hidden />
             Create
@@ -57,13 +63,13 @@ export async function AppHeader() {
             href="/notifications"
             label="Notifications"
             count={notifications}
-            icon={<Bell className="size-[1.15rem]" aria-hidden />}
+            icon={<Bell className="size-[1.125rem]" aria-hidden />}
           />
           <IconLink
             href="/messages"
             label="Messages"
             count={messages}
-            icon={<MessageSquare className="size-[1.15rem]" aria-hidden />}
+            icon={<MessageSquare className="size-[1.125rem]" aria-hidden />}
           />
           {/* Staff reach the console from the sidebar too; at 320px the bar
               has room for the controls every member needs and no more. */}
@@ -72,7 +78,7 @@ export async function AppHeader() {
               <IconLink
                 href="/admin/billing"
                 label="Admin"
-                icon={<Shield className="size-[1.15rem]" aria-hidden />}
+                icon={<Shield className="size-[1.125rem]" aria-hidden />}
               />
             </span>
           ) : null}
@@ -80,14 +86,14 @@ export async function AppHeader() {
           {/* Light and dark belongs beside the other controls, not floating
               over the feed above the tab bar where it covered content and was
               the only chrome that moved with the page. */}
-          <ThemeToggle />
+          <ThemeToggle className="rounded-ctl" />
 
           <AccountMenu
             name={name}
             handle={session.user.handle}
             signOutAction={signOutAction}
           >
-            <Avatar name={name} src={session.user.image} size="sm" />
+            <Avatar name={name} src={session.user.image} size="sm" className="size-8" />
           </AccountMenu>
         </div>
       </div>
@@ -110,18 +116,16 @@ function IconLink({
     <Link
       href={href}
       title={label}
-      className="relative grid size-9 place-items-center rounded-full text-foreground-muted no-underline transition hover:bg-surface-muted hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      className="relative grid size-9 place-items-center rounded-ctl text-foreground-muted no-underline transition hover:bg-surface-muted hover:text-foreground"
     >
       {icon}
       <span className="sr-only">{label}</span>
-      {count > 0 ? (
-        <span
-          className="absolute -right-0.5 -top-0.5 grid min-w-4 place-items-center rounded-full bg-danger px-1 text-[10px] tabular-nums text-danger-foreground ring-2 ring-background"
-          aria-label={`${count} unread`}
-        >
-          {count > 9 ? "9+" : count}
-        </span>
-      ) : null}
+      <CountBadge
+        count={count}
+        max={9}
+        label={`${count} unread`}
+        className="absolute -right-0.5 -top-0.5 ring-2 ring-background"
+      />
     </Link>
   );
 }
