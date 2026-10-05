@@ -9,7 +9,16 @@ import {
   updateEventAction,
 } from "@/app/admin/events/actions";
 import { browserTimeZone, toLocalInputValue } from "@/lib/events/timezone";
-import { cn } from "@/lib/utils";
+import {
+  Button,
+  Callout,
+  CardHeader,
+  Field,
+  Input,
+  Select,
+  Textarea,
+  cardClass,
+} from "@/components/app/ui";
 
 /**
  * Scheduling, or rescheduling, one event.
@@ -107,78 +116,70 @@ export function EventForm({
   };
 
   return (
-    <form onSubmit={submit} className="rounded-card border border-border bg-surface">
-      <div className="border-b border-border px-4 py-3">
-        <h2 className="text-[14px] font-bold text-foreground">
-          {event ? "Event details" : "New event"}
-        </h2>
-      </div>
+    <form onSubmit={submit} className={cardClass({ padding: "none" })}>
+      <CardHeader title={event ? "Event details" : "New event"} />
 
-      <div className="space-y-4 px-4 py-4">
+      <div className="flex flex-col gap-5 p-4 sm:p-5">
         <Field label="Title" htmlFor="event-title">
-          <input
+          <Input
             id="event-title"
             name="title"
             defaultValue={event?.title ?? ""}
             required
             maxLength={200}
             placeholder="Weeknight plants live cook"
-            className={INPUT}
           />
         </Field>
 
         <Field
           label="Description"
           htmlFor="event-description"
-          help="What it is and what to bring. Shown on the event page and in the calendar file."
+          hint="What it is and what to bring. Shown on the event page and in the calendar file."
         >
-          <textarea
+          <Textarea
             id="event-description"
             name="description"
             rows={4}
             defaultValue={event?.description ?? ""}
-            className={cn(INPUT, "h-auto resize-y py-2 leading-relaxed")}
+            className="resize-y"
           />
         </Field>
 
         <Field
           label="Time zone"
           htmlFor="event-timezone"
-          help="The zone the event is scheduled in. Members always see it in their own."
+          hint="The zone the event is scheduled in. Members always see it in their own."
         >
-          <select
+          <Select
             id="event-timezone"
             name="timezone"
             value={timezone}
             onChange={(changed) => setTimezone(changed.target.value)}
-            className={INPUT}
           >
             {zones.map((zone) => (
               <option key={zone} value={zone}>
                 {zone}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4">
           <Field label="Starts" htmlFor="event-starts">
-            <input
+            <Input
               id="event-starts"
               name="startsAt"
               type="datetime-local"
               required
               defaultValue={asLocal(event?.startsAt)}
-              className={INPUT}
             />
           </Field>
-          <Field label="Ends" htmlFor="event-ends" help="Optional. An hour if left blank.">
-            <input
+          <Field label="Ends" htmlFor="event-ends" hint="Optional. An hour if left blank.">
+            <Input
               id="event-ends"
               name="endsAt"
               type="datetime-local"
               defaultValue={asLocal(event?.endsAt)}
-              className={INPUT}
             />
           </Field>
         </div>
@@ -186,126 +187,108 @@ export function EventForm({
         <Field
           label="Joining link"
           htmlFor="event-zoom"
-          help="Zoom, Meet, wherever it happens. Only shown to members who said they are coming, and only from half an hour before."
+          hint="Zoom, Meet, wherever it happens. Only shown to members who said they are coming, and only from half an hour before."
         >
-          <input
+          <Input
             id="event-zoom"
             name="zoomUrl"
             type="url"
             defaultValue={event?.zoomUrl ?? ""}
             placeholder="https://zoom.us/j/…"
-            className={INPUT}
           />
         </Field>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-          <Field label="Location" htmlFor="event-location" help="Optional, for anything in person.">
-            <input
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4">
+          <Field label="Location" htmlFor="event-location" hint="Optional, for anything in person.">
+            <Input
               id="event-location"
               name="location"
               defaultValue={event?.location ?? ""}
               maxLength={200}
-              className={INPUT}
             />
           </Field>
           <Field
             label="Capacity"
             htmlFor="event-capacity"
-            help="Leave blank for no limit. Beyond it, members join a waitlist."
+            hint="Leave blank for no limit. Beyond it, members join a waitlist."
           >
-            <input
+            <Input
               id="event-capacity"
               name="capacity"
               type="number"
               min={1}
               defaultValue={event?.capacity ?? ""}
-              className={cn(INPUT, "max-w-[9rem]")}
+              className="max-w-36"
             />
           </Field>
         </div>
 
-        <Field label="Cover image" htmlFor="event-cover" help="A link to an image. Optional.">
-          <input
-            id="event-cover"
-            name="coverUrl"
-            defaultValue={event?.coverUrl ?? ""}
-            className={INPUT}
-          />
+        <Field label="Cover image" htmlFor="event-cover" hint="A link to an image. Optional.">
+          <Input id="event-cover" name="coverUrl" defaultValue={event?.coverUrl ?? ""} />
         </Field>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4">
           <Field label="Host" htmlFor="event-host">
-            <select
-              id="event-host"
-              name="hostId"
-              defaultValue={event?.hostId ?? ""}
-              className={INPUT}
-            >
+            <Select id="event-host" name="hostId" defaultValue={event?.hostId ?? ""}>
               <option value="">No named host</option>
               {hosts.map((host) => (
                 <option key={host.id} value={host.id}>
                   {host.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
 
           <Field
             label="Room"
             htmlFor="event-space"
-            help="Members who cannot enter the room will not see the event."
+            hint="Members who cannot enter the room will not see the event."
           >
-            <select
-              id="event-space"
-              name="spaceId"
-              defaultValue={event?.spaceId ?? ""}
-              className={INPUT}
-            >
+            <Select id="event-space" name="spaceId" defaultValue={event?.spaceId ?? ""}>
               <option value="">Everyone</option>
               {spaces.map((space) => (
                 <option key={space.id} value={space.id}>
                   {space.name}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
         </div>
 
-        <div className="space-y-3 rounded-ctl border border-border bg-background px-3 py-3">
+        <div className="flex flex-col gap-4 rounded-ctl bg-surface-muted p-3 sm:p-4">
           <Field
             label="Repeats"
             htmlFor="event-recurrence"
-            help="Each date becomes its own event, with its own seats and its own recording."
+            hint="Each date becomes its own event, with its own seats and its own recording."
           >
-            <select
+            <Select
               id="event-recurrence"
               name="recurrence"
               value={recurrence}
               onChange={(changed) => setRecurrence(changed.target.value)}
-              className={INPUT}
             >
               <option value="">Does not repeat</option>
               <option value="DAILY">Daily</option>
               <option value="WEEKLY">Weekly</option>
               <option value="MONTHLY">Monthly</option>
-            </select>
+            </Select>
           </Field>
 
           {recurrence ? (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Every" htmlFor="event-every">
-                <input
+                <Input
                   id="event-every"
                   name="recurrenceEvery"
                   type="number"
                   min={1}
                   max={12}
                   defaultValue={event?.recurrenceEvery ?? 1}
-                  className={cn(INPUT, "max-w-[7rem]")}
+                  className="max-w-28"
                 />
               </Field>
-              <Field label="Until" htmlFor="event-until" help="Blank keeps it going.">
-                <input
+              <Field label="Until" htmlFor="event-until" hint="Blank keeps it going.">
+                <Input
                   id="event-until"
                   name="recurrenceUntil"
                   type="date"
@@ -314,7 +297,6 @@ export function EventForm({
                       ? asLocal(event.recurrenceUntil).slice(0, 10)
                       : ""
                   }
-                  className={INPUT}
                 />
               </Field>
             </div>
@@ -324,47 +306,29 @@ export function EventForm({
         <Field
           label="Status"
           htmlFor="event-status"
-          help="A draft is invisible to members. Canceling tells everyone who said they were coming."
+          hint="A draft is invisible to members. Canceling tells everyone who said they were coming."
         >
-          <select
-            id="event-status"
-            name="status"
-            defaultValue={event?.status ?? "PUBLISHED"}
-            className={INPUT}
-          >
+          <Select id="event-status" name="status" defaultValue={event?.status ?? "PUBLISHED"}>
             <option value="PUBLISHED">Published</option>
             <option value="DRAFT">Draft</option>
             <option value="CANCELED">Canceled</option>
-          </select>
+          </Select>
         </Field>
 
-        {error ? (
-          <p role="alert" className="text-[12.5px] font-semibold text-danger">
-            {error}
-          </p>
-        ) : null}
+        {error ? <Callout tone="danger">{error}</Callout> : null}
       </div>
 
-      <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3">
+      <div className="flex items-center justify-end gap-3 border-t border-separator px-4 py-3 sm:px-5">
         {saved && !saving ? (
-          <span className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-foreground-muted">
-            <Check className="size-3.5" aria-hidden />
+          <span className="inline-flex items-center gap-1 text-label font-medium text-foreground-muted">
+            <Check className="size-4 text-success" aria-hidden />
             Saved
           </span>
         ) : null}
-        <button
-          type="submit"
-          disabled={saving}
-          className={cn(
-            "inline-flex h-9 items-center gap-1.5 rounded-ctl px-4 text-[13.5px] font-semibold transition",
-            saving
-              ? "bg-default text-foreground-muted"
-              : "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover",
-          )}
-        >
+        <Button type="submit" variant="primary" disabled={saving}>
           {saving ? (
             <>
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              <Loader2 className="size-4 animate-spin" aria-hidden />
               Saving
             </>
           ) : event ? (
@@ -372,40 +336,8 @@ export function EventForm({
           ) : (
             "Schedule it"
           )}
-        </button>
+        </Button>
       </div>
     </form>
-  );
-}
-
-const INPUT =
-  "h-9 w-full rounded-ctl border border-field-border bg-field-background px-3 text-[13.5px] text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/25";
-
-function Field({
-  label,
-  htmlFor,
-  help,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  help?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="min-w-0">
-      <label
-        htmlFor={htmlFor}
-        className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
-      >
-        {label}
-      </label>
-      {children}
-      {help ? (
-        <p className="mt-1.5 text-[12px] leading-snug text-foreground-muted">
-          {help}
-        </p>
-      ) : null}
-    </div>
   );
 }

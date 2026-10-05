@@ -73,7 +73,7 @@ export function NavDrawer({ children }: { children: React.ReactNode }) {
               aria-label="Navigation"
             >
               <div className={backdropClass} onClick={() => setOpen(false)} />
-              <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-sidebar-border bg-sidebar shadow-e3">
+              <div className="vu-app-sidebar absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-sidebar-border bg-sidebar shadow-e3">
                 <button
                   type="button"
                   onClick={() => setOpen(false)}

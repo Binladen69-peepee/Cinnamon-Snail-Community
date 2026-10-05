@@ -76,14 +76,14 @@ export function PostMedia({
           </span>
         ) : null}
         {items.length > 1 ? (
-          <span className="absolute bottom-1 right-1 rounded-full bg-black/70 px-1.5 text-[10px] text-white">
+          <span className="absolute bottom-1 right-1 rounded-full bg-black/70 px-1.5 text-micro font-semibold text-white">
             {items.length}
           </span>
         ) : null}
       </>
     );
     const shell =
-      "relative block size-16 shrink-0 overflow-hidden rounded-[10px] border border-border bg-surface-muted";
+      "relative block size-14 shrink-0 overflow-hidden rounded-ctl border border-border bg-surface-muted";
 
     if (isMobile && href) {
       return (
@@ -171,7 +171,7 @@ export function PostMedia({
               ) : (
                 <Frame item={item} fill eager={index === 0} />
               )}
-              <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/70 px-2 py-0.5 text-[10px] font-semibold text-white">
+              <span className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-micro font-semibold tabular-nums text-white">
                 {index + 1}/{items.length}
               </span>
             </li>
@@ -193,7 +193,7 @@ export function PostMedia({
         single ? items[0]!.alt || "View post" : `View all ${items.length} images`
       }
       className={cn(
-        "group/media block w-full overflow-hidden bg-surface-muted text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+        "group/media block w-full overflow-hidden bg-surface-muted text-left",
         flush ? "rounded-none border-0" : "mt-2 rounded-ctl border border-border",
       )}
       style={single ? { aspectRatio: String(ratioOf(items[0]!)) } : undefined}
@@ -222,7 +222,7 @@ export function PostMedia({
                 </span>
               ) : null}
               {extra > 0 && index === shown.length - 1 ? (
-                <span className="absolute inset-0 grid place-items-center bg-black/60 text-xl font-bold text-white">
+                <span className="absolute inset-0 grid place-items-center bg-black/60 text-heading font-semibold text-white">
                   +{extra}
                 </span>
               ) : null}

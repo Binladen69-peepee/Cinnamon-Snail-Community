@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { Loader2, Trash2 } from "lucide-react";
 import { deleteEventAction } from "@/app/admin/events/actions";
+import { Button } from "@/components/app/ui";
 
 /**
  * Deleting an event, with the consequences said out loud.
@@ -56,23 +57,18 @@ export function DeleteEventButton({
   return (
     <div className="flex flex-wrap items-center justify-end gap-2">
       {error ? (
-        <p role="alert" className="text-[12.5px] font-semibold text-danger">
+        <p role="alert" className="text-caption font-medium text-danger">
           {error}
         </p>
       ) : null}
-      <button
-        type="button"
-        onClick={remove}
-        disabled={pending}
-        className="vu-btn vu-btn-secondary inline-flex h-9 items-center gap-1.5 px-3.5 text-[13px] text-danger hover:text-danger"
-      >
+      <Button variant="danger" onClick={remove} disabled={pending}>
         {pending ? (
-          <Loader2 className="size-3.5 animate-spin" aria-hidden />
+          <Loader2 className="size-4 animate-spin" aria-hidden />
         ) : (
-          <Trash2 className="size-3.5" aria-hidden />
+          <Trash2 className="size-4" aria-hidden />
         )}
         Delete
-      </button>
+      </Button>
     </div>
   );
 }

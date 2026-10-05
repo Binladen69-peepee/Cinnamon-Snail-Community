@@ -1,27 +1,43 @@
+import { AppShell } from "@/components/app/app-shell";
+import { cardClass } from "@/components/app/ui";
+import { ChipRowSkeleton, PageHeaderSkeleton } from "@/components/app/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 
-/** The board's shape while it loads: header, tabs, a form bar and cards. */
+/** The board's shape while it loads: header and tabs, the host form, chips and cards. */
 export default function BulletinLoading() {
   return (
-    <div className="mx-auto w-full max-w-170 space-y-5 px-3 py-4 sm:px-5">
-      <div className="space-y-2">
-        <Skeleton className="h-7 w-44" />
-        <Skeleton className="h-4 w-80" />
-      </div>
-      <div className="flex gap-1.5">
-        {["w-[118px]", "w-[150px]", "w-[124px]"].map((width, index) => (
-          <Skeleton key={index} className={`h-9 rounded-full ${width}`} />
-        ))}
-      </div>
-      <Skeleton className="h-12 w-full rounded-card" />
-      {Array.from({ length: 3 }).map((_, index) => (
-        <div key={index} className="space-y-2 rounded-card border border-border bg-surface p-4">
-          <Skeleton className="h-4 w-20 rounded-full" />
-          <Skeleton className="h-5 w-64" />
-          <Skeleton className="h-3.5 w-48" />
-          <Skeleton className="h-3.5 w-full" />
+    <AppShell>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-4">
+          <PageHeaderSkeleton />
+          <div className="flex h-10 items-center gap-5 border-b border-border">
+            {["w-24", "w-32", "w-28"].map((width, index) => (
+              <Skeleton key={index} className={`h-4 rounded-chip ${width}`} />
+            ))}
+          </div>
         </div>
-      ))}
-    </div>
+        <div className="flex flex-col gap-5">
+          <div className={cardClass({ padding: "none", className: "flex items-center gap-2.5 px-4 py-3 sm:px-5" })}>
+            <Skeleton className="size-8 shrink-0 rounded-full" />
+            <Skeleton className="h-4 w-36 rounded-chip" />
+          </div>
+          <ChipRowSkeleton count={5} />
+          <div className="flex flex-col gap-3">
+            {Array.from({ length: 3 }, (_, index) => (
+              <div key={index} className={cardClass({ className: "flex flex-col gap-2.5" })}>
+                <Skeleton className="h-4 w-16 rounded-chip" />
+                <Skeleton className="h-5 w-3/5 rounded-chip" />
+                <Skeleton className="h-3.5 w-4/5 rounded-chip" />
+                <div className="mt-2 flex items-center gap-2 border-t border-separator pt-3">
+                  <Skeleton className="size-7 rounded-full" />
+                  <Skeleton className="h-3.5 w-32 rounded-chip" />
+                  <Skeleton className="ml-auto h-9 w-24 rounded-ctl" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </AppShell>
   );
 }

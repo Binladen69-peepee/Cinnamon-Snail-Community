@@ -1,37 +1,71 @@
 "use client";
 
-import { useId, useState } from "react";
+import { useState } from "react";
 import type { SeriesPoint } from "@/lib/admin/analytics";
 import { cn } from "@/lib/utils";
 
 /**
- * The stat tile's sparkline.
+ * The stat tile's sparkline, and what the console's charts share.
  *
- * This file held three marks; the dashboard rewrite left only this one using
- * it, so the column chart and the funnel went with the page that used them.
- * They are a `git log` away if a panel wants them back.
+ * Every mark here is one hue: `currentColor`, which the caller sets with
+ * `text-brand` (forest in light, sage in dark, 8.06:1 and 6.98:1 on the
+ * surfaces). The brand hues are too close to each other to tell series apart
+ * by colour, so a chart never asks them to: a title or a label carries
+ * identity, every time.
  *
- * BUILD.md rules out looking like a generic SaaS dashboard, so there is no
- * gradient fill, no dual axis, no chartjunk. The mark is thin, the wash is
- * faint, and the number above it is the thing being read.
+ * The specs are the same everywhere: a thin line, a flat wash under it at a
+ * tenth of the hue rather than a gradient, an end dot with a surface ring,
+ * hairline gridlines in `--separator`, and one tooltip style.
  */
+
+/** The one tooltip every chart in the console uses. Value first, then date. */
+export const chartTooltipClass =
+  "pointer-events-none z-10 whitespace-nowrap rounded-ctl border border-border bg-overlay px-2 py-1 text-caption tabular-nums text-foreground-muted shadow-e2";
+
+/**
+ * A dot drawn in HTML over a stretched SVG.
+ *
+ * The plots use `preserveAspectRatio="none"` so they fill whatever width the
+ * tile gives them, which turns an SVG circle into an ellipse. Placed by
+ * percentage in HTML instead, the dot stays round at every width.
+ */
+export function ChartDot({
+  left,
+  top,
+  className,
+}: {
+  left: number;
+  top: number;
+  className?: string;
+}) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        "pointer-events-none absolute -translate-x-1/2 -translate-y-1/2 rounded-full bg-current ring-2 ring-surface",
+        className,
+      )}
+      style={{ left: `${left}%`, top: `${top}%` }}
+    />
+  );
+}
 
 /* -------------------------------------------------------------------------- */
 /* Sparkline                                                                  */
 /* -------------------------------------------------------------------------- */
 
 /**
- * A stat tile's series — shape only, no axes.
+ * A stat tile's series: shape only, no axes.
  *
  * Deliberately not a chart with a scale: the number above it is the value, and
  * this says which way it has been going. Baseline-anchored area at a low wash
- * so the line stays the thing being read, and an end-dot with a surface ring
+ * so the line stays the thing being read, and an end dot with a surface ring
  * so the most recent point is findable.
  */
 export function Sparkline({
   points,
   className,
-  height = 34,
+  height = 32,
   label,
 }: {
   points: SeriesPoint[];
@@ -40,22 +74,20 @@ export function Sparkline({
   /** Named for screen readers, which cannot see the shape. */
   label: string;
 }) {
-  const id = useId();
   const [hover, setHover] = useState<number | null>(null);
 
   if (points.length < 2) return null;
 
   const width = 120;
-  // The end-dot is drawn at the last point, so without an inset its radius
-  // hangs over the edge of the card. Three units of air on each side keeps the
-  // whole mark inside the tile.
-  const inset = 3;
+  // The end dot sits on the last point, so without an inset its radius hangs
+  // over the edge of the tile. Four units of air on each side keep it inside.
+  const inset = 4;
   const plot = width - inset * 2;
   const max = Math.max(...points.map((point) => point.value), 1);
   const step = plot / (points.length - 1);
 
   const x = (index: number) => inset + index * step;
-  const y = (value: number) => height - (value / max) * (height - 4) - 2;
+  const y = (value: number) => height - (value / max) * (height - 8) - 4;
 
   const line = points
     .map((point, index) => `${index === 0 ? "M" : "L"}${x(index)},${y(point.value)}`)
@@ -66,22 +98,16 @@ export function Sparkline({
   const point = points[active]!;
 
   return (
-    <div className={cn("relative", className)}>
+    <div className={cn("relative", className)} style={{ height }}>
       <svg
         viewBox={`0 0 ${width} ${height}`}
         preserveAspectRatio="none"
         role="img"
         aria-label={`${label}. ${describe(points)}`}
-        className="h-[34px] w-full overflow-visible"
-        onMouseLeave={() => setHover(null)}
+        className="block size-full overflow-visible"
+        onPointerLeave={() => setHover(null)}
       >
-        <path d={area} fill={`url(#${id}-wash)`} />
-        <defs>
-          <linearGradient id={`${id}-wash`} x1="0" x2="0" y1="0" y2="1">
-            <stop offset="0" stopColor="currentColor" stopOpacity="0.14" />
-            <stop offset="1" stopColor="currentColor" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
+        <path d={area} fill="currentColor" fillOpacity={0.08} />
         <path
           d={line}
           fill="none"
@@ -101,23 +127,21 @@ export function Sparkline({
             width={step}
             height={height}
             fill="transparent"
-            onMouseEnter={() => setHover(index)}
+            onPointerEnter={() => setHover(index)}
           />
         ))}
-        <circle
-          cx={x(active)}
-          cy={y(point.value)}
-          r="2.5"
-          fill="currentColor"
-          stroke="var(--surface)"
-          strokeWidth="2"
-          vectorEffect="non-scaling-stroke"
-        />
       </svg>
 
+      <ChartDot
+        left={(x(active) / width) * 100}
+        top={(y(point.value) / height) * 100}
+        className="size-2"
+      />
+
       {hover !== null ? (
-        <p className="pointer-events-none absolute -top-1 right-0 rounded-chip bg-overlay px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums text-foreground shadow-e2">
-          {point.value} · {shortDate(point.date)}
+        <p className={cn(chartTooltipClass, "absolute bottom-full right-0 mb-1.5")}>
+          <span className="font-semibold text-foreground">{point.value}</span> ·{" "}
+          {shortDate(point.date)}
         </p>
       ) : null}
     </div>

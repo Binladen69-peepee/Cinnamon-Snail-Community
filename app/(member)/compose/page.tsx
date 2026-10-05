@@ -5,6 +5,7 @@ import { prisma } from "@/lib/db";
 import { parseComposerType } from "@/lib/community/post-types";
 import { uploadsConfigured } from "@/lib/uploads/storage";
 import { AppShell } from "@/components/app/app-shell";
+import { Card, PageHeader } from "@/components/app/ui";
 import { ComposeForm } from "@/components/feed/compose-form";
 
 export const metadata = { title: "New post" };
@@ -56,22 +57,21 @@ export default async function ComposePage({
 
   return (
     <AppShell>
-      <div className="space-y-4">
-        <header>
-          <h1 className="font-display text-[1.5rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-            New post
-          </h1>
-          <p className="mt-1 text-[14px] text-foreground-muted">
-            Everything you can post, with the fields each kind needs.
-          </p>
-        </header>
-
-        <ComposeForm
-          type={type.value}
-          spaces={spaces.map(({ id, name }) => ({ id, name }))}
-          defaultSpaceId={defaultSpaceId}
-          uploadsEnabled={uploadsConfigured()}
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          back={{ href: "/home", label: "Explorer" }}
+          title="New post"
+          description="Everything you can post, with the fields each kind needs."
         />
+
+        <Card padding="lg">
+          <ComposeForm
+            type={type.value}
+            spaces={spaces.map(({ id, name }) => ({ id, name }))}
+            defaultSpaceId={defaultSpaceId}
+            uploadsEnabled={uploadsConfigured()}
+          />
+        </Card>
       </div>
     </AppShell>
   );

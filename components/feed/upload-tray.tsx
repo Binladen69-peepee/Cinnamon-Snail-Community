@@ -35,7 +35,7 @@ export function UploadTray({
   if (items.length === 0) return null;
 
   return (
-    <ul className="mt-2.5 grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-2">
+    <ul className="mt-3 grid grid-cols-[repeat(auto-fill,minmax(5.5rem,1fr))] gap-2">
       {items.map((item) => (
         <UploadTile
           key={item.id}
@@ -74,8 +74,8 @@ function UploadTile({
   return (
     <li
       className={cn(
-        "group/tile relative aspect-square overflow-hidden rounded-ctl border bg-mint/40",
-        item.status === "error" ? "border-danger/60" : "border-border",
+        "group/tile relative aspect-square overflow-hidden rounded-ctl border bg-surface-muted",
+        item.status === "error" ? "border-danger" : "border-border",
       )}
     >
       {item.kind === "video" ? (
@@ -98,15 +98,15 @@ function UploadTile({
       )}
 
       {pending ? (
-        <div className="absolute inset-0 grid place-items-center bg-[rgba(0,0,0,0.55)]">
-          <span className="text-[11.5px] font-bold tabular-nums text-white">
+        <div className="absolute inset-0 grid place-items-center bg-black/55">
+          <span className="text-caption font-semibold tabular-nums text-white">
             {item.status === "preparing" ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />
             ) : (
               `${percent}%`
             )}
           </span>
-          <span className="absolute inset-x-0 bottom-0 h-[3px] bg-white/25" aria-hidden>
+          <span className="absolute inset-x-0 bottom-0 h-1 bg-white/25" aria-hidden>
             <span
               className="block h-full bg-white transition-[width] duration-150"
               style={{ width: `${percent}%` }}
@@ -121,7 +121,7 @@ function UploadTile({
       {item.status === "done" ? (
         <>
           <span
-            className="absolute right-1 top-1 grid size-4.5 place-items-center rounded-full bg-brand text-on-brand"
+            className="absolute right-1.5 top-1.5 grid size-5 place-items-center rounded-full bg-brand-fill text-brand-fill-foreground shadow-e1"
             aria-hidden
           >
             <Check className="size-3" />
@@ -132,7 +132,7 @@ function UploadTile({
               onChange={(event) => onAlt(item.id, event.currentTarget.value)}
               placeholder="Describe it"
               aria-label={`Description for ${item.name}`}
-              className="absolute inset-x-0 bottom-0 h-6 w-full border-0 bg-[rgba(0,0,0,0.66)] px-1.5 text-[10.5px] text-white outline-none placeholder:text-white/60 focus:bg-[rgba(0,0,0,0.85)]"
+              className="absolute inset-x-0 bottom-0 h-7 w-full border-0 bg-black/65 px-2 text-micro text-white outline-none placeholder:text-white/70 focus:bg-black/85"
             />
           ) : null}
           {item.kind === "video" && onVideoThumbnail ? (
@@ -140,7 +140,7 @@ function UploadTile({
               <button
                 type="button"
                 onClick={() => thumbRef.current?.click()}
-                className="flex flex-1 items-center justify-center gap-0.5 rounded-[6px] bg-[rgba(0,0,0,0.72)] px-1 py-1 text-[9.5px] font-semibold text-white"
+                className="flex flex-1 items-center justify-center gap-1 rounded-chip bg-black/70 px-1 py-1 text-micro font-semibold text-white"
               >
                 {item.thumbnailStatus === "preparing" ||
                 item.thumbnailStatus === "uploading" ? (
@@ -155,7 +155,7 @@ function UploadTile({
                   type="button"
                   onClick={() => onClearVideoThumbnail(item.id)}
                   aria-label="Remove thumbnail"
-                  className="rounded-[6px] bg-[rgba(0,0,0,0.72)] px-1.5 text-[9.5px] font-semibold text-white"
+                  className="rounded-chip bg-black/70 px-1.5 text-micro font-semibold text-white"
                 >
                   ✕
                 </button>
@@ -177,15 +177,15 @@ function UploadTile({
       ) : null}
 
       {item.status === "error" ? (
-        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-[rgba(0,0,0,0.72)] px-1.5 text-center">
-          <AlertTriangle className="size-4 text-danger" aria-hidden />
-          <p className="line-clamp-3 text-[10px] leading-tight text-white/90">
+        <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-black/75 px-1.5 text-center">
+          <AlertTriangle className="size-4 text-white" aria-hidden />
+          <p className="line-clamp-3 text-micro leading-tight text-white/90">
             {item.error}
           </p>
           <button
             type="button"
             onClick={() => onRetry(item.id)}
-            className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-white/90 px-1.5 py-0.5 text-[10px] font-bold text-black"
+            className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-white/90 px-2 py-0.5 text-micro font-semibold text-black transition hover:bg-white"
           >
             <RotateCcw className="size-2.5" aria-hidden />
             Retry
@@ -197,7 +197,7 @@ function UploadTile({
         type="button"
         onClick={() => onRemove(item.id)}
         aria-label={`Remove ${item.name}`}
-        className="absolute left-1 top-1 grid size-4.5 place-items-center rounded-full bg-[rgba(0,0,0,0.7)] text-white opacity-0 transition group-hover/tile:opacity-100 focus-visible:opacity-100"
+        className="absolute left-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-black/70 text-white transition md:opacity-0 md:group-hover/tile:opacity-100 md:focus-visible:opacity-100"
       >
         <X className="size-3" aria-hidden />
       </button>

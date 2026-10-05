@@ -23,7 +23,14 @@ import {
 import { AppShell } from "@/components/app/app-shell";
 import { UrlSearchField } from "@/components/app/url-search-field";
 import { Avatar } from "@/components/ui/avatar";
-import { cn } from "@/lib/utils";
+import {
+  ButtonLink,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  cardClass,
+  chipClass,
+} from "@/components/app/ui";
 
 export const metadata = { title: "Search" };
 
@@ -83,76 +90,81 @@ export default async function SearchPage({
 
   return (
     <AppShell>
-      <div className="space-y-5 pb-4">
-        <header className="space-y-3">
-          <div>
-            <h1 className="font-display text-[1.6rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-              Search
-            </h1>
-            <p className="mt-1 text-[14px] text-foreground-muted">
-              Members, posts, classes, lessons and events, in one place.
-            </p>
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="Search"
+          description="Members, posts, classes, lessons and events, in one place."
+        >
+          <div className="flex flex-col gap-3">
+            <UrlSearchField placeholder="Search Vegan University" label="Search everything" />
+            <TypeFilter q={q} active={type} />
           </div>
-
-          <UrlSearchField placeholder="Search Vegan University" label="Search everything" />
-
-          <TypeFilter q={q} active={type} />
-        </header>
+        </PageHeader>
 
         {q.length < 2 ? (
-          <Notice
-            icon={SearchIcon}
+          <EmptyState
+            icon={<SearchIcon />}
             title={q ? "Keep typing" : "What are you looking for?"}
-            body={
+            description={
               q
                 ? "Search needs at least two characters."
                 : "Try a member’s name, an ingredient, a class or a technique."
             }
           />
         ) : failed ? (
-          <Notice
-            icon={SearchX}
-            tone="danger"
+          <ErrorState
             title="Search didn’t answer"
-            body="Something went wrong on our side. Try again in a moment."
-            action={{ href: searchUrl(q, type), label: "Try again" }}
+            description="Something went wrong on our side. Try again in a moment."
+            action={
+              <ButtonLink href={searchUrl(q, type)} variant="primary">
+                Try again
+              </ButtonLink>
+            }
           />
         ) : hits.length === 0 ? (
-          <Notice
-            icon={SearchX}
+          <EmptyState
+            icon={<SearchX />}
             title={`Nothing matches “${q}”`}
-            body={
+            description={
               type
                 ? "Nothing of this kind matches. Other kinds might."
                 : "Try a shorter word or a different spelling. Private rooms you are not in are never searched."
             }
-            action={type ? { href: searchUrl(q, null), label: "Search everything" } : undefined}
+            action={
+              type ? (
+                <ButtonLink href={searchUrl(q, null)}>Search everything</ButtonLink>
+              ) : undefined
+            }
           />
         ) : type ? (
-          <section aria-label={`${labelFor(type)} matching ${q}`}>
-            <p className="mb-2.5 text-[12.5px] font-semibold tabular-nums text-foreground-muted">
+          <section aria-label={`${labelFor(type)} matching ${q}`} className="flex flex-col gap-3">
+            <p className="text-caption font-medium tabular-nums text-foreground-muted">
               {hits.length >= PER_TYPE ? `The first ${PER_TYPE}` : hits.length}{" "}
               {hits.length === 1 ? "result" : "results"}
             </p>
             <HitList hits={hits} />
           </section>
         ) : (
-          <div className="space-y-6">
+          <div className="flex flex-col gap-8">
             {groupHits(hits, PER_GROUP).map((group) => {
               const total = hits.filter((hit) => hit.type === group.type).length;
               return (
-                <section key={group.type} aria-labelledby={`search-${group.type}`}>
-                  <div className="mb-2.5 flex items-center justify-between gap-3">
+                <section
+                  key={group.type}
+                  aria-labelledby={`search-${group.type}`}
+                  className="flex flex-col gap-3"
+                >
+                  <div className="flex items-end justify-between gap-3">
                     <h2
                       id={`search-${group.type}`}
-                      className="text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted"
+                      className="text-title font-semibold text-foreground"
                     >
                       {group.label}
                     </h2>
                     {total > PER_GROUP ? (
                       <Link
                         href={searchUrl(q, group.type)}
-                        className="text-[12.5px] font-semibold text-foreground underline-offset-2 hover:underline"
+                        className="rounded-chip text-label font-medium text-link no-underline hover:underline"
                       >
                         All {group.label.toLowerCase()}
                       </Link>
@@ -191,25 +203,22 @@ function TypeFilter({ q, active }: { q: string; active: SearchType | null }) {
   ];
 
   return (
-    <nav aria-label="Result kinds" className="-mx-3 px-3 sm:mx-0 sm:px-0">
-      <ul className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <nav aria-label="Result kinds">
+      {/* Scrolls sideways on a phone rather than wrapping, as `ChipRow`
+          does; a list here so the kinds are counted as a set. */}
+      <ul className="vu-scroll-x -mx-1 flex items-center gap-2 overflow-x-auto px-1 pb-0.5">
         {options.map((option) => {
           const current = option.type === active;
           const Icon = option.type ? TYPE_ICON[option.type] : SearchIcon;
           return (
-            <li key={option.type ?? "all"}>
+            <li key={option.type ?? "all"} className="shrink-0">
               <Link
                 href={searchUrl(q, option.type)}
                 aria-current={current ? "page" : undefined}
                 scroll={false}
-                className={cn(
-                  "inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[13.5px] font-semibold no-underline transition",
-                  current
-                    ? "border-brand-fill bg-brand-fill text-brand-fill-foreground"
-                    : "border-border bg-surface text-foreground-muted hover:border-hairline-firm hover:text-foreground",
-                )}
+                className={chipClass(current)}
               >
-                <Icon className="size-3.5" aria-hidden />
+                <Icon aria-hidden />
                 {option.label}
               </Link>
             </li>
@@ -222,23 +231,23 @@ function TypeFilter({ q, active }: { q: string; active: SearchType | null }) {
 
 function HitList({ hits }: { hits: ResultHit[] }) {
   return (
-    <ul className="divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
+    <ul className={cardClass({ padding: "none", className: "divide-y divide-separator overflow-hidden" })}>
       {hits.map((hit) => (
         <li key={hit.id}>
           <Link
             href={hit.href}
-            className="flex items-start gap-3 px-3.5 py-3 text-foreground no-underline transition hover:bg-surface-muted focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-brand"
+            className="flex items-start gap-3 px-4 py-3 text-foreground no-underline transition hover:bg-surface-muted sm:px-5"
           >
             <HitMark hit={hit} />
             <span className="min-w-0 flex-1">
-              <span className="block truncate text-[14.5px] font-semibold leading-snug">
+              <span className="block truncate text-body font-semibold leading-snug">
                 {hit.title}
               </span>
-              <span className="block truncate text-[12.5px] text-foreground-muted">
+              <span className="mt-0.5 block truncate text-caption text-foreground-muted">
                 {hit.detail}
               </span>
               {hit.snippet && hit.type !== "member" ? (
-                <span className="mt-1 line-clamp-2 block text-[13px] leading-snug text-foreground-muted">
+                <span className="mt-1 line-clamp-2 block text-label leading-snug text-foreground-muted">
                   {hit.snippet}
                 </span>
               ) : null}
@@ -270,45 +279,5 @@ function HitMark({ hit }: { hit: ResultHit }) {
     <span className="grid size-9 shrink-0 place-items-center rounded-ctl bg-brand-wash text-on-brand-wash">
       <Icon className="size-4" aria-hidden />
     </span>
-  );
-}
-
-function Notice({
-  icon: Icon,
-  title,
-  body,
-  action,
-  tone = "neutral",
-}: {
-  icon: LucideIcon;
-  title: string;
-  body: string;
-  action?: { href: string; label: string };
-  tone?: "neutral" | "danger";
-}) {
-  return (
-    <div
-      role={tone === "danger" ? "alert" : undefined}
-      className="rounded-card border border-dashed border-border bg-surface px-6 py-14 text-center"
-    >
-      <span
-        className={cn(
-          "mx-auto grid size-12 place-items-center rounded-full",
-          tone === "danger" ? "bg-danger/10 text-danger" : "bg-brand-wash text-on-brand-wash",
-        )}
-      >
-        <Icon className="size-6" aria-hidden />
-      </span>
-      <h2 className="mt-3 font-display text-[1.15rem] font-bold text-foreground">{title}</h2>
-      <p className="mx-auto mt-1.5 max-w-[46ch] text-[14px] text-foreground-muted">{body}</p>
-      {action ? (
-        <Link
-          href={action.href}
-          className="mt-4 inline-flex h-9 items-center rounded-ctl border border-border bg-background px-4 text-[13.5px] font-semibold text-foreground no-underline transition hover:border-hairline-firm"
-        >
-          {action.label}
-        </Link>
-      ) : null}
-    </div>
   );
 }

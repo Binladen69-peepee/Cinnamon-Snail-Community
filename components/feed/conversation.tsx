@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useTransition, type FormEvent } from "react";
 import { CornerDownLeft, Link2, MessageSquare, Minus, Plus } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { Badge, Button, EmptyState, fieldClass } from "@/components/app/ui";
 import { VoteRail } from "@/components/feed/vote-rail";
 import { formatShortTime } from "@/lib/community/format-count";
 import type { DetailComment } from "@/lib/community/post-detail";
@@ -24,28 +25,28 @@ export function Conversation({
   postId: string;
   viewer: { name: string; avatar: string | null };
 }) {
+  // No surface of its own: the post page sets the thread in the same card as
+  // the reply box and the sort, so it reads as one conversation.
   if (comments.length === 0) {
     return (
-      <div className="rounded-card border border-border bg-surface px-6 py-8 text-center">
-        <MessageSquare className="mx-auto size-5 text-foreground-muted" aria-hidden />
-        <p className="mt-2.5 text-[14.5px] text-foreground">No replies yet</p>
-        <p className="mt-1 text-[13px] text-foreground-muted">
-          Say the first thing — a question counts.
-        </p>
-      </div>
+      <EmptyState
+        size="sm"
+        bordered={false}
+        icon={<MessageSquare />}
+        title="No replies yet"
+        description="Say the first thing — a question counts."
+      />
     );
   }
 
   return (
-    <div className="rounded-card border border-border bg-surface p-3 sm:p-4">
-      <ul className="space-y-4">
-        {comments.map((comment) => (
-          <li key={comment.id}>
-            <Node comment={comment} postId={postId} viewer={viewer} depth={0} />
-          </li>
-        ))}
-      </ul>
-    </div>
+    <ul className="space-y-5">
+      {comments.map((comment) => (
+        <li key={comment.id}>
+          <Node comment={comment} postId={postId} viewer={viewer} depth={0} />
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -62,6 +63,7 @@ function Node({
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
+  const [replyFailed, setReplyFailed] = useState(false);
   const [showDeeper, setShowDeeper] = useState(false);
   const [pending, start] = useTransition();
   const router = useRouter();
@@ -77,13 +79,18 @@ function Node({
     const form = event.currentTarget;
     const body = String(new FormData(form).get("body") ?? "").trim();
     if (!body) return;
+    setReplyFailed(false);
     start(async () => {
       const response = await fetch(`/api/community/posts/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body, parentId: comment.id }),
       });
-      if (!response.ok) return;
+      if (!response.ok) {
+        // The reply stays in the box, so saying so is all it takes to retry.
+        setReplyFailed(true);
+        return;
+      }
       form.reset();
       setReplyOpen(false);
       router.refresh();
@@ -92,17 +99,17 @@ function Node({
 
   if (collapsed) {
     return (
-      <div className="flex items-center gap-2 py-1">
+      <div className="flex items-center gap-2.5 py-1">
         <button
           type="button"
           onClick={() => setCollapsed(false)}
           aria-label={`Expand ${name}'s thread`}
-          className="grid size-5 shrink-0 place-items-center rounded-full border border-border text-foreground-muted transition hover:border-brand hover:text-brand"
+          className="grid size-6 shrink-0 place-items-center rounded-full border border-hairline-firm bg-surface text-foreground-muted transition hover:border-brand hover:text-brand"
         >
           <Plus className="size-3" aria-hidden />
         </button>
-        <p className="min-w-0 truncate text-[12.5px] text-foreground-muted">
-          <span className="text-foreground">{name}</span>
+        <p className="min-w-0 truncate text-label text-foreground-muted">
+          <span className="font-medium text-foreground">{name}</span>
           {hidden > 0 ? ` · ${hidden} more` : ""}
         </p>
       </div>
@@ -110,51 +117,45 @@ function Node({
   }
 
   return (
-    <div id={`comment-${comment.id}`} className="relative">
+    <div id={`comment-${comment.id}`} className="relative scroll-mt-20">
       <div className="flex gap-2.5">
         <div className="relative flex w-8 shrink-0 flex-col items-center">
           <Avatar
             name={name}
             src={comment.author.profile?.avatarUrl}
             size="sm"
-            className="relative z-[1] size-8 text-[10px]"
+            className="relative z-1 size-8 text-micro"
           />
           {hasReplies ? (
             <button
               type="button"
               onClick={() => setCollapsed(true)}
               aria-label={`Collapse ${name}'s thread`}
-              className="mt-1 grid size-4 place-items-center rounded-full border border-border bg-background text-foreground-muted transition hover:border-brand hover:text-brand"
+              className="mt-1 grid size-5 place-items-center rounded-full border border-hairline-firm bg-surface text-foreground-muted transition hover:border-brand hover:text-brand"
             >
-              <Minus className="size-2.5" aria-hidden />
+              <Minus className="size-3" aria-hidden />
             </button>
           ) : null}
         </div>
 
         <div className="min-w-0 flex-1 pb-0.5">
-          <p className="flex flex-wrap items-center gap-x-1.5 text-[12.5px] leading-tight">
+          <p className="flex flex-wrap items-center gap-x-1.5 text-caption leading-tight text-foreground-muted">
             <Link
               href={`/members/${comment.author.handle}`}
-              className="font-semibold text-foreground no-underline hover:underline"
+              className="text-label font-semibold text-foreground no-underline hover:underline"
             >
               {name}
             </Link>
-            {isHost ? (
-              <span className="rounded-full bg-brand-wash px-1.5 text-[9.5px] uppercase tracking-[0.08em] text-on-brand-wash">
-                Host
-              </span>
-            ) : null}
-            <span className="text-foreground-muted">
-              · {formatShortTime(new Date(comment.createdAt))}
-            </span>
+            {isHost ? <Badge tone="brand">Host</Badge> : null}
+            <span>· {formatShortTime(new Date(comment.createdAt))}</span>
           </p>
 
           <div
-            className="prose-vu mt-1 text-[14px] leading-[1.5] text-foreground [&_p]:mb-1.5 [&_p:last-child]:mb-0"
+            className="prose-vu mt-1 text-body leading-relaxed text-foreground [&_p]:mb-1.5 [&_p:last-child]:mb-0"
             dangerouslySetInnerHTML={{ __html: comment.bodyHtml || comment.plainText }}
           />
 
-          <div className="mt-0.5 flex items-center gap-0.5">
+          <div className="mt-1 flex items-center gap-0.5">
             <VoteRail
               commentId={comment.id}
               returnToPostId={comment.postId}
@@ -167,43 +168,46 @@ function Node({
               onClick={() => setReplyOpen((open) => !open)}
               aria-expanded={replyOpen}
               className={cn(
-                "inline-flex h-7 items-center gap-1.5 rounded-full px-2 text-[12px] transition",
+                "inline-flex h-7 items-center gap-1.5 rounded-ctl px-2 text-caption font-medium transition",
                 replyOpen
                   ? "bg-brand-wash text-on-brand-wash"
-                  : "text-foreground-muted hover:bg-mint hover:text-foreground",
+                  : "text-foreground-muted hover:bg-surface-muted hover:text-foreground",
               )}
             >
-              <CornerDownLeft className="size-3" aria-hidden />
+              <CornerDownLeft className="size-3.5" aria-hidden />
               Reply
             </button>
             <a
               href={`/posts/${comment.postId}#comment-${comment.id}`}
               title="Link to this reply"
-              className="inline-flex size-7 items-center justify-center rounded-full text-foreground-muted no-underline transition hover:bg-mint hover:text-foreground"
+              className="inline-flex size-7 items-center justify-center rounded-ctl text-foreground-muted no-underline transition hover:bg-surface-muted hover:text-foreground"
             >
-              <Link2 className="size-3" aria-hidden />
+              <Link2 className="size-3.5" aria-hidden />
               <span className="sr-only">Link to this reply</span>
             </a>
           </div>
 
           {replyOpen ? (
-            <form onSubmit={submitReply} className="mt-1.5 flex gap-1.5">
+            <form onSubmit={submitReply} className="mt-2 flex gap-2">
               <input
                 name="body"
                 required
                 autoFocus
                 placeholder={`Reply to ${name}…`}
+                aria-label={`Reply to ${name}`}
+                aria-invalid={replyFailed || undefined}
                 disabled={pending}
-                className="h-8 min-w-0 flex-1 rounded-[12px] border border-border bg-mint/40 px-3 text-[13.5px] text-foreground outline-none transition focus:border-brand focus:bg-surface disabled:opacity-60"
+                className={fieldClass({ size: "sm", className: "flex-1" })}
               />
-              <button
-                type="submit"
-                disabled={pending}
-                className="inline-flex h-8 shrink-0 items-center rounded-[12px] bg-brand-fill px-3 text-[12.5px] text-brand-fill-foreground transition hover:bg-brand-fill-hover disabled:opacity-50 "
-              >
+              <Button type="submit" variant="primary" size="sm" disabled={pending}>
                 {pending ? "Posting…" : "Reply"}
-              </button>
+              </Button>
             </form>
+          ) : null}
+          {replyOpen && replyFailed ? (
+            <p role="alert" className="mt-1.5 text-caption font-medium text-danger">
+              That reply did not post. Try again.
+            </p>
           ) : null}
         </div>
       </div>
@@ -213,7 +217,7 @@ function Node({
           <button
             type="button"
             onClick={() => setShowDeeper(true)}
-            className="mt-1.5 ml-10 text-[12.5px] text-brand transition hover:underline"
+            className="ml-10 mt-2 rounded-chip text-label font-medium text-link transition hover:underline"
           >
             Continue this thread ({hidden} more)
           </button>

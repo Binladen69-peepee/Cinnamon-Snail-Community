@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ChefHat, Play } from "lucide-react";
 import { classHref, type ClassSummary } from "@/lib/learn/classes";
+import { cardClass } from "@/components/app/ui";
 import { cn } from "@/lib/utils";
 
 /**
@@ -13,7 +14,9 @@ import { cn } from "@/lib/utils";
  * from search.
  *
  * Fixed aspect on the still and a clamped title keep a grid of these the same
- * height whatever a class is called.
+ * height whatever a class is called. The play disc, the running time and the
+ * progress strip sit on the photo, so they keep their literal scrims: a photo
+ * is the same photo in light and dark.
  */
 export function ClassTile({
   cls,
@@ -37,9 +40,13 @@ export function ClassTile({
   return (
     <Link
       href={href ?? classHref(cls.slug)}
-      className="group flex h-full flex-col overflow-hidden rounded-card border border-border bg-surface no-underline transition hover:border-hairline-firm hover:shadow-e2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+      className={cardClass({
+        padding: "none",
+        interactive: true,
+        className: "group flex h-full flex-col overflow-hidden no-underline",
+      })}
     >
-      <span className="relative block aspect-[4/3] w-full overflow-hidden bg-brand-wash">
+      <span className="relative block aspect-4/3 w-full overflow-hidden bg-surface-muted">
         {cls.photo ? (
           // Class stills come from the client's own media host, not the optimizer.
           // eslint-disable-next-line @next/next/no-img-element
@@ -51,7 +58,7 @@ export function ClassTile({
             className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
           />
         ) : (
-          <span className="grid size-full place-items-center text-brand-strong/40">
+          <span className="grid size-full place-items-center text-foreground-muted/50">
             <ChefHat className="size-8" aria-hidden />
           </span>
         )}
@@ -59,13 +66,16 @@ export function ClassTile({
         {cls.teaserEmbed ? (
           <span className="absolute inset-0 grid place-items-center transition group-hover:bg-black/25">
             <span className="grid size-10 place-items-center rounded-full bg-white/90 text-black opacity-0 shadow-e2 transition group-hover:opacity-100">
-              <Play className="size-4 translate-x-px fill-current" aria-hidden />
+              <Play
+                className="size-4 translate-x-px fill-current"
+                aria-hidden
+              />
             </span>
           </span>
         ) : null}
 
         {cls.length ? (
-          <span className="absolute bottom-2 right-2 rounded-chip bg-black/65 px-1.5 py-0.5 text-[11px] font-semibold tabular-nums text-white">
+          <span className="absolute bottom-2 right-2 rounded-chip bg-black/65 px-1.5 py-0.5 text-micro font-semibold tabular-nums text-white">
             {cls.length}
           </span>
         ) : null}
@@ -83,13 +93,16 @@ export function ClassTile({
         ) : null}
       </span>
 
-      <span className="flex flex-1 flex-col gap-1 p-3">
-        <span className="line-clamp-2 text-[14px] font-bold leading-snug text-foreground">
+      <span className="flex flex-1 flex-col gap-1 p-3 sm:p-4">
+        <span className="line-clamp-2 text-body font-semibold text-foreground sm:text-title">
           {cls.title}
         </span>
         <span
           className={cn(
-            "mt-auto pt-1 text-[11.5px] font-semibold text-foreground-muted",
+            "mt-auto pt-0.5 text-caption",
+            percent !== null
+              ? "font-medium text-brand-strong"
+              : "text-foreground-muted",
           )}
         >
           {percent !== null

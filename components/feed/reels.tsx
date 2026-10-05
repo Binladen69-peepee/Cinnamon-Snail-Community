@@ -22,6 +22,7 @@ import { runAction } from "@/components/feed/run-action";
 import { PostFollowButton } from "@/components/feed/post-follow-button";
 import { CommentPanel } from "@/components/feed/comment-panel";
 import { Avatar } from "@/components/ui/avatar";
+import { ButtonLink, EmptyState } from "@/components/app/ui";
 import { DEFAULT_REACTION } from "@/lib/community/reactions";
 import { formatCount } from "@/lib/community/format-count";
 import { videoEmbedSrc, videoPosterUrl } from "@/lib/community/media";
@@ -134,18 +135,17 @@ export function Reels({
 
   if (posts.length === 0) {
     return (
-      <div className="mx-auto flex h-full max-w-md flex-col items-center justify-center px-6 py-16 text-center">
-        <Clapperboard className="mx-auto size-7 text-brand" aria-hidden />
-        <p className="mt-3 text-[16px] font-bold text-foreground">No reels yet</p>
-        <p className="mt-1.5 text-[14px] leading-relaxed text-foreground-muted">
-          Reels are the videos people post. When someone shares one, it plays here.
-        </p>
-        <Link
-          href="/compose?type=VIDEO"
-          className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-fill px-4 text-[13.5px] font-bold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover"
-        >
-          Post a video
-        </Link>
+      <div className="mx-auto flex h-full max-w-md flex-col justify-center px-4 md:px-0">
+        <EmptyState
+          icon={<Clapperboard />}
+          title="No reels yet"
+          description="Reels are the videos people post. When someone shares one, it plays here."
+          action={
+            <ButtonLink href="/compose?type=VIDEO" variant="primary">
+              Post a video
+            </ButtonLink>
+          }
+        />
       </div>
     );
   }
@@ -160,7 +160,7 @@ export function Reels({
       <div
         ref={scroller}
         className={cn(
-          "vu-reels relative h-full snap-y snap-mandatory overflow-y-auto overscroll-y-contain bg-black",
+          "relative h-full snap-y snap-mandatory overflow-y-auto overscroll-y-contain bg-black",
           "[scrollbar-width:none] [&::-webkit-scrollbar]:hidden",
           "md:rounded-card md:border md:border-border",
         )}
@@ -180,7 +180,7 @@ export function Reels({
 
         {cursor ? (
           <div
-            className="flex h-24 snap-start items-center justify-center text-[13px] text-white/80"
+            className="flex h-24 snap-start items-center justify-center text-label text-white/80"
             aria-live="polite"
           >
             {loading ? (
@@ -386,12 +386,12 @@ function Reel({
           </Link>
           <Link
             href={`/members/${post.author.handle}`}
-            className="truncate rounded-sm text-[14px] font-bold text-white no-underline drop-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            className="truncate rounded-sm text-body font-semibold text-white no-underline drop-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
           >
             {name}
           </Link>
           {!isOwn ? (
-            <span className="reel-follow shrink-0">
+            <span className="shrink-0">
               <PostFollowButton
                 handle={post.author.handle}
                 initialFollowing={Boolean(post.viewerFollowsAuthor)}
@@ -407,7 +407,7 @@ function Reel({
             aria-expanded={expanded}
             aria-label={expanded ? "Collapse caption" : "Expand caption"}
             className={cn(
-              "mt-2 block w-full rounded-sm text-left text-[13.5px] leading-snug text-white drop-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
+              "mt-2 block w-full rounded-sm text-left text-body leading-snug text-white drop-shadow focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white",
               !expanded && "line-clamp-2",
             )}
           >
@@ -417,7 +417,7 @@ function Reel({
 
         <Link
           href={`/spaces/${post.space.slug}`}
-          className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-semibold text-white no-underline backdrop-blur-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+          className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-caption font-semibold text-white no-underline backdrop-blur-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
         >
           <Clapperboard className="size-3.5 shrink-0" aria-hidden />
           <span className="truncate">
@@ -435,22 +435,22 @@ function Reel({
           className="absolute inset-0 z-30 flex flex-col justify-end"
           onClick={() => setCommentsOpen(false)}
         >
-          <div className="absolute inset-0 bg-black/40" aria-hidden />
+          <div className="absolute inset-0 bg-backdrop" aria-hidden />
           <div
             role="dialog"
             aria-label="Comments"
             onClick={(event) => event.stopPropagation()}
-            className="relative flex max-h-[75%] flex-col rounded-t-2xl bg-surface text-foreground shadow-e3"
+            className="relative flex max-h-[75%] flex-col rounded-t-modal border-t border-border bg-overlay text-foreground shadow-e3"
           >
-            <div className="flex items-center justify-between border-b border-border px-4 py-2.5">
-              <span className="text-[14px] font-bold">
+            <div className="flex items-center justify-between border-b border-separator px-4 py-2.5">
+              <span className="text-body font-semibold">
                 Comments{commentCount > 0 ? ` · ${formatCount(commentCount)}` : ""}
               </span>
               <button
                 type="button"
                 onClick={() => setCommentsOpen(false)}
                 aria-label="Close comments"
-                className="grid size-8 place-items-center rounded-full text-foreground-muted transition hover:bg-mint hover:text-foreground"
+                className="grid size-8 place-items-center rounded-ctl text-foreground-muted transition hover:bg-surface-muted hover:text-foreground"
               >
                 <X className="size-4" aria-hidden />
               </button>
@@ -596,8 +596,8 @@ function ReelActions({
   // The theme's focus ring is ink-coloured — invisible on this black surface —
   // so every control here draws its own, in white.
   const button =
-    "grid place-items-center gap-1 rounded-md text-white drop-shadow transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
-  const count = "text-[12px] font-semibold tabular-nums";
+    "grid place-items-center gap-1 rounded-ctl text-white drop-shadow transition active:scale-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white";
+  const count = "text-caption font-semibold tabular-nums";
 
   return (
     <div className="absolute bottom-5 right-2.5 z-10 flex flex-col items-center gap-4">
@@ -611,7 +611,7 @@ function ReelActions({
         className={button}
       >
         <Heart
-          className={cn("size-6 md:size-7", liked && "text-danger")}
+          className={cn("size-6 md:size-7", liked && "text-highlight")}
           fill={liked ? "currentColor" : "none"}
           aria-hidden
         />

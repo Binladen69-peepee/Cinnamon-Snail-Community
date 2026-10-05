@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Globe, Lock, Star } from "lucide-react";
+import { Check, Globe, Lock, Star, Users } from "lucide-react";
 import {
   SPACE_KIND_BLURB,
   SPACE_KIND_ICON,
@@ -7,7 +7,7 @@ import {
 } from "@/lib/spaces/kinds";
 import type { NavSpace } from "@/lib/spaces";
 import { JoinButton } from "@/components/spaces/space-buttons";
-import { cn } from "@/lib/utils";
+import { Badge, Card } from "@/components/app/ui";
 
 /**
  * A space in the directory.
@@ -25,16 +25,10 @@ export function SpaceCard({ space }: { space: NavSpace }) {
   const VisibilityIcon = space.visibility === "PRIVATE" ? Lock : Globe;
 
   return (
-    <article
-      className={cn(
-        "flex h-full flex-col rounded-card border bg-surface transition-colors",
-        space.unread > 0 ? "border-brand/40" : "border-border",
-        "hover:border-hairline-firm",
-      )}
-    >
+    <Card as="article" padding="none" interactive className="flex h-full flex-col">
       <Link
         href={`/spaces/${space.slug}`}
-        className="flex flex-1 gap-2.5 p-3 no-underline"
+        className="flex flex-1 gap-3 p-4 no-underline"
       >
         <span
           className="grid size-10 shrink-0 place-items-center rounded-ctl bg-brand-wash text-on-brand-wash"
@@ -45,52 +39,55 @@ export function SpaceCard({ space }: { space: NavSpace }) {
 
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-            <span className="min-w-0 truncate text-[14.5px] font-bold text-foreground">
+            <span className="min-w-0 truncate text-title font-semibold text-foreground">
               {space.name}
             </span>
-            {space.unread > 0 ? (
-              <span className="shrink-0 rounded-full bg-brand px-1.5 text-[10px] font-bold tabular-nums text-on-brand">
-                {space.unread >= 50 ? "50+" : space.unread} new
-              </span>
-            ) : null}
             {space.favorite ? (
-              <Star className="size-3 shrink-0 fill-current text-apricot" aria-hidden />
+              <Star className="size-3.5 shrink-0 fill-current text-brand" aria-hidden />
+            ) : null}
+            {space.unread > 0 ? (
+              <Badge tone="highlight" className="tabular-nums">
+                {space.unread >= 50 ? "50+" : space.unread} new
+              </Badge>
             ) : null}
           </span>
 
-          <span className="mt-0.5 block line-clamp-2 text-[12.5px] leading-snug text-foreground-muted">
+          <span className="mt-1 block line-clamp-2 text-label text-foreground-muted">
             {SPACE_KIND_BLURB[space.kind]}
           </span>
 
-          <span className="mt-1.5 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11.5px] font-semibold text-foreground-muted">
+          <span className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-caption text-foreground-muted">
             <span className="inline-flex items-center gap-1">
-              <KindIcon className="size-2.5" aria-hidden />
+              <KindIcon className="size-3" aria-hidden />
               {SPACE_KIND_LABEL[space.kind]}
             </span>
             <span className="inline-flex items-center gap-1">
-              <VisibilityIcon className="size-2.5" aria-hidden />
+              <VisibilityIcon className="size-3" aria-hidden />
               {space.visibility === "PRIVATE" ? "Private" : "Open"}
             </span>
-            <span>
+            <span className="inline-flex items-center gap-1">
+              <Users className="size-3" aria-hidden />
               {space.memberCount} {space.memberCount === 1 ? "member" : "members"}
             </span>
           </span>
         </span>
       </Link>
 
-      <div className="mt-auto flex items-center justify-between gap-2 border-t border-border px-3 py-2">
+      <div className="mt-auto flex min-h-12 items-center justify-between gap-2 border-t border-separator px-4 py-2">
         {space.joined ? (
-          <span className="text-[12.5px] font-bold text-brand">
+          <span className="inline-flex items-center gap-1.5 text-label font-medium text-brand-strong">
+            <Check className="size-3.5" aria-hidden />
             {space.favorite ? "Favourite" : "Joined"}
           </span>
         ) : space.visibility === "PRIVATE" ? (
-          <span className="text-[12.5px] font-semibold text-foreground-muted">
+          <span className="inline-flex items-center gap-1.5 text-label text-foreground-muted">
+            <Lock className="size-3.5" aria-hidden />
             Invitation only
           </span>
         ) : (
           <JoinButton spaceId={space.id} slug={space.slug} size="sm" />
         )}
       </div>
-    </article>
+    </Card>
   );
 }

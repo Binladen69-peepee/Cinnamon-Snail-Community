@@ -12,6 +12,7 @@ import {
   Quote,
   Smile,
 } from "lucide-react";
+import { fieldClass, menuClass, menuItemClass } from "@/components/app/ui";
 import { cn } from "@/lib/utils";
 
 /**
@@ -236,7 +237,7 @@ export function RichEditor({
 
   return (
     <div className="relative">
-      <div className="mb-1.5 flex flex-wrap items-center gap-0.5">
+      <div className="mb-2 flex flex-wrap items-center gap-0.5">
         <Tool label="Bold" onClick={() => wrap("**")} icon={<Bold className="size-4" />} />
         <Tool label="Italic" onClick={() => wrap("_")} icon={<Italic className="size-4" />} />
         <Tool
@@ -271,12 +272,12 @@ export function RichEditor({
           label="GIF"
           active={panel === "gif"}
           onClick={() => setPanel(panel === "gif" ? null : "gif")}
-          icon={<span className="text-[11px] font-bold">GIF</span>}
+          icon={<span className="text-micro font-semibold">GIF</span>}
         />
       </div>
 
       {panel === "emoji" ? (
-        <div className="mb-2 grid grid-cols-6 gap-1 rounded-ctl border border-border bg-surface p-2 min-[420px]:grid-cols-8">
+        <div className="mb-2 grid grid-cols-6 gap-1 rounded-ctl bg-surface-muted p-2 min-[420px]:grid-cols-8">
           {EMOJI.map((emoji) => (
             <button
               key={emoji}
@@ -287,7 +288,7 @@ export function RichEditor({
                 splice(node.selectionStart, node.selectionEnd, emoji);
                 setPanel(null);
               }}
-              className="grid h-9 place-items-center rounded-md text-[18px] transition hover:bg-surface-muted"
+              className="grid h-9 place-items-center rounded-chip text-heading transition hover:bg-default"
             >
               {emoji}
             </button>
@@ -334,14 +335,14 @@ export function RichEditor({
         onKeyUp={detectMention}
         onKeyDown={onKeyDown}
         onBlur={() => window.setTimeout(() => setMention(null), 150)}
-        className="w-full resize-y rounded-ctl border border-field-border bg-field-background p-3 text-[14.5px] leading-relaxed text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/20 disabled:opacity-60"
+        className={fieldClass({ multiline: true, className: "block resize-y px-3.5 py-3" })}
       />
 
       {people.length > 0 ? (
         <ul
           role="listbox"
           aria-label="People"
-          className="absolute z-30 mt-1 w-full max-w-[280px] overflow-hidden rounded-ctl border border-border bg-surface py-1 shadow-e2"
+          className={cn(menuClass, "absolute z-30 mt-1 w-full max-w-72")}
         >
           {people.map((person, index) => (
             <li key={person.handle}>
@@ -353,15 +354,10 @@ export function RichEditor({
                   event.preventDefault();
                   choosePerson(person);
                 }}
-                className={cn(
-                  "flex w-full items-center gap-2 px-3 py-2 text-left text-[13px] transition",
-                  index === highlight
-                    ? "bg-surface-muted text-foreground"
-                    : "text-foreground-muted hover:text-foreground",
-                )}
+                className={cn(menuItemClass, index === highlight && "bg-surface-muted")}
               >
-                <span className="font-semibold text-foreground">{person.name}</span>
-                <span className="text-foreground-muted">@{person.handle}</span>
+                <span className="truncate font-semibold text-foreground">{person.name}</span>
+                <span className="truncate font-normal text-foreground-muted">@{person.handle}</span>
               </button>
             </li>
           ))}
@@ -390,9 +386,9 @@ function Tool({
       aria-label={label}
       aria-pressed={active}
       className={cn(
-        "grid size-9 place-items-center rounded-md transition",
+        "grid size-8 place-items-center rounded-ctl transition",
         active
-          ? "bg-brand-fill text-brand-fill-foreground"
+          ? "bg-brand-wash text-on-brand-wash"
           : "text-foreground-muted hover:bg-surface-muted hover:text-foreground",
       )}
     >
@@ -445,20 +441,20 @@ function GifPicker({ onPick }: { onPick: (gif: GifChoice) => void }) {
 
   if (configured === false) {
     return (
-      <p className="mb-2 rounded-ctl border border-border bg-surface px-3 py-2 text-[12.5px] text-foreground-muted">
+      <p className="mb-2 rounded-ctl bg-surface-muted px-3 py-2.5 text-label text-foreground-muted">
         GIF search is not set up yet. You can still upload one as an image.
       </p>
     );
   }
 
   return (
-    <div className="mb-2 rounded-ctl border border-border bg-surface p-2">
+    <div className="mb-2 rounded-ctl bg-surface-muted p-2">
       <input
         value={query}
         onChange={(event) => setQuery(event.target.value)}
         placeholder="Search GIFs"
         aria-label="Search GIFs"
-        className="h-10 w-full rounded-ctl border border-field-border bg-field-background px-3 text-[13.5px] text-foreground outline-none focus:border-brand"
+        className={fieldClass()}
       />
       <div className="mt-2 grid max-h-56 grid-cols-3 gap-1 overflow-y-auto">
         {gifs.map((gif) => (
@@ -473,7 +469,7 @@ function GifPicker({ onPick }: { onPick: (gif: GifChoice) => void }) {
                 height: gif.height,
               })
             }
-            className="overflow-hidden rounded-md border border-border"
+            className="overflow-hidden rounded-chip bg-default transition hover:opacity-90"
           >
             {/* Remote GIF thumbnails from Tenor's CDN; the optimizer would
                 strip the animation. */}
@@ -488,9 +484,9 @@ function GifPicker({ onPick }: { onPick: (gif: GifChoice) => void }) {
         ))}
       </div>
       {loading ? (
-        <p className="mt-1 text-[12px] text-foreground-muted">Searching…</p>
+        <p className="mt-1.5 px-0.5 text-caption text-foreground-muted">Searching…</p>
       ) : gifs.length === 0 && query ? (
-        <p className="mt-1 text-[12px] text-foreground-muted">Nothing found.</p>
+        <p className="mt-1.5 px-0.5 text-caption text-foreground-muted">Nothing found.</p>
       ) : null}
     </div>
   );

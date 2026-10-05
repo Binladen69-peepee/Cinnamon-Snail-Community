@@ -3,9 +3,15 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ExternalLink, Loader2, MessageSquare } from "lucide-react";
+import {
+  ExternalLink,
+  Loader2,
+  MessageSquare,
+  MessagesSquare,
+} from "lucide-react";
 import { CommentPanel } from "@/components/feed/comment-panel";
 import { startLessonDiscussionAction } from "@/app/(member)/learn/lesson-actions";
+import { Button, Card, EmptyState, SectionHeader } from "@/components/app/ui";
 
 /**
  * Talking about a lesson.
@@ -15,6 +21,9 @@ import { startLessonDiscussionAction } from "@/app/(member)/learn/lesson-actions
  * moderation and the same notifications. Nothing about commenting is
  * reimplemented here; what is here is the first click, which is what brings
  * the thread into existence.
+ *
+ * The panel draws a rule above itself, for when it sits under a post. Here it
+ * is the first thing in its card, so that rule is taken off from outside.
  */
 export function LessonDiscussion({
   lessonId,
@@ -50,63 +59,76 @@ export function LessonDiscussion({
   }
 
   return (
-    <section className="space-y-2.5">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-          Questions about this lesson
-        </h2>
-        {spaceSlug ? (
-          <Link
-            href={`/spaces/${spaceSlug}`}
-            className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-brand no-underline hover:underline"
-          >
-            See the whole room
-            <ExternalLink className="size-3" aria-hidden />
-          </Link>
-        ) : null}
-      </div>
-
-      <div className="rounded-card border border-border bg-surface px-3.5 pb-3.5 pt-1">
-        {postId ? (
-          <CommentPanel postId={postId} open viewer={viewer} />
-        ) : (
-          <div className="py-3 text-center">
-            <p className="text-[13.5px] text-foreground-muted">
-              Nobody has asked anything here yet.
-            </p>
-            {error ? (
-              <p
-                role="alert"
-                className="mt-1.5 text-[12.5px] font-semibold text-danger"
-              >
-                {error}
-              </p>
-            ) : null}
-            <button
-              type="button"
-              onClick={start}
-              disabled={pending}
-              className="mt-2.5 inline-flex h-9 items-center gap-1.5 rounded-ctl bg-brand-fill px-4 text-[13.5px] font-semibold text-brand-fill-foreground transition hover:bg-brand-fill-hover disabled:opacity-70"
+    <section className="flex flex-col gap-3">
+      <SectionHeader
+        title="Questions about this lesson"
+        action={
+          spaceSlug ? (
+            <Link
+              href={`/spaces/${spaceSlug}`}
+              className="inline-flex items-center gap-1 text-label font-medium text-brand-strong no-underline hover:underline"
             >
-              {pending ? (
-                <Loader2 className="size-3.5 animate-spin" aria-hidden />
-              ) : (
-                <MessageSquare className="size-3.5" aria-hidden />
-              )}
-              Start the discussion
-            </button>
-            {spaceHref ? (
-              <p className="mt-2 text-[12px] text-foreground-muted">
-                It will appear in{" "}
-                <Link href={spaceHref} className="font-semibold underline">
-                  the course room
-                </Link>{" "}
-                too, so the people who can answer see it.
-              </p>
-            ) : null}
-          </div>
-        )}
-      </div>
+              See the whole room
+              <ExternalLink className="size-3.5" aria-hidden />
+            </Link>
+          ) : undefined
+        }
+      />
+
+      {postId ? (
+        <Card
+          as="div"
+          padding="none"
+          className="px-4 pb-4 sm:px-5 sm:pb-5 [&>div:first-child]:mt-0 [&>div:first-child]:border-t-0"
+        >
+          <CommentPanel postId={postId} open viewer={viewer} />
+        </Card>
+      ) : (
+        <Card as="div" padding="none">
+          <EmptyState
+            size="sm"
+            bordered={false}
+            icon={<MessagesSquare />}
+            title="Nobody has asked anything here yet."
+            description={
+              spaceHref || error ? (
+                <>
+                  {spaceHref ? (
+                    <>
+                      It will appear in{" "}
+                      <Link
+                        href={spaceHref}
+                        className="font-semibold text-link underline"
+                      >
+                        the course room
+                      </Link>{" "}
+                      too, so the people who can answer see it.
+                    </>
+                  ) : null}
+                  {error ? (
+                    <span
+                      role="alert"
+                      className="mt-1.5 block font-medium text-danger"
+                    >
+                      {error}
+                    </span>
+                  ) : null}
+                </>
+              ) : undefined
+            }
+            action={
+              <Button variant="primary" onClick={start} disabled={pending}>
+                {pending ? (
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                ) : (
+                  <MessageSquare className="size-4" aria-hidden />
+                )}
+                Start the discussion
+              </Button>
+            }
+          />
+        </Card>
+      )}
     </section>
   );
 }

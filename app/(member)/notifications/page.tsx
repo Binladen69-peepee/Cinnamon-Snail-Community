@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
   AtSign,
@@ -25,6 +24,15 @@ import {
 } from "@/lib/notifications/inbox";
 import { formatShortTime } from "@/lib/community/format-count";
 import { AppShell } from "@/components/app/app-shell";
+import {
+  Button,
+  ButtonLink,
+  ChipLink,
+  ChipRow,
+  EmptyState,
+  PageHeader,
+  cardClass,
+} from "@/components/app/ui";
 import {
   markAllReadAction,
   openNotificationAction,
@@ -81,93 +89,78 @@ export default async function NotificationsPage({
 
   return (
     <AppShell>
-      <div className="space-y-4">
-        <header className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <h1 className="font-display text-[1.5rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-              Notifications
-            </h1>
-            <p className="mt-1 text-[14px] text-foreground-muted">
-              {data.unread > 0
-                ? `${data.unread} unread`
-                : "You are all caught up."}
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <Link
-              href="/settings#notifications"
-              className="vu-btn vu-btn-secondary inline-flex h-9 items-center gap-1.5 px-3 text-[13px] no-underline"
-            >
-              <Settings2 className="size-4" aria-hidden />
-              Preferences
-            </Link>
-            {data.unread > 0 ? (
-              <form action={markAllReadAction}>
-                <button
-                  type="submit"
-                  className="vu-btn vu-btn-primary inline-flex h-9 items-center gap-1.5 px-3 text-[13px]"
-                >
-                  <CheckCheck className="size-4" aria-hidden />
-                  Mark all read
-                </button>
-              </form>
-            ) : null}
-          </div>
-        </header>
-
-        <nav aria-label="Filter notifications">
-          <ul className="-mx-3 flex gap-1.5 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
-            {INBOX_FILTERS.map((option) => {
-              const current = option === filter;
-              const count = data.counts[option];
-              return (
-                <li key={option}>
-                  <Link
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="Notifications"
+          description={
+            data.unread > 0 ? `${data.unread} unread` : "You are all caught up."
+          }
+          actions={
+            <>
+              <ButtonLink href="/settings#notifications">
+                <Settings2 className="size-4" aria-hidden />
+                Preferences
+              </ButtonLink>
+              {data.unread > 0 ? (
+                <form action={markAllReadAction}>
+                  <Button type="submit" variant="primary">
+                    <CheckCheck className="size-4" aria-hidden />
+                    Mark all read
+                  </Button>
+                </form>
+              ) : null}
+            </>
+          }
+        >
+          <nav aria-label="Filter notifications">
+            <ChipRow>
+              {INBOX_FILTERS.map((option) => {
+                const current = option === filter;
+                const count = data.counts[option];
+                return (
+                  <ChipLink
+                    key={option}
                     href={
                       option === "all"
                         ? "/notifications"
                         : `/notifications?filter=${option}`
                     }
-                    scroll={false}
-                    aria-current={current ? "true" : undefined}
-                    className={cn(
-                      "vu-btn inline-flex h-8 items-center gap-1.5 whitespace-nowrap px-3 text-[12.5px] no-underline",
-                      current ? "vu-btn-primary" : "vu-btn-secondary",
-                    )}
+                    active={current}
                   >
                     {INBOX_FILTER_LABEL[option]}
-                    <span className="tabular-nums opacity-70">{count}</span>
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+                    <span className="font-normal tabular-nums">{count}</span>
+                  </ChipLink>
+                );
+              })}
+            </ChipRow>
+          </nav>
+        </PageHeader>
 
         {data.rows.length === 0 ? (
           <Blank filter={filter} empty={data.empty} />
         ) : (
-          <ul className="overflow-hidden rounded-card border border-border bg-surface">
+          <ul
+            className={cardClass({
+              padding: "none",
+              className: "divide-y divide-separator overflow-hidden",
+            })}
+          >
             {data.rows.map((row) => {
               const Icon = CATEGORY_ICON[row.category];
               return (
-                <li key={row.id} className="border-b border-border last:border-b-0">
+                <li key={row.id}>
                   <form action={openNotificationAction}>
                     <input type="hidden" name="id" value={row.id} />
                     <button
                       type="submit"
-                      className={cn(
-                        "flex w-full items-start gap-3 px-3.5 py-3 text-left transition hover:bg-default",
-                        !row.read && "bg-brand-wash/40",
-                      )}
+                      className="flex w-full items-start gap-3 px-4 py-3.5 text-left transition hover:bg-surface-muted sm:px-5"
                     >
                       <span
                         className={cn(
-                          "mt-0.5 grid size-8 shrink-0 place-items-center rounded-full",
+                          "grid size-9 shrink-0 place-items-center rounded-full",
                           row.read
                             ? "bg-default text-foreground-muted"
-                            : "bg-brand-fill text-brand-fill-foreground",
+                            : "bg-brand-wash text-on-brand-wash",
                         )}
                         aria-hidden
                       >
@@ -175,23 +168,31 @@ export default async function NotificationsPage({
                       </span>
 
                       <span className="min-w-0 flex-1">
-                        <span className="flex items-baseline justify-between gap-2">
+                        <span className="flex items-baseline justify-between gap-3">
                           <span
                             className={cn(
-                              "min-w-0 truncate text-[14px] text-foreground",
-                              row.read ? "font-semibold" : "font-bold",
+                              "min-w-0 truncate text-body text-foreground",
+                              !row.read && "font-medium",
                             )}
                           >
                             {row.title}
                           </span>
-                          <time
-                            dateTime={row.createdAt.toISOString()}
-                            className="shrink-0 text-[11.5px] tabular-nums text-foreground-muted"
-                          >
-                            {formatShortTime(row.createdAt)}
-                          </time>
+                          <span className="flex shrink-0 items-center gap-1.5">
+                            <time
+                              dateTime={row.createdAt.toISOString()}
+                              className="text-caption tabular-nums text-foreground-muted"
+                            >
+                              {formatShortTime(row.createdAt)}
+                            </time>
+                            {!row.read ? (
+                              <span
+                                className="size-2 shrink-0 rounded-full bg-highlight"
+                                aria-hidden
+                              />
+                            ) : null}
+                          </span>
                         </span>
-                        <span className="mt-0.5 block line-clamp-2 text-[13px] leading-snug text-foreground-muted">
+                        <span className="mt-0.5 block line-clamp-2 text-label text-foreground-muted">
                           {row.body}
                         </span>
                         {!row.read ? (
@@ -201,7 +202,7 @@ export default async function NotificationsPage({
 
                       {row.href ? (
                         <ChevronRight
-                          className="mt-1.5 size-4 shrink-0 text-foreground-muted"
+                          className="mt-2.5 size-4 shrink-0 text-foreground-muted"
                           aria-hidden
                         />
                       ) : null}
@@ -219,23 +220,17 @@ export default async function NotificationsPage({
             className="flex items-center justify-between gap-3"
           >
             {page > 1 ? (
-              <Link
-                href={pageHref(page - 1)}
-                className="vu-btn vu-btn-secondary inline-flex h-9 items-center px-3 text-[13px] no-underline"
-              >
+              <ButtonLink href={pageHref(page - 1)} size="sm">
                 Newer
-              </Link>
+              </ButtonLink>
             ) : (
               <span />
             )}
-            <span className="text-[12px] tabular-nums text-foreground-muted">Page {page}</span>
+            <span className="text-caption tabular-nums text-foreground-muted">Page {page}</span>
             {data.hasMore ? (
-              <Link
-                href={pageHref(page + 1)}
-                className="vu-btn vu-btn-secondary inline-flex h-9 items-center px-3 text-[13px] no-underline"
-              >
+              <ButtonLink href={pageHref(page + 1)} size="sm">
                 Older
-              </Link>
+              </ButtonLink>
             ) : (
               <span />
             )}
@@ -263,28 +258,15 @@ function Blank({ filter, empty }: { filter: InboxFilter; empty: boolean }) {
       : "Other tabs may still have something — the counts above say which.";
 
   return (
-    <div className="rounded-card border border-dashed border-border bg-surface px-6 py-14 text-center">
-      <span className="mx-auto grid size-12 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
-        {empty ? (
-          <BellOff className="size-6" aria-hidden />
-        ) : (
-          <CheckCheck className="size-6" aria-hidden />
-        )}
-      </span>
-      <h2 className="mt-3 font-display text-[1.15rem] font-bold text-foreground">
-        {title}
-      </h2>
-      <p className="mx-auto mt-1.5 max-w-[44ch] text-[14px] text-foreground-muted">
-        {body}
-      </p>
-      {!empty && filter !== "all" ? (
-        <Link
-          href="/notifications"
-          className="vu-btn vu-btn-secondary mt-4 inline-flex h-9 items-center px-4 text-[13.5px] no-underline"
-        >
-          Show everything
-        </Link>
-      ) : null}
-    </div>
+    <EmptyState
+      icon={empty ? <BellOff /> : <CheckCheck />}
+      title={title}
+      description={body}
+      action={
+        !empty && filter !== "all" ? (
+          <ButtonLink href="/notifications">Show everything</ButtonLink>
+        ) : undefined
+      }
+    />
   );
 }

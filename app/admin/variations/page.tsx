@@ -1,7 +1,7 @@
 import Link from "next/link";
-import { Shuffle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, Shuffle } from "lucide-react";
 import { listPendingVariations } from "@/lib/recipes/variations";
-import { Badge, EmptyPanel, PageHeader, Panel, PanelHeader } from "@/components/admin/ui";
+import { Badge, Card, CardHeader, EmptyState, PageHeader } from "@/components/app/ui";
 import { VariationControls } from "@/components/admin/variation-queue";
 
 export const dynamic = "force-dynamic";
@@ -19,68 +19,80 @@ export default async function AdminVariationsPage() {
   const pending = await listPendingVariations();
 
   return (
-    <div className="space-y-5 py-2">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Recipe variations"
-        subtitle="Members' takes on existing recipes. Nothing is listed until you publish it."
+        description="Members' takes on existing recipes. Nothing is listed until you publish it."
       />
 
-      <Panel>
-        <PanelHeader
-          title="Waiting for review"
-          icon={<Shuffle className="size-3.5" aria-hidden />}
-          count={pending.length}
-        />
+      <Card padding="none">
+        <CardHeader title="Waiting for review" icon={<Shuffle />} count={pending.length} />
         {pending.length === 0 ? (
-          <EmptyPanel
-            icon={<Shuffle className="size-6" aria-hidden />}
+          <EmptyState
+            bordered={false}
+            icon={<Shuffle />}
             title="Nothing waiting"
-            body="When a member shares their version of a recipe, it arrives here for a read before it goes up."
+            description="When a member shares their version of a recipe, it arrives here for a read before it goes up."
           />
         ) : (
           <ul className="divide-y divide-separator">
             {pending.map((variation) => (
-              <li key={variation.id} className="space-y-2 px-4 py-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="text-[13px] font-bold text-foreground">
+              <li key={variation.id} className="flex flex-col gap-3 px-4 py-4 sm:px-5">
+                <div className="flex flex-wrap items-baseline gap-x-2 gap-y-1">
+                  <span className="text-body font-semibold text-foreground">
                     {variation.recipePostId ? (
-                      <Link href={`/posts/${variation.recipePostId}`} className="no-underline hover:underline">
+                      <Link
+                        href={`/posts/${variation.recipePostId}`}
+                        className="no-underline transition hover:text-brand-strong"
+                      >
                         {variation.recipeTitle}
                       </Link>
                     ) : (
                       variation.recipeTitle
                     )}
                   </span>
-                  <span className="text-[12px] text-foreground-muted">
+                  <span className="text-caption text-foreground-muted">
                     by @{variation.author.handle}
                   </span>
-                  <span className="text-[11.5px] tabular-nums text-foreground-muted">
-                    {variation.createdAt.toLocaleDateString()}
+                  <span className="text-caption tabular-nums text-foreground-muted">
+                    {variation.createdAt.toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
                   </span>
                 </div>
 
-                <p className="text-[13.5px] leading-snug text-foreground">{variation.authorNote}</p>
-                {variation.reason ? (
-                  <p className="text-[12.5px] text-foreground-muted">Why: {variation.reason}</p>
-                ) : null}
-                {variation.ingredients.length > 0 ? (
-                  <ul className="list-inside list-disc text-[12.5px] text-foreground-muted">
-                    {variation.ingredients.map((item) => (
-                      <li key={item}>{item}</li>
-                    ))}
-                  </ul>
-                ) : null}
+                <div className="flex flex-col gap-1.5">
+                  <p className="text-body leading-relaxed text-foreground">{variation.authorNote}</p>
+                  {variation.reason ? (
+                    <p className="text-label text-foreground-muted">Why: {variation.reason}</p>
+                  ) : null}
+                  {variation.ingredients.length > 0 ? (
+                    <ul className="list-inside list-disc text-label text-foreground-muted">
+                      {variation.ingredients.map((item) => (
+                        <li key={item}>{item}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </div>
 
                 {variation.veganFlags.length > 0 ? (
-                  <ul className="space-y-0.5">
+                  <ul className="flex flex-col gap-1 rounded-ctl bg-warning-wash px-3 py-2.5">
                     {variation.veganFlags.map((flag) => (
-                      <li key={flag.term} className="text-[12px] text-warning">
-                        Check: {flag.note}
+                      <li
+                        key={flag.term}
+                        className="flex items-start gap-1.5 text-label text-warning"
+                      >
+                        <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+                        <span>Check: {flag.note}</span>
                       </li>
                     ))}
                   </ul>
                 ) : (
-                  <Badge tone="good">Vegan check clean</Badge>
+                  <Badge tone="success" icon={<CheckCircle2 aria-hidden />} className="w-fit">
+                    Vegan check clean
+                  </Badge>
                 )}
 
                 <VariationControls
@@ -92,7 +104,7 @@ export default async function AdminVariationsPage() {
             ))}
           </ul>
         )}
-      </Panel>
+      </Card>
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Clock, History, TrendingUp } from "lucide-react";
 import { COMMENT_SORTS, type CommentSort } from "@/lib/community/sort";
-import { cn } from "@/lib/utils";
+import { Segmented, segmentClass } from "@/components/app/ui";
 
 const ICONS: Record<CommentSort, typeof Clock> = {
   top: TrendingUp,
@@ -27,32 +27,28 @@ export function CommentSort({
   count: number;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2 px-1">
-      <h2 className="text-[13px] font-bold text-foreground">
+    <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+      <h2 className="text-body font-semibold text-foreground">
         {count} {count === 1 ? "reply" : "replies"}
       </h2>
-      <nav aria-label="Sort replies" className="flex items-center gap-0.5">
-        {COMMENT_SORTS.map((item) => {
-          const active = current === item.value;
-          const Icon = ICONS[item.value];
-          return (
-            <Link
-              key={item.value}
-              href={`/posts/${postId}?sort=${item.value}`}
-              aria-current={active ? "page" : undefined}
-              className={cn(
-                "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] font-bold no-underline transition",
-                "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
-                active
-                  ? "bg-brand-wash text-on-brand-wash"
-                  : "text-foreground-muted hover:bg-surface-muted hover:text-foreground",
-              )}
-            >
-              <Icon className="size-3" aria-hidden />
-              {item.label}
-            </Link>
-          );
-        })}
+      <nav aria-label="Sort replies">
+        <Segmented>
+          {COMMENT_SORTS.map((item) => {
+            const active = current === item.value;
+            const Icon = ICONS[item.value];
+            return (
+              <Link
+                key={item.value}
+                href={`/posts/${postId}?sort=${item.value}`}
+                aria-current={active ? "page" : undefined}
+                className={segmentClass(active, "h-7 px-2.5")}
+              >
+                <Icon className="hidden sm:block" aria-hidden />
+                {item.label}
+              </Link>
+            );
+          })}
+        </Segmented>
       </nav>
     </div>
   );

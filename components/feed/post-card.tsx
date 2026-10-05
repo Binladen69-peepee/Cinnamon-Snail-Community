@@ -158,11 +158,11 @@ export function PostCard({
             // No `content-visibility:auto` here: its paint containment clips
             // the overflow menu to a row only ~110px tall, so Delete and
             // Report fell off the bottom. Rows are cheap enough to skip it.
-            "group/post rounded-card border bg-surface shadow-e1 transition-[border-color,box-shadow]",
-            post.pinnedAt ? "border-brand/40" : "border-border hover:border-hairline-firm",
+            "group/post rounded-card border bg-surface shadow-e1",
+            post.pinnedAt ? "border-brand/40" : "border-border",
           )}
         >
-          <div className="flex gap-3 px-3 py-2.5 sm:px-3.5">
+          <div className="flex gap-3 px-4 py-3">
             {hasMedia ? (
               <PostMedia
                 items={media}
@@ -173,29 +173,29 @@ export function PostCard({
             ) : (
               <Link
                 href={`/members/${post.author.handle}`}
-                className="shrink-0 no-underline"
+                className="shrink-0 rounded-full no-underline"
                 aria-label={name}
               >
                 <Avatar
                   name={name}
                   src={post.author.profile?.avatarUrl}
-                  size="md"
-                  className="size-16 rounded-[10px] text-[14px]"
+                  size="lg"
+                  className="size-14 text-body"
                 />
               </Link>
             )}
 
             <div className="min-w-0 flex-1">
               <div className="flex items-start gap-2">
-                <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 text-[12.5px] leading-tight text-foreground-muted">
+                <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-1.5 pt-0.5 text-caption text-foreground-muted">
                   <Link
                     href={`/members/${post.author.handle}`}
-                    className="truncate font-semibold text-foreground no-underline hover:underline"
+                    className="truncate text-label font-semibold text-foreground no-underline hover:underline"
                   >
                     {name}
                   </Link>
                   {isHost ? (
-                    <BadgeCheck className="size-3.5 shrink-0 text-link" aria-label="Host" />
+                    <BadgeCheck className="size-3.5 shrink-0 text-brand" aria-label="Host" />
                   ) : null}
                   {post.pinnedAt ? (
                     <Pin className="size-3 shrink-0 text-brand" aria-label="Pinned" />
@@ -205,7 +205,7 @@ export function PostCard({
                       <span aria-hidden>·</span>
                       <Link
                         href={`/spaces/${post.space.slug}`}
-                        className="truncate no-underline hover:text-foreground hover:underline"
+                        className="truncate text-foreground-muted no-underline hover:text-foreground hover:underline"
                       >
                         {spaceLabel}
                       </Link>
@@ -216,7 +216,7 @@ export function PostCard({
                     {formatShortTime(stamp)}
                   </time>
                 </p>
-                <div className="-mr-1.5 -mt-1 shrink-0">
+                <div className="-mr-2 -mt-1.5 shrink-0">
                   <PostOverflow
                     postId={post.id}
                     pinned={Boolean(post.pinnedAt)}
@@ -228,7 +228,7 @@ export function PostCard({
 
               <Link
                 href={`/posts/${post.id}`}
-                className="mt-1 block text-[14px] leading-snug text-foreground no-underline"
+                className="mt-1 block text-body leading-snug text-foreground no-underline"
               >
                 {post.title ? (
                   <span className="block truncate font-semibold">{post.title}</span>
@@ -236,8 +236,10 @@ export function PostCard({
                 {compactText ? (
                   <span
                     className={cn(
-                      "block text-foreground/90",
-                      post.title ? "line-clamp-1" : "line-clamp-2",
+                      "block",
+                      post.title
+                        ? "mt-0.5 line-clamp-1 text-foreground-muted"
+                        : "line-clamp-2 text-foreground",
                     )}
                   >
                     {compactText}
@@ -293,73 +295,74 @@ export function PostCard({
     <>
       <article
         className={cn(
-          "group/post overflow-hidden rounded-card border bg-surface shadow-e1 transition-[border-color,box-shadow]",
-          post.pinnedAt
-            ? "border-brand/40"
-            : "border-border hover:border-hairline-firm",
-          "[content-visibility:auto] [contain-intrinsic-size:auto_28rem]",
+          // No `overflow-hidden` and no `content-visibility:auto`: either one
+          // clips the overflow menu, and paint containment also traps the
+          // menu's fixed dialogs inside the card. Nothing here needs clipping:
+          // the media sits between the body and the actions, never on a
+          // rounded corner, and the pinned strip rounds its own top.
+          "group/post rounded-card border bg-surface shadow-e1",
+          post.pinnedAt ? "border-brand/40" : "border-border",
         )}
       >
         {post.pinnedAt ? (
-          <p className="flex items-center gap-1.5 border-b border-brand/20 bg-brand-wash px-4 py-1.5 text-[10.5px] uppercase tracking-[0.12em] text-on-brand-wash">
-            <Pin className="size-2.5" aria-hidden />
+          <p className="flex items-center gap-1.5 rounded-t-[calc(var(--r-card)-1px)] border-b border-separator bg-brand-wash px-4 py-2 text-micro font-semibold uppercase tracking-[0.08em] text-on-brand-wash sm:px-5">
+            <Pin className="size-3" aria-hidden />
             Pinned by a host
           </p>
         ) : null}
 
         {/* Header */}
-        <header className="flex items-start gap-2.5 px-3.5 pb-2 pt-3 sm:px-4">
+        <header className="flex items-start gap-3 px-4 pb-2 pt-4 sm:px-5">
           <Link
             href={`/members/${post.author.handle}`}
-            className="shrink-0 no-underline"
+            className="shrink-0 rounded-full no-underline"
             aria-label={name}
           >
-            <Avatar
-              name={name}
-              src={post.author.profile?.avatarUrl}
-              size="sm"
-              className="size-12 rounded-[10px] text-[12px]"
-            />
+            <Avatar name={name} src={post.author.profile?.avatarUrl} size="sm" />
           </Link>
 
-          <div className="min-w-0 flex-1 leading-tight">
-            <div className="flex flex-wrap items-center gap-x-1">
+          <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 items-center gap-1">
               <Link
                 href={`/members/${post.author.handle}`}
-                className="truncate text-[14.5px] font-semibold text-foreground no-underline hover:underline"
+                className="truncate text-label font-semibold text-foreground no-underline hover:underline"
               >
                 {name}
               </Link>
               {isHost ? (
                 <BadgeCheck
-                  className="size-3.5 shrink-0 text-link"
+                  className="size-3.5 shrink-0 text-brand"
                   aria-label="Host"
                 />
               ) : null}
             </div>
-            <p className="mt-0.5 truncate text-[12.5px] text-foreground-muted">
-              {followerLabel ??
-                (showSpace ? (
-                  <Link
-                    href={`/spaces/${post.space.slug}`}
-                    className="no-underline hover:text-foreground hover:underline"
-                  >
-                    {spaceLabel}
-                  </Link>
-                ) : (
-                  `@${post.author.handle}`
-                ))}
-            </p>
-            <p className="mt-0.5 flex items-center gap-1 text-[12px] text-foreground-muted">
-              <time dateTime={stamp.toISOString()} title={stamp.toLocaleString()}>
+            <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-caption text-foreground-muted">
+              <span className="min-w-0 truncate">
+                {followerLabel ??
+                  (showSpace ? (
+                    <Link
+                      href={`/spaces/${post.space.slug}`}
+                      className="text-foreground-muted no-underline hover:text-foreground hover:underline"
+                    >
+                      {spaceLabel}
+                    </Link>
+                  ) : (
+                    `@${post.author.handle}`
+                  ))}
+              </span>
+              <span aria-hidden>·</span>
+              <time
+                dateTime={stamp.toISOString()}
+                title={stamp.toLocaleString()}
+                className="shrink-0"
+              >
                 {formatShortTime(stamp)}
               </time>
-              <span aria-hidden>·</span>
-              <Globe2 className="size-3" aria-hidden />
+              <Globe2 className="size-3 shrink-0" aria-hidden />
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-0.5">
+          <div className="-mr-1.5 flex shrink-0 items-center gap-1">
             {!isOwn ? (
               <PostFollowButton
                 handle={post.author.handle}
@@ -376,18 +379,18 @@ export function PostCard({
         </header>
 
         {/* Body */}
-        <div className="px-3.5 pb-2 sm:px-4">
+        <div className="px-4 pb-3 sm:px-5">
           {post.title ? (
-            <p className="text-[15px] font-semibold leading-snug text-foreground">
+            <p className="text-title font-semibold leading-snug text-foreground">
               {post.title}
             </p>
           ) : null}
 
           {bodyText ? (
-            <div className={cn(post.title && "mt-1")}>
+            <div className={cn(post.title && "mt-1.5")}>
               <div
                 className={cn(
-                  "prose-vu text-[14.5px] leading-normal text-foreground [&_a]:text-link",
+                  "prose-vu text-reading leading-relaxed text-foreground",
                   !expanded && longBody && "line-clamp-3",
                 )}
                 dangerouslySetInnerHTML={{
@@ -398,7 +401,7 @@ export function PostCard({
                 <button
                   type="button"
                   onClick={() => setExpanded(true)}
-                  className="mt-0.5 text-[14px] font-semibold text-link hover:underline"
+                  className="mt-1 rounded-chip text-label font-medium text-foreground-muted transition hover:text-foreground"
                 >
                   …more
                 </button>
@@ -410,9 +413,9 @@ export function PostCard({
               time and the place go on the card rather than being buried in
               the body. */}
           {post.event ? (
-            <div className="mt-2 flex items-start gap-2.5 rounded-[12px] border border-border bg-background px-3 py-2.5">
-              <CalendarDays className="mt-0.5 size-4 shrink-0 text-foreground-muted" aria-hidden />
-              <div className="min-w-0 text-[13px]">
+            <div className="mt-3 flex items-start gap-3 rounded-ctl bg-surface-muted px-3.5 py-3">
+              <CalendarDays className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
+              <div className="min-w-0 text-label">
                 <p className="font-semibold text-foreground">
                   {new Date(post.event.startsAt).toLocaleString(undefined, {
                     weekday: "short",
@@ -435,9 +438,9 @@ export function PostCard({
           ) : null}
 
           {post.recipe ? (
-            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-border px-2.5 py-1 text-[12.5px] text-foreground-muted">
-              <ChefHat className="size-3.5" aria-hidden />
-              Recipe: {post.recipe.title}
+            <p className="mt-3 inline-flex max-w-full items-center gap-1.5 rounded-full bg-surface-muted px-3 py-1 text-caption font-medium text-foreground-muted">
+              <ChefHat className="size-3.5 shrink-0 text-brand" aria-hidden />
+              <span className="truncate">Recipe: {post.recipe.title}</span>
             </p>
           ) : null}
 
@@ -446,7 +449,7 @@ export function PostCard({
               href={webLink}
               target="_blank"
               rel="noreferrer"
-              className="mt-2 block truncate rounded-[12px] border border-border bg-mint/30 px-3 py-2.5 text-[13px] text-link no-underline hover:border-hairline-firm"
+              className="mt-3 block truncate rounded-ctl border border-border px-3.5 py-2.5 text-label font-medium text-link no-underline transition hover:border-hairline-firm hover:bg-surface-muted"
             >
               {webLink}
             </a>
@@ -455,7 +458,7 @@ export function PostCard({
 
         {/* Media — full bleed */}
         {hasMedia ? (
-          <div className="border-y border-border">
+          <div className="border-y border-separator">
             <PostMedia
               items={media}
               flush
@@ -466,7 +469,7 @@ export function PostCard({
         ) : null}
 
         {/* Actions + comments */}
-        <div className="px-2 pb-1 sm:px-3">
+        <div className="px-2 pb-2 sm:px-3">
           <PostFooter
             postId={post.id}
             commentCount={post._count.comments}

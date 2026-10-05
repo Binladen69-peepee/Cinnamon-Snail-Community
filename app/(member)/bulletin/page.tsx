@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarDays, ClipboardList, Handshake, Store, type LucideIcon } from "lucide-react";
+import { CalendarDays, Handshake, RotateCw, Store, type LucideIcon } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { safeTimeZone } from "@/lib/events/timezone";
@@ -13,11 +12,10 @@ import {
   type BulletinTab,
 } from "@/lib/bulletin";
 import { AppShell } from "@/components/app/app-shell";
+import { ButtonLink, Callout, ErrorState, PageHeader, TabBar, TabLink } from "@/components/app/ui";
 import { HappeningsTab } from "@/components/bulletin/happenings-tab";
 import { ServicesTab } from "@/components/bulletin/services-tab";
 import { PlacesTab } from "@/components/bulletin/places-tab";
-import { Blank } from "@/components/bulletin/ui";
-import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Bulletin board" };
 
@@ -100,68 +98,47 @@ export default async function BulletinPage({
 
   return (
     <AppShell>
-      <div className="space-y-5 pb-4">
-        <header>
-          <h1 className="font-display text-[1.6rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-            Bulletin board
-          </h1>
-          <p className="mt-1 text-[14px] text-foreground-muted">
-            Gatherings, skills and vegan places from members near you. Only your city is ever shown.
-          </p>
-        </header>
-
-        <nav aria-label="Bulletin sections" className="-mx-3 px-3 sm:mx-0 sm:px-0">
-          <ul className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {TABS.map(({ tab: value, label, icon: Icon }) => {
-              const current = value === tab;
-              return (
-                <li key={value}>
-                  <Link
-                    href={value === "happenings" ? "/bulletin" : `/bulletin?tab=${value}`}
-                    aria-current={current ? "page" : undefined}
-                    scroll={false}
-                    className={cn(
-                      "inline-flex h-9 items-center gap-1.5 whitespace-nowrap rounded-full border px-3.5 text-[13.5px] font-semibold no-underline transition",
-                      current
-                        ? "border-brand-fill bg-brand-fill text-brand-fill-foreground"
-                        : "border-border bg-surface text-foreground-muted hover:border-hairline-firm hover:text-foreground",
-                    )}
-                  >
-                    <Icon className="size-3.5" aria-hidden />
-                    {label}
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </nav>
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="Bulletin board"
+          description="Gatherings, skills and vegan places from members near you. Only your city is ever shown."
+        >
+          <TabBar label="Bulletin sections">
+            {TABS.map(({ tab: value, label, icon: Icon }) => (
+              <TabLink
+                key={value}
+                href={value === "happenings" ? "/bulletin" : `/bulletin?tab=${value}`}
+                active={value === tab}
+              >
+                <Icon aria-hidden />
+                {label}
+              </TabLink>
+            ))}
+          </TabBar>
+        </PageHeader>
 
         {error ? (
-          <p
-            role="alert"
-            className="rounded-ctl border border-danger/40 bg-danger/10 px-3.5 py-2.5 text-[13.5px] font-semibold text-danger"
-          >
+          <Callout tone="danger" role="alert">
             {error}
-          </p>
+          </Callout>
         ) : null}
         {notice ? (
-          <p
-            role="status"
-            className="rounded-ctl border border-hairline-firm bg-brand-wash px-3.5 py-2.5 text-[13.5px] font-semibold text-on-brand-wash"
-          >
+          <Callout tone="success" role="status">
             {notice}
-          </p>
+          </Callout>
         ) : null}
 
         {!loaded ? (
-          <div role="alert">
-            <Blank
-              icon={ClipboardList}
-              title="The board didn’t load"
-              body="Something went wrong on our side. Reload the page in a moment."
-              action={{ href: tab === "happenings" ? "/bulletin" : `/bulletin?tab=${tab}`, label: "Reload" }}
-            />
-          </div>
+          <ErrorState
+            title="The board didn’t load"
+            description="Something went wrong on our side. Reload the page in a moment."
+            action={
+              <ButtonLink href={tab === "happenings" ? "/bulletin" : `/bulletin?tab=${tab}`}>
+                <RotateCw className="size-4" aria-hidden />
+                Reload
+              </ButtonLink>
+            }
+          />
         ) : loaded.tab === "happenings" ? (
           <HappeningsTab happenings={loaded.data} kind={kind} viewerZone={viewerZone} defaults={defaults} />
         ) : loaded.tab === "services" ? (

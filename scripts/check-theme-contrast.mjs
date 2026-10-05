@@ -106,7 +106,20 @@ const PAIRS = [
 const SIDEBAR = [
   ["sidebar-foreground", "sidebar", 4.5, "nav label"],
   ["sidebar-accent-foreground", "sidebar-accent", 4.5, "the active nav item"],
-  ["foreground-muted", "sidebar", 4.5, "an inactive nav item"],
+];
+
+/**
+ * Inside a teal band (the rails, the hero header) the app re-points its roles
+ * so ordinary utilities read on teal. Checked against the band's own ground.
+ */
+const BAND_PAIRS = [
+  ["foreground", "sidebar", 4.5, "text in a teal band"],
+  ["foreground-muted", "sidebar", 4.5, "an inactive nav item, a band's description"],
+  ["foreground", "surface-muted", 4.5, "text on a band's hover fill"],
+  ["foreground-muted", "surface-muted", 4.5, "muted text on a band's hover fill"],
+  ["brand-fill-foreground", "brand-fill", 4.5, "the white primary button in a band"],
+  ["brand", "sidebar", 3, "the white mark on teal"],
+  ["sidebar-accent-foreground", "sidebar-accent", 4.5, "the active nav item"],
 ];
 
 /**
@@ -120,12 +133,12 @@ const APP_PAIRS = [
   ["field-border", "field-background", 3, "an input's edge (WCAG 1.4.11)"],
   ["field-border", "background", 3, "an input's edge on the ground"],
   ["brand-fill", "background", 3, "a primary button against the ground"],
-  ["highlight-ink", "surface", 4.5, "terracotta text on a card"],
-  ["highlight-ink", "highlight-wash", 4.5, "terracotta text on its wash"],
-  ["on-highlight", "highlight", 4.5, "a count on its terracotta badge"],
-  ["highlight", "surface", 3, "a terracotta mark"],
-  ["on-accent-sage", "accent-sage", 4.5, "text on a sage fill"],
-  ["brand-strong", "accent-sage-wash", 4.5, "brand text on a sage wash"],
+  ["highlight-ink", "surface", 4.5, "highlight text on a card"],
+  ["highlight-ink", "highlight-wash", 4.5, "highlight text on its wash"],
+  ["on-highlight", "highlight", 4.5, "a count on its badge"],
+  ["on-highlight", "highlight", 4.5, "text on a highlight fill"],
+  ["on-brand-wash", "brand-wash", 4.5, "text on a teal wash"],
+  ["highlight-ink", "background", 4.5, "highlight text on the ground"],
   ["success", "success-wash", 4.5, "a success badge"],
   ["warning", "warning-wash", 4.5, "a warning badge"],
   ["danger", "danger-wash", 4.5, "a danger badge"],
@@ -133,20 +146,34 @@ const APP_PAIRS = [
   ["info", "info-wash", 4.5, "an info badge"],
 ];
 
+const APP_LIGHT = block(":root:has([data-app-shell], .vu-admin) {");
+const APP_DARK = block(":root.dark:has([data-app-shell], .vu-admin) {");
+const BAND = ":is(.vu-app-sidebar, .vu-admin-rail, .vu-band) {";
+const BAND_LIGHT = { ...APP_LIGHT, ...block(`:root:has([data-app-shell], .vu-admin) ${BAND}`) };
+const BAND_DARK = { ...APP_LIGHT, ...APP_DARK, ...block(`:root:has([data-app-shell], .vu-admin) ${BAND}`), ...block(`:root.dark:has([data-app-shell], .vu-admin) ${BAND}`) };
+
 const SCOPES = [
-  ["marketing — light", block(":root,\n  .light,"), false],
-  ["marketing — dark", block(".dark,\n  [data-theme=\"dark\"]"), false],
-  ["member app + console — light", block(":root:has([data-app-shell], .vu-admin) {"), true],
-  ["member app + console — dark", block(":root.dark:has([data-app-shell], .vu-admin) {"), true],
+  ["marketing — light", block(":root,\n  .light,"), "marketing"],
+  ["marketing — dark", block(".dark,\n  [data-theme=\"dark\"]"), "marketing"],
+  ["member app + console — light", APP_LIGHT, "app"],
+  ["member app + console — dark", APP_DARK, "app"],
+  ["teal band — light", BAND_LIGHT, "band"],
+  ["teal band — dark", BAND_DARK, "band"],
 ];
 
 let failures = 0;
 let checked = 0;
 let skipped = 0;
 
-for (const [name, tokens, isApp] of SCOPES) {
+const PAIRS_FOR = {
+  marketing: [...PAIRS, ...SIDEBAR],
+  app: [...PAIRS, ...SIDEBAR, ...APP_PAIRS],
+  band: BAND_PAIRS,
+};
+
+for (const [name, tokens, kind] of SCOPES) {
   console.log(`\n=== ${name} ===`);
-  for (const [fg, bg, min, what] of [...PAIRS, ...SIDEBAR, ...(isApp ? APP_PAIRS : [])]) {
+  for (const [fg, bg, min, what] of PAIRS_FOR[kind]) {
     const a = tokens[fg];
     const b = tokens[bg];
     // A scope inherits anything it does not restate; only judge what it sets.

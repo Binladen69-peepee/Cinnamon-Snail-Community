@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { MapPin, Radio, Users, Video } from "lucide-react";
+import { MapPin, Users } from "lucide-react";
 import type { EventCard as EventCardData } from "@/lib/events/queries";
+import { cardClass } from "@/components/app/ui";
+import { EventBadges } from "@/components/events/event-badges";
 import { EventTime } from "@/components/events/event-time";
 import { RsvpButton } from "@/components/events/rsvp-button";
 import { cn } from "@/lib/utils";
@@ -24,56 +26,39 @@ export function EventListCard({
 }) {
   return (
     <article
-      className={cn(
-        "flex min-w-0 flex-col gap-3 rounded-card border border-border bg-surface p-3.5 transition sm:flex-row sm:items-start",
-        event.past && "opacity-75",
-      )}
+      className={cardClass({
+        className: cn(
+          "flex min-w-0 flex-col gap-3 sm:flex-row sm:items-start sm:gap-4",
+          event.past && "opacity-75",
+        ),
+      })}
     >
       <Link
         href={`/calendar/${event.slug}`}
         aria-hidden
         tabIndex={-1}
-        className="hidden shrink-0 sm:block"
+        className="hidden shrink-0 no-underline sm:block"
       >
         <DateBlock event={event} viewerTimeZone={viewerTimeZone} />
       </Link>
 
-      <div className="min-w-0 flex-1 space-y-1.5">
-        <div className="flex flex-wrap items-center gap-2">
-          {event.live ? (
-            <span className="inline-flex items-center gap-1 rounded-chip bg-danger px-1.5 py-0.5 text-[10.5px] font-bold text-white">
-              <Radio className="size-2.5" aria-hidden />
-              Live now
-            </span>
-          ) : null}
-          {event.status === "CANCELED" ? (
-            <span className="rounded-chip border border-danger/40 px-1.5 py-0.5 text-[10.5px] font-bold text-danger">
-              Canceled
-            </span>
-          ) : null}
-          {event.status === "DRAFT" ? (
-            <span className="rounded-chip border border-border px-1.5 py-0.5 text-[10.5px] font-bold text-foreground-muted">
-              Draft
-            </span>
-          ) : null}
-          {event.hasRecording ? (
-            <span className="inline-flex items-center gap-1 rounded-chip border border-border px-1.5 py-0.5 text-[10.5px] font-bold text-foreground-muted">
-              <Video className="size-2.5" aria-hidden />
-              Recording
-            </span>
-          ) : null}
-        </div>
+      <div className="flex min-w-0 flex-1 flex-col gap-2">
+        <EventBadges
+          live={event.live}
+          status={event.status}
+          hasRecording={event.hasRecording}
+        />
 
-        <h3 className="text-[15px] font-bold leading-snug text-foreground">
+        <h3 className="text-title font-semibold text-foreground">
           <Link
             href={`/calendar/${event.slug}`}
-            className="text-foreground no-underline hover:underline"
+            className="text-foreground no-underline transition hover:text-brand-strong"
           >
             {event.title}
           </Link>
         </h3>
 
-        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-foreground-muted">
+        <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-label text-foreground-muted">
           <EventTime
             startsAt={event.startsAt}
             endsAt={event.endsAt}
@@ -83,14 +68,14 @@ export function EventListCard({
           />
           {event.location ? (
             <span className="inline-flex items-center gap-1">
-              <MapPin className="size-3" aria-hidden />
+              <MapPin className="size-3.5" aria-hidden />
               {event.location}
             </span>
           ) : null}
           {event.space ? (
             <Link
               href={`/spaces/${event.space.slug}`}
-              className="text-brand no-underline hover:underline"
+              className="font-medium text-brand-strong no-underline hover:underline"
             >
               {event.space.name}
             </Link>
@@ -98,15 +83,15 @@ export function EventListCard({
         </p>
 
         {event.description ? (
-          <p className="line-clamp-2 text-[13.5px] leading-snug text-foreground-muted">
+          <p className="line-clamp-2 text-body text-foreground-muted">
             {event.description}
           </p>
         ) : null}
 
-        <div className="pt-0.5">
+        <div className="pt-1">
           {event.past || event.status !== "PUBLISHED" ? (
-            <span className="inline-flex items-center gap-1 text-[12.5px] tabular-nums text-foreground-muted">
-              <Users className="size-3.5" aria-hidden />
+            <span className="inline-flex items-center gap-1.5 text-label tabular-nums text-foreground-muted">
+              <Users className="size-4" aria-hidden />
               {event.goingCount} went
             </span>
           ) : (
@@ -147,16 +132,18 @@ function DateBlock({
   return (
     <span
       className={cn(
-        "grid size-14 place-items-center rounded-ctl text-center",
+        "flex size-14 flex-col items-center justify-center gap-0.5 rounded-ctl text-center",
         event.past
           ? "bg-default text-foreground-muted"
           : "bg-brand-wash text-on-brand-wash",
       )}
     >
-      <span className="block text-[9.5px] font-bold uppercase tracking-[0.12em]">
+      <span className="block text-micro font-semibold uppercase tracking-[0.08em]">
         {month}
       </span>
-      <span className="block text-[18px] font-bold leading-none">{day}</span>
+      <span className="block text-heading font-semibold leading-none tabular-nums">
+        {day}
+      </span>
     </span>
   );
 }

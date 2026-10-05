@@ -15,21 +15,37 @@ import {
   MessageSquare,
   Pencil,
   Play,
-  Trophy,
   UserPlus,
-  Users,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Composer } from "@/components/feed/composer";
 import { PostGalleryModal } from "@/components/feed/post-gallery-modal";
 import type { FeedPost } from "@/components/feed/post-card";
-import { LeafCluster } from "@/components/marketing/hero-decor";
+import {
+  Button,
+  ButtonLink,
+  Card,
+  CardHeader,
+  EmptyState,
+  TabBar,
+  buttonClass,
+  chipClass,
+  tabClass,
+} from "@/components/app/ui";
 import { formatCount, formatShortTime } from "@/lib/community/format-count";
 import type { ProfileActivity } from "@/lib/community/profile";
 import { toggleFollowAction } from "@/app/(member)/follow-actions";
 import { cn } from "@/lib/utils";
 
 type Tab = "posts" | "classes" | "about" | "badges" | "activity";
+
+const TABS = [
+  ["posts", "Posts"],
+  ["classes", "Classes"],
+  ["about", "About"],
+  ["badges", "Badges"],
+  ["activity", "Activity"],
+] as const;
 
 const SKILL_WORDS = {
   BEGINNER: "Beginner — still finding my feet",
@@ -44,6 +60,12 @@ const INTEREST_GROUPS = [
   { kind: "EQUIPMENT", label: "Equipment" },
   { kind: "GOAL", label: "Working on" },
 ] as const;
+
+/** The small uppercase label over a value in the About card. */
+const TERM = "text-micro font-semibold uppercase tracking-[0.08em] text-foreground-muted";
+
+/** "View all" in a card header: a quiet button that keeps the strip's height. */
+const HEADER_ACTION = buttonClass({ variant: "ghost", size: "sm", className: "-my-1.5 -mr-2" });
 
 type BadgeItem = {
   id: string;
@@ -112,6 +134,7 @@ export function ProfileView({
   );
 
   const joined = new Date(profile.joinedAt);
+  const lessons = profile.activity.filter((item) => item.kind === "lesson");
 
   function onFollow() {
     const next = !followState.following;
@@ -125,207 +148,147 @@ export function ProfileView({
 
   return (
     <div className="pb-8">
-      {/* Full-bleed compact cover, flush under the app header */}
-      <div className="relative h-28 w-full overflow-hidden sm:h-32">
-        {/* A quiet band built from the surface tokens. It used to be a
-            gradient between --brand-strong and --foreground, which are both
-            white in dark mode: the cover became a solid white slab and the
-            decoration on it disappeared. */}
-        <div className="absolute inset-0 bg-surface-muted" aria-hidden />
-        <div
-          className="absolute inset-0 opacity-30"
-          style={{
-            backgroundImage:
-              "radial-gradient(ellipse at 15% 100%, color-mix(in oklab, var(--background) 28%, transparent), transparent 50%), radial-gradient(ellipse at 90% 0%, color-mix(in oklab, var(--background) 14%, transparent), transparent 45%)",
-          }}
-          aria-hidden
-        />
-        <LeafCluster className="pointer-events-none absolute -left-8 -bottom-4 w-28 text-foreground/10 sm:w-36" />
-        <LeafCluster className="pointer-events-none absolute -right-6 top-0 w-24 rotate-[16deg] text-foreground/[0.07] sm:w-28" />
-        <p className="font-hand absolute bottom-3 right-4 text-[1.15rem] leading-none text-foreground-muted sm:right-6 sm:text-[1.3rem]">
+      {/* The teal band, flush under the app header, with the photo over its
+          edge, as in the brand reference. The line on it is decoration and is
+          kept out of the accessibility tree. */}
+      <div
+        className="vu-band relative h-32 w-full overflow-hidden sm:h-44"
+        aria-hidden
+      >
+        <p className="font-hand absolute bottom-3 right-4 text-heading leading-none text-foreground-muted sm:right-6">
           Good food brings people together
         </p>
       </div>
 
-      <div className="mx-auto w-full max-w-[1100px] px-3 sm:px-6">
-        {/* Identity row */}
-        <section className="relative -mt-10 rounded-card border border-border bg-surface px-4 pb-5 pt-0 shadow-e1 sm:-mt-12 sm:px-5">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:gap-5">
-            <div className="relative z-[1] -mt-10 shrink-0 self-start sm:-mt-12">
+      <div className="mx-auto w-full max-w-275 px-4 sm:px-6">
+        {/* Identity: avatar over the band, then name, actions, a quiet row of
+            numbers, and what the member says about themselves. */}
+        <header className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:gap-5">
               <Avatar
                 name={profile.displayName}
                 src={profile.avatarUrl}
-                size="lg"
-                className="size-[5.25rem] border-[3px] border-surface text-xl shadow-e2 sm:size-[6.25rem] sm:text-2xl"
+                size="xl"
+                className="-mt-12 self-start shadow-e2 ring-4 ring-background sm:-mt-14 sm:size-28 sm:text-2xl"
               />
+
+              <div className="min-w-0 sm:pb-1">
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <h1 className="text-display font-semibold tracking-[-0.02em] text-foreground text-balance">
+                    {profile.displayName}
+                  </h1>
+                  {profile.isHost ? (
+                    <CheckCircle2
+                      className="size-5 shrink-0 text-brand"
+                      aria-label="Verified host"
+                    />
+                  ) : null}
+                </div>
+                <p className="mt-0.5 text-body text-foreground-muted">
+                  {profile.headline || `@${profile.handle}`}
+                </p>
+              </div>
             </div>
 
-            <div className="min-w-0 flex-1 pb-1 pt-2 sm:pt-3">
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <div className="flex flex-wrap items-center gap-1.5">
-                    <h1 className="text-[1.45rem] leading-none tracking-[-0.02em] text-foreground sm:text-[1.65rem]">
-                      {profile.displayName}
-                    </h1>
-                    {profile.isHost ? (
-                      <CheckCircle2
-                        className="size-[1.15rem] text-brand"
-                        aria-label="Verified host"
-                      />
-                    ) : null}
-                  </div>
-                  <p className="mt-1 text-[13.5px] text-foreground-muted">
-                    {profile.headline || `@${profile.handle}`}
-                  </p>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2">
-                  {profile.isOwner ? (
-                    <Link
-                      href="/settings"
-                      className="inline-flex h-9 items-center gap-1.5 rounded-[12px] border border-border bg-mint/50 px-3.5 text-[13px] font-semibold text-foreground no-underline transition hover:border-brand hover:bg-brand-wash"
-                    >
-                      <Pencil className="size-3.5" aria-hidden />
-                      Edit Profile
-                    </Link>
-                  ) : (
-                    <>
-                      <button
-                        type="button"
-                        onClick={onFollow}
-                        className={cn(
-                          "inline-flex h-9 items-center gap-1.5 rounded-[12px] px-3.5 text-[13px] font-semibold transition",
-                          followState.following
-                            ? "border border-border bg-surface text-foreground hover:bg-mint"
-                            : "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover ",
-                        )}
-                      >
-                        <UserPlus className="size-3.5" aria-hidden />
-                        {followState.following ? "Following" : "Follow"}
-                      </button>
-                      <Link
-                        href={`/messages?to=${profile.handle}`}
-                        className="inline-flex h-9 items-center gap-1.5 rounded-[12px] border border-border px-3.5 text-[13px] font-semibold text-foreground no-underline transition hover:bg-mint"
-                      >
-                        <MessageSquare className="size-3.5" aria-hidden />
-                        Message
-                      </Link>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Posts / Followers / Following */}
-              <div className="mt-3.5 flex flex-wrap items-center gap-x-5 gap-y-1">
-                <CountStat
-                  value={profile.stats.posts}
-                  label="Posts"
-                  onClick={() => setTab("posts")}
-                />
-                <CountStat value={followState.followers} label="Followers" />
-                <CountStat value={profile.stats.following} label="Following" />
-              </div>
-
-              <div className="mt-2.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] text-foreground-muted">
-                {profile.location ? (
-                  <span className="inline-flex items-center gap-1">
-                    <MapPin className="size-3.5" aria-hidden />
-                    {profile.location}
-                  </span>
-                ) : null}
-                <span className="inline-flex items-center gap-1">
-                  <CalendarDays className="size-3.5" aria-hidden />
-                  Joined{" "}
-                  {joined.toLocaleDateString(undefined, {
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </span>
-              </div>
-
-              {profile.bio ? (
-                <p className="mt-2.5 max-w-2xl text-[14px] leading-[1.5] text-foreground">
-                  {profile.bio}
-                </p>
-              ) : null}
-
-              {(profile.links.length > 0 || profile.interests.length > 0) && (
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  {profile.links.map((href) => (
-                    <SocialLink key={href} href={href} />
-                  ))}
-                  {profile.interests.slice(0, 8).map((tag) => (
-                    <Link
-                      key={tag.slug}
-                      href={`/members?interest=${tag.slug}`}
-                      title={`Find other members who picked ${tag.label}`}
-                      className="rounded-[10px] border border-border bg-mint/40 px-2.5 py-1 text-[11.5px] text-foreground no-underline transition hover:border-hairline-firm"
-                    >
-                      {tag.label}
-                    </Link>
-                  ))}
-                </div>
+            <div className="flex flex-wrap items-center gap-2 sm:pb-1">
+              {profile.isOwner ? (
+                <ButtonLink href="/settings">
+                  <Pencil className="size-4" aria-hidden />
+                  Edit Profile
+                </ButtonLink>
+              ) : (
+                <>
+                  <Button
+                    variant={followState.following ? "secondary" : "primary"}
+                    onClick={onFollow}
+                  >
+                    <UserPlus className="size-4" aria-hidden />
+                    {followState.following ? "Following" : "Follow"}
+                  </Button>
+                  <ButtonLink href={`/messages?to=${profile.handle}`}>
+                    <MessageSquare className="size-4" aria-hidden />
+                    Message
+                  </ButtonLink>
+                </>
               )}
             </div>
           </div>
 
-          {/* Compact learning stats strip */}
-          <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-4 sm:grid-cols-4">
-            <MiniStat
-              value={profile.stats.classesTaken}
-              label="Classes"
-              icon={<BookOpen className="size-3.5 text-brand" aria-hidden />}
+          {/* One quiet row of numbers: the social ones, then the learning
+              ones. Followers used to appear here and again in a strip below. */}
+          <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
+            <CountStat
+              value={profile.stats.posts}
+              label="Posts"
+              onClick={() => setTab("posts")}
             />
-            <MiniStat
-              value={profile.stats.courses}
-              label="Courses"
-              icon={<GraduationCap className="size-3.5 text-brand" aria-hidden />}
-            />
-            <MiniStat
-              value={profile.stats.badges}
-              label="Badges"
-              icon={<Trophy className="size-3.5 text-apricot" aria-hidden />}
-            />
-            <MiniStat
-              value={followState.followers}
-              label="Followers"
-              icon={<Users className="size-3.5 text-brand" aria-hidden />}
-            />
+            <CountStat value={followState.followers} label="Followers" />
+            <CountStat value={profile.stats.following} label="Following" />
+            <span className="hidden h-3.5 w-px bg-border sm:block" aria-hidden />
+            <CountStat value={profile.stats.classesTaken} label="Classes" />
+            <CountStat value={profile.stats.courses} label="Courses" />
+            <CountStat value={profile.stats.badges} label="Badges" />
           </div>
-        </section>
 
-        {/* Tabs */}
-        <nav
-          aria-label="Profile sections"
-          className="mt-4 flex gap-0.5 overflow-x-auto border-b border-border"
-        >
-          {(
-            [
-              ["posts", "Posts"],
-              ["classes", "Classes"],
-              ["about", "About"],
-              ["badges", "Badges"],
-              ["activity", "Activity"],
-            ] as const
-          ).map(([id, label]) => (
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-label text-foreground-muted">
+            {profile.location ? (
+              <span className="inline-flex items-center gap-1.5">
+                <MapPin className="size-4" aria-hidden />
+                {profile.location}
+              </span>
+            ) : null}
+            <span className="inline-flex items-center gap-1.5">
+              <CalendarDays className="size-4" aria-hidden />
+              Joined{" "}
+              {joined.toLocaleDateString(undefined, {
+                month: "short",
+                year: "numeric",
+              })}
+            </span>
+          </div>
+
+          {profile.bio ? (
+            <p className="max-w-2xl text-reading text-foreground text-pretty">
+              {profile.bio}
+            </p>
+          ) : null}
+
+          {(profile.links.length > 0 || profile.interests.length > 0) && (
+            <div className="flex flex-wrap items-center gap-2">
+              {profile.links.map((href) => (
+                <SocialLink key={href} href={href} />
+              ))}
+              {profile.interests.slice(0, 8).map((tag) => (
+                <Link
+                  key={tag.slug}
+                  href={`/members?interest=${tag.slug}`}
+                  title={`Find other members who picked ${tag.label}`}
+                  className={chipClass(false)}
+                >
+                  {tag.label}
+                </Link>
+              ))}
+            </div>
+          )}
+        </header>
+
+        <TabBar label="Profile sections" className="mt-8">
+          {TABS.map(([id, label]) => (
             <button
               key={id}
               type="button"
               onClick={() => setTab(id)}
-              className={cn(
-                "shrink-0 border-b-2 px-4 py-2.5 text-[13.5px] transition",
-                tab === id
-                  ? "border-brand font-semibold text-foreground"
-                  : "border-transparent text-foreground-muted hover:text-foreground",
-              )}
+              aria-current={tab === id ? "true" : undefined}
+              className={tabClass(tab === id)}
             >
               {label}
             </button>
           ))}
-        </nav>
+        </TabBar>
 
-        <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_280px]">
-          <div className="min-w-0 space-y-3">
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_280px]">
+          <div className="flex min-w-0 flex-col gap-4">
             {tab === "posts" ? (
               <>
                 {profile.isOwner && profile.mySpaces.length > 0 ? (
@@ -339,15 +302,16 @@ export function ProfileView({
                 ) : null}
                 {profile.posts.length === 0 ? (
                   <EmptyState
+                    icon={<Images />}
                     title="No posts yet"
-                    body={
+                    description={
                       profile.isOwner
                         ? "Share something with the community — a plate counts."
                         : `${profile.displayName} hasn’t posted yet.`
                     }
                   />
                 ) : (
-                  <div className="grid grid-cols-3 gap-1 sm:gap-1.5">
+                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
                     {profile.posts.map((post) => (
                       <PostTile
                         key={post.id}
@@ -361,73 +325,54 @@ export function ProfileView({
             ) : null}
 
             {tab === "classes" ? (
-              <Panel title="Classes completed">
-                {profile.activity.filter((item) => item.kind === "lesson").length ===
-                0 ? (
+              <Card padding="none">
+                <CardHeader
+                  title="Classes completed"
+                  action={
+                    <Link href="/learn" className={HEADER_ACTION}>
+                      Browse classes
+                      <ArrowRight className="size-4" aria-hidden />
+                    </Link>
+                  }
+                />
+                {lessons.length === 0 ? (
                   <EmptyState
+                    size="sm"
+                    bordered={false}
+                    icon={<BookOpen />}
                     title="No classes completed"
-                    body="Finished lessons will show up here."
+                    description="Finished lessons will show up here."
                   />
                 ) : (
-                  <ul className="divide-y divide-border">
-                    {profile.activity
-                      .filter((item) => item.kind === "lesson")
-                      .map((item) => (
-                        <ActivityRow key={item.id} item={item} />
-                      ))}
+                  <ul className="divide-y divide-separator">
+                    {lessons.map((item) => (
+                      <ActivityRow key={item.id} item={item} />
+                    ))}
                   </ul>
                 )}
-                <Link
-                  href="/learn"
-                  className="mt-4 inline-flex items-center gap-1 text-[13px] font-semibold text-brand no-underline hover:underline"
-                >
-                  Browse classes
-                  <ArrowRight className="size-3.5" aria-hidden />
-                </Link>
-              </Panel>
+              </Card>
             ) : null}
 
             {tab === "about" ? (
-              <Panel title="About">
-                <dl className="space-y-4">
-                  <div>
-                    <dt className="text-[11px] uppercase tracking-[0.1em] text-foreground-muted">
-                      Bio
-                    </dt>
-                    <dd className="mt-1 text-[14.5px] leading-[1.55] text-foreground">
-                      {profile.bio || "No bio yet."}
-                    </dd>
-                  </div>
+              <Card padding="none">
+                <CardHeader title="About" />
+                <dl className="divide-y divide-separator">
+                  <AboutItem term="Bio">
+                    <span className="text-reading">{profile.bio || "No bio yet."}</span>
+                  </AboutItem>
                   {profile.cookingLately ? (
-                    <div>
-                      <dt className="text-[11px] uppercase tracking-[0.1em] text-foreground-muted">
-                        Cooking lately
-                      </dt>
-                      <dd className="mt-1 text-[14px] text-foreground">
-                        {profile.cookingLately}
-                      </dd>
-                    </div>
+                    <AboutItem term="Cooking lately">{profile.cookingLately}</AboutItem>
                   ) : null}
                   {profile.location ? (
-                    <div>
-                      <dt className="text-[11px] uppercase tracking-[0.1em] text-foreground-muted">
-                        Location
-                      </dt>
-                      <dd className="mt-1 inline-flex items-center gap-1.5 text-[14px] text-foreground">
-                        <MapPin className="size-3.5 text-foreground-muted" aria-hidden />
+                    <AboutItem term="Location">
+                      <span className="inline-flex items-center gap-1.5">
+                        <MapPin className="size-4 text-foreground-muted" aria-hidden />
                         {profile.location}
-                      </dd>
-                    </div>
+                      </span>
+                    </AboutItem>
                   ) : null}
                   {profile.skill ? (
-                    <div>
-                      <dt className="text-[11px] uppercase tracking-[0.1em] text-foreground-muted">
-                        Skill level
-                      </dt>
-                      <dd className="mt-1 text-[14px] text-foreground">
-                        {SKILL_WORDS[profile.skill]}
-                      </dd>
-                    </div>
+                    <AboutItem term="Skill level">{SKILL_WORDS[profile.skill]}</AboutItem>
                   ) : null}
                   {/* Grouped by kind, because "Japanese" and "Gluten free"
                       answer different questions and a single run of chips
@@ -440,50 +385,51 @@ export function ProfileView({
                     );
                     if (tags.length === 0) return null;
                     return (
-                      <div key={group.kind}>
-                        <dt className="text-[11px] uppercase tracking-[0.1em] text-foreground-muted">
-                          {group.label}
-                        </dt>
-                        <dd className="mt-2 flex flex-wrap gap-1.5">
+                      <AboutItem key={group.kind} term={group.label}>
+                        <span className="flex flex-wrap gap-1.5 pt-1">
                           {tags.map((tag) => (
                             <Link
                               key={tag.slug}
                               href={`/members?interest=${tag.slug}`}
-                              className="rounded-[10px] border border-border bg-mint/40 px-2.5 py-1 text-[12px] text-foreground no-underline transition hover:border-hairline-firm"
+                              className={chipClass(false)}
                             >
                               {tag.label}
                             </Link>
                           ))}
-                        </dd>
-                      </div>
+                        </span>
+                      </AboutItem>
                     );
                   })}
                 </dl>
-              </Panel>
+              </Card>
             ) : null}
 
             {tab === "badges" ? (
-              <Panel title="Badges">
+              <Card padding="none">
+                <CardHeader title="Badges" />
                 {profile.badges.length === 0 ? (
                   <EmptyState
+                    size="sm"
+                    bordered={false}
+                    icon={<Award />}
                     title="No badges yet"
-                    body="Keep cooking and showing up — badges land here."
+                    description="Keep cooking and showing up — badges land here."
                   />
                 ) : (
-                  <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-2 p-4 sm:grid-cols-2 sm:p-5">
                     {profile.badges.map((badge) => (
                       <div
                         key={badge.id}
-                        className="flex items-start gap-3 rounded-[12px] border border-border bg-background/50 p-3"
+                        className="flex items-start gap-3 rounded-ctl bg-surface-muted p-3"
                       >
-                        <span className="grid size-11 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
+                        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
                           <Award className="size-5" aria-hidden />
                         </span>
                         <div className="min-w-0">
-                          <p className="text-[14px] font-semibold text-foreground">
+                          <p className="text-body font-semibold text-foreground">
                             {badge.name}
                           </p>
-                          <p className="mt-0.5 text-[12.5px] text-foreground-muted">
+                          <p className="mt-0.5 text-label text-foreground-muted">
                             {badge.description}
                           </p>
                         </div>
@@ -491,87 +437,94 @@ export function ProfileView({
                     ))}
                   </div>
                 )}
-              </Panel>
+              </Card>
             ) : null}
 
             {tab === "activity" ? (
-              <Panel title="Activity">
+              <Card padding="none">
+                <CardHeader title="Activity" />
                 {profile.activity.length === 0 ? (
                   <EmptyState
+                    size="sm"
+                    bordered={false}
+                    icon={<CalendarDays />}
                     title="Quiet so far"
-                    body="Recent classes, badges, and posts will appear here."
+                    description="Recent classes, badges, and posts will appear here."
                   />
                 ) : (
-                  <ul className="divide-y divide-border">
+                  <ul className="divide-y divide-separator">
                     {profile.activity.map((item) => (
                       <ActivityRow key={item.id} item={item} />
                     ))}
                   </ul>
                 )}
-              </Panel>
+              </Card>
             ) : null}
           </div>
 
-          <aside className="space-y-3">
-            <Panel
-              title="Recent activity"
-              action={
-                <button
-                  type="button"
-                  onClick={() => setTab("activity")}
-                  className="text-[12px] font-semibold text-brand hover:underline"
-                >
-                  View all
-                </button>
-              }
-            >
+          <aside className="flex flex-col gap-4">
+            <Card padding="none">
+              <CardHeader
+                title="Recent activity"
+                action={
+                  <button
+                    type="button"
+                    onClick={() => setTab("activity")}
+                    className={HEADER_ACTION}
+                  >
+                    View all
+                  </button>
+                }
+              />
               {profile.activity.length === 0 ? (
-                <p className="text-[13px] text-foreground-muted">Nothing yet.</p>
+                <p className="px-4 py-4 text-label text-foreground-muted">Nothing yet.</p>
               ) : (
-                <ul className="space-y-2.5">
+                <ul className="flex flex-col gap-3 px-4 py-4">
                   {profile.activity.slice(0, 5).map((item) => (
                     <ActivityRow key={item.id} item={item} compact />
                   ))}
                 </ul>
               )}
-            </Panel>
+            </Card>
 
-            <Panel
-              title="Badges"
-              action={
-                <button
-                  type="button"
-                  onClick={() => setTab("badges")}
-                  className="text-[12px] font-semibold text-brand hover:underline"
-                >
-                  View all
-                </button>
-              }
-            >
+            <Card padding="none">
+              <CardHeader
+                title="Badges"
+                action={
+                  <button
+                    type="button"
+                    onClick={() => setTab("badges")}
+                    className={HEADER_ACTION}
+                  >
+                    View all
+                  </button>
+                }
+              />
               {profile.badges.length === 0 ? (
-                <p className="text-[13px] text-foreground-muted">No badges yet.</p>
+                <p className="px-4 py-4 text-label text-foreground-muted">No badges yet.</p>
               ) : (
-                <div className="flex flex-wrap gap-3">
+                <div className="flex flex-wrap gap-3 px-4 py-4">
                   {profile.badges.slice(0, 4).map((badge) => (
                     <div
                       key={badge.id}
-                      className="flex w-[4.25rem] flex-col items-center gap-1 text-center"
+                      className="flex w-17 flex-col items-center gap-1.5 text-center"
                       title={badge.name}
                     >
-                      <span className="grid size-11 place-items-center rounded-full border border-border bg-brand-wash text-on-brand-wash">
+                      <span className="grid size-11 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
                         <Award className="size-4" aria-hidden />
                       </span>
-                      <span className="line-clamp-2 text-[10.5px] leading-tight text-foreground-muted">
+                      <span className="line-clamp-2 text-micro text-foreground-muted">
                         {badge.name}
                       </span>
                     </div>
                   ))}
                 </div>
               )}
-            </Panel>
+            </Card>
 
-            <Panel title="Quick actions">
-              <div className="space-y-1.5">
+            <Card padding="none">
+              <CardHeader title="Quick actions" />
+              <div className="divide-y divide-separator">
                 <QuickLink href="/learn" label="View classes" />
                 <QuickLink href="/learn" label="View courses" />
                 {profile.isOwner ? (
@@ -583,7 +536,7 @@ export function ProfileView({
                   />
                 )}
               </div>
-            </Panel>
+            </Card>
           </aside>
         </div>
       </div>
@@ -639,9 +592,9 @@ function PostTile({
     return (
       <Link
         href={`/posts/${post.id}`}
-        className="relative aspect-square overflow-hidden rounded-[10px] border border-border bg-mint/50 p-3 no-underline transition hover:border-brand"
+        className="relative aspect-square overflow-hidden rounded-ctl border border-border bg-surface p-3 no-underline transition hover:border-hairline-firm hover:bg-surface-muted"
       >
-        <p className="line-clamp-5 text-[12px] leading-snug text-foreground">
+        <p className="line-clamp-5 text-caption text-foreground">
           {post.title || post.plainText || "Post"}
         </p>
       </Link>
@@ -653,7 +606,7 @@ function PostTile({
       type="button"
       onClick={onOpen}
       aria-label={post.title || "View post"}
-      className="group relative aspect-square overflow-hidden rounded-[10px] border border-border bg-mint focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+      className="group relative aspect-square overflow-hidden rounded-ctl bg-surface-muted"
     >
       {first.kind === "video" ? (
         <video
@@ -671,14 +624,20 @@ function PostTile({
           className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
         />
       )}
-      {first.kind === "video" ? (
-        <span className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-full bg-black/55 text-white">
-          <Play className="size-3 translate-x-px" aria-hidden />
-        </span>
-      ) : null}
-      {multi ? (
-        <span className="absolute right-1.5 top-1.5 text-white drop-shadow">
-          <Images className="size-4" aria-hidden />
+      {/* Media markers share one corner, side by side, so a video that leads
+          a set of several no longer has the two drawn over each other. */}
+      {first.kind === "video" || multi ? (
+        <span className="absolute right-1.5 top-1.5 flex items-center gap-1">
+          {multi ? (
+            <span className="text-white drop-shadow">
+              <Images className="size-4" aria-hidden />
+            </span>
+          ) : null}
+          {first.kind === "video" ? (
+            <span className="grid size-6 place-items-center rounded-full bg-black/55 text-white">
+              <Play className="size-3 translate-x-px" aria-hidden />
+            </span>
+          ) : null}
         </span>
       ) : null}
     </button>
@@ -700,57 +659,31 @@ function CountStat({
       type={onClick ? "button" : undefined}
       onClick={onClick}
       className={cn(
-        "inline-flex items-baseline gap-1.5 text-[13.5px]",
-        onClick && "rounded-md transition hover:text-brand",
+        "inline-flex items-baseline gap-1 text-label",
+        onClick && "group rounded-chip",
       )}
     >
       <span className="font-semibold tabular-nums text-foreground">
         {formatCount(value)}
       </span>
-      <span className="text-foreground-muted">{label}</span>
+      <span
+        className={cn(
+          "text-foreground-muted",
+          onClick && "transition group-hover:text-foreground",
+        )}
+      >
+        {label}
+      </span>
     </Tag>
   );
 }
 
-function MiniStat({
-  value,
-  label,
-  icon,
-}: {
-  value: number;
-  label: string;
-  icon: React.ReactNode;
-}) {
+function AboutItem({ term, children }: { term: string; children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-2 rounded-[10px] bg-background/60 px-2.5 py-2">
-      {icon}
-      <div>
-        <p className="text-[15px] font-semibold tabular-nums leading-none text-foreground">
-          {value}
-        </p>
-        <p className="mt-0.5 text-[11px] text-foreground-muted">{label}</p>
-      </div>
+    <div className="px-4 py-3.5 sm:px-5">
+      <dt className={TERM}>{term}</dt>
+      <dd className="mt-1 text-body text-foreground">{children}</dd>
     </div>
-  );
-}
-
-function Panel({
-  title,
-  action,
-  children,
-}: {
-  title: string;
-  action?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-card border border-border bg-surface p-4 shadow-e1">
-      <div className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-[13.5px] font-semibold text-foreground">{title}</h2>
-        {action}
-      </div>
-      {children}
-    </section>
   );
 }
 
@@ -771,23 +704,23 @@ function ActivityRow({
           : BookOpen;
 
   return (
-    <li className={cn("flex gap-2.5", !compact && "py-2.5 first:pt-0 last:pb-0")}>
-      <span className="mt-0.5 grid size-8 shrink-0 place-items-center rounded-full bg-mint text-brand">
-        <Icon className="size-3.5" aria-hidden />
+    <li className={cn("flex gap-3", !compact && "px-4 py-3 sm:px-5")}>
+      <span
+        className={cn(
+          "grid shrink-0 place-items-center rounded-full bg-brand-wash text-on-brand-wash",
+          compact ? "size-7" : "mt-0.5 size-8",
+        )}
+      >
+        <Icon className={compact ? "size-3.5" : "size-4"} aria-hidden />
       </span>
       <div className="min-w-0 flex-1">
-        <p
-          className={cn(
-            "text-foreground",
-            compact ? "text-[13px] leading-snug" : "text-[14px]",
-          )}
-        >
+        <p className={cn("text-foreground", compact ? "text-label" : "text-body")}>
           {item.label}
         </p>
         {item.detail && !compact ? (
-          <p className="mt-0.5 text-[12.5px] text-foreground-muted">{item.detail}</p>
+          <p className="mt-0.5 text-label text-foreground-muted">{item.detail}</p>
         ) : null}
-        <p className="mt-0.5 text-[11.5px] text-foreground-muted">
+        <p className="mt-0.5 text-caption text-foreground-muted">
           {formatShortTime(new Date(item.at))}
         </p>
       </div>
@@ -799,20 +732,11 @@ function QuickLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
       href={href}
-      className="flex h-10 items-center justify-between rounded-[12px] border border-border bg-background/40 px-3 text-[13px] font-semibold text-foreground no-underline transition hover:border-brand hover:bg-brand-wash"
+      className="flex items-center justify-between gap-3 px-4 py-3 text-label font-medium text-foreground no-underline transition hover:bg-surface-muted"
     >
       {label}
-      <ArrowRight className="size-3.5 text-foreground-muted" aria-hidden />
+      <ArrowRight className="size-4 text-foreground-muted" aria-hidden />
     </Link>
-  );
-}
-
-function EmptyState({ title, body }: { title: string; body: string }) {
-  return (
-    <div className="rounded-card border border-dashed border-border px-5 py-10 text-center">
-      <p className="text-[15px] font-semibold text-foreground">{title}</p>
-      <p className="mt-1.5 text-[13.5px] text-foreground-muted">{body}</p>
-    </div>
   );
 }
 
@@ -824,12 +748,12 @@ function SocialLink({ href }: { href: string }) {
       target="_blank"
       rel="noreferrer"
       title={href}
-      className="grid size-8 place-items-center rounded-full border border-border text-foreground-muted no-underline transition hover:border-brand hover:text-brand"
+      className={buttonClass({ size: "sm", iconOnly: true })}
     >
       {kind === "x" ? (
-        <XIcon className="size-3.5" />
+        <XIcon className="size-4" />
       ) : (
-        <Link2 className="size-3.5" aria-hidden />
+        <Link2 className="size-4" aria-hidden />
       )}
       <span className="sr-only">{kind}</span>
     </a>

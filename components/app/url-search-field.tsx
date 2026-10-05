@@ -4,6 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Loader2, Search, X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { fieldClass } from "@/components/app/ui";
 
 /**
  * A search field whose query lives in the URL.
@@ -103,7 +104,7 @@ export function UrlSearchField({
         placeholder={placeholder}
         aria-label={label}
         autoComplete="off"
-        className="h-11 w-full rounded-ctl border border-border bg-surface pl-10 pr-10 text-[14.5px] text-foreground outline-none transition placeholder:text-foreground-muted focus:border-brand focus:ring-2 focus:ring-brand/20 [&::-webkit-search-cancel-button]:appearance-none"
+        className={fieldClass({ size: "lg", className: "pl-10 pr-10 [&::-webkit-search-cancel-button]:appearance-none" })}
       />
       <span className="absolute right-3 top-1/2 flex -translate-y-1/2 items-center">
         {pending ? (
@@ -117,7 +118,7 @@ export function UrlSearchField({
               inputRef.current?.focus();
             }}
             aria-label="Clear search"
-            className="grid size-6 place-items-center rounded-full text-foreground-muted transition hover:bg-brand-wash hover:text-on-brand-wash"
+            className="grid size-6 place-items-center rounded-full text-foreground-muted transition hover:bg-surface-muted hover:text-foreground"
           >
             <X className="size-4" aria-hidden />
           </button>

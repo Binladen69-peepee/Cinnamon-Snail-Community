@@ -1,33 +1,36 @@
 import { Skeleton } from "@/components/ui/skeleton";
+import { AppShell } from "@/components/app/app-shell";
+import { ChipRowSkeleton, PageHeaderSkeleton } from "@/components/app/skeletons";
 
-/** The inbox's shape while it loads: heading, filter pills and a list of rows. */
+/**
+ * The inbox's shape while it loads: the page header, the filter chips and one
+ * card of rows. Rendered inside `AppShell`, so the column is the page's own
+ * width and nothing shifts when the inbox arrives.
+ */
 export default function NotificationsLoading() {
   return (
-    <div className="mx-auto w-full max-w-170 space-y-4 px-3 py-4 sm:px-5" aria-busy="true">
-      <span className="sr-only">Loading notifications</span>
-      <div className="flex items-start justify-between gap-3">
-        <div className="space-y-2">
-          <Skeleton className="h-7 w-40" />
-          <Skeleton className="h-4 w-28" />
+    <AppShell>
+      <div className="flex flex-col gap-6" aria-busy="true">
+        <span className="sr-only">Loading notifications</span>
+        <div className="flex flex-col gap-4">
+          <PageHeaderSkeleton actions />
+          <ChipRowSkeleton count={6} />
         </div>
-        <Skeleton className="h-9 w-28 rounded-full" />
-      </div>
-      <div className="flex gap-1.5 overflow-hidden">
-        {["w-14", "w-20", "w-24", "w-20", "w-18", "w-20"].map((width, index) => (
-          <Skeleton key={index} className={`h-8 shrink-0 rounded-full ${width}`} />
-        ))}
-      </div>
-      <div className="overflow-hidden rounded-card border border-border bg-surface">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <div key={index} className="flex items-start gap-3 border-b border-border px-3.5 py-3 last:border-b-0">
-            <Skeleton className="size-8 shrink-0 rounded-full" />
-            <div className="min-w-0 flex-1 space-y-2">
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-3.5 w-5/6" />
+        <div className="divide-y divide-separator overflow-hidden rounded-card border border-border bg-surface shadow-e1">
+          {Array.from({ length: 6 }, (_, index) => (
+            <div key={index} className="flex items-start gap-3 px-4 py-3.5 sm:px-5">
+              <Skeleton className="size-9 shrink-0 rounded-full" />
+              <div className="flex min-w-0 flex-1 flex-col gap-2 pt-0.5">
+                <div className="flex items-center justify-between gap-3">
+                  <Skeleton className="h-3.5 w-1/2 rounded-chip" />
+                  <Skeleton className="h-3 w-10 rounded-chip" />
+                </div>
+                <Skeleton className="h-3 w-5/6 rounded-chip" />
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
-    </div>
+    </AppShell>
   );
 }

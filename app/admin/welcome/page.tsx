@@ -1,6 +1,15 @@
+import { Inbox } from "lucide-react";
 import { prisma } from "@/lib/db";
-import { Button } from "@/components/ui/button";
 import { runWelcomeSweepAction } from "@/app/admin/actions";
+import {
+  Card,
+  CardHeader,
+  EmptyState,
+  PageHeader,
+  Stat,
+  buttonClass,
+} from "@/components/app/ui";
+import { PendingButton } from "@/components/ui/pending-button";
 import {
   getWelcomeSetting,
   MAX_BODY_LENGTH,
@@ -42,36 +51,34 @@ export default async function AdminWelcomePage() {
   }));
 
   return (
-    <div className="space-y-10">
-      <div>
-        <p className="text-[10.5px] font-bold uppercase tracking-[0.13em] text-foreground-muted">Admin</p>
-        <h1 className="mt-2 font-display text-[1.55rem] font-bold tracking-[-0.02em] text-foreground">Welcome DM</h1>
-        <p className="mt-3 max-w-2xl text-foreground-muted">
-          A direct message that arrives a set time after a member signs in for
-          the first time ever — not on every sign-in, and not by email. Each
-          member can only ever receive one.
-        </p>
-      </div>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        eyebrow="Admin"
+        title="Welcome DM"
+        description="A direct message that arrives a set time after a member signs in for the first time ever — not on every sign-in, and not by email. Each member can only ever receive one."
+      />
 
-      <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat label="Sent" value={counts.sent} />
         <Stat label="Waiting to send" value={counts.pending} />
         <Stat label="Cancelled" value={counts.canceled} />
         <Stat
           label="Errored"
           value={counts.failed}
-          tone={counts.failed > 0 ? "danger" : undefined}
+          tone={counts.failed > 0 ? "bad" : "default"}
         />
       </dl>
 
-      <section className="rounded-card border border-border bg-surface p-5">
-        <h2 className="text-[13.5px] font-bold text-foreground">Settings</h2>
-        <p className="mt-1 text-sm text-foreground-muted">
-          {setting.updatedAt
-            ? `Last saved ${setting.updatedAt.toLocaleString()}.`
-            : "Never saved — showing the defaults, and sending is off."}
-        </p>
-        <div className="mt-5">
+      <Card padding="none">
+        <CardHeader
+          title="Settings"
+          description={
+            setting.updatedAt
+              ? `Last saved ${setting.updatedAt.toLocaleString()}.`
+              : "Never saved — showing the defaults, and sending is off."
+          }
+        />
+        <div className="p-4 sm:p-5">
           <WelcomeForm
             initial={{
               enabled: setting.enabled,
@@ -84,41 +91,52 @@ export default async function AdminWelcomePage() {
             maxBodyLength={MAX_BODY_LENGTH}
           />
         </div>
-      </section>
+      </Card>
 
-      <section className="rounded-card border border-border bg-surface p-5">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div>
-            <h2 className="text-[13.5px] font-bold text-foreground">Queue</h2>
-            <p className="mt-1 text-sm text-foreground-muted">
+      <Card padding="none">
+        {/* CardHeader's layout, except that the action drops under the
+            description on a phone instead of squeezing it to one word a line. */}
+        <div className="flex flex-col gap-3 border-b border-separator px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+          <div className="min-w-0">
+            <h2 className="flex items-center gap-2 text-body font-semibold text-foreground">
+              Queue
+              <span className="text-label font-medium tabular-nums text-foreground-muted">
+                {upcoming.length}
+              </span>
+            </h2>
+            <p className="mt-0.5 text-caption text-foreground-muted">
               A cron sweeps this on a timer. You can also run it now.
             </p>
           </div>
-          <form action={runWelcomeSweepAction}>
-            <Button type="submit" variant="secondary">
+          <form action={runWelcomeSweepAction} className="shrink-0">
+            <PendingButton className={buttonClass({ size: "sm" })}>
               Send anything due
-            </Button>
+            </PendingButton>
           </form>
         </div>
 
         {upcoming.length === 0 ? (
-          <p className="mt-5 text-sm text-foreground-muted">
-            Nothing waiting.
-          </p>
+          <EmptyState
+            size="sm"
+            bordered={false}
+            icon={<Inbox />}
+            title="Nothing waiting."
+            description="New members wait here until their welcome DM is due."
+          />
         ) : (
-          <ul className="mt-5 divide-y divide-border">
+          <ul className="divide-y divide-separator">
             {upcoming.map((job) => (
               <li
                 key={job.id}
-                className="flex flex-wrap items-baseline justify-between gap-2 py-2.5"
+                className="flex flex-col gap-0.5 px-4 py-3 sm:flex-row sm:items-baseline sm:justify-between sm:gap-4 sm:px-5"
               >
-                <span className="text-sm font-semibold text-foreground">
+                <span className="min-w-0 truncate text-label font-medium text-foreground">
                   {job.user.profile?.displayName ?? job.user.handle}
                 </span>
-                <span className="text-sm text-foreground-muted">
+                <span className="text-caption text-foreground-muted sm:text-right">
                   due {job.dueAt.toLocaleString()}
                   {job.failedAt ? (
-                    <span className="ml-2 text-danger">
+                    <span className="block text-danger sm:ml-2 sm:inline">
                       · last attempt failed: {job.lastError ?? "unknown error"}
                     </span>
                   ) : null}
@@ -127,28 +145,7 @@ export default async function AdminWelcomePage() {
             ))}
           </ul>
         )}
-      </section>
-    </div>
-  );
-}
-
-function Stat({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone?: "danger";
-}) {
-  return (
-    <div className="rounded-card border border-border bg-surface p-5">
-      <dt className="text-sm text-foreground-muted">{label}</dt>
-      <dd
-        className={`font-display text-3xl ${tone === "danger" ? "text-danger" : "text-foreground"}`}
-      >
-        {value}
-      </dd>
+      </Card>
     </div>
   );
 }

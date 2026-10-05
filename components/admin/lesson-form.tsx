@@ -9,6 +9,16 @@ import {
   updateLessonAction,
 } from "@/app/admin/courses/curriculum-actions";
 import { MediaField } from "@/components/admin/media-field";
+import {
+  Button,
+  Callout,
+  Field,
+  Input,
+  Select,
+  Textarea,
+  backdropClass,
+  dialogClass,
+} from "@/components/app/ui";
 import { formatChapterTime, type Chapter } from "@/lib/learn/chapters";
 import { IMAGE_ACCEPT, VIDEO_ACCEPT, VIDEO_MAX_BYTES } from "@/lib/uploads/policy";
 import { cn } from "@/lib/utils";
@@ -142,33 +152,28 @@ export function LessonForm({
       aria-modal="true"
       aria-labelledby={titleId}
       onClick={onClose}
-      className="fixed inset-0 z-[80] flex items-start justify-center overflow-y-auto bg-black/55 p-3 sm:p-6"
+      className={cn(
+        backdropClass,
+        "z-80 flex items-start justify-center overflow-y-auto p-3 sm:p-6",
+      )}
     >
       <form
         onClick={(event) => event.stopPropagation()}
         onSubmit={submit}
-        className="my-auto w-full max-w-[640px] overflow-hidden rounded-modal bg-overlay shadow-e3"
+        className={cn(dialogClass, "my-auto w-full max-w-160 overflow-hidden")}
       >
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3.5 sm:px-5">
-          <h2
-            id={titleId}
-            className="font-display text-[1.05rem] font-bold text-foreground"
-          >
+        <div className="flex items-center justify-between gap-3 border-b border-separator py-3 pl-4 pr-3 sm:pl-5">
+          <h2 id={titleId} className="text-title font-semibold text-foreground">
             {lesson ? "Edit lesson" : "New lesson"}
           </h2>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="grid size-8 place-items-center rounded-full text-foreground-muted transition hover:bg-mint hover:text-foreground"
-          >
-            <X className="size-5" aria-hidden />
-          </button>
+          <Button variant="ghost" size="sm" iconOnly onClick={onClose} aria-label="Close">
+            <X className="size-4.5" aria-hidden />
+          </Button>
         </div>
 
-        <div className="space-y-4 px-4 py-4 sm:px-5">
+        <div className="flex flex-col gap-5 px-4 py-5 sm:px-5">
           <Field label="Title" htmlFor={`${titleId}-title`}>
-            <input
+            <Input
               ref={firstFieldRef}
               id={`${titleId}-title`}
               name="title"
@@ -176,38 +181,35 @@ export function LessonForm({
               maxLength={160}
               required
               placeholder="Folding the dumplings"
-              className={INPUT}
             />
           </Field>
 
-          <Field label="Kind" htmlFor={`${titleId}-kind`} help={kindHelp}>
-            <select
+          <Field label="Kind" htmlFor={`${titleId}-kind`} hint={kindHelp}>
+            <Select
               id={`${titleId}-kind`}
               name="kind"
               value={kind}
               onChange={(event) => setKind(event.target.value as LessonKind)}
-              className={INPUT}
             >
               {KINDS.map((entry) => (
                 <option key={entry.value} value={entry.value}>
                   {entry.label}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
 
           <Field
             label="One-line summary"
             htmlFor={`${titleId}-summary`}
-            help="Sits under the title in the syllabus. Optional."
+            hint="Sits under the title in the syllabus. Optional."
           >
-            <input
+            <Input
               id={`${titleId}-summary`}
               name="summary"
               defaultValue={lesson?.summary ?? ""}
               maxLength={200}
               placeholder="Why the pleats matter, and how to get them even"
-              className={INPUT}
             />
           </Field>
 
@@ -275,31 +277,30 @@ export function LessonForm({
           ) : null}
 
           {kind === "LIVE" ? (
-            <>
+            <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4">
               <Field
                 label="Joining link"
                 htmlFor={`${titleId}-live`}
-                help="Zoom, Meet, or wherever the session happens."
+                hint="Zoom, Meet, or wherever the session happens."
+                className="min-w-0"
               >
-                <input
+                <Input
                   id={`${titleId}-live`}
                   name="liveUrl"
                   type="url"
                   defaultValue={lesson?.liveUrl ?? ""}
                   placeholder="https://zoom.us/j/…"
-                  className={INPUT}
                 />
               </Field>
-              <Field label="When" htmlFor={`${titleId}-liveat`}>
-                <input
+              <Field label="When" htmlFor={`${titleId}-liveat`} className="min-w-0">
+                <Input
                   id={`${titleId}-liveat`}
                   name="liveAt"
                   type="datetime-local"
                   defaultValue={toLocalInput(lesson?.liveAt ?? null)}
-                  className={INPUT}
                 />
               </Field>
-            </>
+            </div>
           ) : null}
 
           <Field
@@ -311,18 +312,18 @@ export function LessonForm({
                   : "Notes"
             }
             htmlFor={`${titleId}-body`}
-            help={
+            hint={
               kind === "TEXT" || kind === "QUIZ"
                 ? "Markdown. This is the lesson itself."
                 : "Markdown, shown beneath the player. Optional."
             }
           >
-            <textarea
+            <Textarea
               id={`${titleId}-body`}
               name="body"
               rows={kind === "TEXT" || kind === "QUIZ" ? 10 : 4}
               defaultValue={lesson?.body ?? ""}
-              className={cn(INPUT, "h-auto resize-y py-2 leading-relaxed")}
+              className="resize-y"
             />
           </Field>
 
@@ -330,16 +331,16 @@ export function LessonForm({
             <Field
               label="Chapter markers"
               htmlFor={`${titleId}-chapters`}
-              help="One per line: a timestamp, a space, then the title. 0:00 Mise en place"
+              hint="One per line: a timestamp, a space, then the title. 0:00 Mise en place"
             >
-              <textarea
+              <Textarea
                 id={`${titleId}-chapters`}
                 name="chapters"
                 rows={4}
                 defaultValue={chaptersToText(lesson?.chapters ?? [])}
                 spellCheck={false}
                 placeholder={"0:00 Mise en place\n4:30 The dough\n12:05 Folding"}
-                className={cn(INPUT, "h-auto resize-y py-2 font-mono text-[12.5px]")}
+                className="resize-y font-mono text-label"
               />
             </Field>
           ) : (
@@ -353,20 +354,20 @@ export function LessonForm({
           <Field
             label="Length in minutes"
             htmlFor={`${titleId}-duration`}
-            help="Shown in the syllabus so a member can plan. Optional."
+            hint="Shown in the syllabus so a member can plan. Optional."
           >
-            <input
+            <Input
               id={`${titleId}-duration`}
               name="durationMin"
               type="number"
               min={0}
               max={1440}
               defaultValue={lesson?.durationMin ?? ""}
-              className={cn(INPUT, "max-w-[9rem]")}
+              className="max-w-36 tabular-nums"
             />
           </Field>
 
-          <div className="space-y-2.5 rounded-ctl border border-border bg-surface px-3 py-3">
+          <div className="flex flex-col gap-3.5 border-t border-separator pt-5">
             <CheckRow
               name="published"
               label="Published"
@@ -381,34 +382,20 @@ export function LessonForm({
             />
           </div>
 
-          {error ? (
-            <p role="alert" className="text-[12.5px] font-semibold text-danger">
-              {error}
-            </p>
-          ) : null}
+          {error ? <Callout tone="danger">{error}</Callout> : null}
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3.5 sm:px-5">
-          <button
-            type="button"
-            onClick={onClose}
-            className="h-9 rounded-ctl border border-border bg-background px-4 text-[13.5px] font-semibold text-foreground transition hover:border-hairline-firm"
-          >
-            Cancel
-          </button>
-          <button
+        <div className="flex items-center justify-end gap-2 border-t border-separator px-4 py-3.5 sm:px-5">
+          <Button onClick={onClose}>Cancel</Button>
+          <Button
             type="submit"
+            variant="primary"
             disabled={saving}
-            className={cn(
-              "inline-flex h-9 items-center gap-1.5 rounded-ctl px-4 text-[13.5px] font-semibold transition",
-              saving
-                ? "bg-default text-foreground-muted"
-                : "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover",
-            )}
+            aria-busy={saving || undefined}
           >
             {saving ? (
               <>
-                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                <Loader2 className="size-4 animate-spin" aria-hidden />
                 Saving
               </>
             ) : lesson ? (
@@ -416,41 +403,9 @@ export function LessonForm({
             ) : (
               "Add lesson"
             )}
-          </button>
+          </Button>
         </div>
       </form>
-    </div>
-  );
-}
-
-const INPUT =
-  "h-9 w-full rounded-ctl border border-field-border bg-field-background px-3 text-[13.5px] text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/25";
-
-function Field({
-  label,
-  htmlFor,
-  help,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  help?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="min-w-0">
-      <label
-        htmlFor={htmlFor}
-        className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
-      >
-        {label}
-      </label>
-      {children}
-      {help ? (
-        <p className="mt-1.5 text-[12px] leading-snug text-foreground-muted">
-          {help}
-        </p>
-      ) : null}
     </div>
   );
 }
@@ -468,19 +423,19 @@ function CheckRow({
 }) {
   const id = useId();
   return (
-    <label htmlFor={id} className="flex cursor-pointer items-start gap-2.5">
+    <label htmlFor={id} className="flex cursor-pointer items-start gap-3">
       <input
         id={id}
         name={name}
         type="checkbox"
         defaultChecked={defaultChecked}
-        className="mt-0.5 size-4 shrink-0 accent-[var(--brand)]"
+        className="mt-0.5 size-4 shrink-0 accent-brand"
       />
       <span className="min-w-0">
-        <span className="block text-[13px] font-semibold text-foreground">
+        <span className="block text-label font-medium text-foreground">
           {label}
         </span>
-        <span className="block text-[12px] leading-snug text-foreground-muted">
+        <span className="mt-0.5 block text-caption text-foreground-muted">
           {help}
         </span>
       </span>

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { listConversations } from "@/lib/messages/conversations";
@@ -7,6 +8,7 @@ import {
   type InboxRow,
 } from "@/components/messages/conversation-list";
 import { MessagesPanes } from "@/components/messages/messages-panes";
+import { InboxSkeleton } from "@/components/messages/skeletons";
 import { resolveMemberAvatar } from "@/lib/community/member-avatars";
 
 export const metadata = { title: "Messages" };
@@ -17,6 +19,11 @@ export const metadata = { title: "Messages" };
  * The inbox lives in the layout, not in each page, so moving between threads
  * does not refetch or remount it — the list keeps its scroll position and the
  * only thing that changes is the pane beside it.
+ *
+ * Its query sits behind its own Suspense boundary. A `loading.tsx` in this
+ * folder only covers the pages below the layout, never the layout itself, so
+ * without the boundary entering /messages showed nothing at all until the
+ * inbox had loaded. Now the panes arrive at once and the list fills in.
  */
 export default async function MessagesLayout({
   children,
@@ -26,11 +33,27 @@ export default async function MessagesLayout({
   const session = await auth();
   if (!session?.user.id) redirect("/login");
 
-  const conversations = await listConversations(session.user.id);
+  return (
+    <AppShell wide flush>
+      <MessagesPanes
+        list={
+          <Suspense fallback={<InboxSkeleton />}>
+            <Inbox viewerId={session.user.id} />
+          </Suspense>
+        }
+      >
+        {children}
+      </MessagesPanes>
+    </AppShell>
+  );
+}
+
+async function Inbox({ viewerId }: { viewerId: string }) {
+  const conversations = await listConversations(viewerId);
 
   const rows: InboxRow[] = conversations.map((conversation) => {
     const last = conversation.lastMessage;
-    const mine = last?.author.id === session.user.id;
+    const mine = last?.author.id === viewerId;
     const preview = last
       ? `${mine ? "You: " : conversation.isGroup ? `${last.author.handle}: ` : ""}${
           last.body || "Shared an image"
@@ -51,11 +74,5 @@ export default async function MessagesLayout({
     };
   });
 
-  return (
-    <AppShell wide flush>
-      <MessagesPanes list={<ConversationList rows={rows} />}>
-        {children}
-      </MessagesPanes>
-    </AppShell>
-  );
+  return <ConversationList rows={rows} />;
 }

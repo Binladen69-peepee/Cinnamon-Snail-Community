@@ -442,7 +442,7 @@ export async function loadDashboard(windowDays = 30): Promise<Dashboard> {
       title: row.course.title,
       detail: `${who(row.user)} started this course`,
       at: row.startedAt,
-      href: `/admin/courses/${row.course.slug}`,
+      href: `/admin/courses/${row.course.slug}/edit`,
     })),
     ...newRsvps.map((row) => ({
       kind: "rsvp" as const,

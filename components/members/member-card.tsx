@@ -2,8 +2,8 @@ import Link from "next/link";
 import { MapPin, Sparkles, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { PostFollowButton } from "@/components/feed/post-follow-button";
+import { Badge, Card } from "@/components/app/ui";
 import type { DirectoryMember } from "@/lib/community/directory";
-import { cn } from "@/lib/utils";
 
 /**
  * One member in the directory.
@@ -29,7 +29,7 @@ export function MemberCard({
   const moreInterests = member.interests.length - interests.length;
 
   return (
-    <article className="flex h-full flex-col rounded-card border border-border bg-surface p-3.5 transition hover:border-hairline-firm">
+    <Card as="article" interactive className="flex h-full flex-col">
       <div className="flex items-start gap-3">
         <Link
           href={`/members/${member.handle}`}
@@ -37,31 +37,20 @@ export function MemberCard({
           tabIndex={-1}
           aria-hidden
         >
-          <Avatar
-            name={member.displayName}
-            src={member.avatarUrl}
-            size="md"
-            className="size-12"
-          />
+          <Avatar name={member.displayName} src={member.avatarUrl} size="md" />
         </Link>
 
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 pt-0.5">
           <div className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
             <Link
               href={`/members/${member.handle}`}
-              className="min-w-0 truncate text-[14.5px] font-bold text-foreground no-underline hover:text-brand hover:underline"
+              className="min-w-0 truncate text-body font-semibold text-foreground no-underline transition hover:text-brand-strong hover:underline"
             >
               {member.displayName}
             </Link>
-            {member.isHost ? (
-              <span className="shrink-0 rounded-chip bg-brand-wash px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em] text-on-brand-wash">
-                Host
-              </span>
-            ) : null}
+            {member.isHost ? <Badge tone="brand">Host</Badge> : null}
           </div>
-          <p className="truncate text-[12.5px] text-foreground-muted">
-            @{member.handle}
-          </p>
+          <p className="truncate text-label text-foreground-muted">@{member.handle}</p>
         </div>
 
         <PostFollowButton
@@ -71,64 +60,53 @@ export function MemberCard({
       </div>
 
       {member.reason ? (
-        <p className="mt-2.5 flex items-start gap-1.5 rounded-ctl bg-brand-wash px-2.5 py-1.5 text-[12.5px] leading-snug text-on-brand-wash">
-          <Sparkles className="mt-px size-3 shrink-0" aria-hidden />
+        <p className="mt-3 flex items-start gap-2 rounded-ctl bg-brand-wash px-3 py-2 text-label text-on-brand-wash">
+          <Sparkles className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           <span className="line-clamp-2">{member.reason}</span>
         </p>
       ) : member.cookingLately ? (
-        <p className="mt-2.5 line-clamp-2 text-[12.5px] leading-snug text-foreground-muted">
-          <span className="font-semibold text-foreground">Cooking lately: </span>
+        <p className="mt-3 line-clamp-2 text-label text-foreground-muted">
+          <span className="font-medium text-foreground">Cooking lately: </span>
           {member.cookingLately}
         </p>
       ) : member.bio ? (
-        <p className="mt-2.5 line-clamp-2 text-[12.5px] leading-snug text-foreground-muted">
-          {member.bio}
-        </p>
+        <p className="mt-3 line-clamp-2 text-label text-foreground-muted">{member.bio}</p>
       ) : null}
 
       {showStarter && member.starter ? (
-        <p className="mt-2 border-l-2 border-border pl-2.5 text-[12.5px] italic leading-snug text-foreground-muted">
+        <p className="mt-2.5 border-l-2 border-hairline-firm pl-3 text-label italic text-foreground-muted">
           “{member.starter}”
         </p>
       ) : null}
 
       {interests.length > 0 ? (
-        <ul className="mt-2.5 flex flex-wrap gap-1">
+        <ul className="mt-3 flex flex-wrap items-center gap-1.5">
           {interests.map((interest) => (
-            <li
-              key={interest.slug}
-              className="rounded-chip border border-border px-1.5 py-0.5 text-[11px] font-semibold text-foreground-muted"
-            >
-              {interest.label}
+            <li key={interest.slug}>
+              <Badge>{interest.label}</Badge>
             </li>
           ))}
           {moreInterests > 0 ? (
-            <li className="px-1 py-0.5 text-[11px] font-semibold text-foreground-muted">
-              +{moreInterests}
-            </li>
+            <li className="text-caption text-foreground-muted">+{moreInterests}</li>
           ) : null}
         </ul>
       ) : null}
 
-      <div
-        className={cn(
-          "mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-2.5 text-[11.5px] font-semibold text-foreground-muted",
-        )}
-      >
+      <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-3 text-caption text-foreground-muted">
         {member.location ? (
           <span className="inline-flex items-center gap-1">
-            <MapPin className="size-3" aria-hidden />
+            <MapPin className="size-3.5" aria-hidden />
             {member.location}
           </span>
         ) : null}
         {member.sharedSpaces > 0 ? (
           <span className="inline-flex items-center gap-1">
-            <Users className="size-3" aria-hidden />
+            <Users className="size-3.5" aria-hidden />
             {member.sharedSpaces} {member.sharedSpaces === 1 ? "room" : "rooms"} in
             common
           </span>
         ) : null}
       </div>
-    </article>
+    </Card>
   );
 }

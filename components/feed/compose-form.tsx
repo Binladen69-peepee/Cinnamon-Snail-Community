@@ -17,6 +17,14 @@ import {
 } from "@/lib/community/post-types";
 import { ACCEPT, IMAGE_ACCEPT, VIDEO_ACCEPT } from "@/lib/uploads/policy";
 import { RichEditor } from "@/components/feed/rich-editor";
+import {
+  Button,
+  ButtonLink,
+  Callout,
+  Field,
+  chipClass,
+  fieldClass,
+} from "@/components/app/ui";
 import { cn } from "@/lib/utils";
 
 const MAX_BODY = 5000;
@@ -137,15 +145,15 @@ export function ComposeForm({
   }
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-6">
       {/* Type picker. A row of real buttons rather than a dropdown: with five
           options the whole set fits, and seeing them is how someone learns a
           poll is available at all. */}
       <div>
-        <p className="mb-1.5 text-[12.5px] font-semibold text-foreground">
+        <p className="mb-2 text-label font-medium text-foreground">
           What are you posting?
         </p>
-        <ul className="flex flex-wrap gap-1.5">
+        <ul className="flex flex-wrap gap-2">
           {COMPOSER_TYPES.map((option) => {
             const Icon = option.icon;
             const current = option.value === type.value;
@@ -155,52 +163,44 @@ export function ComposeForm({
                   type="button"
                   onClick={() => setType(option)}
                   aria-pressed={current}
-                  className={cn(
-                    "vu-btn inline-flex h-9 items-center gap-1.5 px-3 text-[13px]",
-                    current ? "vu-btn-primary" : "vu-btn-secondary",
-                  )}
+                  className={chipClass(current, "h-9 px-3.5")}
                 >
-                  <Icon className="size-4" aria-hidden />
+                  <Icon aria-hidden />
                   {option.label}
                 </button>
               </li>
             );
           })}
         </ul>
-        <p className="mt-1.5 text-[12px] text-foreground-muted">{type.hint}</p>
+        <p className="mt-2 text-caption text-foreground-muted">{type.hint}</p>
       </div>
 
       {typeHasField(type, "title") ? (
-        <div>
-          <label
-            htmlFor="compose-title"
-            className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
-          >
-            {type.titleLabel ?? "Title"}
-            {type.titleRequired ? null : (
-              <span className="ml-1 font-normal text-foreground-muted">
-                (optional)
-              </span>
-            )}
-          </label>
+        <Field
+          htmlFor="compose-title"
+          label={
+            <>
+              {type.titleLabel ?? "Title"}
+              {type.titleRequired ? null : (
+                <span className="ml-1 font-normal text-foreground-muted">
+                  (optional)
+                </span>
+              )}
+            </>
+          }
+        >
           <input
             id="compose-title"
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             maxLength={200}
-            className="h-10 w-full rounded-ctl border border-field-border bg-field-background px-3 text-[14.5px] text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/20"
+            className={fieldClass({ size: "lg" })}
           />
-        </div>
+        </Field>
       ) : null}
 
       {typeHasField(type, "link") ? (
-        <div>
-          <label
-            htmlFor="compose-link"
-            className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
-          >
-            Link
-          </label>
+        <Field label="Link" htmlFor="compose-link">
           <input
             id="compose-link"
             type="url"
@@ -208,15 +208,15 @@ export function ComposeForm({
             value={link}
             onChange={(event) => setLink(event.target.value)}
             placeholder="https://"
-            className="h-10 w-full rounded-ctl border border-field-border bg-field-background px-3 text-[14.5px] text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/20"
+            className={fieldClass({ size: "lg" })}
           />
-        </div>
+        </Field>
       ) : null}
 
       <div>
         <label
           htmlFor="compose-body"
-          className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
+          className="mb-1.5 block text-label font-medium text-foreground"
         >
           {typeHasField(type, "title") ? "Details" : "Post"}
         </label>
@@ -231,8 +231,8 @@ export function ComposeForm({
         />
         <p
           className={cn(
-            "mt-1 text-right text-[11.5px] tabular-nums",
-            tooLong ? "font-semibold text-danger" : "text-foreground-muted",
+            "mt-1.5 text-right text-caption tabular-nums",
+            tooLong ? "font-medium text-danger" : "text-foreground-muted",
           )}
         >
           {body.length} / {MAX_BODY}
@@ -240,78 +240,80 @@ export function ComposeForm({
       </div>
 
       {typeHasField(type, "event") ? (
-        <fieldset className="space-y-3 rounded-card border border-border bg-surface p-4">
-          <legend className="px-1 text-[12.5px] font-semibold text-foreground">
+        <fieldset className="rounded-ctl bg-surface-muted p-4">
+          {/* Floated so it lays out as an ordinary heading inside the well,
+              rather than sitting on the fieldset's top edge. */}
+          <legend className="float-left mb-3 w-full p-0 text-body font-semibold text-foreground">
             When and where
           </legend>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Labelled label="Starts" htmlFor="event-starts">
+          <div className="clear-both flex flex-col gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Starts" htmlFor="event-starts">
+                <input
+                  id="event-starts"
+                  type="datetime-local"
+                  value={startsAt}
+                  onChange={(event) => setStartsAt(event.target.value)}
+                  required
+                  className={FIELD}
+                />
+              </Field>
+              <Field label="Ends (optional)" htmlFor="event-ends">
+                <input
+                  id="event-ends"
+                  type="datetime-local"
+                  value={endsAt}
+                  onChange={(event) => setEndsAt(event.target.value)}
+                  className={FIELD}
+                />
+              </Field>
+            </div>
+            <Field label="Where (optional)" htmlFor="event-location">
               <input
-                id="event-starts"
-                type="datetime-local"
-                value={startsAt}
-                onChange={(event) => setStartsAt(event.target.value)}
-                required
+                id="event-location"
+                value={location}
+                onChange={(event) => setLocation(event.target.value)}
+                maxLength={200}
+                placeholder="A kitchen, a park, online"
                 className={FIELD}
               />
-            </Labelled>
-            <Labelled label="Ends (optional)" htmlFor="event-ends">
-              <input
-                id="event-ends"
-                type="datetime-local"
-                value={endsAt}
-                onChange={(event) => setEndsAt(event.target.value)}
-                className={FIELD}
-              />
-            </Labelled>
+            </Field>
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <Field label="Joining link (optional)" htmlFor="event-zoom">
+                <input
+                  id="event-zoom"
+                  type="url"
+                  value={zoomUrl}
+                  onChange={(event) => setZoomUrl(event.target.value)}
+                  placeholder="https://"
+                  className={FIELD}
+                />
+              </Field>
+              <Field label="Places (optional)" htmlFor="event-capacity">
+                <input
+                  id="event-capacity"
+                  type="number"
+                  min={1}
+                  value={capacity}
+                  onChange={(event) => setCapacity(event.target.value)}
+                  placeholder="No limit"
+                  className={FIELD}
+                />
+              </Field>
+            </div>
+            <p className="text-caption text-foreground-muted">
+              It joins this space&rsquo;s calendar as well as the feed.
+            </p>
           </div>
-          <Labelled label="Where (optional)" htmlFor="event-location">
-            <input
-              id="event-location"
-              value={location}
-              onChange={(event) => setLocation(event.target.value)}
-              maxLength={200}
-              placeholder="A kitchen, a park, online"
-              className={FIELD}
-            />
-          </Labelled>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Labelled label="Joining link (optional)" htmlFor="event-zoom">
-              <input
-                id="event-zoom"
-                type="url"
-                value={zoomUrl}
-                onChange={(event) => setZoomUrl(event.target.value)}
-                placeholder="https://"
-                className={FIELD}
-              />
-            </Labelled>
-            <Labelled label="Places (optional)" htmlFor="event-capacity">
-              <input
-                id="event-capacity"
-                type="number"
-                min={1}
-                value={capacity}
-                onChange={(event) => setCapacity(event.target.value)}
-                placeholder="No limit"
-                className={FIELD}
-              />
-            </Labelled>
-          </div>
-          <p className="text-[12px] text-foreground-muted">
-            It joins this space&rsquo;s calendar as well as the feed.
-          </p>
         </fieldset>
       ) : null}
 
       {typeHasField(type, "recipe") ? (
-        <div>
-          <label
-            htmlFor="recipe-method"
-            className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
-          >
-            The method
-          </label>
+        <Field
+          label="The method"
+          htmlFor="recipe-method"
+          hint="Saved as a recipe of its own, so it can be found later."
+        >
           <textarea
             id="recipe-method"
             value={method}
@@ -319,17 +321,14 @@ export function ComposeForm({
             rows={10}
             maxLength={20000}
             placeholder={"Ingredients, then steps. Markdown works:\n\n- 2 onions\n- 400g tomatoes\n\n1. Soften the onions.\n2. Add everything else."}
-            className="w-full resize-y rounded-ctl border border-field-border bg-field-background px-3 py-2.5 text-[14.5px] leading-relaxed text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/20"
+            className={fieldClass({ multiline: true, className: "block resize-y px-3.5 py-3" })}
           />
-          <p className="mt-1 text-[12px] text-foreground-muted">
-            Saved as a recipe of its own, so it can be found later.
-          </p>
-        </div>
+        </Field>
       ) : null}
 
       {typeHasField(type, "poll") ? (
         <div>
-          <p className="mb-1.5 text-[12.5px] font-semibold text-foreground">
+          <p className="mb-1.5 text-label font-medium text-foreground">
             Options
           </p>
           <ul className="space-y-2">
@@ -341,36 +340,37 @@ export function ComposeForm({
                   maxLength={120}
                   aria-label={`Option ${index + 1}`}
                   placeholder={`Option ${index + 1}`}
-                  className="h-10 min-w-0 flex-1 rounded-ctl border border-field-border bg-field-background px-3 text-[14px] text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/20"
+                  className={fieldClass({ size: "lg", className: "flex-1" })}
                 />
                 {pollOptions.length > MIN_POLL_OPTIONS ? (
-                  <button
-                    type="button"
+                  <Button
+                    variant="ghost"
+                    size="lg"
+                    iconOnly
                     onClick={() =>
                       setPollOptions((current) =>
                         current.filter((_, i) => i !== index),
                       )
                     }
                     aria-label={`Remove option ${index + 1}`}
-                    className="grid size-9 shrink-0 place-items-center rounded-ctl text-foreground-muted transition hover:bg-default hover:text-foreground"
                   >
                     <X className="size-4" aria-hidden />
-                  </button>
+                  </Button>
                 ) : null}
               </li>
             ))}
           </ul>
           {pollOptions.length < MAX_POLL_OPTIONS ? (
-            <button
-              type="button"
+            <Button
+              size="sm"
               onClick={() => setPollOptions((current) => [...current, ""])}
-              className="vu-btn vu-btn-secondary mt-2 inline-flex h-9 items-center gap-1.5 px-3 text-[13px]"
+              className="mt-2.5"
             >
               <Plus className="size-4" aria-hidden />
               Add option
-            </button>
+            </Button>
           ) : (
-            <p className="mt-2 text-[12px] text-foreground-muted">
+            <p className="mt-2.5 text-caption text-foreground-muted">
               Four options is the most a poll can carry.
             </p>
           )}
@@ -379,7 +379,7 @@ export function ComposeForm({
 
       {typeHasField(type, "media") && uploadsEnabled ? (
         <div>
-          <p className="mb-1.5 text-[12.5px] font-semibold text-foreground">
+          <p className="mb-1.5 text-label font-medium text-foreground">
             Photos and video
           </p>
           <input
@@ -404,22 +404,14 @@ export function ComposeForm({
             }}
           />
           <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => imageRef.current?.click()}
-              className="vu-btn vu-btn-secondary inline-flex h-9 items-center gap-1.5 px-3 text-[13px]"
-            >
+            <Button size="sm" onClick={() => imageRef.current?.click()}>
               <ImagePlus className="size-4" aria-hidden />
               Add photos
-            </button>
-            <button
-              type="button"
-              onClick={() => videoRef.current?.click()}
-              className="vu-btn vu-btn-secondary inline-flex h-9 items-center gap-1.5 px-3 text-[13px]"
-            >
+            </Button>
+            <Button size="sm" onClick={() => videoRef.current?.click()}>
               <Video className="size-4" aria-hidden />
               Add a video
-            </button>
+            </Button>
           </div>
 
           <UploadTray
@@ -435,28 +427,25 @@ export function ComposeForm({
       ) : null}
 
       <div>
-        <p className="mb-1.5 text-[12.5px] font-semibold text-foreground">
+        <p className="mb-2 text-label font-medium text-foreground">
           Post it in
         </p>
         {spaces.length === 0 ? (
-          <p className="rounded-ctl border border-dashed border-border px-3 py-2.5 text-[13px] text-foreground-muted">
+          <p className="rounded-ctl border border-dashed border-hairline-firm px-3.5 py-3 text-label text-foreground-muted">
             You have not joined a room yet, so there is nowhere to post.{" "}
-            <Link href="/spaces" className="font-semibold text-link underline">
+            <Link href="/spaces" className="font-medium text-link underline">
               Find one
             </Link>
           </p>
         ) : (
-          <ul className="flex flex-wrap gap-1.5">
+          <ul className="flex flex-wrap gap-2">
             {spaces.map((space) => (
               <li key={space.id}>
                 <button
                   type="button"
                   onClick={() => setSpaceId(space.id)}
                   aria-pressed={spaceId === space.id}
-                  className={cn(
-                    "vu-btn inline-flex h-8 items-center px-3 text-[12.5px]",
-                    spaceId === space.id ? "vu-btn-primary" : "vu-btn-secondary",
-                  )}
+                  className={chipClass(spaceId === space.id)}
                 >
                   {space.name}
                 </button>
@@ -466,28 +455,22 @@ export function ComposeForm({
         )}
       </div>
 
-      {error ? (
-        <p role="alert" className="text-[13px] font-semibold text-danger">
-          {error}
-        </p>
-      ) : null}
+      {error ? <Callout tone="danger">{error}</Callout> : null}
 
-      <div className="flex flex-wrap items-center justify-between gap-3 border-t border-border pt-4">
-        <p className="text-[12.5px] text-foreground-muted">
+      <div className="flex flex-col gap-3 border-t border-separator pt-5 sm:flex-row sm:items-center sm:justify-between">
+        <p className="text-label text-foreground-muted">
           {blocked ?? "Ready to post."}
         </p>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/home"
-            className="vu-btn vu-btn-secondary inline-flex h-10 items-center px-4 text-[14px] no-underline"
-          >
+        <div className="flex items-center justify-end gap-2">
+          <ButtonLink href="/home" size="lg">
             Cancel
-          </Link>
-          <button
-            type="button"
+          </ButtonLink>
+          <Button
+            variant="primary"
+            size="lg"
             onClick={submit}
             disabled={!canPost}
-            className="vu-btn vu-btn-primary inline-flex h-10 items-center gap-1.5 px-5 text-[14px]"
+            className="min-w-24"
           >
             {pending || uploads.busy ? (
               <>
@@ -497,35 +480,12 @@ export function ComposeForm({
             ) : (
               "Post"
             )}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
   );
 }
 
-const FIELD =
-  "h-11 w-full rounded-ctl border border-field-border bg-field-background px-3 text-[14.5px] text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/20";
-
-/** A label and its input, with the label actually bound to it. */
-function Labelled({
-  label,
-  htmlFor,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label
-        htmlFor={htmlFor}
-        className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
-      >
-        {label}
-      </label>
-      {children}
-    </div>
-  );
-}
+/** Every single-line input in the form shares one height. */
+const FIELD = fieldClass({ size: "lg" });

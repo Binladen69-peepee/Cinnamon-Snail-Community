@@ -4,7 +4,6 @@ import {
   Award,
   Bookmark,
   CalendarClock,
-  Handshake,
   MapPin,
   MessageSquare,
   PauseCircle,
@@ -18,6 +17,17 @@ import { loadConnect, type ConnectData, type WeeklyMatch } from "@/lib/social/co
 import { AppShell } from "@/components/app/app-shell";
 import { Avatar } from "@/components/ui/avatar";
 import { PendingButton } from "@/components/ui/pending-button";
+import {
+  Badge,
+  ButtonLink,
+  Callout,
+  Card,
+  EmptyState,
+  ErrorState,
+  PageHeader,
+  buttonClass,
+  cardClass,
+} from "@/components/app/ui";
 import { respondToMatchAction, setMatchingAction } from "./actions";
 import { cn } from "@/lib/utils";
 
@@ -30,10 +40,13 @@ const ERRORS: Record<string, string> = {
   busy: "That was a lot of clicks at once. Give it a moment and try again.",
 };
 
-const primaryBtn =
-  "inline-flex h-9 items-center justify-center gap-1.5 rounded-ctl bg-brand-fill px-3.5 text-[13.5px] font-semibold text-brand-fill-foreground no-underline transition hover:opacity-90";
-const quietBtn =
-  "inline-flex h-9 items-center justify-center gap-1.5 rounded-ctl border border-border bg-background px-3.5 text-[13.5px] font-semibold text-foreground no-underline transition hover:border-hairline-firm";
+/**
+ * The form buttons are `PendingButton`s (they know when their form is in
+ * flight), so they take the app's button construction as a class string.
+ */
+const primaryBtn = buttonClass({ variant: "primary" });
+const secondaryBtn = buttonClass({ variant: "secondary" });
+const quietBtn = buttonClass({ variant: "ghost", size: "sm" });
 
 /**
  * Connect — BUILD.md §12.
@@ -65,38 +78,31 @@ export default async function ConnectPage({
 
   return (
     <AppShell>
-      <div className="space-y-7 pb-4">
-        <header className="flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <h1 className="font-display text-[1.6rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-              Connect
-            </h1>
-            <p className="mt-1 text-[14px] text-foreground-muted">
-              A weekly match, the people you started with, and what members have done.
-            </p>
-          </div>
-          <Link href="/members" className={quietBtn}>
-            <Users className="size-4" aria-hidden />
-            Browse members
-          </Link>
-        </header>
+      <div className="flex flex-col gap-10">
+        <div className="flex flex-col gap-6">
+          <PageHeader
+            title="Connect"
+            description="A weekly match, the people you started with, and what members have done."
+            actions={
+              <ButtonLink href="/members">
+                <Users className="size-4" aria-hidden />
+                Browse members
+              </ButtonLink>
+            }
+          />
 
-        {error ? (
-          <p
-            role="alert"
-            className="rounded-ctl border border-danger/40 bg-danger/10 px-3.5 py-2.5 text-[13.5px] font-semibold text-danger"
-          >
-            {error}
-          </p>
-        ) : null}
+          {error ? (
+            <Callout tone="danger" role="alert">
+              {error}
+            </Callout>
+          ) : null}
+        </div>
 
         {!data ? (
-          <Blank
-            icon={Handshake}
+          <ErrorState
             title="Connect didn’t load"
-            body="Something went wrong on our side. Reload the page in a moment."
-            action={{ href: "/connect", label: "Reload" }}
-            tone="danger"
+            description="Something went wrong on our side. Reload the page in a moment."
+            action={<ButtonLink href="/connect">Reload</ButtonLink>}
           />
         ) : (
           <>
@@ -118,6 +124,11 @@ export default async function ConnectPage({
   );
 }
 
+/**
+ * A page section with an anchor. Composed here rather than with the shared
+ * `Section` because notifications link to `#recognition` and the heading
+ * needs an id for `aria-labelledby`; it takes `SectionHeader`'s type.
+ */
 function Section({
   id,
   icon: Icon,
@@ -130,12 +141,12 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className="scroll-mt-20 space-y-2.5">
+    <section id={id} aria-labelledby={`${id}-title`} className="flex scroll-mt-20 flex-col gap-3">
       <h2
         id={`${id}-title`}
-        className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted"
+        className="flex items-center gap-2 text-title font-semibold text-foreground"
       >
-        <Icon className="size-3" aria-hidden />
+        <Icon className="size-4 text-foreground-muted" aria-hidden />
         {title}
       </h2>
       {children}
@@ -152,11 +163,15 @@ function MatchPanel({ data }: { data: ConnectData }) {
 
   if (matching.kind === "no-profile") {
     return (
-      <Blank
-        icon={Sparkles}
+      <EmptyState
+        icon={<Sparkles />}
         title="Matching needs a profile"
-        body="Matches are drawn from what you cook and what you want to learn. Fill in your profile and a match arrives each week."
-        action={{ href: "/settings", label: "Set up your profile" }}
+        description="Matches are drawn from what you cook and what you want to learn. Fill in your profile and a match arrives each week."
+        action={
+          <ButtonLink href="/settings" variant="primary">
+            Set up your profile
+          </ButtonLink>
+        }
       />
     );
   }
@@ -164,12 +179,12 @@ function MatchPanel({ data }: { data: ConnectData }) {
   if (matching.kind === "off") {
     return (
       <Card>
-        <p className="text-[14.5px] font-semibold text-foreground">Weekly matching is off.</p>
-        <p className="mt-1 text-[13.5px] text-foreground-muted">
+        <p className="text-body font-semibold text-foreground">Weekly matching is off.</p>
+        <p className="mt-1 text-body text-foreground-muted text-pretty">
           Turn it on and each Monday you get one member to meet, with the reason you were paired
           and a line to open with. Only members who also opted in are matched.
         </p>
-        <form action={setMatchingAction} className="mt-3">
+        <form action={setMatchingAction} className="mt-4">
           <input type="hidden" name="mode" value="on" />
           <PendingButton className={primaryBtn}>Turn on matching</PendingButton>
         </form>
@@ -180,14 +195,14 @@ function MatchPanel({ data }: { data: ConnectData }) {
   if (matching.kind === "paused") {
     return (
       <Card>
-        <p className="flex items-center gap-1.5 text-[14.5px] font-semibold text-foreground">
+        <p className="flex items-center gap-2 text-body font-semibold text-foreground">
           <PauseCircle className="size-4 text-foreground-muted" aria-hidden />
           Matching is paused until {formatDay(matching.until)}.
         </p>
-        <p className="mt-1 text-[13.5px] text-foreground-muted">
+        <p className="mt-1 text-body text-foreground-muted">
           No new match is drawn while you are paused.
         </p>
-        <form action={setMatchingAction} className="mt-3">
+        <form action={setMatchingAction} className="mt-4">
           <input type="hidden" name="mode" value="on" />
           <PendingButton className={primaryBtn}>Resume now</PendingButton>
         </form>
@@ -196,33 +211,29 @@ function MatchPanel({ data }: { data: ConnectData }) {
   }
 
   return (
-    <div className="space-y-2">
+    <div className="flex flex-col gap-2">
       {match ? (
         <MatchCard match={match} />
       ) : (
-        <Blank
-          icon={Sparkles}
+        <EmptyState
+          icon={<Sparkles />}
           title="No match this week"
-          body="Nobody who opted in is a good fit right now, or you have met everyone recently. We try again next week."
+          description="Nobody who opted in is a good fit right now, or you have met everyone recently. We try again next week."
         />
       )}
-      <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-[12.5px] text-foreground-muted">
-        <span className="inline-flex items-center gap-1">
-          <CalendarClock className="size-3.5" aria-hidden />
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-label text-foreground-muted">
+        <span className="inline-flex items-center gap-1.5">
+          <CalendarClock className="size-4" aria-hidden />
           Next match {formatDay(data.nextMatchAt)}
         </span>
-        <span className="flex items-center gap-3">
+        <span className="-mr-2 flex items-center gap-1">
           <form action={setMatchingAction}>
             <input type="hidden" name="mode" value="pause" />
-            <PendingButton className="inline-flex items-center gap-1 font-semibold text-foreground-muted underline-offset-2 hover:text-foreground hover:underline">
-              Pause two weeks
-            </PendingButton>
+            <PendingButton className={quietBtn}>Pause two weeks</PendingButton>
           </form>
           <form action={setMatchingAction}>
             <input type="hidden" name="mode" value="off" />
-            <PendingButton className="inline-flex items-center gap-1 font-semibold text-foreground-muted underline-offset-2 hover:text-foreground hover:underline">
-              Turn off
-            </PendingButton>
+            <PendingButton className={quietBtn}>Turn off</PendingButton>
           </form>
         </span>
       </div>
@@ -236,43 +247,43 @@ function MatchCard({ match }: { match: WeeklyMatch }) {
     <Card className={cn(passed && "opacity-75")}>
       <div className="flex items-start gap-3">
         <Link href={`/members/${match.handle}`} className="shrink-0 no-underline" tabIndex={-1} aria-hidden>
-          <Avatar name={match.displayName} src={match.avatarUrl} size="md" className="size-12" />
+          <Avatar name={match.displayName} src={match.avatarUrl} size="md" />
         </Link>
-        <div className="min-w-0 flex-1">
+        <div className="min-w-0 flex-1 pt-0.5">
           <Link
             href={`/members/${match.handle}`}
-            className="text-[15px] font-bold text-foreground no-underline hover:underline"
+            className="text-title font-semibold text-foreground no-underline hover:underline"
           >
             {match.displayName}
           </Link>
-          <p className="flex flex-wrap items-center gap-x-2 text-[12.5px] text-foreground-muted">
+          <p className="flex flex-wrap items-center gap-x-2 text-label text-foreground-muted">
             <span>@{match.handle}</span>
             {match.city ? (
-              <span className="inline-flex items-center gap-0.5">
-                <MapPin className="size-3" aria-hidden />
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="size-3.5" aria-hidden />
                 {match.city}
               </span>
             ) : null}
           </p>
         </div>
         {match.status !== "SUGGESTED" ? (
-          <span className="shrink-0 rounded-full bg-brand-wash px-2 py-0.5 text-[11px] font-bold uppercase tracking-[0.08em] text-on-brand-wash">
+          <Badge tone="brand" className="shrink-0">
             {match.status === "SAVED" ? "Saved" : match.status === "PASSED" ? "Passed" : "Messaged"}
-          </span>
+          </Badge>
         ) : null}
       </div>
 
-      <p className="mt-3 text-[14px] text-foreground">{match.reason}</p>
-      <p className="mt-2 rounded-ctl bg-surface-muted px-3 py-2 text-[13.5px] italic text-foreground-muted">
+      <p className="mt-4 text-body text-foreground text-pretty">{match.reason}</p>
+      <p className="mt-2 rounded-ctl bg-surface-muted px-3 py-2.5 text-body italic text-foreground-muted">
         “{match.starter}”
       </p>
 
       {passed ? (
-        <p className="mt-3 text-[13px] text-foreground-muted">
+        <p className="mt-4 text-label text-foreground-muted">
           You passed on this one. A new match arrives next week.
         </p>
       ) : (
-        <div className="mt-3 flex flex-wrap gap-2">
+        <div className="mt-4 flex flex-wrap gap-2">
           <form action={respondToMatchAction}>
             <input type="hidden" name="matchId" value={match.id} />
             <input type="hidden" name="status" value="CONNECTED" />
@@ -285,7 +296,7 @@ function MatchCard({ match }: { match: WeeklyMatch }) {
             <form action={respondToMatchAction}>
               <input type="hidden" name="matchId" value={match.id} />
               <input type="hidden" name="status" value="SAVED" />
-              <PendingButton className={quietBtn}>
+              <PendingButton className={secondaryBtn}>
                 <Bookmark className="size-4" aria-hidden />
                 Save for later
               </PendingButton>
@@ -295,7 +306,7 @@ function MatchCard({ match }: { match: WeeklyMatch }) {
             <form action={respondToMatchAction}>
               <input type="hidden" name="matchId" value={match.id} />
               <input type="hidden" name="status" value="PASSED" />
-              <PendingButton className={quietBtn}>
+              <PendingButton className={secondaryBtn}>
                 <X className="size-4" aria-hidden />
                 Pass
               </PendingButton>
@@ -310,52 +321,53 @@ function MatchCard({ match }: { match: WeeklyMatch }) {
 function Cohorts({ cohorts }: { cohorts: ConnectData["cohorts"] }) {
   if (cohorts.length === 0) {
     return (
-      <Blank
-        icon={Users}
+      <EmptyState
+        icon={<Users />}
         title="You are not in a cohort yet"
-        body="Cohorts form around the week you joined or the week you start a course, each with its own small private room."
-        action={{ href: "/learn", label: "Browse courses" }}
+        description="Cohorts form around the week you joined or the week you start a course, each with its own small private room."
+        action={<ButtonLink href="/learn">Browse courses</ButtonLink>}
       />
     );
   }
 
+  // One card, a row per cohort: a list of the same kind of thing.
   return (
-    <ul className="space-y-2">
-      {cohorts.map(({ cohort }) => (
-        <li key={cohort.id}>
-          <Card>
-            <div className="flex flex-wrap items-start justify-between gap-2">
+    <Card padding="none">
+      <ul className="divide-y divide-separator">
+        {cohorts.map(({ cohort }) => (
+          <li key={cohort.id} className="px-4 py-4 sm:px-5">
+            <div className="flex flex-wrap items-start justify-between gap-3">
               <div className="min-w-0">
-                <p className="text-[15px] font-bold text-foreground">{cohort.name}</p>
-                <p className="text-[12.5px] text-foreground-muted">
+                <p className="text-body font-semibold text-foreground">{cohort.name}</p>
+                <p className="text-label text-foreground-muted">
                   {cohort._count.members} {cohort._count.members === 1 ? "member" : "members"}
                   {cohort.course ? ` · ${cohort.course.title}` : ""}
                 </p>
               </div>
               {cohort.space ? (
-                <Link href={`/spaces/${cohort.space.slug}`} className={quietBtn}>
+                <ButtonLink href={`/spaces/${cohort.space.slug}`} size="sm">
                   Open the room
-                </Link>
+                </ButtonLink>
               ) : null}
             </div>
-            <dl className="mt-3 grid grid-cols-1 gap-2 text-[13.5px] sm:grid-cols-3">
+            <dl className="mt-3 grid grid-cols-1 gap-2 text-body sm:grid-cols-3">
               {[
                 ["Say hello", cohort.introPrompt],
                 ["First cook", cohort.firstCook],
                 ["Goal", cohort.goal],
               ].map(([label, value]) => (
-                <div key={label} className="rounded-ctl bg-surface-muted px-3 py-2">
-                  <dt className="text-[10.5px] font-bold uppercase tracking-[0.1em] text-foreground-muted">
+                <div key={label} className="rounded-ctl bg-surface-muted px-3 py-2.5">
+                  <dt className="text-micro font-semibold uppercase tracking-[0.08em] text-foreground-muted">
                     {label}
                   </dt>
-                  <dd className="mt-0.5 text-foreground">{value}</dd>
+                  <dd className="mt-1 text-label text-foreground">{value}</dd>
                 </div>
               ))}
             </dl>
-          </Card>
-        </li>
-      ))}
-    </ul>
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }
 
@@ -364,50 +376,51 @@ function Recognition({ data }: { data: ConnectData }) {
   const toEarn = data.badges.filter((badge) => !badge.earned);
 
   return (
-    <div className="space-y-5">
-      <div className="space-y-2">
-        <p className="text-[13px] font-semibold text-foreground">
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col gap-3">
+        <p className="text-label font-medium text-foreground-muted">
           {earned.length === 0
             ? "Your badges will appear here."
             : `You have earned ${earned.length} of ${data.badges.length}.`}
         </p>
         {data.badges.length === 0 ? (
-          <Blank
-            icon={Award}
+          <EmptyState
+            icon={<Award />}
             title="No badges are set up yet"
-            body="Badges recognize specific things members do, like a first cook or twenty-five helpful comments."
+            description="Badges recognize specific things members do, like a first cook or twenty-five helpful comments."
           />
         ) : (
-          <ul className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             {[...earned, ...toEarn].map((badge) => (
               <li
                 key={badge.slug}
-                className={cn(
-                  "flex items-start gap-3 rounded-card border bg-surface p-3",
-                  badge.earned ? "border-hairline-firm" : "border-dashed border-border",
-                )}
+                className={
+                  badge.earned
+                    ? cardClass({ padding: "sm", className: "flex h-full items-start gap-3" })
+                    : "flex h-full items-start gap-3 rounded-card border border-dashed border-hairline-firm p-3"
+                }
               >
                 <span
                   className={cn(
-                    "grid size-10 shrink-0 place-items-center rounded-full bg-surface-muted text-[20px] leading-none",
-                    !badge.earned && "opacity-45 grayscale",
+                    "grid size-10 shrink-0 place-items-center rounded-full text-heading leading-none",
+                    badge.earned ? "bg-brand-wash" : "bg-surface-muted opacity-50 grayscale",
                   )}
                   aria-hidden
                 >
                   {badge.icon ?? "★"}
                 </span>
                 <div className="min-w-0">
-                  <p className="text-[14px] font-bold text-foreground">
+                  <p className="text-body font-semibold text-foreground">
                     {badge.name}
                     <span className="sr-only">{badge.earned ? ", earned" : ", not yet earned"}</span>
                   </p>
-                  <p className="text-[12.5px] leading-snug text-foreground-muted">
+                  <p className="text-label text-foreground-muted">
                     {badge.earned
                       ? (badge.earned.reason ?? badge.description)
                       : (badge.criteria ?? badge.description)}
                   </p>
                   {badge.earned ? (
-                    <p className="mt-0.5 text-[11.5px] font-semibold text-foreground-muted">
+                    <p className="mt-1 text-caption font-medium text-brand-strong">
                       Earned{" "}
                       {badge.earned.awardedAt.toLocaleDateString("en-US", {
                         month: "short",
@@ -423,78 +436,40 @@ function Recognition({ data }: { data: ConnectData }) {
         )}
       </div>
 
-      <div className="space-y-2">
-        <h3 className="text-[13px] font-semibold text-foreground">Recently recognized</h3>
+      <div className="flex flex-col gap-3">
+        <h3 className="text-body font-semibold text-foreground">Recently recognized</h3>
         {data.recognition.length === 0 ? (
-          <p className="rounded-card border border-dashed border-border bg-surface px-4 py-6 text-center text-[13.5px] text-foreground-muted">
-            Nobody has earned a badge yet. The first one goes to whoever shares a first cook.
-          </p>
+          <EmptyState
+            size="sm"
+            icon={<Award />}
+            title="Nobody has earned a badge yet."
+            description="The first one goes to whoever shares a first cook."
+          />
         ) : (
-          <ul className="divide-y divide-border overflow-hidden rounded-card border border-border bg-surface">
-            {data.recognition.map((row) => (
-              <li key={row.id} className="flex items-center gap-3 px-3.5 py-2.5">
-                <Avatar name={row.displayName} src={row.avatarUrl} size="sm" className="shrink-0" />
-                <p className="min-w-0 flex-1 text-[13.5px] text-foreground">
-                  <Link href={`/members/${row.handle}`} className="font-semibold text-foreground no-underline hover:underline">
-                    {row.displayName}
-                  </Link>{" "}
-                  earned{" "}
-                  <span className="font-semibold">
-                    {row.badgeIcon ? `${row.badgeIcon} ` : ""}
-                    {row.badgeName}
-                  </span>
-                  {row.reason ? (
-                    <span className="block truncate text-[12.5px] text-foreground-muted">{row.reason}</span>
-                  ) : null}
-                </p>
-              </li>
-            ))}
-          </ul>
+          <Card padding="none">
+            <ul className="divide-y divide-separator">
+              {data.recognition.map((row) => (
+                <li key={row.id} className="flex items-center gap-3 px-4 py-3 sm:px-5">
+                  <Avatar name={row.displayName} src={row.avatarUrl} size="sm" className="shrink-0" />
+                  <p className="min-w-0 flex-1 text-body text-foreground">
+                    <Link href={`/members/${row.handle}`} className="font-semibold text-foreground no-underline hover:underline">
+                      {row.displayName}
+                    </Link>{" "}
+                    earned{" "}
+                    <span className="font-semibold">
+                      {row.badgeIcon ? `${row.badgeIcon} ` : ""}
+                      {row.badgeName}
+                    </span>
+                    {row.reason ? (
+                      <span className="block truncate text-label text-foreground-muted">{row.reason}</span>
+                    ) : null}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </Card>
         )}
       </div>
-    </div>
-  );
-}
-
-function Card({ children, className }: { children: React.ReactNode; className?: string }) {
-  return (
-    <div className={cn("rounded-card border border-border bg-surface p-4", className)}>{children}</div>
-  );
-}
-
-function Blank({
-  icon: Icon,
-  title,
-  body,
-  action,
-  tone = "neutral",
-}: {
-  icon: LucideIcon;
-  title: string;
-  body: string;
-  action?: { href: string; label: string };
-  tone?: "neutral" | "danger";
-}) {
-  return (
-    <div
-      role={tone === "danger" ? "alert" : undefined}
-      className="rounded-card border border-dashed border-border bg-surface px-6 py-10 text-center"
-    >
-      <span
-        className={cn(
-          "mx-auto grid size-11 place-items-center rounded-full",
-          tone === "danger" ? "bg-danger/10 text-danger" : "bg-brand-wash text-on-brand-wash",
-        )}
-      >
-        <Icon className="size-5" aria-hidden />
-      </span>
-      <h3 className="mt-3 font-display text-[1.05rem] font-bold text-foreground">{title}</h3>
-      <p className="mx-auto mt-1.5 max-w-[46ch] text-[13.5px] text-foreground-muted">{body}</p>
-      {action ? (
-        <Link href={action.href} className={cn(quietBtn, "mt-4")}>
-          {action.label}
-        </Link>
-      ) : null}
     </div>
   );
 }

@@ -69,12 +69,12 @@ export function VoteRail({
       <Arrow dir="up" active={state.myVote === 1} onClick={() => vote(1)} />
       <span
         className={cn(
-          "select-none text-center text-[12.5px] font-bold leading-none tabular-nums",
-          column ? "py-0.5" : "min-w-6",
+          "select-none text-center text-caption font-semibold leading-none tabular-nums",
+          column ? "py-0.5" : "min-w-5",
           state.myVote === 1
             ? "text-brand"
             : state.myVote === -1
-              ? "text-terracotta"
+              ? "text-highlight-ink"
               : "text-foreground",
         )}
         aria-live="polite"
@@ -104,18 +104,19 @@ function Arrow({
       aria-label={label}
       aria-pressed={active}
       className={cn(
-        "grid size-6 place-items-center rounded-chip transition active:scale-90",
-        "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
+        "grid size-7 place-items-center rounded-ctl transition hover:bg-surface-muted active:scale-90",
+        // Downvote takes the terracotta ink rather than the danger red: a
+        // disagreement is not an error.
         active
           ? dir === "up"
             ? "text-brand"
-            : "text-terracotta"
+            : "text-highlight-ink"
           : dir === "up"
-            ? "text-foreground-muted hover:bg-brand-wash hover:text-on-brand-wash"
-            : "text-foreground-muted hover:bg-terracotta/10 hover:text-terracotta",
+            ? "text-foreground-muted hover:text-brand"
+            : "text-foreground-muted hover:text-highlight-ink",
       )}
     >
-      <Icon className="size-[1.2rem]" fill={active ? "currentColor" : "none"} />
+      <Icon className="size-4.5" fill={active ? "currentColor" : "none"} />
     </button>
   );
 }

@@ -1,7 +1,14 @@
 import Link from "next/link";
-import { CheckCircle2, CircleDashed, Map as MapIcon, Plus, Users } from "lucide-react";
+import { CheckCircle2, ChevronRight, CircleDashed, Map as MapIcon, Plus, Users } from "lucide-react";
 import { listTracks } from "@/lib/admin/roadmap";
-import { Badge, EmptyPanel, Panel, PanelHeader } from "@/components/admin/ui";
+import {
+  Badge,
+  Callout,
+  Card,
+  CardHeader,
+  EmptyState,
+  PageHeader,
+} from "@/components/app/ui";
 import { TrackCreateForm } from "@/components/admin/roadmap-forms";
 
 export const metadata = { title: "Roadmap tracks" };
@@ -22,39 +29,30 @@ export default async function AdminRoadmapPage() {
   const published = tracks.filter((track) => track.published);
 
   return (
-    <div className="space-y-5">
-      <header>
-        <h1 className="font-display text-[1.5rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-          Roadmap tracks
-        </h1>
-        <p className="mt-1 text-[13px] text-foreground-muted">
-          A track is an ordered list of milestones. Members follow one at a time,
-          and only published tracks are offered.
-        </p>
-      </header>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        title="Roadmap tracks"
+        description="A track is an ordered list of milestones. Members follow one at a time, and only published tracks are offered."
+      />
 
       {published.length === 0 ? (
-        <p className="flex items-start gap-2.5 rounded-card border border-warning/35 bg-warning/10 px-4 py-3 text-[13px] leading-snug text-foreground">
-          <CircleDashed className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
-          <span>
-            <strong className="font-bold">No track is published.</strong> Until one
-            is, every member opening <code className="font-mono text-[12px]">/roadmap</code>{" "}
-            sees an empty state.
-          </span>
-        </p>
+        <Callout tone="warning" icon={<CircleDashed />} title="No track is published.">
+          Until one is, every member opening{" "}
+          <code className="rounded-chip bg-default px-1 py-px font-mono text-caption text-foreground">
+            /roadmap
+          </code>{" "}
+          sees an empty state.
+        </Callout>
       ) : null}
 
-      <Panel>
-        <PanelHeader
-          title="Tracks"
-          icon={<MapIcon className="size-3.5" aria-hidden />}
-          count={tracks.length}
-        />
+      <Card padding="none">
+        <CardHeader title="Tracks" icon={<MapIcon />} count={tracks.length} />
         {tracks.length === 0 ? (
-          <EmptyPanel
-            icon={<MapIcon className="size-5" aria-hidden />}
+          <EmptyState
+            bordered={false}
+            icon={<MapIcon />}
             title="No tracks yet"
-            body="A track is the path a member follows — a handful of milestones, in order. Write the first one below."
+            description="A track is the path a member follows — a handful of milestones, in order. Write the first one below."
           />
         ) : (
           <ul className="divide-y divide-separator">
@@ -62,60 +60,64 @@ export default async function AdminRoadmapPage() {
               <li key={track.id}>
                 <Link
                   href={`/admin/roadmap/${track.slug}`}
-                  className="flex flex-wrap items-center gap-x-3 gap-y-1.5 px-4 py-3 no-underline transition hover:bg-default"
+                  className="group flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3.5 no-underline transition hover:bg-surface-muted sm:px-5"
                 >
-                  <span className="min-w-0 flex-1">
+                  <span className="min-w-0 flex-1 basis-56">
                     <span className="flex flex-wrap items-center gap-2">
-                      <span className="text-[13.5px] font-bold text-foreground">
+                      <span className="text-body font-semibold text-foreground">
                         {track.name}
                       </span>
                       {track.published ? (
-                        <Badge tone="good">
-                          <CheckCircle2 className="size-3" aria-hidden />
+                        <Badge tone="success" icon={<CheckCircle2 aria-hidden />}>
                           Published
                         </Badge>
                       ) : (
                         <Badge tone="neutral">Draft</Badge>
                       )}
-                      <span className="text-[11px] tabular-nums text-foreground-muted">
+                      <span className="text-caption tabular-nums text-foreground-muted">
                         v{track.version}
                       </span>
                     </span>
-                    <span className="mt-0.5 block truncate text-[12.5px] text-foreground-muted">
+                    <span className="mt-0.5 block truncate text-label text-foreground-muted">
                       {track.description ?? "No description."}
                     </span>
                   </span>
 
-                  <span className="flex shrink-0 items-center gap-4 text-right">
-                    <Stat
+                  <span className="flex shrink-0 items-center gap-5 text-right">
+                    <Figure
                       value={track.milestones}
                       label={track.milestones === 1 ? "milestone" : "milestones"}
                     />
-                    <Stat
+                    <Figure
                       value={track.enrolled}
                       label="on it"
-                      icon={<Users className="size-3" aria-hidden />}
+                      icon={<Users className="size-3.5" aria-hidden />}
                     />
-                    <Stat value={track.finished} label="finished" />
+                    <Figure value={track.finished} label="finished" />
+                    <ChevronRight
+                      className="size-4 text-foreground-muted transition group-hover:text-foreground"
+                      aria-hidden
+                    />
                   </span>
                 </Link>
               </li>
             ))}
           </ul>
         )}
-      </Panel>
+      </Card>
 
-      <Panel>
-        <PanelHeader title="New track" icon={<Plus className="size-3.5" aria-hidden />} />
-        <div className="px-4 py-4">
+      <Card padding="none">
+        <CardHeader title="New track" icon={<Plus />} />
+        <div className="p-4 sm:p-5">
           <TrackCreateForm />
         </div>
-      </Panel>
+      </Card>
     </div>
   );
 }
 
-function Stat({
+/** A count over its label, right-aligned in a track row. */
+function Figure({
   value,
   label,
   icon,
@@ -126,11 +128,11 @@ function Stat({
 }) {
   return (
     <span className="block">
-      <span className="flex items-center justify-end gap-1 text-[13.5px] font-bold tabular-nums text-foreground">
+      <span className="flex items-center justify-end gap-1 text-body font-semibold tabular-nums text-foreground">
         {icon}
         {value}
       </span>
-      <span className="block text-[10.5px] text-foreground-muted">{label}</span>
+      <span className="block text-caption text-foreground-muted">{label}</span>
     </span>
   );
 }

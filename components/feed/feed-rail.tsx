@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { CalendarDays, ChevronRight, Leaf, Plus, Radio } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
-import { LeafCluster } from "@/components/marketing/hero-decor";
+import { ButtonLink, Card, CardHeader } from "@/components/app/ui";
+import { cn } from "@/lib/utils";
 
 export type RailEvent = {
   id: string;
@@ -27,6 +28,10 @@ export type RailTrend = {
   unread: number;
 };
 
+/** One row of a rail card: full width, so its hover fill meets the edges. */
+const ROW =
+  "flex items-center gap-3 px-4 py-3 no-underline transition hover:bg-surface-muted";
+
 /**
  * Right discovery column for Home.
  * See PROJECT.md — the member shell and feed layout.
@@ -41,26 +46,21 @@ export function FeedRail({
   trending: RailTrend[];
 }) {
   return (
-    <div className="flex flex-col gap-3.5">
-      <Link
-        href="/compose"
-        className="vu-btn vu-btn-primary flex h-11 items-center justify-center gap-1.5 text-[14px] no-underline"
-      >
+    <div className="flex flex-col gap-4">
+      <ButtonLink href="/compose" variant="primary" className="w-full">
         <Plus className="size-4" aria-hidden />
         Create Post
-      </Link>
+      </ButtonLink>
 
       {events.length > 0 ? (
-        <Panel title="Next live class">
-          <ul className="space-y-2.5">
+        <Card padding="none" className="overflow-hidden">
+          <CardHeader title="Next live class" />
+          <ul className="divide-y divide-separator">
             {events.map((event) => (
               <li key={event.id}>
-                <Link
-                  href={event.href}
-                  className="flex gap-3 rounded-xl no-underline transition hover:bg-mint/50"
-                >
+                <Link href={event.href} className={ROW}>
                   {event.coverUrl ? (
-                    <span className="relative size-14 shrink-0 overflow-hidden rounded-xl bg-mint">
+                    <span className="relative size-12 shrink-0 overflow-hidden rounded-ctl bg-surface-muted">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={event.coverUrl}
@@ -69,36 +69,36 @@ export function FeedRail({
                       />
                     </span>
                   ) : (
-                    <span className="grid size-14 shrink-0 place-items-center rounded-xl bg-brand-wash text-center">
+                    <span className="grid size-12 shrink-0 place-items-center rounded-ctl bg-brand-wash text-center text-on-brand-wash">
                       {event.live ? (
-                        <Radio className="size-5 text-brand" aria-hidden />
+                        <Radio className="size-5" aria-hidden />
                       ) : (
-                        <>
-                          <span className="block text-[9px] uppercase tracking-[0.14em] text-brand-strong">
+                        <span>
+                          <span className="block text-micro font-semibold uppercase tracking-[0.08em]">
                             {event.startsAt.toLocaleString("en-US", { month: "short" })}
                           </span>
-                          <span className="block text-[17px] leading-none text-brand-strong">
+                          <span className="block text-title font-semibold leading-none">
                             {event.startsAt.getDate()}
                           </span>
-                        </>
+                        </span>
                       )}
                     </span>
                   )}
-                  <span className="min-w-0 flex-1 py-0.5">
+                  <span className="min-w-0 flex-1">
                     {!event.coverUrl ? null : (
-                      <span className="mb-0.5 block text-[10px] uppercase tracking-[0.12em] text-foreground-muted">
+                      <span className="block text-micro font-semibold uppercase tracking-[0.08em] text-foreground-muted">
                         {event.startsAt.toLocaleString("en-US", {
                           month: "short",
                           day: "numeric",
                         })}
                       </span>
                     )}
-                    <span className="block truncate text-[14px] text-foreground">
+                    <span className="block truncate text-label font-semibold text-foreground">
                       {event.title}
                     </span>
-                    <span className="mt-0.5 flex items-center gap-1 text-[12px] text-foreground-muted">
+                    <span className="mt-0.5 flex items-center gap-1 text-caption text-foreground-muted">
                       {event.live ? (
-                        <span className="text-brand">Live now</span>
+                        <span className="font-medium text-brand-strong">Live now</span>
                       ) : (
                         <>
                           <CalendarDays className="size-3" aria-hidden />
@@ -115,57 +115,58 @@ export function FeedRail({
               </li>
             ))}
           </ul>
-        </Panel>
+        </Card>
       ) : null}
 
       {suggestions.length > 0 ? (
-        <Panel title="People you should meet" href="/members" cta="See all">
-          <ul className="space-y-3">
+        <Card padding="none" className="overflow-hidden">
+          <CardHeader
+            title="People you should meet"
+            action={
+              <Link
+                href="/members"
+                className="rounded-chip text-caption font-medium text-link no-underline hover:underline"
+              >
+                See all
+              </Link>
+            }
+          />
+          <ul className="divide-y divide-separator">
             {suggestions.map((person) => (
-              <li key={person.userId} className="flex items-center gap-2.5">
-                <Avatar
-                  name={person.displayName}
-                  src={person.avatarUrl}
-                  size="sm"
-                  className="size-9 text-[11px]"
-                />
+              <li key={person.userId} className="flex items-center gap-3 px-4 py-3">
+                <Avatar name={person.displayName} src={person.avatarUrl} size="sm" />
                 <div className="min-w-0 flex-1">
                   <Link
                     href={`/members/${person.handle}`}
-                    className="block truncate text-[13.5px] text-foreground no-underline hover:text-brand hover:underline"
+                    className="block truncate text-label font-semibold text-foreground no-underline hover:underline"
                   >
                     {person.displayName}
                   </Link>
-                  <p className="truncate text-[11.5px] text-foreground-muted">
+                  <p className="truncate text-caption text-foreground-muted">
                     {person.reason}
                   </p>
                 </div>
-                <Link
-                  href={`/members/${person.handle}`}
-                  className="vu-btn vu-btn-primary inline-flex h-7 shrink-0 items-center px-3 text-[12px] no-underline"
-                >
+                <ButtonLink href={`/members/${person.handle}`} size="sm">
                   Follow
-                </Link>
+                </ButtonLink>
               </li>
             ))}
           </ul>
-        </Panel>
+        </Card>
       ) : null}
 
       {trending.length > 0 ? (
-        <Panel title="Trending in community">
-          <ul className="space-y-0.5">
+        <Card padding="none" className="overflow-hidden">
+          <CardHeader title="Trending in community" />
+          <ul className="divide-y divide-separator">
             {trending.map((item) => (
               <li key={item.slug}>
-                <Link
-                  href={`/spaces/${item.slug}`}
-                  className="-mx-1 flex items-center gap-2 rounded-xl px-1.5 py-2 no-underline transition hover:bg-mint"
-                >
+                <Link href={`/spaces/${item.slug}`} className={cn(ROW, "py-2.5")}>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13.5px] text-foreground">
+                    <span className="block truncate text-label font-medium text-foreground">
                       {item.name}
                     </span>
-                    <span className="block text-[11.5px] text-foreground-muted">
+                    <span className="block text-caption text-foreground-muted">
                       {item.posts} {item.posts === 1 ? "post" : "posts"}
                       {item.unread > 0 ? ` · ${item.unread} new` : ""}
                     </span>
@@ -178,50 +179,13 @@ export function FeedRail({
               </li>
             ))}
           </ul>
-        </Panel>
+        </Card>
       ) : null}
 
-      <p className="relative mt-1 overflow-hidden rounded-card px-3 py-5 text-center text-[13px] text-foreground-muted">
-        <LeafCluster className="pointer-events-none absolute -left-4 bottom-0 w-20 rotate-[-16deg] text-brand/20" />
-        <LeafCluster className="pointer-events-none absolute -right-3 top-0 w-16 rotate-[18deg] text-brand/20" />
-        <span className="relative inline-flex items-center gap-1.5">
-          <Leaf className="size-3.5 text-brand" aria-hidden />
-          Good food brings people together.
-        </span>
+      <p className="flex items-center justify-center gap-1.5 px-3 py-2 text-caption text-foreground-muted">
+        <Leaf className="size-3.5 text-brand" aria-hidden />
+        Good food brings people together.
       </p>
     </div>
-  );
-}
-
-function Panel({
-  title,
-  href,
-  cta,
-  children,
-}: {
-  title?: string;
-  href?: string;
-  cta?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <section className="rounded-card border border-border bg-surface p-3.5 shadow-e1">
-      {title ? (
-        <div className="mb-3 flex items-baseline justify-between gap-2 px-0.5">
-          <p className="text-[11px] uppercase tracking-[0.14em] text-foreground-muted">
-            {title}
-          </p>
-          {href && cta ? (
-            <Link
-              href={href}
-              className="shrink-0 text-[12px] text-brand no-underline hover:underline"
-            >
-              {cta}
-            </Link>
-          ) : null}
-        </div>
-      ) : null}
-      {children}
-    </section>
   );
 }

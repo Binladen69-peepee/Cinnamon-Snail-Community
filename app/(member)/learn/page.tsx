@@ -4,11 +4,22 @@ import { BookOpen, PlayCircle, SearchX } from "lucide-react";
 import { auth } from "@/auth";
 import { loadLibrary } from "@/lib/learn/library";
 import { AppShell } from "@/components/app/app-shell";
+import {
+  ButtonLink,
+  ChipLink,
+  ChipRow,
+  EmptyState,
+  PageHeader,
+  Section,
+} from "@/components/app/ui";
 import { UrlSearchField } from "@/components/app/url-search-field";
 import { ClassTile } from "@/components/learn/class-tile";
-import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Classes" };
+
+/** The tile grid, shared by the continue rail and every shelf. */
+const TILE_GRID =
+  "grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4";
 
 /**
  * The class library.
@@ -39,54 +50,53 @@ export default async function LearnPage({
   const narrowing = Boolean(q || category);
 
   return (
-    <AppShell wide>
-      <div className="mx-auto w-full max-w-[1160px] space-y-5 pb-4">
-        <header className="space-y-3">
-          <div>
-            <h1 className="font-display text-[1.6rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-              Classes
-            </h1>
-            <p className="mt-1 text-[14px] text-foreground-muted">
-              {narrowing ? (
-                <>
-                  {data.total} of {data.totalUnfiltered} classes
-                  {category ? (
-                    <>
-                      {" "}
-                      in{" "}
-                      <span className="font-semibold text-foreground">
-                        {category}
-                      </span>
-                    </>
-                  ) : null}
-                </>
-              ) : (
-                <>
-                  {data.totalUnfiltered} cook-alongs across{" "}
-                  {data.categories.length} kinds of cooking.
-                </>
-              )}
-            </p>
+    <AppShell size="wide">
+      <div className="flex flex-col gap-8">
+        <PageHeader
+          tone="hero"
+          title="Classes"
+          description={
+            narrowing ? (
+              <>
+                {data.total} of {data.totalUnfiltered} classes
+                {category ? (
+                  <>
+                    {" "}
+                    in{" "}
+                    <span className="font-semibold text-foreground">
+                      {category}
+                    </span>
+                  </>
+                ) : null}
+              </>
+            ) : (
+              <>
+                {data.totalUnfiltered} cook-alongs across{" "}
+                {data.categories.length} kinds of cooking.
+              </>
+            )
+          }
+        >
+          <div className="flex flex-col gap-3">
+            <UrlSearchField
+              placeholder="Search classes by dish, technique or cuisine"
+              label="Search classes"
+              resetParams={["category"]}
+            />
+
+            {data.categories.length > 1 ? (
+              <CategoryRow
+                categories={data.categories}
+                active={category}
+                q={q}
+              />
+            ) : null}
           </div>
-
-          <UrlSearchField
-            placeholder="Search classes by dish, technique or cuisine"
-            label="Search classes"
-            resetParams={["category"]}
-          />
-
-          {data.categories.length > 1 ? (
-            <CategoryRow categories={data.categories} active={category} q={q} />
-          ) : null}
-        </header>
+        </PageHeader>
 
         {data.continueLearning.length > 0 ? (
-          <section className="space-y-2.5">
-            <h2 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-              <PlayCircle className="size-3" aria-hidden />
-              Pick up where you left off
-            </h2>
-            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+          <Section title="Pick up where you left off" icon={<PlayCircle />}>
+            <ul className={TILE_GRID}>
               {data.continueLearning.map((cls) => (
                 <li key={cls.slug}>
                   <ClassTile
@@ -98,35 +108,32 @@ export default async function LearnPage({
                 </li>
               ))}
             </ul>
-          </section>
+          </Section>
         ) : null}
 
         {data.total === 0 ? (
           <Blank q={q} category={category} empty={data.totalUnfiltered === 0} />
         ) : (
-          <div className="space-y-7">
+          <div className="flex flex-col gap-10">
             {data.rows.map((row, rowIndex) => (
-              <section key={row.category || "results"} className="space-y-2.5">
-                {row.category ? (
-                  <div className="flex items-baseline justify-between gap-3">
-                    <h2 className="flex items-baseline gap-2 text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-                      <BookOpen className="size-3 self-center" aria-hidden />
-                      {row.category}
-                      <span className="font-semibold tabular-nums">
-                        {row.classes.length}
-                      </span>
-                    </h2>
+              <Section
+                key={row.category || "results"}
+                title={row.category || undefined}
+                icon={row.category ? <BookOpen /> : undefined}
+                count={row.category ? row.classes.length : undefined}
+                action={
+                  row.category ? (
                     <Link
                       href={`/learn?category=${encodeURIComponent(row.category)}`}
                       scroll={false}
-                      className="shrink-0 text-[12.5px] font-semibold text-brand no-underline hover:underline"
+                      className="text-label font-medium text-brand-strong no-underline hover:underline"
                     >
                       See all
                     </Link>
-                  </div>
-                ) : null}
-
-                <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
+                  ) : undefined
+                }
+              >
+                <ul className={TILE_GRID}>
                   {row.classes.map((cls, index) => (
                     <li key={cls.slug}>
                       <ClassTile
@@ -137,7 +144,7 @@ export default async function LearnPage({
                     </li>
                   ))}
                 </ul>
-              </section>
+              </Section>
             ))}
           </div>
         )}
@@ -163,29 +170,20 @@ function CategoryRow({
     return query ? `/learn?${query}` : "/learn";
   }
 
+  // Scrolls sideways on a phone, wraps from `sm` up, where a long category
+  // list is easier to scan as rows than to swipe through.
   return (
-    <ul className="-mx-3 flex gap-1.5 overflow-x-auto px-3 pb-1 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
-      {[null, ...categories].map((category) => {
-        const current = category === active;
-        return (
-          <li key={category ?? "all"}>
-            <Link
-              href={href(category)}
-              scroll={false}
-              aria-current={current ? "true" : undefined}
-              className={cn(
-                "inline-flex h-8 items-center whitespace-nowrap rounded-full border px-3 text-[12.5px] font-semibold no-underline transition",
-                current
-                  ? "border-brand-fill bg-brand-fill text-brand-fill-foreground"
-                  : "border-border bg-surface text-foreground-muted hover:border-hairline-firm hover:text-foreground",
-              )}
-            >
-              {category ?? "All classes"}
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
+    <ChipRow label="Categories" className="sm:flex-wrap sm:overflow-visible">
+      {[null, ...categories].map((category) => (
+        <ChipLink
+          key={category ?? "all"}
+          href={href(category)}
+          active={category === active}
+        >
+          {category ?? "All classes"}
+        </ChipLink>
+      ))}
+    </ChipRow>
   );
 }
 
@@ -205,30 +203,19 @@ function Blank({
       : `Nothing in ${category} yet`;
 
   return (
-    <div className="rounded-card border border-dashed border-border bg-surface px-6 py-14 text-center">
-      <span className="mx-auto grid size-12 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
-        {empty ? (
-          <BookOpen className="size-6" aria-hidden />
-        ) : (
-          <SearchX className="size-6" aria-hidden />
-        )}
-      </span>
-      <h2 className="mt-3 font-display text-[1.15rem] font-bold text-foreground">
-        {title}
-      </h2>
-      <p className="mx-auto mt-1.5 max-w-[44ch] text-[14px] text-foreground-muted">
-        {empty
+    <EmptyState
+      icon={empty ? <BookOpen /> : <SearchX />}
+      title={title}
+      description={
+        empty
           ? "Adam's cook-alongs appear here as they are published."
-          : "Try a dish rather than a description — “ramen” finds more than “something warm”."}
-      </p>
-      {!empty ? (
-        <Link
-          href="/learn"
-          className="mt-4 inline-flex h-9 items-center rounded-ctl border border-border bg-background px-4 text-[13.5px] font-semibold text-foreground no-underline transition hover:border-hairline-firm"
-        >
-          Show every class
-        </Link>
-      ) : null}
-    </div>
+          : "Try a dish rather than a description — “ramen” finds more than “something warm”."
+      }
+      action={
+        !empty ? (
+          <ButtonLink href="/learn">Show every class</ButtonLink>
+        ) : undefined
+      }
+    />
   );
 }

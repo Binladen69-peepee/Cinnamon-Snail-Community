@@ -2,8 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { setCoursePublishedAction } from "@/app/admin/courses/actions";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/app/ui";
 
 /**
  * Publish and Done, from the design's header.
@@ -47,32 +48,26 @@ export function PublishButtons({
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex flex-wrap items-center gap-2 sm:justify-end">
       {error ? (
-        <p role="alert" className="text-[12.5px] font-semibold text-danger">
+        <p
+          role="alert"
+          className="flex basis-full items-center gap-1.5 text-label font-medium text-danger sm:justify-end"
+        >
+          <AlertCircle className="size-4 shrink-0" aria-hidden />
           {error}
         </p>
       ) : null}
-      <button
-        type="button"
-        onClick={() => router.push("/admin/courses")}
-        className="h-9 rounded-ctl border border-border bg-background px-4 text-[13.5px] font-semibold text-foreground transition hover:border-hairline-firm"
-      >
-        Done
-      </button>
-      <button
-        type="button"
+      <Button onClick={() => router.push("/admin/courses")}>Done</Button>
+      <Button
         onClick={toggle}
         disabled={pending}
-        className={cn(
-          "h-9 rounded-ctl px-4 text-[13.5px] font-semibold transition",
-          pending
-            ? "bg-default text-foreground-muted"
-            : "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover",
-        )}
+        aria-busy={pending || undefined}
+        variant="primary"
       >
+        {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
         {pending ? "Saving…" : published ? "Unpublish" : "Publish"}
-      </button>
+      </Button>
     </div>
   );
 }

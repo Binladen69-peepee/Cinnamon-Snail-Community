@@ -2,9 +2,17 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Loader2 } from "lucide-react";
+import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { updateCourseDetailsAction } from "@/app/admin/courses/curriculum-actions";
-import { cn } from "@/lib/utils";
+import {
+  Button,
+  CardHeader,
+  Field,
+  Input,
+  Select,
+  Textarea,
+  cardClass,
+} from "@/components/app/ui";
 
 /**
  * The course's own fields.
@@ -14,6 +22,10 @@ import { cn } from "@/lib/utils";
  * instructor — which put it under no heading in the library and gave its card
  * nothing to say. The slug is deliberately absent: it is the course's address,
  * and quietly changing it breaks every link anyone has saved.
+ *
+ * It is a card with its title across the top rather than a two-column
+ * `FormSection`: beside the editor's rail, a label column would leave the
+ * fields a third of the width they need.
  */
 export function CourseDetailsForm({
   slug,
@@ -59,53 +71,47 @@ export function CourseDetailsForm({
   }
 
   return (
-    <form
-      onSubmit={submit}
-      className="rounded-card border border-border bg-surface"
-    >
-      <div className="border-b border-border px-4 py-3">
-        <h2 className="text-[14px] font-bold text-foreground">Course details</h2>
-      </div>
+    <form onSubmit={submit} className={cardClass({ padding: "none" })}>
+      <CardHeader title="Course details" />
 
-      <div className="space-y-4 px-4 py-4">
+      <div className="flex flex-col gap-5 px-4 py-5 sm:px-5">
         <Field label="Title" htmlFor="course-title">
-          <input
+          <Input
             id="course-title"
             name="title"
             defaultValue={course.title}
             required
             maxLength={160}
-            className={INPUT}
           />
         </Field>
 
         <Field
           label="Description"
           htmlFor="course-description"
-          help="The paragraph on the class page and under the card."
+          hint="The paragraph on the class page and under the card."
         >
-          <textarea
+          <Textarea
             id="course-description"
             name="description"
             rows={4}
             defaultValue={course.description ?? ""}
-            className={cn(INPUT, "h-auto resize-y py-2 leading-relaxed")}
+            className="resize-y"
           />
         </Field>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4">
           <Field
             label="Category"
             htmlFor="course-category"
-            help="The shelf it sits on in the library."
+            hint="The shelf it sits on in the library."
+            className="min-w-0"
           >
-            <input
+            <Input
               id="course-category"
               name="category"
               list="course-categories"
               defaultValue={course.category ?? ""}
               maxLength={80}
-              className={INPUT}
             />
             <datalist id="course-categories">
               {categories.map((category) => (
@@ -114,13 +120,12 @@ export function CourseDetailsForm({
             </datalist>
           </Field>
 
-          <Field label="Instructor" htmlFor="course-instructor">
-            <input
+          <Field label="Instructor" htmlFor="course-instructor" className="min-w-0">
+            <Input
               id="course-instructor"
               name="instructorName"
               defaultValue={course.instructorName ?? ""}
               maxLength={120}
-              className={INPUT}
             />
           </Field>
         </div>
@@ -128,28 +133,26 @@ export function CourseDetailsForm({
         <Field
           label="Teaser video"
           htmlFor="course-teaser"
-          help="A public trailer, shown before anyone joins. YouTube links become a privacy-preserving embed."
+          hint="A public trailer, shown before anyone joins. YouTube links become a privacy-preserving embed."
         >
-          <input
+          <Input
             id="course-teaser"
             name="teaserVideoUrl"
             type="url"
             defaultValue={course.teaserVideoUrl ?? ""}
             placeholder="https://youtube.com/watch?v=…"
-            className={INPUT}
           />
         </Field>
 
         <Field
           label="Discussion room"
           htmlFor="course-space"
-          help="Where this class is talked about. Left unset, members land in the general course room."
+          hint="Where this class is talked about. Left unset, members land in the general course room."
         >
-          <select
+          <Select
             id="course-space"
             name="spaceId"
             defaultValue={course.spaceId ?? ""}
-            className={INPUT}
           >
             <option value="">No room of its own</option>
             {spaces.map((space) => (
@@ -157,105 +160,77 @@ export function CourseDetailsForm({
                 {space.name}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4">
           <Field
             label="Shelf position"
             htmlFor="course-catalog-order"
-            help="Lower sorts first within its category."
+            hint="Lower sorts first within its category."
+            className="min-w-0"
           >
-            <input
+            <Input
               id="course-catalog-order"
               name="catalogOrder"
               type="number"
               defaultValue={course.catalogOrder}
-              className={cn(INPUT, "max-w-[9rem]")}
+              className="max-w-36 tabular-nums"
             />
           </Field>
 
           <Field
             label="Category position"
             htmlFor="course-category-order"
-            help="Lower puts the whole shelf higher up the library."
+            hint="Lower puts the whole shelf higher up the library."
+            className="min-w-0"
           >
-            <input
+            <Input
               id="course-category-order"
               name="categoryOrder"
               type="number"
               defaultValue={course.categoryOrder}
-              className={cn(INPUT, "max-w-[9rem]")}
+              className="max-w-36 tabular-nums"
             />
           </Field>
         </div>
+      </div>
 
+      <div className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 border-t border-separator px-4 py-3 sm:px-5">
         {error ? (
-          <p role="alert" className="text-[12.5px] font-semibold text-danger">
+          <p
+            role="alert"
+            className="mr-auto flex items-center gap-1.5 text-label font-medium text-danger"
+          >
+            <AlertCircle className="size-4 shrink-0" aria-hidden />
             {error}
           </p>
         ) : null}
-      </div>
-
-      <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3">
         {saved && !saving ? (
-          <span className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-foreground-muted">
-            <Check className="size-3.5" aria-hidden />
+          <span
+            role="status"
+            className="inline-flex items-center gap-1.5 text-label font-medium text-success"
+          >
+            <CheckCircle2 className="size-4" aria-hidden />
             Saved
           </span>
         ) : null}
-        <button
+        <Button
           type="submit"
+          variant="primary"
           disabled={saving}
-          className={cn(
-            "inline-flex h-9 items-center gap-1.5 rounded-ctl px-4 text-[13.5px] font-semibold transition",
-            saving
-              ? "bg-default text-foreground-muted"
-              : "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover",
-          )}
+          aria-busy={saving || undefined}
         >
           {saving ? (
             <>
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              <Loader2 className="size-4 animate-spin" aria-hidden />
               Saving
             </>
           ) : (
             "Save details"
           )}
-        </button>
+        </Button>
       </div>
     </form>
-  );
-}
-
-const INPUT =
-  "h-9 w-full rounded-ctl border border-field-border bg-field-background px-3 text-[13.5px] text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/25";
-
-function Field({
-  label,
-  htmlFor,
-  help,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  help?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="min-w-0">
-      <label
-        htmlFor={htmlFor}
-        className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
-      >
-        {label}
-      </label>
-      {children}
-      {help ? (
-        <p className="mt-1.5 text-[12px] leading-snug text-foreground-muted">
-          {help}
-        </p>
-      ) : null}
-    </div>
   );
 }

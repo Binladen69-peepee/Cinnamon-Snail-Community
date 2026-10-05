@@ -1,20 +1,30 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import {
-  ArrowLeft,
-  Check,
   ChefHat,
   Clock,
-  FileText,
+  ListVideo,
   Lock,
   MessageSquare,
   PlayCircle,
 } from "lucide-react";
-import { cn } from "@/lib/utils";
 import { auth } from "@/auth";
 import { getClassDetail } from "@/lib/learn/library";
 import { AppShell } from "@/components/app/app-shell";
+import {
+  Badge,
+  ButtonLink,
+  Callout,
+  Card,
+  EmptyState,
+  PageHeader,
+  ProgressBar,
+  Section,
+} from "@/components/app/ui";
 import { ClassPlayer } from "@/components/learn/class-player";
+import { ResourceList } from "@/components/learn/resource-list";
+import { StepMark } from "@/components/learn/step-mark";
+import { cn } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
@@ -45,6 +55,10 @@ export async function generateMetadata({
  * is a link to the lesson unless this member cannot open it, in which case it
  * is a padlock and says why. Playback is gated on a live membership; the
  * teaser is not, because it is marketing.
+ *
+ * The header carries what the member came to do: where they are in the class
+ * and the one button that continues it. The syllabus is a single card of rows,
+ * one strip per section, rather than a card per section.
  */
 export default async function ClassPage({
   params,
@@ -58,170 +72,147 @@ export default async function ClassPage({
   const cls = await getClassDetail(slug, session.user.id);
   if (!cls) notFound();
 
+  const hasMeta = Boolean(cls.instructor || cls.length || cls.lessonCount > 0);
+
   return (
-    <AppShell wide>
-      <div className="mx-auto w-full max-w-[900px] space-y-4 pb-6">
-        <Link
-          href="/learn"
-          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-foreground-muted no-underline transition hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" aria-hidden />
-          All classes
-        </Link>
-
-        <ClassPlayer
-          photo={cls.photo}
-          teaserEmbed={cls.teaserEmbed}
-          title={cls.title}
-        />
-
-        <header className="space-y-2">
-          <h1 className="font-display text-[1.6rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-            {cls.title}
-          </h1>
-
-          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[12.5px] font-semibold text-foreground-muted">
-            {cls.category ? (
+    <AppShell size="page">
+      <div className="flex flex-col gap-8">
+        <PageHeader
+          back={{ href: "/learn", label: "All classes" }}
+          eyebrow={
+            cls.category ? (
               <Link
                 href={`/learn?category=${encodeURIComponent(cls.category)}`}
-                className="text-brand no-underline hover:underline"
+                className="text-brand-strong no-underline hover:underline"
               >
                 {cls.category}
               </Link>
-            ) : null}
-            {cls.instructor ? (
-              <span className="inline-flex items-center gap-1">
-                <ChefHat className="size-3" aria-hidden />
-                {cls.instructor}
-              </span>
-            ) : null}
-            {cls.length ? (
-              <span className="inline-flex items-center gap-1 tabular-nums">
-                <Clock className="size-3" aria-hidden />
-                {cls.length} teaser
-              </span>
-            ) : null}
-            {cls.lessonCount > 0 ? (
-              <span className="inline-flex items-center gap-1 tabular-nums">
-                <PlayCircle className="size-3" aria-hidden />
-                {cls.lessonCount}{" "}
-                {cls.lessonCount === 1 ? "lesson" : "lessons"}
-              </span>
-            ) : null}
-          </p>
-
-          {cls.description ? (
-            <p className="text-[15px] leading-relaxed text-foreground-muted">
-              {cls.description}
-            </p>
-          ) : null}
-        </header>
-
-        {cls.lessonCount > 0 ? (
-          <div className="rounded-card border border-border bg-surface p-3.5">
-            {/* Stacked on a phone. Side by side, the bar is squeezed into
-                about 150px and "Your progress" wraps onto three lines. */}
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="min-w-0 flex-1">
-                <div className="flex items-baseline justify-between gap-2 text-[12.5px] font-semibold">
-                  <span className="text-foreground">Your progress</span>
-                  <span className="tabular-nums text-foreground-muted">
-                    {cls.completedCount} of {cls.lessonCount} · {cls.percent}%
+            ) : undefined
+          }
+          title={cls.title}
+          description={cls.description || undefined}
+          actions={
+            cls.lessonCount > 0 && cls.resume ? (
+              <ButtonLink
+                href={cls.resume.href}
+                variant="primary"
+                size="lg"
+                className="w-full sm:w-auto"
+              >
+                <PlayCircle className="size-4" aria-hidden />
+                {cls.resume.started ? "Continue" : "Start the class"}
+              </ButtonLink>
+            ) : undefined
+          }
+        >
+          {hasMeta ? (
+            <div className="flex flex-col gap-4">
+              <p className="flex flex-wrap items-center gap-x-4 gap-y-1 text-label text-foreground-muted">
+                {cls.instructor ? (
+                  <span className="inline-flex items-center gap-1.5">
+                    <ChefHat className="size-3.5" aria-hidden />
+                    {cls.instructor}
                   </span>
-                </div>
-                <div
-                  className="mt-2 h-1.5 overflow-hidden rounded-full bg-default"
-                  role="progressbar"
-                  aria-valuenow={cls.percent}
-                  aria-valuemin={0}
-                  aria-valuemax={100}
-                  aria-label={`${cls.title} progress`}
-                >
-                  <div
-                    className="h-full rounded-full bg-brand"
-                    style={{ width: `${cls.percent}%` }}
+                ) : null}
+                {cls.length ? (
+                  <span className="inline-flex items-center gap-1.5 tabular-nums">
+                    <Clock className="size-3.5" aria-hidden />
+                    {cls.length} teaser
+                  </span>
+                ) : null}
+                {cls.lessonCount > 0 ? (
+                  <span className="inline-flex items-center gap-1.5 tabular-nums">
+                    <PlayCircle className="size-3.5" aria-hidden />
+                    {cls.lessonCount}{" "}
+                    {cls.lessonCount === 1 ? "lesson" : "lessons"}
+                  </span>
+                ) : null}
+              </p>
+
+              {cls.lessonCount > 0 ? (
+                <div className="flex max-w-md flex-col gap-2">
+                  <div className="flex items-baseline justify-between gap-2 text-label">
+                    <span className="font-medium text-foreground">
+                      Your progress
+                    </span>
+                    <span className="tabular-nums text-foreground-muted">
+                      {cls.completedCount} of {cls.lessonCount} · {cls.percent}%
+                    </span>
+                  </div>
+                  <ProgressBar
+                    value={cls.percent}
+                    label={`${cls.title} progress`}
                   />
                 </div>
-              </div>
-
-              {cls.resume ? (
-                <Link
-                  href={cls.resume.href}
-                  className="inline-flex h-10 w-full shrink-0 items-center justify-center gap-2 rounded-ctl bg-brand-fill px-4 text-[14px] font-semibold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover sm:w-auto"
-                >
-                  <PlayCircle className="size-4" aria-hidden />
-                  {cls.resume.started ? "Continue" : "Start the class"}
-                </Link>
               ) : null}
             </div>
-          </div>
-        ) : null}
+          ) : null}
+        </PageHeader>
 
-        {!cls.entitled ? (
-          <p className="flex items-start gap-2 rounded-card border border-border bg-brand-wash px-3.5 py-3 text-[13.5px] text-on-brand-wash">
-            <Lock className="mt-0.5 size-4 shrink-0" aria-hidden />
-            <span>
+        <div className="flex flex-col gap-4">
+          <ClassPlayer
+            photo={cls.photo}
+            teaserEmbed={cls.teaserEmbed}
+            title={cls.title}
+          />
+
+          {!cls.entitled ? (
+            <Callout tone="brand" icon={<Lock />}>
               Your membership is not active, so the full class will not play.
               The teaser above is free to watch.{" "}
-              <Link href="/billing" className="font-semibold underline">
+              <Link
+                href="/billing"
+                className="font-semibold text-link underline"
+              >
                 Check your membership
               </Link>
-            </span>
-          </p>
-        ) : null}
+            </Callout>
+          ) : null}
+        </div>
 
-        {cls.sections.length > 0 ? (
-          <section className="space-y-2.5">
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-              In this class
-            </h2>
-            <div className="space-y-3">
-              {cls.sections.map((section) => (
+        <Section title="In this class">
+          {cls.sections.length > 0 ? (
+            <Card as="div" padding="none" className="overflow-hidden">
+              {cls.sections.map((section, sectionIndex) => (
                 <div
                   key={section.id}
-                  className="overflow-hidden rounded-card border border-border bg-surface"
+                  className={cn(
+                    sectionIndex > 0 && "border-t border-separator",
+                  )}
                 >
-                  <h3 className="border-b border-border px-3.5 py-2.5 text-[13.5px] font-bold text-foreground">
+                  <h3 className="border-b border-separator bg-surface-muted/60 px-4 py-2.5 text-label font-semibold text-foreground sm:px-5">
                     {section.title}
                   </h3>
-                  <ul>
+                  <ul className="divide-y divide-separator">
                     {section.lessons.map((lesson) => {
                       const body = (
                         <>
-                          <span
-                            className={cn(
-                              "grid size-7 shrink-0 place-items-center rounded-full",
+                          <StepMark
+                            state={
                               lesson.completed
-                                ? "bg-brand text-on-brand"
-                                : "bg-default text-foreground-muted",
-                            )}
-                            aria-hidden
+                                ? "done"
+                                : lesson.playable
+                                  ? "open"
+                                  : "locked"
+                            }
                           >
-                            {lesson.completed ? (
-                              <Check className="size-3.5" />
-                            ) : lesson.playable ? (
-                              <PlayCircle className="size-4" />
-                            ) : (
-                              <Lock className="size-3.5" />
-                            )}
-                          </span>
+                            <PlayCircle />
+                          </StepMark>
                           <span className="min-w-0 flex-1">
-                            <span className="block truncate text-[14px] text-foreground">
+                            <span className="block truncate text-body font-medium text-foreground">
                               {lesson.title}
                             </span>
                             {lesson.summary ? (
-                              <span className="block truncate text-[12.5px] text-foreground-muted">
+                              <span className="block truncate text-caption text-foreground-muted">
                                 {lesson.summary}
                               </span>
                             ) : null}
                           </span>
                           {lesson.isPreview && !lesson.playable ? (
-                            <span className="shrink-0 rounded-chip border border-border px-1.5 py-0.5 text-[10.5px] font-bold text-foreground-muted">
-                              Free
-                            </span>
+                            <Badge tone="outline">Free</Badge>
                           ) : null}
                           {lesson.durationMin ? (
-                            <span className="shrink-0 text-[12px] tabular-nums text-foreground-muted">
+                            <span className="shrink-0 text-caption tabular-nums text-foreground-muted">
                               {lesson.durationMin} min
                             </span>
                           ) : null}
@@ -229,14 +220,11 @@ export default async function ClassPage({
                       );
 
                       return (
-                        <li
-                          key={lesson.id}
-                          className="border-b border-border last:border-b-0"
-                        >
+                        <li key={lesson.id}>
                           {lesson.playable ? (
                             <Link
                               href={lesson.href}
-                              className="flex items-center gap-2.5 px-3.5 py-2.5 no-underline transition hover:bg-mint"
+                              className="flex items-center gap-3 px-4 py-3 no-underline transition hover:bg-surface-muted sm:px-5"
                             >
                               {body}
                             </Link>
@@ -252,7 +240,7 @@ export default async function ClassPage({
                                   ? "Members only"
                                   : "Not ready yet"
                               }
-                              className="flex items-center gap-2.5 px-3.5 py-2.5 opacity-60"
+                              className="flex items-center gap-3 px-4 py-3 opacity-60 sm:px-5"
                             >
                               {body}
                             </span>
@@ -263,49 +251,30 @@ export default async function ClassPage({
                   </ul>
                 </div>
               ))}
-            </div>
-          </section>
-        ) : (
-          <p className="rounded-card border border-dashed border-border bg-surface px-4 py-6 text-center text-[13.5px] text-foreground-muted">
-            The full cook-along for this class is not on the platform yet. The
-            teaser above is the real thing — the rest follows as Adam moves his
-            catalog across.
-          </p>
-        )}
+            </Card>
+          ) : (
+            <EmptyState
+              size="sm"
+              icon={<ListVideo />}
+              title="The full cook-along is on its way"
+              description="The full cook-along for this class is not on the platform yet. The teaser above is the real thing — the rest follows as Adam moves his catalog across."
+            />
+          )}
+        </Section>
 
         {cls.resources.length > 0 ? (
-          <section className="space-y-2.5">
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-              Recipes and downloads
-            </h2>
-            <ul className="space-y-2">
-              {cls.resources.map((resource) => (
-                <li key={resource.id}>
-                  <a
-                    href={resource.url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2.5 rounded-card border border-border bg-surface px-3.5 py-2.5 text-[14px] text-foreground no-underline transition hover:border-hairline-firm"
-                  >
-                    <FileText className="size-4 shrink-0 text-brand" aria-hidden />
-                    <span className="min-w-0 flex-1 truncate">
-                      {resource.title}
-                    </span>
-                  </a>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <Section title="Recipes and downloads">
+            <ResourceList resources={cls.resources} />
+          </Section>
         ) : null}
 
         {cls.discussHref ? (
-          <Link
-            href={cls.discussHref}
-            className="inline-flex h-10 items-center gap-2 rounded-ctl bg-brand-fill px-4 text-[14px] font-semibold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover"
-          >
-            <MessageSquare className="size-4" aria-hidden />
-            Talk about this class
-          </Link>
+          <div>
+            <ButtonLink href={cls.discussHref}>
+              <MessageSquare className="size-4" aria-hidden />
+              Talk about this class
+            </ButtonLink>
+          </div>
         ) : null}
       </div>
     </AppShell>

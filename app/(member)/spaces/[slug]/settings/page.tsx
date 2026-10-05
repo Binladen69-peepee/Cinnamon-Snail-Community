@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { auth } from "@/auth";
 import {
@@ -7,6 +6,7 @@ import {
   listSpaceGroups,
 } from "@/lib/spaces/settings";
 import { AppShell } from "@/components/app/app-shell";
+import { PageHeader } from "@/components/app/ui";
 import { SpaceSettingsForm } from "@/app/(member)/spaces/[slug]/settings/settings-form";
 
 export const metadata = { title: "Space settings" };
@@ -40,21 +40,12 @@ export default async function SpaceSettingsPage({
 
   return (
     <AppShell>
-      <div className="space-y-5 pb-10">
-        <div>
-          <Link
-            href={`/spaces/${slug}`}
-            className="text-[12.5px] font-semibold text-foreground-muted no-underline hover:text-foreground"
-          >
-            ← {result.space.name}
-          </Link>
-          <h1 className="mt-1 font-display text-[1.6rem] font-bold tracking-[-0.02em] text-foreground">
-            Space settings
-          </h1>
-          <p className="mt-1 text-[14px] text-foreground-muted">
-            Everything here takes effect for every member of this space.
-          </p>
-        </div>
+      <div className="flex flex-col gap-8">
+        <PageHeader
+          title="Space settings"
+          description="Everything here takes effect for every member of this space."
+          back={{ href: `/spaces/${slug}`, label: result.space.name }}
+        />
 
         <SpaceSettingsForm
           space={result.space}

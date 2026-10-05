@@ -2,6 +2,7 @@
 
 import { CloudOff, RefreshCw } from "lucide-react";
 import type { StreamState } from "@/components/messages/use-message-stream";
+import { cn } from "@/lib/utils";
 
 /**
  * Whether the thread is actually live.
@@ -17,16 +18,24 @@ export function StreamStatus({ state }: { state: StreamState }) {
   if (state === "live" || state === "slow") return null;
 
   const offline = state === "offline";
+  // A quiet line under the header rather than a banner: reconnecting is
+  // usually over before anyone reads it. Offline lasts, so it takes the
+  // warning tone.
   return (
     <p
       role="status"
       aria-live="polite"
-      className="flex items-center justify-center gap-1.5 border-b border-border bg-default px-3 py-1.5 text-[12px] font-semibold text-foreground-muted"
+      className={cn(
+        "flex shrink-0 items-center justify-center gap-1.5 border-b border-separator px-4 py-1.5 text-center text-caption font-medium",
+        offline
+          ? "bg-warning-wash text-warning"
+          : "bg-surface-muted text-foreground-muted",
+      )}
     >
       {offline ? (
-        <CloudOff className="size-3.5" aria-hidden />
+        <CloudOff className="size-3.5 shrink-0" aria-hidden />
       ) : (
-        <RefreshCw className="size-3.5 animate-spin" aria-hidden />
+        <RefreshCw className="size-3.5 shrink-0 animate-spin" aria-hidden />
       )}
       {offline
         ? "You are offline. New messages will appear when you reconnect."

@@ -8,7 +8,7 @@ import {
   setMemberStatusAction,
   setReportStatusAction,
 } from "@/app/admin/moderation/actions";
-import { AdminButton } from "@/components/admin/ui";
+import { Button } from "@/components/app/ui";
 
 /**
  * What a moderator can do about one report.
@@ -83,54 +83,55 @@ export function ReportActions({
   const closed = status === "RESOLVED" || status === "DISMISSED";
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-1.5">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       {error ? (
-        <p role="alert" className="mr-auto text-[12px] font-semibold text-danger">
+        <p role="alert" className="mr-auto text-caption font-medium text-danger">
           {error}
         </p>
       ) : null}
 
       {closed ? (
-        <AdminButton disabled={pending} onClick={() => setStatus("OPEN")}>
-          <RotateCcw className="size-3.5" aria-hidden />
+        <Button size="sm" disabled={pending} onClick={() => setStatus("OPEN")}>
+          <RotateCcw className="size-4" aria-hidden />
           Reopen
-        </AdminButton>
+        </Button>
       ) : (
         <>
           {status === "OPEN" ? (
-            <AdminButton disabled={pending} onClick={() => setStatus("REVIEWING")}>
-              <Eye className="size-3.5" aria-hidden />
+            <Button size="sm" disabled={pending} onClick={() => setStatus("REVIEWING")}>
+              <Eye className="size-4" aria-hidden />
               Reviewing
-            </AdminButton>
+            </Button>
           ) : null}
 
           {postId ? (
-            <AdminButton variant="danger" disabled={pending} onClick={removePost}>
-              <Trash2 className="size-3.5" aria-hidden />
+            <Button size="sm" variant="danger" disabled={pending} onClick={removePost}>
+              <Trash2 className="size-4" aria-hidden />
               Remove post
-            </AdminButton>
+            </Button>
           ) : null}
 
           {subject ? (
-            <AdminButton variant="danger" disabled={pending} onClick={suspend}>
-              <UserMinus className="size-3.5" aria-hidden />
+            <Button size="sm" variant="danger" disabled={pending} onClick={suspend}>
+              <UserMinus className="size-4" aria-hidden />
               Suspend
-            </AdminButton>
+            </Button>
           ) : null}
 
-          <AdminButton disabled={pending} onClick={() => setStatus("DISMISSED")}>
-            <X className="size-3.5" aria-hidden />
+          <Button size="sm" disabled={pending} onClick={() => setStatus("DISMISSED")}>
+            <X className="size-4" aria-hidden />
             Dismiss
-          </AdminButton>
+          </Button>
 
-          <AdminButton
+          <Button
+            size="sm"
             variant="primary"
             disabled={pending}
             onClick={() => setStatus("RESOLVED")}
           >
-            <Check className="size-3.5" aria-hidden />
+            <Check className="size-4" aria-hidden />
             Resolve
-          </AdminButton>
+          </Button>
         </>
       )}
     </div>

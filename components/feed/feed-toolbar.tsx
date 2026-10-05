@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Clock, Flame, LayoutList, Rows3, TrendingUp } from "lucide-react";
 import { FEED_SORTS, type FeedSort } from "@/lib/community/sort";
-import { cn } from "@/lib/utils";
+import { Segmented, chipClass, segmentClass } from "@/components/app/ui";
 
 export type Density = "card" | "compact";
 
@@ -22,12 +22,15 @@ const ICONS: Record<FeedSort, typeof Flame> = {
 };
 
 /**
- * Sort pills and the density toggle above the feed.
+ * Sort chips and the density toggle above the feed.
  *
  * Three orders, each a link so it can be shared and so the control works
  * before the page hydrates. The label says what it does rather than naming a
  * ranking function: "Recent activity" is a promise about what you will see,
  * "Hot" is a description of an algorithm nobody asked about.
+ *
+ * A slim row on the page ground rather than a bar of its own, so the composer
+ * stays the only surface above the first post.
  */
 export function FeedToolbar({
   sort,
@@ -46,13 +49,12 @@ export function FeedToolbar({
   }
 
   return (
-    <div className="flex items-center gap-1 rounded-card border border-border bg-surface px-2 py-1.5 shadow-e1">
+    <div className="flex items-center gap-3">
       <nav
         aria-label="Sort posts"
         // The three orders scroll rather than colliding with the density
-        // toggle beside them. At 320px the pills and the toggle together are
-        // wider than the bar, and `ml-auto` on the toggle made them overlap.
-        className="vu-scroll-x flex min-w-0 flex-1 items-center gap-0.5 overflow-x-auto"
+        // toggle beside them, should a narrow screen ever run out of room.
+        className="vu-scroll-x -mx-1 flex min-w-0 flex-1 items-center gap-2 overflow-x-auto px-1 py-0.5"
       >
         {FEED_SORTS.map((item) => {
           const active = sort === item.value;
@@ -62,16 +64,12 @@ export function FeedToolbar({
               key={item.value}
               href={`${basePath.split("?")[0]}?sort=${item.value}`}
               aria-current={active ? "page" : undefined}
-              className={cn(
-                "inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13px] no-underline transition",
-                "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
-                active
-                  ? "bg-brand-fill text-brand-fill-foreground shadow-e1"
-                  : "text-foreground-muted hover:bg-surface-muted hover:text-foreground",
-              )}
+              className={chipClass(active)}
             >
               <Icon
-                className="size-3.5"
+                // Icons come in at `sm`: at 320px the three chips and the
+                // toggle only fit side by side as words.
+                className="hidden sm:block"
                 fill={active && item.value === "active" ? "currentColor" : "none"}
                 aria-hidden
               />
@@ -82,20 +80,20 @@ export function FeedToolbar({
         })}
       </nav>
 
-      <div className="ml-1 flex shrink-0 items-center gap-0.5 border-l border-border pl-1.5">
+      <Segmented className="shrink-0">
         <DensityButton
           active={density === "card"}
           onClick={() => setDensity("card")}
           label="Card view"
-          icon={<LayoutList className="size-4" aria-hidden />}
+          icon={<LayoutList aria-hidden />}
         />
         <DensityButton
           active={density === "compact"}
           onClick={() => setDensity("compact")}
           label="Compact view"
-          icon={<Rows3 className="size-4" aria-hidden />}
+          icon={<Rows3 aria-hidden />}
         />
-      </div>
+      </Segmented>
     </div>
   );
 }
@@ -118,13 +116,7 @@ function DensityButton({
       title={label}
       aria-label={label}
       aria-pressed={active}
-      className={cn(
-        "grid size-8 place-items-center rounded-full transition",
-        "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
-        active
-          ? "bg-brand-wash text-on-brand-wash"
-          : "text-foreground-muted hover:bg-mint hover:text-foreground",
-      )}
+      className={segmentClass(active, "w-8 px-0")}
     >
       {icon}
     </button>

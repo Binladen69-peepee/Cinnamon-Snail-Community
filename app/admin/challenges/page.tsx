@@ -1,6 +1,13 @@
-import { Flag } from "lucide-react";
+import { AlertTriangle, Flag } from "lucide-react";
 import { loadAdminChallenges } from "@/lib/admin/challenges";
-import { Badge, EmptyPanel, PageHeader, Panel, PanelHeader } from "@/components/admin/ui";
+import {
+  Badge,
+  Card,
+  CardHeader,
+  EmptyState,
+  PageHeader,
+  type BadgeTone,
+} from "@/components/app/ui";
 import {
   NewChallengeForm,
   PromptEditor,
@@ -9,6 +16,17 @@ import {
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Challenges" };
+
+/** Where a challenge is in its own calendar, as a badge says it. */
+const STATUS: Record<string, { label: string; tone: BadgeTone }> = {
+  upcoming: { label: "Upcoming", tone: "info" },
+  open: { label: "Open", tone: "brand" },
+  finished: { label: "Finished", tone: "neutral" },
+};
+
+function formatDate(date: Date) {
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
 
 /**
  * Authoring seasonal challenges — BUILD.md §17.
@@ -22,69 +40,74 @@ export default async function AdminChallengesPage() {
   const challenges = await loadAdminChallenges();
 
   return (
-    <div className="space-y-5 py-2">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Challenges"
-        subtitle="Seasonal and low-pressure. The target sits below the number of prompts on purpose."
+        description="Seasonal and low-pressure. The target sits below the number of prompts on purpose."
       />
 
-      <Panel>
-        <PanelHeader
-          title="All challenges"
-          icon={<Flag className="size-3.5" aria-hidden />}
-          count={challenges.length}
-        />
-        <div className="border-b border-separator px-4 py-3">
+      <Card padding="none">
+        <CardHeader title="All challenges" icon={<Flag />} count={challenges.length} />
+        <div className="border-b border-separator bg-surface-muted/50 px-4 py-3 sm:px-5">
           <NewChallengeForm />
         </div>
 
         {challenges.length === 0 ? (
-          <EmptyPanel
-            icon={<Flag className="size-6" aria-hidden />}
+          <EmptyState
+            bordered={false}
+            icon={<Flag />}
             title="No challenges yet"
-            body="A challenge is a theme, a handful of daily prompts and a target that is comfortably below them."
+            description="A challenge is a theme, a handful of daily prompts and a target that is comfortably below them."
           />
         ) : (
           <ul className="divide-y divide-separator">
-            {challenges.map((challenge) => (
-              <li key={challenge.id} className="space-y-3 px-4 py-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-[14px] font-bold text-foreground">{challenge.title}</h3>
-                      <Badge tone={challenge.published ? "good" : "neutral"}>
-                        {challenge.published ? "Published" : "Draft"}
-                      </Badge>
-                      <Badge tone="neutral">{challenge.status}</Badge>
-                      {challenge.theme ? <Badge tone="solid">{challenge.theme}</Badge> : null}
-                    </div>
-                    <p className="mt-1 text-[12.5px] text-foreground-muted">
-                      {challenge.startsAt.toLocaleDateString()} –{" "}
-                      {challenge.endsAt.toLocaleDateString()} · {challenge.targetCount} of{" "}
-                      {challenge.promptCount} prompts finishes it
-                      {challenge.spaceName ? ` · posts to ${challenge.spaceName}` : ""}
-                    </p>
-                    <p className="mt-0.5 text-[11.5px] tabular-nums text-foreground-muted">
-                      {challenge.joined} joined · {challenge.finished} finished
-                      {challenge.badgeSlug ? ` · badge ${challenge.badgeSlug}` : ""}
-                      {challenge.kitTag ? ` · Kit "${challenge.kitTag}"` : ""}
-                    </p>
-                    {challenge.targetCount > challenge.promptCount ? (
-                      <p className="mt-1 text-[12px] text-danger">
-                        The target is above the number of prompts, so nobody could finish it.
-                        Publishing is refused until that is fixed.
+            {challenges.map((challenge) => {
+              const status = STATUS[challenge.status] ?? {
+                label: challenge.status,
+                tone: "neutral" as const,
+              };
+              return (
+                <li key={challenge.id} className="flex flex-col gap-4 px-4 py-4 sm:px-5">
+                  <div className="flex flex-col items-start gap-3 sm:flex-row sm:justify-between">
+                    <div className="min-w-0">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <h3 className="text-body font-semibold text-foreground">{challenge.title}</h3>
+                        <Badge tone={challenge.published ? "success" : "neutral"}>
+                          {challenge.published ? "Published" : "Draft"}
+                        </Badge>
+                        <Badge tone={status.tone}>{status.label}</Badge>
+                        {challenge.theme ? <Badge tone="outline">{challenge.theme}</Badge> : null}
+                      </div>
+                      <p className="mt-1 text-label text-foreground-muted">
+                        {formatDate(challenge.startsAt)} – {formatDate(challenge.endsAt)} ·{" "}
+                        {challenge.targetCount} of {challenge.promptCount} prompts finishes it
+                        {challenge.spaceName ? ` · posts to ${challenge.spaceName}` : ""}
                       </p>
-                    ) : null}
+                      <p className="mt-0.5 text-caption tabular-nums text-foreground-muted">
+                        {challenge.joined} joined · {challenge.finished} finished
+                        {challenge.badgeSlug ? ` · badge ${challenge.badgeSlug}` : ""}
+                        {challenge.kitTag ? ` · Kit "${challenge.kitTag}"` : ""}
+                      </p>
+                      {challenge.targetCount > challenge.promptCount ? (
+                        <p className="mt-1.5 flex items-start gap-1.5 text-caption font-medium text-danger">
+                          <AlertTriangle className="mt-px size-3.5 shrink-0" aria-hidden />
+                          <span>
+                            The target is above the number of prompts, so nobody could finish it.
+                            Publishing is refused until that is fixed.
+                          </span>
+                        </p>
+                      ) : null}
+                    </div>
+                    <PublishToggle challengeId={challenge.id} published={challenge.published} />
                   </div>
-                  <PublishToggle challengeId={challenge.id} published={challenge.published} />
-                </div>
 
-                <PromptEditor challengeId={challenge.id} prompts={challenge.prompts} />
-              </li>
-            ))}
+                  <PromptEditor challengeId={challenge.id} prompts={challenge.prompts} />
+                </li>
+              );
+            })}
           </ul>
         )}
-      </Panel>
+      </Card>
     </div>
   );
 }

@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { FileText, Link2, Paperclip, Subtitles, Trash2 } from "lucide-react";
+import { AlertCircle, FileText, Link2, Paperclip, Subtitles, Trash2 } from "lucide-react";
 import {
   createResourceAction,
   deleteResourceAction,
 } from "@/app/admin/courses/curriculum-actions";
 import { MediaField } from "@/components/admin/media-field";
+import { Badge, Button, EmptyState, Field, Input, Select } from "@/components/app/ui";
 import { IMAGE_ACCEPT, IMAGE_MAX_BYTES } from "@/lib/uploads/policy";
 import { cn } from "@/lib/utils";
 
@@ -48,6 +49,7 @@ export function ResourceList({
   compact?: boolean;
 }) {
   const router = useRouter();
+  const fieldId = useId();
   const [adding, setAdding] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -80,50 +82,59 @@ export function ResourceList({
     });
   }
 
+  const attachButton = (
+    <Button size="sm" onClick={() => setAdding(true)}>
+      <Paperclip className="size-4" aria-hidden />
+      Attach a file
+    </Button>
+  );
+
   return (
-    <div className={cn("min-w-0", compact ? "space-y-1.5" : "space-y-2")}>
+    <div className={cn("flex min-w-0 flex-col", compact ? "gap-2" : "gap-3")}>
       {resources.length > 0 ? (
-        <ul className="space-y-1">
+        <ul className="divide-y divide-separator">
           {resources.map((resource) => {
             const Icon = KIND_ICON[resource.kind] ?? FileText;
             return (
               <li
                 key={resource.id}
-                className="flex items-center gap-2 rounded-ctl border border-border bg-background px-2.5 py-1.5"
+                className={cn("flex min-w-0 items-center gap-2.5", compact ? "py-1.5" : "py-2")}
               >
-                <Icon
-                  className="size-3.5 shrink-0 text-foreground-muted"
-                  aria-hidden
-                />
-                <span className="min-w-0 flex-1 truncate text-[12.5px] text-foreground">
+                <Icon className="size-4 shrink-0 text-foreground-muted" aria-hidden />
+                <span className="min-w-0 flex-1 truncate text-label text-foreground">
                   {resource.title}
                 </span>
-                {resource.kind === "captions" ? (
-                  <span className="shrink-0 rounded-chip border border-border px-1.5 py-0.5 text-[10.5px] font-bold text-foreground-muted">
-                    Captions
-                  </span>
-                ) : null}
-                <button
-                  type="button"
+                {resource.kind === "captions" ? <Badge tone="info">Captions</Badge> : null}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  iconOnly
                   onClick={() => remove(resource.id)}
                   disabled={pending}
                   aria-label={`Remove ${resource.title}`}
-                  className="grid size-6 shrink-0 place-items-center rounded-ctl text-foreground-muted transition hover:bg-mint hover:text-danger"
+                  title={`Remove ${resource.title}`}
+                  className="-mr-1.5 [&:hover:not(:disabled)_svg]:text-danger"
                 >
-                  <Trash2 className="size-3.5" aria-hidden />
-                </button>
+                  <Trash2 className="size-4" aria-hidden />
+                </Button>
               </li>
             );
           })}
         </ul>
-      ) : compact ? null : (
-        <p className="text-[12.5px] text-foreground-muted">
-          Nothing attached yet.
-        </p>
+      ) : compact || adding ? null : (
+        <EmptyState
+          icon={<Paperclip />}
+          title="Nothing attached yet."
+          size="sm"
+          bordered={false}
+          className="py-6"
+          action={attachButton}
+        />
       )}
 
       {error ? (
-        <p role="alert" className="text-[12px] font-semibold text-danger">
+        <p role="alert" className="flex items-start gap-1.5 text-caption font-medium text-danger">
+          <AlertCircle className="mt-px size-3.5 shrink-0" aria-hidden />
           {error}
         </p>
       ) : null}
@@ -131,15 +142,20 @@ export function ResourceList({
       {adding ? (
         <form
           onSubmit={add}
-          className="space-y-2.5 rounded-ctl border border-border bg-surface p-3"
+          className={cn(
+            "flex flex-col gap-4",
+            compact ? "pt-1" : "rounded-ctl bg-surface-muted p-3 sm:p-4",
+          )}
         >
-          <input
-            name="title"
-            required
-            maxLength={160}
-            placeholder="What it is called"
-            className={INPUT}
-          />
+          <Field label="Title" htmlFor={`${fieldId}-title`}>
+            <Input
+              id={`${fieldId}-title`}
+              name="title"
+              required
+              maxLength={160}
+              placeholder="What it is called"
+            />
+          </Field>
           <MediaField
             name="url"
             label="File or link"
@@ -149,42 +165,27 @@ export function ResourceList({
             uploadsEnabled={uploadsEnabled}
             help="Images upload here. A PDF, a spreadsheet or a caption track has to be a link."
           />
-          <div className="flex flex-wrap items-center gap-2">
-            <select name="kind" className={cn(INPUT, "max-w-[11rem]")}>
-              <option value="file">File</option>
-              <option value="link">Link</option>
-              <option value="captions">Captions (.vtt)</option>
-            </select>
+          <div className="flex flex-wrap items-end gap-x-2 gap-y-3">
+            <Field label="Kind" htmlFor={`${fieldId}-kind`} className="w-full max-w-44">
+              <Select id={`${fieldId}-kind`} name="kind">
+                <option value="file">File</option>
+                <option value="link">Link</option>
+                <option value="captions">Captions (.vtt)</option>
+              </Select>
+            </Field>
             <div className="ml-auto flex items-center gap-2">
-              <button
-                type="button"
-                onClick={() => setAdding(false)}
-                className="h-8 rounded-ctl border border-border bg-background px-3 text-[12.5px] font-semibold text-foreground transition hover:border-hairline-firm"
-              >
+              <Button variant="ghost" size="sm" onClick={() => setAdding(false)}>
                 Cancel
-              </button>
-              <button
-                type="submit"
-                className="h-8 rounded-ctl bg-brand-fill px-3 text-[12.5px] font-semibold text-brand-fill-foreground transition hover:bg-brand-fill-hover"
-              >
+              </Button>
+              <Button type="submit" variant="primary" size="sm">
                 Attach
-              </button>
+              </Button>
             </div>
           </div>
         </form>
-      ) : (
-        <button
-          type="button"
-          onClick={() => setAdding(true)}
-          className="inline-flex h-8 items-center gap-1.5 rounded-ctl border border-border bg-background px-3 text-[12.5px] font-semibold text-foreground transition hover:border-hairline-firm"
-        >
-          <Paperclip className="size-3.5" aria-hidden />
-          Attach a file
-        </button>
-      )}
+      ) : resources.length > 0 || compact ? (
+        <div>{attachButton}</div>
+      ) : null}
     </div>
   );
 }
-
-const INPUT =
-  "h-9 w-full rounded-ctl border border-field-border bg-field-background px-3 text-[13px] text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/25";

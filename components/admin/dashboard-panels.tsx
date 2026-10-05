@@ -1,11 +1,13 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
+  AlertTriangle,
   ArrowDownRight,
   ArrowUpRight,
   BookOpen,
   CalendarPlus,
   CheckCircle2,
+  ChevronRight,
   Heart,
   Mail,
   Minus,
@@ -13,6 +15,8 @@ import {
   Sparkles,
   Ticket,
   UserPlus,
+  Users,
+  XCircle,
 } from "lucide-react";
 import type { Trend } from "@/lib/admin/analytics";
 import type {
@@ -25,7 +29,13 @@ import type {
   TopCourse,
 } from "@/lib/admin/dashboard";
 import { Sparkline } from "@/components/admin/charts";
-import { Panel, PanelHeader } from "@/components/admin/ui";
+import {
+  ButtonLink,
+  Card,
+  CardHeader,
+  EmptyState,
+  cardClass,
+} from "@/components/app/ui";
 import { Avatar } from "@/components/ui/avatar";
 import { cn, formatRelativeTime } from "@/lib/utils";
 
@@ -34,9 +44,9 @@ import { cn, formatRelativeTime } from "@/lib/utils";
  *
  * The composition follows the reference design the brief supplied — headline
  * tiles, a growth chart, a breakdown, three mid panels, and a right-hand
- * utility column. The *colour* does not: everything paints from this product's
- * own role tokens — forest and cream — and amber and red stay reserved for
- * warning and danger.
+ * utility column. The *colour* does not: everything paints from the app's
+ * role tokens (components/app/ui.tsx), forest carrying identity and the
+ * status hues kept for status.
  *
  * Where the reference shows a figure this database cannot produce, the panel
  * shows what it can actually answer rather than a plausible-looking number.
@@ -46,6 +56,14 @@ import { cn, formatRelativeTime } from "@/lib/utils";
 /* -------------------------------------------------------------------------- */
 /* Shared                                                                     */
 /* -------------------------------------------------------------------------- */
+
+/** "View all" in a card header: one link style across the console. */
+export const headerLinkClass =
+  "text-label font-medium text-link no-underline transition hover:underline";
+
+/** A row in a card that links somewhere. */
+const rowLinkClass =
+  "flex items-center gap-3 px-4 py-3 no-underline transition hover:bg-surface-muted sm:px-5";
 
 /**
  * The delta chip.
@@ -67,7 +85,7 @@ export function TrendChip({
   if (!trend) {
     return (
       <span
-        className="text-[11.5px] leading-none text-foreground-muted"
+        className="text-caption leading-none text-foreground-muted"
         title="No earlier period to compare with — the community is younger than two of these windows."
       >
         —
@@ -84,8 +102,8 @@ export function TrendChip({
     <span className="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
       <span
         className={cn(
-          "inline-flex items-center gap-0.5 text-[12px] font-bold tabular-nums",
-          good && "text-brand-strong",
+          "inline-flex items-center gap-0.5 text-caption font-semibold tabular-nums",
+          good && "text-success",
           bad && "text-danger",
           !good && !bad && "text-foreground-muted",
         )}
@@ -100,7 +118,7 @@ export function TrendChip({
         {formatChange(trend)}
       </span>
       {suffix ? (
-        <span className="text-[11px] text-foreground-muted">{suffix}</span>
+        <span className="text-caption text-foreground-muted">{suffix}</span>
       ) : null}
     </span>
   );
@@ -125,53 +143,59 @@ function formatChange(trend: Trend): string {
 }
 
 const HEADLINE_ICONS: Record<string, ReactNode> = {
-  members: <UserPlus className="size-[18px]" aria-hidden />,
-  courses: <BookOpen className="size-[18px]" aria-hidden />,
-  events: <CalendarPlus className="size-[18px]" aria-hidden />,
-  posts: <MessageSquare className="size-[18px]" aria-hidden />,
+  members: <UserPlus className="size-4" aria-hidden />,
+  courses: <BookOpen className="size-4" aria-hidden />,
+  events: <CalendarPlus className="size-4" aria-hidden />,
+  posts: <MessageSquare className="size-4" aria-hidden />,
 };
 
 /* -------------------------------------------------------------------------- */
 /* Headline KPI card                                                          */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * A stat tile that links to the page behind the number: the label, the value,
+ * the change against the previous window, and the series it came from.
+ */
 export function HeadlineCard({ kpi }: { kpi: HeadlineKpi }) {
   return (
     <Link
       href={kpi.href}
-      className="vu-raise group flex min-w-0 flex-col rounded-card border border-border bg-surface p-4 no-underline transition hover:border-hairline-firm"
+      className={cardClass({
+        padding: "none",
+        interactive: true,
+        className: "flex min-w-0 flex-col p-4 no-underline",
+      })}
     >
-      <span className="flex items-center gap-2.5">
-        <span className="grid size-10 shrink-0 place-items-center rounded-ctl bg-brand-wash text-on-brand-wash">
-          {HEADLINE_ICONS[kpi.key]}
-        </span>
-        <span className="min-w-0 text-[12.5px] font-semibold leading-tight text-foreground-muted">
+      <span className="flex items-center justify-between gap-2">
+        <span className="min-w-0 truncate text-caption font-medium text-foreground-muted">
           {kpi.label}
         </span>
+        <span className="shrink-0 text-foreground-muted">{HEADLINE_ICONS[kpi.key]}</span>
       </span>
 
       {kpi.empty ? (
         <>
-          <span className="mt-3 block font-display text-[1.7rem] font-bold leading-none text-foreground-muted">
+          <span className="mt-2 block text-display font-semibold leading-none text-foreground-muted">
             —
           </span>
-          <span className="mt-auto block pt-2.5 text-[11.5px] leading-snug text-foreground-muted">
+          <span className="mt-auto block pt-3 text-caption leading-snug text-foreground-muted">
             {kpi.empty}
           </span>
         </>
       ) : (
         <>
-          <span className="mt-3 block font-display text-[2rem] font-bold leading-none tabular-nums text-foreground">
+          <span className="mt-2 block text-display font-semibold leading-none tracking-[-0.02em] tabular-nums text-foreground">
             {kpi.value.toLocaleString()}
           </span>
 
-          <span className="mt-auto flex items-end justify-between gap-3 pt-3">
+          <span className="mt-auto flex items-end justify-between gap-3 pt-4">
             <TrendChip trend={kpi.trend} />
             {kpi.series.length > 1 ? (
               <Sparkline
                 points={kpi.series}
                 label={kpi.label}
-                className="w-16 shrink-0 text-brand"
+                className="w-20 shrink-0 text-brand"
               />
             ) : null}
           </span>
@@ -187,30 +211,29 @@ export function HeadlineCard({ kpi }: { kpi: HeadlineKpi }) {
 
 export function TopCoursesPanel({ courses }: { courses: TopCourse[] }) {
   return (
-    <Panel className="flex flex-col">
-      <PanelHeader
+    <Card padding="none" className="flex flex-col">
+      <CardHeader
         title="Top courses"
         action={
-          <Link
-            href="/admin/courses"
-            className="text-[12px] font-semibold text-foreground-muted no-underline hover:text-foreground hover:underline"
-          >
+          <Link href="/admin/courses" className={headerLinkClass}>
             View all
           </Link>
         }
       />
       {courses.length === 0 ? (
-        <p className="flex flex-1 items-center justify-center px-6 py-10 text-center text-[12.5px] leading-snug text-foreground-muted">
-          No member has started a course yet, so there is nothing to rank.
-        </p>
+        <EmptyState
+          size="sm"
+          bordered={false}
+          icon={<BookOpen />}
+          title="Nothing to rank yet"
+          description="No member has started a course yet, so there is nothing to rank."
+          className="flex-1 justify-center"
+        />
       ) : (
         <ol className="divide-y divide-separator">
           {courses.map((course, index) => (
             <li key={course.id}>
-              <Link
-                href={`/admin/courses/${course.slug}`}
-                className="flex items-center gap-3 px-4 py-2.5 no-underline transition hover:bg-default"
-              >
+              <Link href={`/admin/courses/${course.slug}/edit`} className={rowLinkClass}>
                 {course.coverUrl ? (
                   // Course art comes from the media pipeline and may be a local
                   // file the optimizer skips.
@@ -218,29 +241,29 @@ export function TopCoursesPanel({ courses }: { courses: TopCourse[] }) {
                   <img
                     src={course.coverUrl}
                     alt=""
-                    className="size-9 shrink-0 rounded-ctl border border-border object-cover"
+                    className="size-9 shrink-0 rounded-ctl bg-surface-muted object-cover"
                   />
                 ) : (
-                  <span className="grid size-9 shrink-0 place-items-center rounded-ctl border border-border bg-default text-[12px] font-bold tabular-nums text-foreground-muted">
+                  <span className="grid size-9 shrink-0 place-items-center rounded-ctl bg-surface-muted text-caption font-semibold tabular-nums text-foreground-muted">
                     {index + 1}
                   </span>
                 )}
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12.5px] font-semibold text-foreground">
+                  <span className="block truncate text-label font-medium text-foreground">
                     {course.title}
                   </span>
-                  <span className="block text-[11.5px] text-foreground-muted">
+                  <span className="block text-caption text-foreground-muted">
                     {course.learners} {course.learners === 1 ? "learner" : "learners"}
                   </span>
                 </span>
                 <span className="shrink-0 text-right">
-                  <span className="block text-[12.5px] font-bold tabular-nums text-foreground">
+                  <span className="block text-label font-semibold tabular-nums text-foreground">
                     {course.learners
                       ? Math.round((course.completed / course.learners) * 100)
                       : 0}
                     %
                   </span>
-                  <span className="block text-[10.5px] text-foreground-muted">
+                  <span className="block text-micro text-foreground-muted">
                     finished
                   </span>
                 </span>
@@ -249,7 +272,7 @@ export function TopCoursesPanel({ courses }: { courses: TopCourse[] }) {
           ))}
         </ol>
       )}
-    </Panel>
+    </Card>
   );
 }
 
@@ -267,32 +290,33 @@ const ACTIVITY_ICONS: Record<ActivityItem["kind"], ReactNode> = {
 
 export function ActivityPanel({ items }: { items: ActivityItem[] }) {
   return (
-    <Panel className="flex flex-col">
-      <PanelHeader title="Recent activity" />
+    <Card padding="none" className="flex flex-col">
+      <CardHeader title="Recent activity" />
       {items.length === 0 ? (
-        <p className="flex flex-1 items-center justify-center px-6 py-10 text-center text-[12.5px] text-foreground-muted">
-          Nothing has happened yet.
-        </p>
+        <EmptyState
+          size="sm"
+          bordered={false}
+          icon={<MessageSquare />}
+          title="Nothing has happened yet."
+          className="flex-1 justify-center"
+        />
       ) : (
         <ul className="divide-y divide-separator">
           {items.map((item) => (
             <li key={`${item.kind}-${item.href}-${item.at.toISOString()}`}>
-              <Link
-                href={item.href}
-                className="flex items-center gap-2.5 px-4 py-2.5 no-underline transition hover:bg-default"
-              >
-                <span className="grid size-7 shrink-0 place-items-center rounded-full bg-default text-foreground-muted">
+              <Link href={item.href} className={rowLinkClass}>
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-surface-muted text-foreground-muted">
                   {ACTIVITY_ICONS[item.kind]}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[12.5px] font-semibold text-foreground">
+                  <span className="block truncate text-label font-medium text-foreground">
                     {item.title}
                   </span>
-                  <span className="block truncate text-[11.5px] text-foreground-muted">
+                  <span className="block truncate text-caption text-foreground-muted">
                     {item.detail}
                   </span>
                 </span>
-                <span className="shrink-0 whitespace-nowrap text-[11px] tabular-nums text-foreground-muted">
+                <span className="shrink-0 whitespace-nowrap text-caption tabular-nums text-foreground-muted">
                   {formatRelativeTime(item.at)}
                 </span>
               </Link>
@@ -300,7 +324,7 @@ export function ActivityPanel({ items }: { items: ActivityItem[] }) {
           ))}
         </ul>
       )}
-    </Panel>
+    </Card>
   );
 }
 
@@ -319,6 +343,9 @@ const ENGAGEMENT_ICONS: Record<string, ReactNode> = {
  * The reference has a "Shares" tile. Nothing in this product records a share,
  * so the fourth tile is RSVPs — a real, countable act of engagement — rather
  * than a number with no source.
+ *
+ * The tiles are one grid inside the card, divided by hairlines, rather than
+ * four bordered boxes inside a bordered box.
  */
 export function EngagementPanel({
   tiles,
@@ -328,28 +355,28 @@ export function EngagementPanel({
   windowDays: number;
 }) {
   return (
-    <Panel className="flex flex-col">
-      <PanelHeader title="Engagement" />
-      <p className="px-4 pt-3 text-[11.5px] leading-snug text-foreground-muted">
-        Acts of participation in the last {windowDays} days.
-      </p>
-      <div className="grid grid-cols-2 gap-2.5 p-4 pt-2.5 md:grid-cols-4 2xl:grid-cols-2">
+    <Card padding="none" className="flex flex-col overflow-hidden">
+      <CardHeader
+        title="Engagement"
+        description={`Acts of participation in the last ${windowDays} days.`}
+      />
+      <dl className="grid flex-1 grid-cols-2 gap-px bg-separator md:grid-cols-4 2xl:grid-cols-2">
         {tiles.map((tile) => (
-          <div key={tile.key} className="rounded-ctl border border-border bg-default p-2.5">
-            <span className="flex items-center gap-1.5 text-foreground-muted">
+          <div key={tile.key} className="flex flex-col bg-surface p-4">
+            <dt className="flex items-center gap-1.5 text-caption font-medium text-foreground-muted">
               <span className="shrink-0">{ENGAGEMENT_ICONS[tile.key]}</span>
-              <span className="min-w-0 text-[11px] font-semibold">{tile.label}</span>
-            </span>
-            <p className="mt-1.5 font-display text-[1.25rem] font-bold leading-none tabular-nums text-foreground">
+              <span className="min-w-0 truncate">{tile.label}</span>
+            </dt>
+            <dd className="mt-1.5 text-heading font-semibold leading-none tabular-nums text-foreground">
               {tile.value.toLocaleString()}
-            </p>
-            <div className="mt-1.5">
+            </dd>
+            <dd className="mt-2">
               <TrendChip trend={tile.trend} />
-            </div>
+            </dd>
           </div>
         ))}
-      </div>
-    </Panel>
+      </dl>
+    </Card>
   );
 }
 
@@ -359,29 +386,30 @@ export function EngagementPanel({
 
 export function RecentMembersPanel({ members }: { members: RecentMember[] }) {
   return (
-    <Panel className="flex flex-col">
-      <PanelHeader
+    <Card padding="none" className="flex flex-col">
+      <CardHeader
         title="Recent members"
         action={
-          <Link
-            href="/admin/members"
-            className="text-[12px] font-semibold text-foreground-muted no-underline hover:text-foreground hover:underline"
-          >
+          <Link href="/admin/members" className={headerLinkClass}>
             View all
           </Link>
         }
       />
       {members.length === 0 ? (
-        <p className="px-4 py-6 text-[12.5px] text-foreground-muted">
-          Nobody has joined yet.
-        </p>
+        <EmptyState
+          size="sm"
+          bordered={false}
+          icon={<Users />}
+          title="Nobody has joined yet."
+          className="flex-1 justify-center"
+        />
       ) : (
-        <ul className="grid grid-cols-3 gap-2 p-4 sm:grid-cols-6">
+        <ul className="grid grid-cols-3 gap-1 p-3 sm:grid-cols-6">
           {members.map((member) => (
             <li key={member.id} className="min-w-0">
               <Link
                 href={`/admin/members?q=${encodeURIComponent(member.handle)}`}
-                className="flex flex-col items-center gap-1.5 rounded-ctl px-1 py-2 text-center no-underline transition hover:bg-default"
+                className="flex flex-col items-center gap-1.5 rounded-ctl px-1 py-2 text-center no-underline transition hover:bg-surface-muted"
               >
                 <span className="relative">
                   <Avatar name={member.name} src={member.image} size="sm" />
@@ -394,10 +422,10 @@ export function RecentMembersPanel({ members }: { members: RecentMember[] }) {
                     </span>
                   ) : null}
                 </span>
-                <span className="w-full truncate text-[11.5px] font-semibold text-foreground">
+                <span className="w-full truncate text-caption font-medium text-foreground">
                   {member.name}
                 </span>
-                <span className="w-full truncate text-[10.5px] text-foreground-muted">
+                <span className="w-full truncate text-micro text-foreground-muted">
                   {formatRelativeTime(member.joinedAt)}
                 </span>
                 {/* Never having signed in is the most actionable thing about a
@@ -408,7 +436,7 @@ export function RecentMembersPanel({ members }: { members: RecentMember[] }) {
           ))}
         </ul>
       )}
-    </Panel>
+    </Card>
   );
 }
 
@@ -423,12 +451,15 @@ export function RecentMembersPanel({ members }: { members: RecentMember[] }) {
  */
 export function TopContentPanel({ items }: { items: TopContentItem[] }) {
   return (
-    <Panel className="flex flex-col">
-      <PanelHeader title="Top content" />
+    <Card padding="none" className="flex flex-col">
+      <CardHeader title="Top content" />
       {items.length === 0 ? (
-        <p className="px-4 py-6 text-[12.5px] leading-snug text-foreground-muted">
-          Nothing has been posted yet.
-        </p>
+        <EmptyState
+          size="sm"
+          bordered={false}
+          icon={<MessageSquare />}
+          title="Nothing has been posted yet."
+        />
       ) : (
         <>
           <ul className="divide-y divide-separator">
@@ -436,12 +467,12 @@ export function TopContentPanel({ items }: { items: TopContentItem[] }) {
               <li key={item.id}>
                 <Link
                   href={item.href}
-                  className="block px-4 py-2.5 no-underline transition hover:bg-default"
+                  className="block px-4 py-3 no-underline transition hover:bg-surface-muted sm:px-5"
                 >
-                  <span className="block truncate text-[12.5px] font-semibold text-foreground">
+                  <span className="block truncate text-label font-medium text-foreground">
                     {item.title}
                   </span>
-                  <span className="mt-0.5 flex items-center gap-2.5 text-[11px] tabular-nums text-foreground-muted">
+                  <span className="mt-0.5 flex items-center gap-2.5 text-caption tabular-nums text-foreground-muted">
                     <span className="truncate">{item.space}</span>
                     <span className="flex shrink-0 items-center gap-1">
                       <Heart className="size-3" aria-hidden />
@@ -456,18 +487,24 @@ export function TopContentPanel({ items }: { items: TopContentItem[] }) {
               </li>
             ))}
           </ul>
-          <p className="border-t border-border px-4 py-2 text-[10.5px] leading-snug text-foreground-muted">
+          <p className="border-t border-separator px-4 py-2.5 text-caption leading-snug text-foreground-muted sm:px-5">
             Ranked by reactions and replies. Views are not recorded.
           </p>
         </>
       )}
-    </Panel>
+    </Card>
   );
 }
 
 /* -------------------------------------------------------------------------- */
 /* System status                                                              */
 /* -------------------------------------------------------------------------- */
+
+const STATUS_ICON = {
+  healthy: CheckCircle2,
+  degraded: AlertTriangle,
+  down: XCircle,
+} as const;
 
 /**
  * Health, checked rather than claimed.
@@ -477,7 +514,8 @@ export function TopContentPanel({ items }: { items: TopContentItem[] }) {
  * honestly be shown is the result of a live check — a timed database round
  * trip, and whether each queue is draining — which is what this is.
  *
- * State is never colour alone: every row carries an icon and a worded reading.
+ * State is never colour alone: every row carries a worded reading, and the
+ * summary's icon changes with the state as well as its colour.
  */
 export function SystemStatusPanel({ rows }: { rows: HealthRow[] }) {
   const worst = rows.some((row) => row.state === "down")
@@ -485,19 +523,20 @@ export function SystemStatusPanel({ rows }: { rows: HealthRow[] }) {
     : rows.some((row) => row.state === "degraded")
       ? "degraded"
       : "healthy";
+  const SummaryIcon = STATUS_ICON[worst];
 
   return (
-    <Panel className="flex flex-col">
-      <PanelHeader title="System status" />
+    <Card padding="none" className="flex flex-col">
+      <CardHeader title="System status" />
       <p
         className={cn(
-          "flex items-center gap-1.5 border-b border-border px-4 py-2 text-[12px] font-semibold",
-          worst === "healthy" && "text-foreground-muted",
+          "flex items-center gap-2 border-b border-separator px-4 py-2.5 text-label font-medium sm:px-5",
+          worst === "healthy" && "text-success",
           worst === "degraded" && "text-warning",
           worst === "down" && "text-danger",
         )}
       >
-        <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
+        <SummaryIcon className="size-4 shrink-0" aria-hidden />
         {worst === "healthy"
           ? "All checks passing"
           : worst === "degraded"
@@ -508,24 +547,24 @@ export function SystemStatusPanel({ rows }: { rows: HealthRow[] }) {
         {rows.map((row) => (
           <li
             key={row.label}
-            className="flex items-center justify-between gap-3 px-4 py-2"
+            className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-5"
             title={row.help}
           >
             <span className="flex min-w-0 items-center gap-2">
               <span
                 className={cn(
                   "size-1.5 shrink-0 rounded-full",
-                  row.state === "healthy" && "bg-foreground-muted",
+                  row.state === "healthy" && "bg-success",
                   row.state === "degraded" && "bg-warning",
                   row.state === "down" && "bg-danger",
                 )}
                 aria-hidden
               />
-              <span className="truncate text-[12px] text-foreground">{row.label}</span>
+              <span className="truncate text-label text-foreground">{row.label}</span>
             </span>
             <span
               className={cn(
-                "shrink-0 text-[11.5px] font-semibold tabular-nums",
+                "shrink-0 text-caption font-medium tabular-nums",
                 row.state === "healthy" && "text-foreground-muted",
                 row.state === "degraded" && "text-warning",
                 row.state === "down" && "text-danger",
@@ -536,7 +575,7 @@ export function SystemStatusPanel({ rows }: { rows: HealthRow[] }) {
           </li>
         ))}
       </ul>
-    </Panel>
+    </Card>
   );
 }
 
@@ -546,23 +585,23 @@ export function SystemStatusPanel({ rows }: { rows: HealthRow[] }) {
 
 export function GrowCta() {
   return (
-    <section className="vu-raise rounded-card border border-border bg-brand-fill p-4 text-brand-fill-foreground">
-      <Sparkles className="size-5" aria-hidden />
-      <h2 className="mt-2 font-display text-[1.05rem] font-bold leading-tight">
-        Grow your community
-      </h2>
-      <p className="mt-1 text-[12.5px] leading-snug opacity-80">
+    <Card>
+      <span
+        className="grid size-9 place-items-center rounded-ctl bg-brand-wash text-on-brand-wash"
+        aria-hidden
+      >
+        <Sparkles className="size-4" />
+      </span>
+      <h2 className="mt-3 text-title font-semibold text-foreground">Grow your community</h2>
+      <p className="mt-1 text-label leading-snug text-foreground-muted">
         Members come back for what is new. Post something, or put the next class
         on the calendar.
       </p>
-      <Link
-        href="/compose"
-        className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-ctl border border-current px-3.5 text-[13px] font-semibold no-underline transition hover:opacity-80"
-      >
+      <ButtonLink href="/compose" variant="primary" size="sm" className="mt-4">
         Create a post
         <ArrowUpRight className="size-3.5" aria-hidden />
-      </Link>
-    </section>
+      </ButtonLink>
+    </Card>
   );
 }
 
@@ -575,23 +614,26 @@ const QUICK_ACTIONS = [
 
 export function QuickActions() {
   return (
-    <Panel className="flex flex-col">
-      <PanelHeader title="Quick actions" />
+    <Card padding="none" className="flex flex-col">
+      <CardHeader title="Quick actions" />
       <ul className="divide-y divide-separator">
         {QUICK_ACTIONS.map((action) => (
           <li key={action.label}>
-            <Link
-              href={action.href}
-              className="flex items-center gap-2.5 px-4 py-2.5 text-[12.5px] font-semibold text-foreground no-underline transition hover:bg-default"
-            >
-              <span className="grid size-7 shrink-0 place-items-center rounded-ctl bg-brand-wash text-on-brand-wash">
+            <Link href={action.href} className={cn(rowLinkClass, "group")}>
+              <span className="grid size-8 shrink-0 place-items-center rounded-ctl bg-brand-wash text-on-brand-wash">
                 {action.icon}
               </span>
-              {action.label}
+              <span className="min-w-0 flex-1 text-label font-medium text-foreground">
+                {action.label}
+              </span>
+              <ChevronRight
+                className="size-4 shrink-0 text-foreground-muted transition group-hover:text-foreground"
+                aria-hidden
+              />
             </Link>
           </li>
         ))}
       </ul>
-    </Panel>
+    </Card>
   );
 }

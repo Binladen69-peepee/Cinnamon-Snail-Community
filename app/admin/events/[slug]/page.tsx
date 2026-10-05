@@ -1,11 +1,11 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExternalLink, Users } from "lucide-react";
+import { ExternalLink, Hourglass, Users } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { EventForm } from "@/components/admin/event-form";
 import { EventRecording } from "@/components/admin/event-recording";
 import { DeleteEventButton } from "@/components/admin/delete-event-button";
-import { Badge, Panel, PanelHeader } from "@/components/admin/ui";
+import { Badge, Card, CardHeader, EmptyState, PageHeader } from "@/components/app/ui";
 import { formatEventTime, safeTimeZone } from "@/lib/events/timezone";
 
 export async function generateMetadata({
@@ -105,25 +105,21 @@ export default async function AdminEventPage({
   const waiting = event.rsvps.filter((rsvp) => rsvp.status === "WAITLIST");
 
   return (
-    <div className="space-y-4">
-      <nav aria-label="Breadcrumb" className="text-[12.5px] text-foreground-muted">
-        <Link
-          href="/admin/events"
-          className="font-semibold text-foreground-muted no-underline hover:text-foreground hover:underline"
-        >
-          Events
-        </Link>
-        <span aria-hidden> / </span>
-        <span>Edit</span>
-      </nav>
-
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="font-display text-[1.5rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-            {event.title}
-          </h1>
-          <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[12.5px] text-foreground-muted">
-            <Badge tone={event.status === "PUBLISHED" ? "good" : event.status === "CANCELED" ? "bad" : "neutral"}>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        back={{ href: "/admin/events", label: "Events" }}
+        title={event.title}
+        description={
+          <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+            <Badge
+              tone={
+                event.status === "PUBLISHED"
+                  ? "success"
+                  : event.status === "CANCELED"
+                    ? "danger"
+                    : "neutral"
+              }
+            >
               {event.status === "PUBLISHED"
                 ? "Published"
                 : event.status === "DRAFT"
@@ -139,24 +135,25 @@ export default async function AdminEventPage({
             ) : null}
             <Link
               href={`/calendar/${event.slug}`}
-              className="inline-flex items-center gap-1 font-semibold text-brand no-underline hover:underline"
+              className="inline-flex items-center gap-1 font-medium text-link no-underline hover:underline"
             >
               View as a member
-              <ExternalLink className="size-3" aria-hidden />
+              <ExternalLink className="size-3.5" aria-hidden />
             </Link>
-          </p>
-        </div>
+          </span>
+        }
+        actions={
+          <DeleteEventButton
+            eventId={event.id}
+            title={event.title}
+            rsvpCount={going.length + waiting.length}
+            occurrences={event._count.occurrences}
+          />
+        }
+      />
 
-        <DeleteEventButton
-          eventId={event.id}
-          title={event.title}
-          rsvpCount={going.length + waiting.length}
-          occurrences={event._count.occurrences}
-        />
-      </header>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="flex min-w-0 flex-col gap-6">
           <EventForm
             event={event}
             spaces={spaces}
@@ -176,55 +173,61 @@ export default async function AdminEventPage({
           />
         </div>
 
-        <aside className="space-y-3">
-          <Panel>
-            <PanelHeader
-              title="Going"
-              icon={<Users className="size-3.5" aria-hidden />}
-              count={going.length}
-            />
+        <aside className="flex min-w-0 flex-col gap-6">
+          <Card padding="none">
+            <CardHeader title="Going" icon={<Users />} count={going.length} />
             {going.length === 0 ? (
-              <p className="px-4 py-4 text-[13px] text-foreground-muted">
-                Nobody yet.
-              </p>
+              <EmptyState
+                size="sm"
+                bordered={false}
+                title="Nobody yet."
+                description="Members who say they are coming are listed here."
+              />
             ) : (
               <ul className="divide-y divide-separator">
                 {going.map((rsvp) => (
                   <li
                     key={rsvp.user.handle}
-                    className="flex items-center justify-between gap-2 px-4 py-2"
+                    className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-5"
                   >
-                    <span className="min-w-0 truncate text-[13px] text-foreground">
+                    <span className="min-w-0 truncate text-label font-medium text-foreground">
                       {rsvp.user.name ?? rsvp.user.handle}
                     </span>
-                    <span className="shrink-0 text-[11.5px] tabular-nums text-foreground-muted">
-                      {rsvp.createdAt.toLocaleDateString("en-GB")}
-                    </span>
+                    <time
+                      dateTime={rsvp.createdAt.toISOString()}
+                      className="shrink-0 text-caption tabular-nums text-foreground-muted"
+                    >
+                      {rsvp.createdAt.toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </time>
                   </li>
                 ))}
               </ul>
             )}
-          </Panel>
+          </Card>
 
           {waiting.length > 0 ? (
-            <Panel>
-              <PanelHeader title="Waitlist" count={waiting.length} />
+            <Card padding="none">
+              <CardHeader title="Waitlist" icon={<Hourglass />} count={waiting.length} />
               <ul className="divide-y divide-separator">
                 {waiting.map((rsvp) => (
                   <li
                     key={rsvp.user.handle}
-                    className="flex items-center justify-between gap-2 px-4 py-2"
+                    className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-5"
                   >
-                    <span className="min-w-0 truncate text-[13px] text-foreground">
+                    <span className="min-w-0 truncate text-label font-medium text-foreground">
                       {rsvp.user.name ?? rsvp.user.handle}
                     </span>
-                    <span className="shrink-0 text-[11.5px] font-bold tabular-nums text-foreground-muted">
+                    <span className="shrink-0 text-caption font-semibold tabular-nums text-foreground-muted">
                       #{rsvp.waitlistPosition}
                     </span>
                   </li>
                 ))}
               </ul>
-            </Panel>
+            </Card>
           ) : null}
         </aside>
       </div>

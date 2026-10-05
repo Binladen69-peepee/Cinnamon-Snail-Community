@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { EventForm } from "@/components/admin/event-form";
+import { PageHeader } from "@/components/app/ui";
 
 export const metadata = { title: "New event" };
 
@@ -23,23 +23,13 @@ export default async function NewEventPage() {
   ]);
 
   return (
-    <div className="space-y-4">
-      <nav aria-label="Breadcrumb" className="text-[12.5px] text-foreground-muted">
-        <Link
-          href="/admin/events"
-          className="font-semibold text-foreground-muted no-underline hover:text-foreground hover:underline"
-        >
-          Events
-        </Link>
-        <span aria-hidden> / </span>
-        <span>New</span>
-      </nav>
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        back={{ href: "/admin/events", label: "Events" }}
+        title="Schedule an event"
+      />
 
-      <h1 className="font-display text-[1.5rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-        Schedule an event
-      </h1>
-
-      <div className="max-w-[46rem]">
+      <div className="w-full max-w-3xl">
         <EventForm
           event={null}
           spaces={spaces}

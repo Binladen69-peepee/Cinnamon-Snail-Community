@@ -1,9 +1,18 @@
 import Link from "next/link";
-import { Handshake, MapPin, MessageSquare, Search } from "lucide-react";
+import { ChevronDown, Handshake, MapPin, MessageSquare, Search } from "lucide-react";
 import { SERVICE_CATEGORIES, type OwnCard, type ServiceView } from "@/lib/bulletin";
 import { Avatar } from "@/components/ui/avatar";
 import { PendingButton } from "@/components/ui/pending-button";
-import { Blank, Field, fieldCls, linkBtn, Pill, primaryBtn, quietBtn, summaryCls } from "@/components/bulletin/ui";
+import {
+  Button,
+  ButtonLink,
+  Input,
+  Select,
+  Textarea,
+  buttonClass,
+  cardClass,
+} from "@/components/app/ui";
+import { Blank, Field, Pill, primaryBtn, summaryCls } from "@/components/bulletin/ui";
 import { deleteCardAction, saveCardAction } from "@/app/(member)/bulletin/actions";
 
 const STATUS_COPY: Record<OwnCard["status"], string> = {
@@ -31,31 +40,48 @@ export function ServicesTab({
   defaultCity: string;
 }) {
   return (
-    <div className="space-y-4">
-      <details className="group" open={own?.status === "rejected" || undefined}>
+    <div className="flex flex-col gap-5">
+      <details
+        className={cardClass({ padding: "none", className: "group" })}
+        open={own?.status === "rejected" || undefined}
+      >
         <summary className={summaryCls}>
-          <span className="inline-flex items-center gap-2">
-            <Handshake className="size-4" aria-hidden />
+          <span className="inline-flex min-w-0 items-center gap-2.5">
+            <span
+              className="grid size-8 shrink-0 place-items-center rounded-full bg-brand-wash text-on-brand-wash"
+              aria-hidden
+            >
+              <Handshake className="size-4" />
+            </span>
             {own ? "Your service card" : "Offer a service"}
           </span>
-          {own ? <Pill tone={own.status === "approved" ? "brand" : "neutral"}>{own.status === "pending" ? "In review" : own.status === "approved" ? "Live" : "Needs changes"}</Pill> : null}
+          <span className="inline-flex shrink-0 items-center gap-2">
+            {own ? <Pill tone={own.status === "approved" ? "brand" : "neutral"}>{own.status === "pending" ? "In review" : own.status === "approved" ? "Live" : "Needs changes"}</Pill> : null}
+            <ChevronDown
+              className="size-4 text-foreground-muted transition-transform group-open:rotate-180"
+              aria-hidden
+            />
+          </span>
         </summary>
-        <form action={saveCardAction} className="mt-2 grid grid-cols-1 gap-3 rounded-card border border-border bg-surface p-4 sm:grid-cols-2">
-          {own ? <p className="text-[13px] text-foreground-muted sm:col-span-2">{STATUS_COPY[own.status]}</p> : null}
+        <form
+          action={saveCardAction}
+          className="grid grid-cols-1 gap-4 border-t border-separator p-4 sm:grid-cols-2 sm:p-5"
+        >
+          {own ? <p className="text-label text-foreground-muted sm:col-span-2">{STATUS_COPY[own.status]}</p> : null}
           <Field label="What you offer" htmlFor="s-title" className="sm:col-span-2">
-            <input id="s-title" name="title" required minLength={3} maxLength={120} defaultValue={own?.title} placeholder="Plant-based meal prep for busy weeks" className={fieldCls} />
+            <Input id="s-title" name="title" required minLength={3} maxLength={120} defaultValue={own?.title} placeholder="Plant-based meal prep for busy weeks" />
           </Field>
           <Field label="Category" htmlFor="s-category">
-            <select id="s-category" name="category" required defaultValue={own?.category ?? "lessons"} className={fieldCls}>
+            <Select id="s-category" name="category" required defaultValue={own?.category ?? "lessons"}>
               {Object.entries(SERVICE_CATEGORIES).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
               ))}
-            </select>
+            </Select>
           </Field>
           <Field label="City" htmlFor="s-city" hint="Leave empty if you work online.">
-            <input id="s-city" name="city" maxLength={80} defaultValue={own?.city ?? defaultCity} className={fieldCls} />
+            <Input id="s-city" name="city" maxLength={80} defaultValue={own?.city ?? defaultCity} />
           </Field>
           <Field
             label="Describe it"
@@ -63,15 +89,15 @@ export function ServicesTab({
             className="sm:col-span-2"
             hint="Keep it accurate and fully vegan. No health or medical claims, and no multi-level marketing."
           >
-            <textarea id="s-body" name="body" required minLength={10} maxLength={2000} rows={4} defaultValue={own?.body} className={fieldCls} />
+            <Textarea id="s-body" name="body" required minLength={10} maxLength={2000} rows={4} defaultValue={own?.body} />
           </Field>
-          <div className="flex flex-wrap items-center gap-3 sm:col-span-2">
+          <div className="flex flex-wrap items-center gap-3 border-t border-separator pt-4 sm:col-span-2">
             <PendingButton className={primaryBtn}>{own ? "Save and send for review" : "Send for review"}</PendingButton>
           </div>
         </form>
         {own ? (
-          <form action={deleteCardAction} className="mt-2 px-1">
-            <PendingButton className={linkBtn}>Remove my card</PendingButton>
+          <form action={deleteCardAction} className="border-t border-separator px-4 py-3 sm:px-5">
+            <PendingButton className={buttonClass({ variant: "danger", size: "sm" })}>Remove my card</PendingButton>
           </form>
         ) : null}
       </details>
@@ -81,22 +107,22 @@ export function ServicesTab({
         <label htmlFor="s-q" className="sr-only">
           Search services
         </label>
-        <input id="s-q" name="q" defaultValue={q} placeholder="Search services or cities" className={`${fieldCls} min-w-0 flex-1`} />
+        <Input id="s-q" name="q" defaultValue={q} placeholder="Search services or cities" className="w-auto min-w-48 flex-1" />
         <label htmlFor="s-cat" className="sr-only">
           Category
         </label>
-        <select id="s-cat" name="category" defaultValue={category ?? ""} className={`${fieldCls} w-auto`}>
+        <Select id="s-cat" name="category" defaultValue={category ?? ""} className="w-auto">
           <option value="">All categories</option>
           {Object.entries(SERVICE_CATEGORIES).map(([value, label]) => (
             <option key={value} value={value}>
               {label}
             </option>
           ))}
-        </select>
-        <button type="submit" className={quietBtn}>
+        </Select>
+        <Button type="submit">
           <Search className="size-4" aria-hidden />
           Search
-        </button>
+        </Button>
       </form>
 
       {cards.length === 0 ? (
@@ -111,33 +137,37 @@ export function ServicesTab({
           action={q || category ? { href: "/bulletin?tab=services", label: "Show all services" } : undefined}
         />
       ) : (
-        <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           {cards.map((card) => (
-            <li key={card.id} className="flex flex-col rounded-card border border-border bg-surface p-4">
+            <li key={card.id} className={cardClass({ className: "flex flex-col" })}>
               <div className="flex items-center gap-2.5">
                 <Avatar name={card.person.displayName} src={card.person.avatarUrl} size="sm" />
                 <div className="min-w-0">
-                  <Link href={`/members/${card.person.handle}`} className="block truncate text-[13.5px] font-semibold text-foreground no-underline hover:underline">
+                  <Link href={`/members/${card.person.handle}`} className="block truncate text-label font-semibold text-foreground no-underline hover:underline">
                     {card.person.displayName}
                   </Link>
-                  <p className="flex items-center gap-1 text-[12px] text-foreground-muted">
+                  <p className="flex min-w-0 items-center gap-1 text-caption text-foreground-muted">
                     {card.category ? SERVICE_CATEGORIES[card.category] : "Service"}
                     {card.city ? (
                       <>
                         {" · "}
-                        <MapPin className="size-3" aria-hidden />
-                        {card.city}
+                        <MapPin className="size-3 shrink-0" aria-hidden />
+                        <span className="truncate">{card.city}</span>
                       </>
                     ) : null}
                   </p>
                 </div>
               </div>
-              <h3 className="mt-3 text-[15px] font-bold text-foreground">{card.title}</h3>
-              <p className="mt-1 line-clamp-5 flex-1 whitespace-pre-line text-[13.5px] text-foreground-muted">{card.body}</p>
-              <Link href={`/messages/new?to=${encodeURIComponent(card.person.handle)}`} className={`${quietBtn} mt-3 self-start`}>
+              <h3 className="mt-3 text-title font-semibold text-foreground text-pretty">{card.title}</h3>
+              <p className="mt-1 line-clamp-5 flex-1 whitespace-pre-line text-body text-foreground-muted">{card.body}</p>
+              <ButtonLink
+                href={`/messages/new?to=${encodeURIComponent(card.person.handle)}`}
+                size="sm"
+                className="mt-4 self-start"
+              >
                 <MessageSquare className="size-4" aria-hidden />
                 Message
-              </Link>
+              </ButtonLink>
             </li>
           ))}
         </ul>

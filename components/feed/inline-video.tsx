@@ -75,7 +75,7 @@ export function InlineVideo({
       aria-label={alt ? `Play ${alt}` : "Play video"}
       className={cn(
         frame,
-        "text-left focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
+        "text-left",
       )}
       style={{ aspectRatio: ratio }}
     >

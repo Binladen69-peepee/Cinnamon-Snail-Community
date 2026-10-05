@@ -7,6 +7,7 @@ import {
   publishPostAction,
 } from "@/app/(member)/community-actions";
 import { toast } from "@/components/ui/toast";
+import { Button } from "@/components/app/ui";
 
 /**
  * One unpublished post, with the two things you can do to it.
@@ -48,20 +49,22 @@ export function DraftRow({
   const when = post.scheduledAt ? new Date(post.scheduledAt) : null;
 
   return (
-    <li className="rounded-card border border-border bg-surface p-4">
-      <p className="text-[12px] font-semibold uppercase tracking-[0.12em] text-foreground-muted">
+    // A row of the drafts card: the page sets the list in one surface with
+    // dividers, so a row has no edge of its own.
+    <li className="px-4 py-4 sm:px-5">
+      <p className="text-micro font-semibold uppercase tracking-[0.08em] text-foreground-muted">
         {post.spaceName}
       </p>
       {post.title ? (
-        <h2 className="mt-1.5 text-[15.5px] font-bold text-foreground">
+        <h2 className="mt-1.5 text-title font-semibold leading-snug text-foreground">
           {post.title}
         </h2>
       ) : null}
-      <p className="mt-1 line-clamp-3 text-[14px] leading-relaxed text-foreground-muted">
+      <p className="mt-1 line-clamp-3 text-body leading-relaxed text-foreground-muted">
         {post.plainText || "No text yet."}
       </p>
 
-      <p className="mt-2 text-[12.5px] text-foreground-muted">
+      <p className="mt-2 text-caption text-foreground-muted">
         {when
           ? `Goes live ${when.toLocaleString(undefined, {
               dateStyle: "medium",
@@ -75,13 +78,13 @@ export function DraftRow({
           : ""}
       </p>
 
-      <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-border pt-3">
+      <div className="mt-3 flex flex-wrap items-center gap-2">
         {canPublish ? (
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="sm"
             disabled={pending}
             onClick={() => run(publishPostAction, "Published.")}
-            className="vu-btn vu-btn-primary inline-flex h-11 items-center gap-1.5 px-4 text-[13.5px]"
           >
             {pending ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />
@@ -89,21 +92,21 @@ export function DraftRow({
               <Send className="size-4" aria-hidden />
             )}
             Publish now
-          </button>
+          </Button>
         ) : (
-          <p className="text-[13px] text-foreground-muted">
+          <p className="mr-1 text-label text-foreground-muted">
             Waiting for a host to review it.
           </p>
         )}
-        <button
-          type="button"
+        <Button
+          variant="danger"
+          size="sm"
           disabled={pending}
           onClick={() => run(deletePostAction, "Deleted.")}
-          className="vu-btn inline-flex h-11 items-center gap-1.5 px-4 text-[13.5px] text-danger"
         >
           <Trash2 className="size-4" aria-hidden />
           Delete
-        </button>
+        </Button>
       </div>
     </li>
   );

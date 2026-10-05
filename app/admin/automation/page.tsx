@@ -1,17 +1,18 @@
 import { CircuitBoard, History, ListChecks, PauseCircle } from "lucide-react";
 import { loadAutomationConsole } from "@/lib/admin/automation";
 import {
-  AdminButton,
   Badge,
-  EmptyPanel,
+  Button,
+  Callout,
+  Card,
+  CardHeader,
+  EmptyState,
   PageHeader,
-  Panel,
-  PanelHeader,
   Table,
   Td,
   Th,
   Tr,
-} from "@/components/admin/ui";
+} from "@/components/app/ui";
 import {
   BrokenRule,
   PauseAllSwitch,
@@ -35,83 +36,80 @@ export default async function AutomationPage() {
   const data = await loadAutomationConsole();
 
   return (
-    <div className="space-y-5 py-2">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Automation"
-        subtitle="Rules that watch for something and act on it. Every rule starts off."
+        description="Rules that watch for something and act on it. Every rule starts off."
         actions={<PauseAllSwitch paused={data.paused} />}
       />
 
       {data.paused ? (
-        <Panel className="border-warning/40 bg-warning/8">
-          <div className="flex items-start gap-2.5 px-4 py-3">
-            <PauseCircle className="mt-0.5 size-4 shrink-0 text-warning" aria-hidden />
-            <p className="text-[13px] text-foreground">
-              <strong className="font-bold">Everything is paused.</strong> No rule will act,
-              including the nightly run. Dry runs still work, so you can keep checking what
-              would happen.
-            </p>
-          </div>
-        </Panel>
+        <Callout tone="warning" icon={<PauseCircle />} title="Everything is paused.">
+          No rule will act, including the nightly run. Dry runs still work, so you can keep
+          checking what would happen.
+        </Callout>
       ) : null}
 
-      <Panel>
-        <PanelHeader
+      <Card padding="none">
+        <CardHeader
           title="Rules"
-          icon={<CircuitBoard className="size-3.5" aria-hidden />}
+          icon={<CircuitBoard />}
           count={data.rules.length}
           action={
             data.missingRules > 0 ? (
               <form action={seedMissingRulesAction}>
-                <AdminButton type="submit" variant="primary" className="h-8 px-3 text-[12px]">
+                <Button type="submit" variant="primary" size="sm">
                   Add {data.missingRules} missing
-                </AdminButton>
+                </Button>
               </form>
             ) : null
           }
         />
         {data.rules.length === 0 ? (
-          <EmptyPanel
-            icon={<ListChecks className="size-6" aria-hidden />}
+          <EmptyState
+            bordered={false}
+            icon={<ListChecks />}
             title="No rules yet"
-            body="The fourteen rules from the plan can be added here. They arrive switched off, so nothing is sent until you turn one on."
+            description="The fourteen rules from the plan can be added here. They arrive switched off, so nothing is sent until you turn one on."
             action={
               <form action={seedMissingRulesAction}>
-                <AdminButton type="submit" variant="primary">
+                <Button type="submit" variant="primary">
                   Add the standard rules
-                </AdminButton>
+                </Button>
               </form>
             }
           />
         ) : (
           <ul className="divide-y divide-separator">
             {data.rules.map((rule) => (
-              <li key={rule.id} className="space-y-3 px-4 py-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
+              <li key={rule.id} className="flex flex-col gap-3 px-4 py-4 sm:px-5">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
-                      <h3 className="text-[14px] font-bold text-foreground">{rule.name}</h3>
-                      <Badge tone={rule.enabled ? "good" : "neutral"}>
+                      <h3 className="text-body font-semibold text-foreground">{rule.name}</h3>
+                      <Badge tone={rule.enabled ? "success" : "neutral"}>
                         {rule.enabled ? "On" : "Off"}
                       </Badge>
-                      {rule.problem ? <Badge tone="bad">Broken</Badge> : null}
+                      {rule.problem ? <Badge tone="danger">Broken</Badge> : null}
                     </div>
                     {rule.description ? (
-                      <p className="mt-1 max-w-[70ch] text-[12.5px] leading-snug text-foreground-muted">
+                      <p className="mt-1 max-w-[70ch] text-label leading-snug text-foreground-muted">
                         {rule.description}
                       </p>
                     ) : null}
-                    <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11.5px] text-foreground-muted">
-                      <span className="font-semibold">When:</span> {rule.triggerLabel}
+                    <p className="mt-1.5 flex flex-wrap items-center gap-1.5 text-caption text-foreground-muted">
+                      <span className="font-semibold text-foreground">When:</span> {rule.triggerLabel}
                       {rule.actionSummary.length > 0 ? (
                         <>
-                          <span className="font-semibold">· Then:</span>
+                          <span className="font-semibold text-foreground">· Then:</span>
                           {rule.actionSummary.join(", ")}
                         </>
                       ) : null}
                     </p>
                   </div>
-                  <div className="text-right text-[11.5px] tabular-nums text-foreground-muted">
+                  {/* Left-aligned under the title on a phone, a right-hand
+                      column from sm up. */}
+                  <div className="shrink-0 text-caption tabular-nums text-foreground-muted sm:text-right">
                     <div>
                       {rule.fired} acted on
                       {rule.failed > 0 ? <span className="text-danger"> · {rule.failed} failed</span> : null}
@@ -127,56 +125,59 @@ export default async function AutomationPage() {
             ))}
           </ul>
         )}
-      </Panel>
+      </Card>
 
-      <Panel>
-        <PanelHeader
-          title="Recent activity"
-          icon={<History className="size-3.5" aria-hidden />}
-          count={data.recent.length}
-        />
+      <Card padding="none" className="overflow-hidden">
+        <CardHeader title="Recent activity" icon={<History />} count={data.recent.length} />
         {data.recent.length === 0 ? (
-          <EmptyPanel
-            icon={<History className="size-6" aria-hidden />}
+          <EmptyState
+            size="sm"
+            bordered={false}
+            icon={<History />}
             title="Nothing has run yet"
-            body="Once a rule is on, every member it acts on is listed here with what happened."
+            description="Once a rule is on, every member it acts on is listed here with what happened."
           />
         ) : (
           <Table
             head={
               <>
                 <Th>Rule</Th>
-                <Th>Member</Th>
+                <Th className="hidden sm:table-cell">Member</Th>
                 <Th>Result</Th>
-                <Th className="text-right">When</Th>
+                <Th className="hidden text-right md:table-cell">When</Th>
               </>
             }
           >
             {data.recent.map((row) => (
               <Tr key={row.id}>
-                <Td>
-                  <span className="text-[13px] font-semibold text-foreground">{row.ruleName}</span>
+                <Td className="align-top">
+                  <span className="font-medium text-foreground">{row.ruleName}</span>
+                  {/* On a phone the hidden columns fold in under the rule. */}
+                  <span className="mt-0.5 block text-caption tabular-nums text-foreground-muted md:hidden">
+                    <span className="sm:hidden">{row.handle ? `@${row.handle} · ` : ""}</span>
+                    {formatShortTime(row.createdAt)}
+                  </span>
                 </Td>
-                <Td>
-                  <span className="text-[12.5px] text-foreground-muted">
+                <Td className="hidden align-top sm:table-cell">
+                  <span className="text-foreground-muted">
                     {row.handle ? `@${row.handle}` : "—"}
                   </span>
                 </Td>
-                <Td>
-                  <div className="flex items-start gap-2">
-                    <Badge tone={row.success ? "good" : "bad"}>
+                <Td className="align-top">
+                  <div className="flex flex-wrap items-start gap-2">
+                    <Badge tone={row.success ? "success" : "danger"}>
                       {row.success ? "Done" : "Failed"}
                     </Badge>
-                    <span className="max-w-[48ch] text-[12px] leading-snug text-foreground-muted">
+                    <span className="min-w-0 max-w-[48ch] flex-1 text-caption leading-snug text-foreground-muted">
                       {row.detail}
                     </span>
                     {!row.success ? <RetryButton executionId={row.id} /> : null}
                   </div>
                 </Td>
-                <Td className="text-right">
+                <Td className="hidden text-right align-top md:table-cell">
                   <time
                     dateTime={row.createdAt.toISOString()}
-                    className="text-[11.5px] tabular-nums text-foreground-muted"
+                    className="whitespace-nowrap text-caption tabular-nums text-foreground-muted"
                   >
                     {formatShortTime(row.createdAt)}
                   </time>
@@ -185,7 +186,7 @@ export default async function AutomationPage() {
             ))}
           </Table>
         )}
-      </Panel>
+      </Card>
     </div>
   );
 }

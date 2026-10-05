@@ -2,8 +2,9 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, Lock } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { Button, fieldClass } from "@/components/app/ui";
 import { cn } from "@/lib/utils";
 
 /**
@@ -33,9 +34,12 @@ export function CommentComposer({
 
   const text = body.trim();
 
+  // No surface of its own: the post page sets the reply box, the sort and the
+  // thread in one card.
   if (!joined) {
     return (
-      <p className="rounded-card border border-border bg-surface px-3 py-2.5 text-[13.5px] text-foreground-muted">
+      <p className="flex items-center gap-2 text-body text-foreground-muted">
+        <Lock className="size-4 shrink-0" aria-hidden />
         Join this room to reply.
       </p>
     );
@@ -64,13 +68,8 @@ export function CommentComposer({
   }
 
   return (
-    <section
-      className={cn(
-        "rounded-card border bg-surface p-2.5 transition-colors",
-        open ? "border-brand/50" : "border-border",
-      )}
-    >
-      <div className="flex gap-2.5">
+    <section>
+      <div className="flex gap-3">
         <Avatar name={viewer.name} src={viewer.avatar} size="sm" />
         <div className="min-w-0 flex-1">
           <textarea
@@ -78,6 +77,7 @@ export function CommentComposer({
             rows={open ? 3 : 1}
             disabled={pending}
             aria-label="Write a reply"
+            aria-invalid={error ? true : undefined}
             placeholder="Add your reply…"
             onFocus={() => setOpen(true)}
             onChange={(event) => setBody(event.currentTarget.value)}
@@ -87,33 +87,39 @@ export function CommentComposer({
                 submit();
               }
             }}
-            className="w-full resize-none border-0 bg-transparent p-0 pt-1 text-[14.5px] leading-normal text-foreground outline-none placeholder:text-foreground-muted disabled:opacity-60"
+            className={cn(
+              open
+                ? fieldClass({ multiline: true })
+                : fieldClass({ className: "py-2 leading-5" }),
+              "block resize-none",
+            )}
           />
 
           {error ? (
-            <p className="mt-1.5 text-[12.5px] font-semibold text-danger" role="alert">
+            <p className="mt-1.5 text-caption font-medium text-danger" role="alert">
               {error}
             </p>
           ) : null}
 
           {open ? (
-            <div className="mt-2 flex items-center justify-end gap-1.5 border-t border-border pt-2">
-              <button
-                type="button"
+            <div className="mt-2.5 flex items-center justify-end gap-2">
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => {
                   setOpen(false);
                   setBody("");
                   setError(null);
                 }}
-                className="inline-flex h-8 items-center rounded-full px-3 text-[12.5px] font-bold text-foreground-muted transition hover:text-foreground"
               >
                 Cancel
-              </button>
-              <button
-                type="button"
+              </Button>
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={submit}
                 disabled={!text || pending}
-                className="inline-flex h-8 min-w-16 items-center justify-center gap-1.5 rounded-full bg-brand-fill px-3.5 text-[12.5px] font-bold text-brand-fill-foreground transition active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-40 hover:bg-brand-fill-hover "
+                className="min-w-16"
               >
                 {pending ? (
                   <>
@@ -123,7 +129,7 @@ export function CommentComposer({
                 ) : (
                   "Reply"
                 )}
-              </button>
+              </Button>
             </div>
           ) : null}
         </div>

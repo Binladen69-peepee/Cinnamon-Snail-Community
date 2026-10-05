@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ChevronLeft, ChevronRight, ShieldCheck, Users } from "lucide-react";
+import { ShieldCheck, Users } from "lucide-react";
 import {
   listMembers,
   parseMemberFilter,
@@ -8,15 +8,18 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import {
   Badge,
+  ButtonLink,
+  Card,
   ChipLink,
-  EmptyPanel,
+  ChipRow,
+  EmptyState,
   PageHeader,
-  Panel,
+  Pager,
   Table,
   Td,
   Th,
   Tr,
-} from "@/components/admin/ui";
+} from "@/components/app/ui";
 import { AdminSearch } from "@/components/admin/admin-search";
 
 export const metadata = { title: "Members" };
@@ -28,6 +31,20 @@ const FILTER_LABEL: Record<MemberFilter, string> = {
   staff: "Staff",
   new: "New this month",
 };
+
+/** The most senior staff role first, so the badge names the one that matters. */
+const STAFF_ROLE_LABEL: [string, string][] = [
+  ["SUPER_ADMIN", "Super admin"],
+  ["ADMIN", "Admin"],
+  ["MODERATOR", "Moderator"],
+  ["HOST", "Host"],
+];
+
+/** A stored enum ("PAST_DUE") as a person would say it ("Past due"). */
+function humanize(value: string) {
+  const words = value.toLowerCase().replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
 
 /**
  * The member directory.
@@ -65,39 +82,48 @@ export default async function AdminMembersPage({
     return query ? `/admin/members?${query}` : "/admin/members";
   }
 
+  const narrowed = Boolean(q) || filter !== "all";
+
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Members"
-        subtitle={
-          q || filter !== "all"
+        description={
+          narrowed
             ? `${data.total} of ${data.totalUnfiltered} accounts`
             : `${data.totalUnfiltered} accounts in the school.`
         }
-      />
+      >
+        <div className="flex flex-col gap-3">
+          <AdminSearch
+            placeholder="Search by name, handle or email"
+            label="Search members"
+            resetParams={["page"]}
+          />
+          <ChipRow label="Filter members">
+            {(Object.keys(FILTER_LABEL) as MemberFilter[]).map((option) => (
+              <ChipLink key={option} href={href({ filter: option })} active={option === filter}>
+                {FILTER_LABEL[option]}
+              </ChipLink>
+            ))}
+          </ChipRow>
+        </div>
+      </PageHeader>
 
-      <AdminSearch
-        placeholder="Search by name, handle or email"
-        label="Search members"
-        resetParams={["page"]}
-      />
-
-      <ul className="flex flex-wrap gap-1.5">
-        {(Object.keys(FILTER_LABEL) as MemberFilter[]).map((option) => (
-          <li key={option}>
-            <ChipLink href={href({ filter: option })} active={option === filter}>
-              {FILTER_LABEL[option]}
-            </ChipLink>
-          </li>
-        ))}
-      </ul>
-
-      <Panel>
+      <Card padding="none" className="overflow-hidden">
         {data.rows.length === 0 ? (
-          <EmptyPanel
-            icon={<Users className="size-6" aria-hidden />}
+          <EmptyState
+            bordered={false}
+            icon={<Users />}
             title={q ? `No member matches “${q}”` : "Nobody in this group"}
-            body="Search covers display name, handle and the account email."
+            description="Search covers display name, handle and the account email."
+            action={
+              narrowed ? (
+                <ButtonLink href="/admin/members" size="sm">
+                  Show everyone
+                </ButtonLink>
+              ) : undefined
+            }
           />
         ) : (
           <Table
@@ -107,123 +133,76 @@ export default async function AdminMembersPage({
                 <Th className="hidden md:table-cell">Access</Th>
                 <Th className="hidden lg:table-cell">Subscription</Th>
                 <Th className="hidden sm:table-cell">Joined</Th>
-                <Th className="hidden xl:table-cell">Posts</Th>
+                <Th className="hidden text-right xl:table-cell">Posts</Th>
               </>
             }
           >
-            {data.rows.map((row) => (
-              <Tr key={row.id}>
-                <Td>
-                  <Link
-                    href={`/admin/members/${row.id}`}
-                    className="flex items-center gap-2.5 no-underline"
-                  >
-                    <Avatar
-                      name={row.name}
-                      src={row.avatarUrl}
-                      size="sm"
-                      className="size-8"
-                    />
-                    <span className="min-w-0">
-                      <span className="flex items-center gap-1.5">
-                        <span className="truncate text-[13.5px] font-bold text-foreground">
-                          {row.name}
+            {data.rows.map((row) => {
+              const staffRole = row.isStaff
+                ? (STAFF_ROLE_LABEL.find(([role]) => row.roles.includes(role))?.[1] ?? "Staff")
+                : null;
+              return (
+                <Tr key={row.id}>
+                  <Td>
+                    <Link
+                      href={`/admin/members/${row.id}`}
+                      className="group flex items-center gap-3 no-underline"
+                    >
+                      <Avatar name={row.name} src={row.avatarUrl} size="sm" />
+                      <span className="flex min-w-0 max-w-48 flex-col sm:max-w-64 lg:max-w-80">
+                        <span className="flex min-w-0 items-center gap-1.5">
+                          <span className="truncate text-label font-semibold text-foreground transition group-hover:text-brand-strong">
+                            {row.name}
+                          </span>
+                          {staffRole ? (
+                            <Badge tone="brand" icon={<ShieldCheck aria-hidden />}>
+                              {staffRole}
+                            </Badge>
+                          ) : null}
+                          {row.status !== "ACTIVE" ? (
+                            <Badge tone="danger">{humanize(row.status)}</Badge>
+                          ) : null}
                         </span>
-                        {row.isStaff ? (
-                          <ShieldCheck
-                            className="size-3.5 shrink-0 text-brand"
-                            aria-label="Staff"
-                          />
-                        ) : null}
-                        {row.status !== "ACTIVE" ? (
-                          <Badge tone="bad">{row.status.toLowerCase()}</Badge>
-                        ) : null}
+                        <span className="truncate text-caption text-foreground-muted">
+                          {row.email ?? `@${row.handle}`}
+                        </span>
                       </span>
-                      <span className="block truncate text-[12px] text-foreground-muted">
-                        {row.email ?? `@${row.handle}`}
-                      </span>
-                    </span>
-                  </Link>
-                </Td>
-                <Td className="hidden md:table-cell">
-                  {row.hasAccess ? (
-                    <Badge tone="good">Active</Badge>
-                  ) : (
-                    <Badge tone="neutral">No access</Badge>
-                  )}
-                </Td>
-                <Td className="hidden lg:table-cell">
-                  <span className="text-[12.5px] text-foreground-muted">
-                    {row.subscriptionStatus
-                      ? row.subscriptionStatus.toLowerCase().replace("_", " ")
-                      : "—"}
-                  </span>
-                </Td>
-                <Td className="hidden whitespace-nowrap text-[12.5px] tabular-nums text-foreground-muted sm:table-cell">
-                  {row.joinedAt.toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
-                </Td>
-                <Td className="hidden text-[12.5px] tabular-nums text-foreground-muted xl:table-cell">
-                  {row.posts}
-                </Td>
-              </Tr>
-            ))}
+                    </Link>
+                  </Td>
+                  <Td className="hidden md:table-cell">
+                    {row.hasAccess ? (
+                      <Badge tone="success">Active</Badge>
+                    ) : (
+                      <Badge tone="neutral">No access</Badge>
+                    )}
+                  </Td>
+                  <Td className="hidden text-foreground-muted lg:table-cell">
+                    {row.subscriptionStatus ? humanize(row.subscriptionStatus) : "—"}
+                  </Td>
+                  <Td className="hidden whitespace-nowrap tabular-nums text-foreground-muted sm:table-cell">
+                    {row.joinedAt.toLocaleDateString("en-GB", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </Td>
+                  <Td className="hidden text-right tabular-nums text-foreground-muted xl:table-cell">
+                    {row.posts}
+                  </Td>
+                </Tr>
+              );
+            })}
           </Table>
         )}
-      </Panel>
+      </Card>
 
       {data.pageCount > 1 ? (
-        <nav
-          aria-label="Member pages"
-          className="flex items-center justify-between gap-3"
-        >
-          <PagerLink href={href({ page: data.page - 1 })} disabled={data.page <= 1}>
-            <ChevronLeft className="size-4" aria-hidden />
-            Previous
-          </PagerLink>
-          <p className="text-[12.5px] font-semibold tabular-nums text-foreground-muted">
-            Page {data.page} of {data.pageCount}
-          </p>
-          <PagerLink
-            href={href({ page: data.page + 1 })}
-            disabled={data.page >= data.pageCount}
-          >
-            Next
-            <ChevronRight className="size-4" aria-hidden />
-          </PagerLink>
-        </nav>
+        <Pager
+          prevHref={data.page > 1 ? href({ page: data.page - 1 }) : null}
+          nextHref={data.page < data.pageCount ? href({ page: data.page + 1 }) : null}
+          summary={`Page ${data.page} of ${data.pageCount}`}
+        />
       ) : null}
     </div>
-  );
-}
-
-function PagerLink({
-  href,
-  disabled,
-  children,
-}: {
-  href: string;
-  disabled: boolean;
-  children: React.ReactNode;
-}) {
-  const base =
-    "inline-flex h-9 items-center gap-1 rounded-ctl border border-border px-3 text-[13px] font-semibold no-underline transition";
-  if (disabled) {
-    return (
-      <span
-        aria-disabled="true"
-        className={`${base} cursor-not-allowed text-foreground-muted opacity-45`}
-      >
-        {children}
-      </span>
-    );
-  }
-  return (
-    <Link href={href} className={`${base} text-foreground hover:border-hairline-firm`}>
-      {children}
-    </Link>
   );
 }

@@ -1,11 +1,19 @@
 import { auth } from "@/auth";
 import { notFound, redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { confirmCancelAction } from "@/app/(member)/billing/actions";
-import Link from "next/link";
 import { AppShell } from "@/components/app/app-shell";
+import {
+  Button,
+  ButtonLink,
+  Callout,
+  Card,
+  Field,
+  PageHeader,
+  Textarea,
+} from "@/components/app/ui";
+
+export const metadata = { title: "Cancel membership" };
 
 export default async function CancelConfirmPage({
   params,
@@ -26,35 +34,39 @@ export default async function CancelConfirmPage({
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-xl space-y-6 pb-10">
-      <p className="text-sm uppercase tracking-[0.18em] text-foreground-muted">Stay if you want</p>
-      <h1 className="font-display text-[1.6rem] sm:text-3xl text-foreground">One clear confirmation</h1>
-      <p className="text-foreground-muted">
-        Canceling {request.subscription.product.name} asks SamCart to stop billing.
-        We will not tell you it worked unless SamCart confirms it. Access then
-        follows the period SamCart reports — including the 31-day window on the
-        1-month trial memberships.
-      </p>
-      {failed ? (
-        <p className="rounded-2xl bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
-          SamCart did not confirm the cancellation. Your access is unchanged.
-        </p>
-      ) : null}
-      <form action={confirmCancelAction} className="space-y-4 rounded-[1.5rem] border border-sand bg-warm-white p-6">
-        <input type="hidden" name="requestId" value={request.id} />
-        <label className="block text-sm">
-          Optional reason
-          <Textarea name="reason" className="mt-2" placeholder="What made this the right time to leave?" />
-        </label>
-        <div className="flex flex-wrap gap-3">
-          <Button type="submit" variant="danger">
-            Yes, cancel with SamCart
-          </Button>
-          <Link href="/billing" className="inline-flex min-h-11 items-center text-sm text-foreground-muted">
-            Keep my seat
-          </Link>
-        </div>
-      </form>
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          back={{ href: "/billing", label: "Membership" }}
+          eyebrow="Stay if you want"
+          title="One clear confirmation"
+          description={`Canceling ${request.subscription.product.name} asks SamCart to stop billing. We will not tell you it worked unless SamCart confirms it. Access then follows the period SamCart reports — including the 31-day window on the 1-month trial memberships.`}
+        />
+        {failed ? (
+          <Callout tone="danger" role="alert">
+            SamCart did not confirm the cancellation. Your access is unchanged.
+          </Callout>
+        ) : null}
+        <Card>
+          <form action={confirmCancelAction} className="flex flex-col gap-5">
+            <input type="hidden" name="requestId" value={request.id} />
+            <Field label="Optional reason" htmlFor="cancel-reason">
+              <Textarea
+                id="cancel-reason"
+                name="reason"
+                className="min-h-32"
+                placeholder="What made this the right time to leave?"
+              />
+            </Field>
+            <div className="flex flex-wrap items-center gap-2 border-t border-separator pt-4">
+              <Button type="submit" variant="danger">
+                Yes, cancel with SamCart
+              </Button>
+              <ButtonLink href="/billing" variant="ghost">
+                Keep my seat
+              </ButtonLink>
+            </div>
+          </form>
+        </Card>
       </div>
     </AppShell>
   );

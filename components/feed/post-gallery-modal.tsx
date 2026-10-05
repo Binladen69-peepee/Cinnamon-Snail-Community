@@ -21,6 +21,7 @@ import { formatCount, formatShortTime } from "@/lib/community/format-count";
 import type { MediaItem } from "@/components/feed/post-media";
 import { videoEmbedSrc, videoPosterUrl } from "@/lib/community/media";
 import { useIsMobile } from "@/components/hooks/use-media-query";
+import { backdropClass, dialogClass } from "@/components/app/ui";
 import { cn } from "@/lib/utils";
 
 export type GalleryPost = {
@@ -235,25 +236,29 @@ function GalleryDialog({
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/65 p-0 sm:p-6"
+      className={cn(backdropClass, "z-80 flex items-center justify-center p-0 sm:p-6")}
       onClick={onClose}
     >
-      {/* Close outside the card, Instagram-style */}
+      {/* Close outside the card, Instagram-style. A surface chip rather than a
+          bare white glyph, so it reads on the light veil as well as the dark. */}
       <button
         type="button"
         onClick={onClose}
         aria-label="Close"
-        className="absolute right-4 top-4 z-[81] grid size-10 place-items-center rounded-full text-white transition hover:bg-white/10"
+        className="absolute right-4 top-4 z-81 grid size-10 place-items-center rounded-full border border-border bg-overlay text-foreground shadow-e2 transition hover:bg-surface-muted"
       >
-        <X className="size-6" strokeWidth={1.75} aria-hidden />
+        <X className="size-5" aria-hidden />
       </button>
 
       <div
-        className="flex h-full w-full max-w-[1180px] flex-col overflow-hidden bg-background shadow-e3 sm:h-[min(90vh,860px)] sm:rounded-[12px] lg:flex-row"
+        className={cn(
+          dialogClass,
+          "flex h-full w-full max-w-295 flex-col overflow-hidden sm:h-[min(90dvh,860px)] lg:flex-row",
+        )}
         onClick={(event) => event.stopPropagation()}
       >
         {/* Left: media */}
-        <div className="relative flex min-h-[40vh] flex-[1.35] items-center justify-center bg-black lg:min-h-0">
+        <div className="relative flex min-h-[40dvh] flex-[1.35] items-center justify-center bg-black lg:min-h-0">
           {media.length > 1 ? (
             <>
               <button
@@ -322,32 +327,32 @@ function GalleryDialog({
         </div>
 
         {/* Right: Instagram sidebar */}
-        <aside className="flex w-full shrink-0 flex-col border-t border-border bg-surface lg:w-[400px] lg:border-l lg:border-t-0">
+        <aside className="flex w-full shrink-0 flex-col border-t border-border lg:w-100 lg:border-l lg:border-t-0">
           {/* Sticky header */}
-          <header className="flex shrink-0 items-center gap-3 border-b border-border px-4 py-3">
+          <header className="flex shrink-0 items-center gap-3 border-b border-separator px-4 py-3">
             <Link
               href={`/members/${post.author.handle}`}
-              className="shrink-0 no-underline"
+              className="shrink-0 rounded-full no-underline"
             >
               <Avatar
                 name={name}
                 src={post.author.profile?.avatarUrl}
                 size="sm"
-                className="size-8 text-[10px]"
+                className="size-8 text-micro"
               />
             </Link>
-            <div className="min-w-0 flex-1 leading-tight">
-              <p id={titleId} className="truncate text-[14px] font-semibold text-foreground">
+            <div className="min-w-0 flex-1">
+              <p id={titleId} className="truncate text-label font-semibold text-foreground">
                 <Link
                   href={`/members/${post.author.handle}`}
-                  className="no-underline hover:underline"
+                  className="text-foreground no-underline hover:underline"
                 >
                   {name}
                 </Link>
               </p>
               <Link
                 href={`/spaces/${post.space.slug}`}
-                className="truncate text-[12px] text-foreground-muted no-underline hover:underline"
+                className="block truncate text-caption text-foreground-muted no-underline hover:text-foreground hover:underline"
               >
                 {spaceLabel}
               </Link>
@@ -360,25 +365,25 @@ function GalleryDialog({
           </header>
 
           {/* Scrollable caption + comments */}
-          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+          <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
             {(post.title || post.plainText) && (
-              <div className="mb-4 flex gap-3">
+              <div className="mb-5 flex gap-3 border-b border-separator pb-5">
                 <Link
                   href={`/members/${post.author.handle}`}
-                  className="shrink-0 no-underline"
+                  className="shrink-0 rounded-full no-underline"
                 >
                   <Avatar
                     name={name}
                     src={post.author.profile?.avatarUrl}
                     size="sm"
-                    className="size-8 text-[10px]"
+                    className="size-8 text-micro"
                   />
                 </Link>
                 <div className="min-w-0 flex-1 pt-0.5">
-                  <p className="text-[14px] leading-[1.45] text-foreground">
+                  <p className="text-body leading-relaxed text-foreground">
                     <Link
                       href={`/members/${post.author.handle}`}
-                      className="mr-1.5 font-semibold no-underline hover:underline"
+                      className="mr-1.5 font-semibold text-foreground no-underline hover:underline"
                     >
                       {name}
                     </Link>
@@ -388,13 +393,13 @@ function GalleryDialog({
                   </p>
                   {post.plainText ? (
                     <div
-                      className="prose-vu mt-1 text-[14px] leading-[1.45] text-foreground [&_a]:text-brand"
+                      className="prose-vu mt-1 text-body leading-relaxed text-foreground"
                       dangerouslySetInnerHTML={{
                         __html: post.bodyHtml || post.plainText,
                       }}
                     />
                   ) : null}
-                  <p className="mt-2 text-[11px] uppercase tracking-wide text-foreground-muted">
+                  <p className="mt-2 text-caption text-foreground-muted">
                     <time dateTime={stamp.toISOString()}>
                       {formatShortTime(stamp)}
                     </time>
@@ -409,8 +414,8 @@ function GalleryDialog({
                   <div key={row} className="flex gap-3">
                     <Skeleton className="size-8 rounded-full" />
                     <div className="flex-1 space-y-2">
-                      <Skeleton className="h-3 w-28" />
-                      <Skeleton className="h-3 w-full" />
+                      <Skeleton className="h-3 w-28 rounded-chip" />
+                      <Skeleton className="h-3 w-full rounded-chip" />
                     </div>
                   </div>
                 ))}
@@ -418,13 +423,13 @@ function GalleryDialog({
             ) : null}
 
             {error ? (
-              <p className="text-sm text-danger" role="alert">
+              <p className="text-label font-medium text-danger" role="alert">
                 {error}
               </p>
             ) : null}
 
             {comments?.length === 0 ? (
-              <p className="py-6 text-center text-[14px] text-foreground-muted">
+              <p className="py-6 text-center text-body text-foreground-muted">
                 No comments yet.
               </p>
             ) : null}
@@ -441,16 +446,16 @@ function GalleryDialog({
           </div>
 
           {/* Sticky actions + likes + composer */}
-          <footer className="shrink-0 border-t border-border">
-            <div className="flex items-center gap-1 px-3 pt-2.5">
+          <footer className="shrink-0 border-t border-separator">
+            <div className="flex items-center gap-0.5 px-2.5 pt-2">
               <IconBtn
                 label={liked ? "Unlike" : "Like"}
                 onClick={toggleLike}
                 active={liked}
-                activeClass="text-terracotta"
+                activeClass="text-highlight hover:text-highlight"
               >
                 <Heart
-                  className="size-[1.35rem]"
+                  className="size-5"
                   fill={liked ? "currentColor" : "none"}
                   aria-hidden
                 />
@@ -459,10 +464,10 @@ function GalleryDialog({
                 label="Comment"
                 onClick={() => composerRef.current?.focus()}
               >
-                <MessageCircle className="size-[1.35rem]" aria-hidden />
+                <MessageCircle className="size-5" aria-hidden />
               </IconBtn>
               <IconBtn label="Share" onClick={share}>
-                <Share2 className="size-[1.35rem]" aria-hidden />
+                <Share2 className="size-5" aria-hidden />
               </IconBtn>
               <div className="ml-auto">
                 <IconBtn
@@ -471,7 +476,7 @@ function GalleryDialog({
                   active={saved}
                 >
                   <Bookmark
-                    className="size-[1.35rem]"
+                    className="size-5"
                     fill={saved ? "currentColor" : "none"}
                     aria-hidden
                   />
@@ -479,11 +484,11 @@ function GalleryDialog({
               </div>
             </div>
 
-            <div className="px-4 pb-2 pt-1">
-              <p className="text-[14px] font-semibold text-foreground">
+            <div className="px-4 pb-3 pt-1">
+              <p className="text-label font-semibold text-foreground">
                 {likes > 0 ? `${formatCount(likes)} likes` : "Be the first to like"}
               </p>
-              <p className="mt-0.5 text-[11px] uppercase tracking-wide text-foreground-muted">
+              <p className="mt-0.5 text-caption text-foreground-muted">
                 <time dateTime={stamp.toISOString()}>
                   {stamp.toLocaleDateString(undefined, {
                     month: "long",
@@ -495,7 +500,7 @@ function GalleryDialog({
                   })}
                 </time>
                 {commentCount > 0 ? (
-                  <span className="normal-case tracking-normal">
+                  <span>
                     {" "}
                     · {formatCount(commentCount)} comments
                   </span>
@@ -505,13 +510,13 @@ function GalleryDialog({
 
             <form
               onSubmit={submitComment}
-              className="flex items-center gap-2 border-t border-border px-4 py-2.5"
+              className="flex items-center gap-2.5 border-t border-separator px-4 py-2.5"
             >
               <Avatar
                 name={viewer.name}
                 src={viewer.avatar}
                 size="sm"
-                className="size-7 text-[9px]"
+                className="size-7 text-micro"
               />
               <input
                 ref={composerRef}
@@ -519,12 +524,12 @@ function GalleryDialog({
                 required
                 placeholder="Add a comment…"
                 disabled={pending}
-                className="min-w-0 flex-1 border-0 bg-transparent py-2 text-[14px] text-foreground outline-none placeholder:text-foreground-muted disabled:opacity-60"
+                className="min-w-0 flex-1 border-0 bg-transparent py-2 text-body text-foreground outline-none placeholder:text-field-placeholder disabled:opacity-60"
               />
               <button
                 type="submit"
                 disabled={pending}
-                className="shrink-0 text-[14px] font-semibold text-brand transition hover:text-brand-strong disabled:opacity-40"
+                className="shrink-0 rounded-ctl px-2 py-1.5 text-label font-semibold text-brand-strong transition hover:bg-surface-muted disabled:opacity-50"
               >
                 {pending ? "…" : "Post"}
               </button>
@@ -555,7 +560,7 @@ function IconBtn({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        "grid size-10 place-items-center rounded-full text-foreground transition hover:text-foreground-muted",
+        "grid size-10 place-items-center rounded-ctl text-foreground-muted transition hover:bg-surface-muted hover:text-foreground",
         active && activeClass,
       )}
     >

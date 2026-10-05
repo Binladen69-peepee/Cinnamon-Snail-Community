@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { Compass, PenLine, Soup } from "lucide-react";
 import type { FeedSort } from "@/lib/community/sort";
+import { ButtonLink, EmptyState } from "@/components/app/ui";
 
 /**
  * The empty feed.
@@ -20,48 +20,41 @@ export function FeedEmpty({
 }) {
   if (!hasSpaces) {
     return (
-      <div className="rounded-card border border-border bg-surface px-6 py-10 text-center">
-        <Compass className="mx-auto size-6 text-brand" aria-hidden />
-        <p className="mt-3 text-[16px] font-bold text-foreground">
-          Your feed is empty because you have not joined a room yet
-        </p>
-        <p className="mx-auto mt-1.5 max-w-sm text-[14px] leading-relaxed text-foreground-muted">
-          Every post lives in a space. Join a couple and this fills up with what
-          people are cooking.
-        </p>
-        <Link
-          href="/spaces"
-          className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-fill px-4 text-[13.5px] font-bold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover"
-        >
-          <Compass className="size-4" aria-hidden />
-          Find your kitchens
-        </Link>
-      </div>
+      <EmptyState
+        icon={<Compass />}
+        title="Your feed is empty because you have not joined a room yet"
+        description="Every post lives in a space. Join a couple and this fills up with what people are cooking."
+        action={
+          <ButtonLink href="/spaces" variant="primary">
+            <Compass className="size-4" aria-hidden />
+            Find your kitchens
+          </ButtonLink>
+        }
+      />
     );
   }
 
   return (
-    <div className="rounded-card border border-border bg-surface px-6 py-10 text-center">
-      <Soup className="mx-auto size-6 text-brand" aria-hidden />
-      <p className="mt-3 text-[16px] font-bold text-foreground">
-        {sort === "top"
+    <EmptyState
+      icon={<Soup />}
+      title={
+        sort === "top"
           ? "Nothing has been voted up this week"
           : sort === "new"
             ? "Nothing new yet"
-            : "Nothing here yet"}
-      </p>
-      <p className="mx-auto mt-1.5 max-w-sm text-[14px] leading-relaxed text-foreground-muted">
-        {sort === "new"
+            : "Nothing here yet"
+      }
+      description={
+        sort === "new"
           ? "Be the first to put something on the table today."
-          : "Try another order, or start the conversation yourself."}
-      </p>
-      <Link
-        href="/compose"
-        className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-fill px-4 text-[13.5px] font-bold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover"
-      >
-        <PenLine className="size-4" aria-hidden />
-        Write a post
-      </Link>
-    </div>
+          : "Try another order, or start the conversation yourself."
+      }
+      action={
+        <ButtonLink href="/compose" variant="primary">
+          <PenLine className="size-4" aria-hidden />
+          Write a post
+        </ButtonLink>
+      }
+    />
   );
 }

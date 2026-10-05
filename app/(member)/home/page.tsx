@@ -56,8 +56,9 @@ export default async function HomePage({
             height unaccounted for, and the bottom of every reel ran under the
             tab bar. The negative bottom margin cancels the shell's page
             padding so the page itself has nothing left to scroll. */}
-        <div className="-mb-24 flex h-[calc(100dvh-3.5rem-var(--vu-tabbar,0px))] flex-col md:-mb-6 md:h-[calc(100dvh-3.5rem)]">
-          <div className="shrink-0 px-3 pt-3 md:mx-auto md:w-full md:max-w-130 md:px-0">
+        <div className="-mb-24 flex h-[calc(100dvh-3.5rem-var(--vu-tabbar,0px))] flex-col md:-mb-10 md:h-[calc(100dvh-3.5rem)]">
+          <h1 className="sr-only">Reels</h1>
+          <div className="flex shrink-0 justify-center px-4 pt-3 md:mx-auto md:w-full md:max-w-130 md:px-0">
             <FeedModeToggle mode={mode} sort={sort} />
           </div>
           <div className="mt-3 min-h-0 flex-1">
@@ -86,7 +87,11 @@ export default async function HomePage({
         />
       }
     >
-      <div className="space-y-3">
+      {/* One surface above the first post: the composer. The view switch and
+          the sort sit on the page ground around it, as controls rather than
+          as bars of their own. */}
+      <div className="flex flex-col gap-4">
+        <h1 className="sr-only">Explorer</h1>
         <FeedModeToggle mode={mode} sort={sort} />
 
         <Composer

@@ -56,23 +56,23 @@ export function PostFooter({
       />
 
       {!open && !compact && previewComments.length > 0 ? (
-        <ul className="mt-1 space-y-2 border-t border-border px-1 pt-2">
+        <ul className="mt-1 space-y-2 border-t border-separator px-2 pb-1 pt-3">
           {previewComments.map((comment) => {
             const who =
               comment.author.profile?.displayName ?? comment.author.handle;
             return (
-              <li key={comment.id} className="flex gap-2">
+              <li key={comment.id} className="flex gap-2.5">
                 <Avatar
                   name={who}
                   src={comment.author.profile?.avatarUrl}
                   size="sm"
-                  className="size-7 rounded-[8px] text-[9px]"
+                  className="size-7 text-micro"
                 />
-                <div className="min-w-0 flex-1 rounded-[12px] bg-mint/40 px-2.5 py-1.5">
-                  <p className="text-[12.5px] font-semibold text-foreground">
+                <div className="min-w-0 flex-1 rounded-ctl bg-surface-muted px-3 py-2">
+                  <p className="text-caption font-semibold text-foreground">
                     {who}
                   </p>
-                  <p className="text-[13px] leading-[1.4] text-foreground-muted">
+                  <p className="mt-0.5 text-label text-foreground">
                     {comment.body}
                   </p>
                 </div>
@@ -84,7 +84,7 @@ export function PostFooter({
               <button
                 type="button"
                 onClick={() => setOpen(true)}
-                className="text-[12.5px] font-semibold text-link transition hover:underline"
+                className="rounded-chip text-label font-medium text-foreground-muted transition hover:text-foreground"
               >
                 View all {totalComments} comments
               </button>

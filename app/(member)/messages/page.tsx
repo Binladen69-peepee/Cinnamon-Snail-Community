@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { MessageSquare, PenSquare } from "lucide-react";
+import { ButtonLink, EmptyState } from "@/components/app/ui";
 
 /**
  * The detail pane with nothing selected.
@@ -10,26 +10,19 @@ import { MessageSquare, PenSquare } from "lucide-react";
  */
 export default function MessagesIndexPage() {
   return (
-    <div className="hidden h-full flex-col items-center justify-center gap-3 px-6 text-center lg:flex">
-      <span className="grid size-14 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
-        <MessageSquare className="size-7" aria-hidden />
-      </span>
-      <div>
-        <h2 className="font-display text-[1.15rem] font-bold text-foreground">
-          Your conversations live here
-        </h2>
-        <p className="mx-auto mt-1 max-w-[42ch] text-[14px] text-foreground-muted">
-          Pick a conversation on the left, or start one with someone you have
-          been cooking alongside.
-        </p>
-      </div>
-      <Link
-        href="/messages/new"
-        className="inline-flex h-10 items-center gap-2 rounded-ctl bg-brand-fill px-4 text-[14px] font-semibold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover"
-      >
-        <PenSquare className="size-4" aria-hidden />
-        New message
-      </Link>
+    <div className="hidden h-full items-center justify-center lg:flex">
+      <EmptyState
+        bordered={false}
+        icon={<MessageSquare />}
+        title="Your conversations live here"
+        description="Pick a conversation on the left, or start one with someone you have been cooking alongside."
+        action={
+          <ButtonLink href="/messages/new" variant="primary">
+            <PenSquare className="size-4" aria-hidden />
+            New message
+          </ButtonLink>
+        }
+      />
     </div>
   );
 }

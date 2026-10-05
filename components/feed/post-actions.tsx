@@ -17,6 +17,7 @@ import {
 } from "@/lib/community/reactions";
 import { ReactionBadge, ReactionIcon } from "@/components/feed/reaction-icon";
 import { formatCount } from "@/lib/community/format-count";
+import { menuClass } from "@/components/app/ui";
 import { cn } from "@/lib/utils";
 
 type State = {
@@ -106,15 +107,15 @@ export function PostActions({
   // second tap on the post opens the full card anyway.
   if (compact) {
     const strip =
-      "inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded-full px-2 text-[12px] tabular-nums transition hover:bg-mint/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand";
+      "inline-flex h-8 min-w-8 items-center justify-center gap-1.5 rounded-ctl px-2 text-caption font-medium tabular-nums transition hover:bg-surface-muted";
     return (
-      <div className="-ml-2 mt-1.5 flex items-center gap-1">
+      <div className="-ml-2 mt-1.5 flex items-center gap-0.5">
         <button
           type="button"
           onClick={() => react(mine ? mine.emoji : DEFAULT_REACTION)}
           aria-pressed={Boolean(mine)}
           aria-label={`${mine ? mine.label : "Like"}${total > 0 ? `, ${formatCount(total)}` : ""}`}
-          className={cn(strip, mine ? "font-semibold text-link" : "text-foreground-muted hover:text-foreground")}
+          className={cn(strip, mine ? "font-semibold text-brand" : "text-foreground-muted hover:text-foreground")}
         >
           {mine ? (
             <ReactionIcon name={mine.icon} className="size-4" filled />
@@ -156,10 +157,10 @@ export function PostActions({
   }
 
   return (
-    <div className="mt-0">
+    <div>
       {/* Metrics: stacked reactions + counts */}
       {(total > 0 || commentCount > 0 || state.saved) && (
-        <div className="flex items-center justify-between gap-3 px-1 pb-2 pt-1">
+        <div className="flex items-center justify-between gap-3 px-2 pb-2.5">
           <div className="flex min-w-0 items-center gap-1.5">
             {tops.length > 0 ? (
               <div className="flex items-center -space-x-1">
@@ -169,17 +170,17 @@ export function PostActions({
               </div>
             ) : null}
             {total > 0 ? (
-              <span className="text-[12.5px] tabular-nums text-foreground-muted">
+              <span className="text-caption tabular-nums text-foreground-muted">
                 {formatCount(total)}
               </span>
             ) : null}
           </div>
-          <p className="shrink-0 text-[12.5px] text-foreground-muted">
+          <p className="shrink-0 text-caption text-foreground-muted">
             {commentCount > 0 ? (
               <button
                 type="button"
                 onClick={onToggleComments}
-                className="hover:text-foreground hover:underline"
+                className="rounded-chip transition hover:text-foreground hover:underline"
               >
                 {formatCount(commentCount)}{" "}
                 {commentCount === 1 ? "comment" : "comments"}
@@ -193,7 +194,7 @@ export function PostActions({
         </div>
       )}
 
-      <div className="grid grid-cols-4 border-t border-border">
+      <div className="grid grid-cols-4 gap-1 border-t border-separator pt-1.5">
         <LikeAction
           mine={mine}
           onLike={() => react(mine ? mine.emoji : DEFAULT_REACTION)}
@@ -203,7 +204,7 @@ export function PostActions({
           label="Comment"
           active={commentsOpen}
           onClick={onToggleComments}
-          icon={<MessageSquare className="size-[1.15rem]" aria-hidden />}
+          icon={<MessageSquare className="size-4.5" aria-hidden />}
         />
         <ActionButton
           label="Saved"
@@ -211,7 +212,7 @@ export function PostActions({
           onClick={save}
           icon={
             <Bookmark
-              className="size-[1.15rem]"
+              className="size-4.5"
               fill={state.saved ? "currentColor" : "none"}
               aria-hidden
             />
@@ -220,12 +221,20 @@ export function PostActions({
         <ActionButton
           label={copied ? "Copied" : "Send"}
           onClick={share}
-          icon={<Send className="size-[1.15rem]" aria-hidden />}
+          icon={<Send className="size-4.5" aria-hidden />}
         />
       </div>
     </div>
   );
 }
+
+/**
+ * One cell of the action bar: a ghost button, icon and label side by side.
+ * Four labels do not fit across a 320px card, so on a phone the label is
+ * spoken rather than shown and the icon carries the row.
+ */
+const ACTION =
+  "flex h-9 w-full min-w-0 items-center justify-center gap-2 rounded-ctl px-1 text-label font-medium transition hover:bg-surface-muted";
 
 function ActionButton({
   icon,
@@ -244,15 +253,14 @@ function ActionButton({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "flex flex-col items-center justify-center gap-0.5 rounded-[8px] px-1 py-2.5 text-[12px] transition",
-        "hover:bg-mint/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+        ACTION,
         active
           ? "font-semibold text-brand"
           : "text-foreground-muted hover:text-foreground",
       )}
     >
       {icon}
-      <span>{label}</span>
+      <span className="truncate max-sm:sr-only">{label}</span>
     </button>
   );
 }
@@ -292,19 +300,18 @@ function LikeAction({
         aria-pressed={Boolean(mine)}
         aria-label={mine ? mine.label : "Like"}
         className={cn(
-          "flex w-full flex-col items-center justify-center gap-0.5 rounded-[8px] px-1 py-2.5 text-[12px] transition",
-          "hover:bg-mint/70 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-brand",
+          ACTION,
           mine
-            ? "font-semibold text-link"
+            ? "font-semibold text-brand"
             : "text-foreground-muted hover:text-foreground",
         )}
       >
         {mine ? (
-          <ReactionIcon name={mine.icon} className="size-[1.15rem]" filled />
+          <ReactionIcon name={mine.icon} className="size-4.5" filled />
         ) : (
-          <ThumbsUp className="size-[1.15rem]" aria-hidden />
+          <ThumbsUp className="size-4.5" aria-hidden />
         )}
-        <span>{mine ? mine.label : "Like"}</span>
+        <span className="truncate max-sm:sr-only">{mine ? mine.label : "Like"}</span>
       </button>
 
       {open ? (
@@ -312,7 +319,10 @@ function LikeAction({
           role="menu"
           onMouseEnter={hold}
           onMouseLeave={close}
-          className="absolute bottom-[calc(100%+0.2rem)] left-0 z-40 flex items-center gap-0.5 rounded-full border border-border bg-overlay px-1.5 py-1 shadow-e3 reaction-pop"
+          className={cn(
+            menuClass,
+            "reaction-pop absolute bottom-[calc(100%+0.25rem)] left-0 z-40 flex min-w-0 items-center gap-1 rounded-full px-2 py-1.5",
+          )}
         >
           {FEED_REACTIONS.map((item) => (
             <button

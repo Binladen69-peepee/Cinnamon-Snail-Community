@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { ChefHat } from "lucide-react";
 import type { AdminCourse } from "@/lib/admin/courses";
-import { cn } from "@/lib/utils";
+import { Badge, cardClass } from "@/components/app/ui";
 
 /**
  * A course in the admin grid, to the supplied design.
  *
  * Cover with the category as a chip over it, a two-line title, then a footer of
- * three labelled cells divided by hairlines: Creation Date, Sales, Status.
+ * three labelled cells divided by hairlines: Creation date, Sales, Status.
  *
  * The Sales cell keeps its place and shows an em dash. The design puts a figure
  * there; this schema has none to give, because money is tracked per membership
@@ -16,12 +16,18 @@ import { cn } from "@/lib/utils";
  */
 export function CourseCard({ course }: { course: AdminCourse }) {
   return (
-    <article className="flex h-full flex-col overflow-hidden rounded-card border border-border bg-surface transition hover:border-hairline-firm hover:shadow-e2">
+    <article
+      className={cardClass({
+        padding: "none",
+        interactive: true,
+        className: "flex h-full flex-col overflow-hidden",
+      })}
+    >
       <Link
         href={`/admin/courses/${course.slug}/edit`}
         className="group block no-underline"
       >
-        <span className="relative block aspect-[16/10] w-full overflow-hidden bg-brand-wash">
+        <span className="relative block aspect-16/10 w-full overflow-hidden bg-surface-muted">
           {course.photo ? (
             // Class stills come from the client's own media host.
             // eslint-disable-next-line @next/next/no-img-element
@@ -33,25 +39,28 @@ export function CourseCard({ course }: { course: AdminCourse }) {
               className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
             />
           ) : (
-            <span className="grid size-full place-items-center text-brand-strong/40">
+            <span className="grid size-full place-items-center text-foreground-muted">
               <ChefHat className="size-8" aria-hidden />
             </span>
           )}
 
           {course.category ? (
-            <span className="absolute left-2.5 top-2.5 rounded-chip bg-surface/90 px-2 py-0.5 text-[11px] font-bold text-foreground backdrop-blur">
+            <Badge
+              tone="outline"
+              className="absolute left-2.5 top-2.5 max-w-[calc(100%-1.25rem)] truncate border-transparent bg-surface/90 text-foreground shadow-e1 backdrop-blur"
+            >
               {course.category}
-            </span>
+            </Badge>
           ) : null}
         </span>
 
-        <h3 className="line-clamp-2 px-3.5 pb-3 pt-3 text-[15px] font-bold leading-snug text-foreground">
+        <h3 className="line-clamp-2 px-4 pb-3 pt-3.5 text-title font-semibold leading-snug text-foreground transition group-hover:text-brand-strong">
           {course.title}
         </h3>
       </Link>
 
-      <dl className="mt-auto grid grid-cols-3 divide-x divide-border border-t border-border">
-        <Cell label="Creation Date">
+      <dl className="mt-auto grid grid-cols-3 divide-x divide-separator border-t border-separator">
+        <Cell label="Creation date">
           <time dateTime={course.createdAt.toISOString()}>
             {course.createdAt.toLocaleDateString("en-GB", {
               day: "numeric",
@@ -81,28 +90,20 @@ function Cell({
   children: React.ReactNode;
 }) {
   return (
-    <div className="px-3 py-2.5">
-      <dt className="text-[10.5px] font-semibold text-foreground-muted">
-        {label}
-      </dt>
-      <dd className="mt-1 truncate text-[12px] font-bold text-foreground">
+    <div className="min-w-0 px-3 py-2.5 sm:px-4">
+      <dt className="text-caption text-foreground-muted">{label}</dt>
+      <dd className="mt-0.5 truncate text-label font-medium tabular-nums text-foreground">
         {children}
       </dd>
     </div>
   );
 }
 
+/** Published or draft, in the console's one status vocabulary. */
 export function StatusBadge({ published }: { published: boolean }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center rounded-chip px-2 py-0.5 text-[11px] font-bold",
-        published
-          ? "bg-brand text-on-brand"
-          : "bg-default text-foreground-muted",
-      )}
-    >
-      {published ? "Published" : "Unpublished"}
-    </span>
+    <Badge tone={published ? "success" : "neutral"}>
+      {published ? "Published" : "Draft"}
+    </Badge>
   );
 }

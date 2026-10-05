@@ -3,14 +3,25 @@ import { signOutEverywhereAction } from "@/app/(auth)/sign-out-action";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import Link from "next/link";
+import { Mail } from "lucide-react";
 import {
   addEmailAction,
   setPasswordAction,
 } from "@/app/(member)/settings/actions";
 import { readPrivacy } from "@/lib/community/privacy";
 import { AppShell } from "@/components/app/app-shell";
+import {
+  Badge,
+  Button,
+  Callout,
+  Card,
+  EmptyState,
+  Field,
+  FormSection,
+  Input,
+  PageHeader,
+} from "@/components/app/ui";
 import { ProfileEditor } from "@/components/profile/profile-editor";
 import { uploadsConfigured } from "@/lib/uploads/storage";
 import {
@@ -19,6 +30,8 @@ import {
 } from "@/components/notifications/notification-settings";
 import { parsePrefs, PREF_CHANNELS, PREF_ROWS, wants } from "@/lib/notifications/preferences";
 import { pushConfigured, vapidPublicKey } from "@/lib/notifications/push";
+
+export const metadata = { title: "Settings" };
 
 export default async function SettingsPage({
   searchParams,
@@ -69,98 +82,155 @@ export default async function SettingsPage({
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-2xl space-y-10 pb-10">
-      <div>
-        <h1 className="font-display text-[1.6rem] sm:text-3xl text-foreground">Your profile</h1>
-        <p className="mt-3 text-foreground-muted">
-          City-level location only. We never store a home address on your profile.{" "}
-          <a href="/billing" className="text-foreground-muted underline-offset-2 hover:underline">
-            Review membership and billing
-          </a>
-          .
-        </p>
-        {saved ? (
-          <p className="mt-4 rounded-2xl bg-sage/40 px-4 py-3 text-sm text-foreground" role="status">
-            Profile saved. The directory will use these details.
-          </p>
-        ) : null}
-      </div>
-      <ProfileEditor
-        profile={{
-          handle: user.handle,
-          displayName: user.profile.displayName,
-          avatarUrl: user.profile.avatarUrl,
-          bio: user.profile.bio,
-          cookingLately: user.profile.cookingLately,
-          city: user.profile.city,
-          region: user.profile.region,
-          country: user.profile.country,
-          skill: user.profile.skill,
-          links,
-          interests: user.profile.interests.map((row) => row.interest.slug),
-          dmPreference: user.profile.dmPreference,
-          directoryVisible: user.profile.directoryVisible,
-          showLocation: privacy.showLocation,
-          showLinks: privacy.showLinks,
-          showInterests: privacy.showInterests,
-        }}
-        options={options}
-        uploadsEnabled={uploadsConfigured()}
-      />
+      <div className="flex flex-col gap-10">
+        <div className="flex flex-col gap-4">
+          <PageHeader
+            eyebrow="Settings"
+            title="Your profile"
+            description={
+              <>
+                City-level location only. We never store a home address on your profile.{" "}
+                <Link
+                  href="/billing"
+                  className="font-medium text-link underline underline-offset-2 transition hover:text-foreground"
+                >
+                  Review membership and billing
+                </Link>
+                .
+              </>
+            }
+          />
+          {saved ? (
+            <Callout tone="success" role="status">
+              Profile saved. The directory will use these details.
+            </Callout>
+          ) : null}
+        </div>
 
-      <NotificationSettings
-        rows={PREF_ROWS}
-        values={notificationValues}
-        push={{
-          available: pushConfigured(),
-          publicKey: vapidPublicKey(),
-          devices: pushDevices,
-        }}
-      />
-
-      <form action={setPasswordAction} className="space-y-3">
-        <h2 className="font-display text-2xl text-foreground">Optional password</h2>
-        <Input
-          type="password"
-          name="password"
-          autoComplete="new-password"
-          minLength={PASSWORD_MIN_LENGTH}
-          required
-          placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
+        <ProfileEditor
+          profile={{
+            handle: user.handle,
+            displayName: user.profile.displayName,
+            avatarUrl: user.profile.avatarUrl,
+            bio: user.profile.bio,
+            cookingLately: user.profile.cookingLately,
+            city: user.profile.city,
+            region: user.profile.region,
+            country: user.profile.country,
+            skill: user.profile.skill,
+            links,
+            interests: user.profile.interests.map((row) => row.interest.slug),
+            dmPreference: user.profile.dmPreference,
+            directoryVisible: user.profile.directoryVisible,
+            showLocation: privacy.showLocation,
+            showLinks: privacy.showLinks,
+            showInterests: privacy.showInterests,
+          }}
+          options={options}
+          uploadsEnabled={uploadsConfigured()}
         />
-        <p className="text-sm text-foreground-muted">
-          Setting a password signs out every other device.
-        </p>
-        <Button type="submit" variant="secondary">
-          Set password
-        </Button>
-      </form>
 
-      <form action={addEmailAction} className="space-y-3">
-        <h2 className="font-display text-2xl text-foreground">More emails</h2>
-        <p className="text-sm text-foreground-muted">
-          Verified emails can be used to sign in and to match billing identity later.
-        </p>
-        <ul className="text-sm">
-          {user.emails.map((email) => (
-            <li key={email.id}>
-              {email.email} {email.verifiedAt ? "(verified)" : "(unverified)"}
-            </li>
-          ))}
-        </ul>
-        <Input type="email" name="email" required placeholder="Add another email" />
-        <Button type="submit" variant="secondary">
-          Add email
-        </Button>
-      </form>
+        <NotificationSettings
+          rows={PREF_ROWS}
+          values={notificationValues}
+          push={{
+            available: pushConfigured(),
+            publicKey: vapidPublicKey(),
+            devices: pushDevices,
+          }}
+        />
 
-      <form action={signOutEverywhereAction}>
-        <h2 className="font-display text-2xl text-foreground">Sessions</h2>
-        <p className="mb-3 text-sm text-foreground-muted">{user.sessions.length} session records on file.</p>
-        <Button type="submit" variant="danger">
-          Sign out everywhere
-        </Button>
-      </form>
+        <FormSection
+          title="Optional password"
+          description="Setting a password signs out every other device."
+        >
+          <Card>
+            <form action={setPasswordAction} className="flex flex-col gap-4">
+              <Field label="New password" htmlFor="settings-password">
+                <Input
+                  id="settings-password"
+                  type="password"
+                  name="password"
+                  autoComplete="new-password"
+                  minLength={PASSWORD_MIN_LENGTH}
+                  required
+                  placeholder={`At least ${PASSWORD_MIN_LENGTH} characters`}
+                />
+              </Field>
+              <div>
+                <Button type="submit" variant="primary">
+                  Set password
+                </Button>
+              </div>
+            </form>
+          </Card>
+        </FormSection>
+
+        <div id="emails" className="scroll-mt-24">
+          <FormSection
+            title="More emails"
+            description="Verified emails can be used to sign in and to match billing identity later."
+          >
+            <Card padding="none">
+              {user.emails.length === 0 ? (
+                <EmptyState
+                  size="sm"
+                  bordered={false}
+                  icon={<Mail />}
+                  title="No emails on file yet"
+                  description="Add the address you paid with, so a purchase made under it reaches this account."
+                />
+              ) : (
+                <ul className="divide-y divide-separator">
+                  {user.emails.map((email) => (
+                    <li
+                      key={email.id}
+                      className="flex items-center justify-between gap-3 px-4 py-3 sm:px-5"
+                    >
+                      <span className="min-w-0 truncate text-body text-foreground">{email.email}</span>
+                      <Badge tone={email.verifiedAt ? "success" : "neutral"} className="capitalize">
+                        {email.verifiedAt ? "verified" : "unverified"}
+                      </Badge>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <form
+                action={addEmailAction}
+                className="flex flex-col gap-3 border-t border-separator p-4 sm:flex-row sm:items-end sm:p-5"
+              >
+                <Field label="Email address" htmlFor="settings-email" className="min-w-0 flex-1">
+                  <Input
+                    id="settings-email"
+                    type="email"
+                    name="email"
+                    required
+                    placeholder="Add another email"
+                  />
+                </Field>
+                <Button type="submit" variant="primary" className="self-start sm:self-auto">
+                  Add email
+                </Button>
+              </form>
+            </Card>
+          </FormSection>
+        </div>
+
+        <FormSection title="Sessions">
+          <Card>
+            <form
+              action={signOutEverywhereAction}
+              className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between"
+            >
+              <p className="text-body text-foreground-muted">
+                {user.sessions.length} session records on file.
+              </p>
+              <Button type="submit" variant="danger" className="self-start sm:self-auto">
+                Sign out everywhere
+              </Button>
+            </form>
+          </Card>
+        </FormSection>
       </div>
     </AppShell>
   );

@@ -5,6 +5,7 @@ import { CornerDownLeft } from "lucide-react";
 import { CommentThread, type ThreadComment } from "@/components/feed/comment-thread";
 import { Avatar } from "@/components/ui/avatar";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button, fieldClass } from "@/components/app/ui";
 
 const OPEN_KEY = "vu-open-comments";
 
@@ -113,37 +114,32 @@ export function CommentPanel({
   if (!open) return null;
 
   return (
-    <div className="mt-4 space-y-4 border-t border-sand/70 pt-4">
-      <form onSubmit={onSubmit} className="flex items-start gap-2.5">
+    <div className="mt-2 space-y-4 border-t border-separator px-2 pb-2 pt-4">
+      <form onSubmit={onSubmit} className="flex items-center gap-2.5">
         <Avatar name={viewer.name} src={viewer.avatar} size="sm" />
-        <div className="relative min-w-0 flex-1">
-          <input
-            name="body"
-            required
-            placeholder="Add a comment…"
-            disabled={pending}
-            className="h-11 w-full rounded-full border border-sand bg-mint/50 pl-4 pr-24 text-sm text-foreground outline-none transition placeholder:text-foreground-muted focus:border-accent focus:bg-surface disabled:opacity-60"
-          />
-          <button
-            type="submit"
-            disabled={pending}
-            className="absolute right-1 top-1 inline-flex h-9 items-center gap-1.5 rounded-full bg-brand-fill px-3.5 text-xs font-semibold text-brand-fill-foreground transition hover:bg-brand-fill-hover disabled:opacity-60"
-          >
-            {pending ? "Posting…" : "Post"}
-            <CornerDownLeft className="size-3.5" aria-hidden />
-          </button>
-        </div>
+        <input
+          name="body"
+          required
+          placeholder="Add a comment…"
+          aria-label="Add a comment"
+          disabled={pending}
+          className={fieldClass({ className: "flex-1" })}
+        />
+        <Button type="submit" variant="primary" disabled={pending}>
+          {pending ? "Posting…" : "Post"}
+          <CornerDownLeft className="size-3.5" aria-hidden />
+        </Button>
       </form>
 
       {comments === null && !error ? (
         <div className="space-y-3" aria-busy>
           {[0, 1].map((row) => (
             <div key={row} className="flex gap-2.5">
-              <Skeleton className="size-9 rounded-full" />
+              <Skeleton className="size-8 rounded-full" />
               <div className="flex-1 space-y-2">
-                <Skeleton className="h-3 w-28" />
-                <Skeleton className="h-3 w-full" />
-                <Skeleton className="h-3 w-2/3" />
+                <Skeleton className="h-3 w-28 rounded-chip" />
+                <Skeleton className="h-3 w-full rounded-chip" />
+                <Skeleton className="h-3 w-2/3 rounded-chip" />
               </div>
             </div>
           ))}
@@ -152,13 +148,13 @@ export function CommentPanel({
       ) : null}
 
       {error ? (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-label font-medium text-danger" role="alert">
           {error}
         </p>
       ) : null}
 
       {comments?.length === 0 ? (
-        <p className="py-2 text-sm text-foreground-muted">
+        <p className="py-1 text-label text-foreground-muted">
           No comments yet — say the first thing.
         </p>
       ) : null}

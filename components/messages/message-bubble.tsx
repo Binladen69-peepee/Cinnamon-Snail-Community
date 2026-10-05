@@ -28,6 +28,10 @@ export type ThreadMessage = {
  * cannot be the only carrier of who said what, and it is also what makes a
  * thread readable in a screenshot or in high-contrast mode.
  *
+ * Own bubbles take the brand fill and the other side's the muted surface.
+ * Both are role tokens, so neither turns into a white slab in dark mode: the
+ * fill there is a lifted forest, not an inversion of the light one.
+ *
  * Own messages carry a delivery mark: a clock while in flight, one tick once
  * stored, two once the other side has read past it. Nothing is invented — the
  * second tick comes from their real `lastReadAt`.
@@ -64,13 +68,8 @@ export function MessageBubble({
       )}
     >
       {!message.mine ? (
-        <span className={cn("w-7 shrink-0", showAvatar ? "" : "invisible")}>
-          <Avatar
-            name={message.authorName}
-            src={message.authorAvatar}
-            size="sm"
-            className="size-7 text-[10px]"
-          />
+        <span className={cn("w-6 shrink-0", showAvatar ? "" : "invisible")}>
+          <Avatar name={message.authorName} src={message.authorAvatar} size="xs" />
         </span>
       ) : null}
 
@@ -81,17 +80,17 @@ export function MessageBubble({
         )}
       >
         {showName && !message.mine ? (
-          <span className="mb-0.5 px-1 text-[11.5px] font-bold text-foreground-muted">
+          <span className="mb-0.5 px-1 text-caption font-medium text-foreground-muted">
             {message.authorName}
           </span>
         ) : null}
 
         <div
           className={cn(
-            "relative rounded-2xl px-3 py-2 text-[14px] leading-snug",
+            "relative rounded-card px-3 py-2 text-body leading-snug",
             message.mine
-              ? "rounded-br-sm bg-brand-fill text-brand-fill-foreground"
-              : "rounded-bl-sm border border-border bg-surface text-foreground",
+              ? "rounded-br-chip bg-brand-fill text-brand-fill-foreground"
+              : "rounded-bl-chip bg-surface-muted text-foreground",
             message.state === "failed" && "opacity-70 ring-1 ring-danger",
           )}
         >
@@ -101,7 +100,7 @@ export function MessageBubble({
             <img
               src={message.imageUrl}
               alt={message.body || "Shared image"}
-              className="mb-1.5 max-h-80 w-full rounded-ctl object-cover"
+              className="mb-1.5 max-h-80 w-full rounded-ctl bg-default object-cover"
               loading="lazy"
               decoding="async"
             />
@@ -118,7 +117,7 @@ export function MessageBubble({
                     rel="noopener noreferrer nofollow"
                     className={cn(
                       "underline underline-offset-2",
-                      message.mine ? "text-brand-fill-foreground" : "text-brand",
+                      message.mine ? "text-brand-fill-foreground" : "text-brand-strong",
                     )}
                   >
                     {part.text}
@@ -144,7 +143,7 @@ export function MessageBubble({
 
         <span
           className={cn(
-            "mt-0.5 flex items-center gap-1 px-1 text-[10.5px] tabular-nums text-foreground-muted",
+            "mt-0.5 flex items-center gap-1 px-1 text-micro tabular-nums text-foreground-muted",
             message.mine ? "flex-row-reverse" : "",
           )}
         >
@@ -154,7 +153,7 @@ export function MessageBubble({
             <button
               type="button"
               onClick={() => onRetry(message)}
-              className="font-semibold text-danger underline underline-offset-2"
+              className="font-semibold text-danger underline underline-offset-2 hover:no-underline"
             >
               Retry
             </button>

@@ -8,7 +8,7 @@ import {
   saveNotificationPrefsAction,
   type PrefsState,
 } from "@/app/(member)/settings/notification-actions";
-import { cn } from "@/lib/utils";
+import { Button, Callout, Card, FormSection } from "@/components/app/ui";
 
 type Channel = "inApp" | "email" | "push";
 
@@ -50,76 +50,71 @@ export function NotificationSettings({
   }, [state]);
 
   return (
-    <section id="notifications" className="scroll-mt-24 space-y-4">
-      <div>
-        <h2 className="font-display text-2xl text-foreground">Notifications</h2>
-        <p className="mt-1 text-sm text-foreground-muted">
-          Choose what reaches you, and where. Account and billing notices are
-          always sent.
-        </p>
-      </div>
+    <div id="notifications" className="scroll-mt-24">
+      <FormSection
+        title="Notifications"
+        description="Choose what reaches you, and where. Account and billing notices are always sent."
+      >
+        <PushToggle {...push} />
 
-      <PushToggle {...push} />
-
-      <form action={action} className="space-y-3">
-        <div className="overflow-hidden rounded-card border border-border bg-surface">
-          <div
-            className="hidden grid-cols-[1fr_repeat(3,4.5rem)] items-center gap-2 border-b border-border px-4 py-2 text-[12px] font-semibold uppercase tracking-wide text-foreground-muted sm:grid"
-            aria-hidden
-          >
-            <span>Category</span>
-            {CHANNELS.map(({ channel, label }) => (
-              <span key={channel} className="text-center">
-                {label}
-              </span>
-            ))}
-          </div>
-          <ul>
-            {rows.map((row) => (
-              <li
-                key={row.category}
-                className="grid grid-cols-1 gap-2 border-b border-border px-4 py-3 last:border-b-0 sm:grid-cols-[1fr_repeat(3,4.5rem)] sm:items-center"
-              >
-                <span className="min-w-0">
-                  <span className="block text-[14px] font-semibold text-foreground">{row.label}</span>
-                  <span className="mt-0.5 block text-[12px] leading-snug text-foreground-muted">
-                    {row.hint}
+        <form action={action} className="flex flex-col gap-4">
+          <Card padding="none" className="overflow-hidden">
+            <div
+              className="hidden grid-cols-[minmax(0,1fr)_repeat(3,4rem)] items-center gap-2 border-b border-separator bg-surface-muted/60 px-4 py-2.5 text-micro font-semibold uppercase tracking-[0.08em] text-foreground-muted sm:grid sm:px-5"
+              aria-hidden
+            >
+              <span>Category</span>
+              {CHANNELS.map(({ channel, label }) => (
+                <span key={channel} className="text-center">
+                  {label}
+                </span>
+              ))}
+            </div>
+            <ul className="divide-y divide-separator">
+              {rows.map((row) => (
+                <li
+                  key={row.category}
+                  className="grid grid-cols-1 gap-2 px-4 py-3 sm:grid-cols-[minmax(0,1fr)_repeat(3,4rem)] sm:items-center sm:px-5"
+                >
+                  <span className="min-w-0">
+                    <span className="block text-body font-medium text-foreground">{row.label}</span>
+                    <span className="mt-0.5 block text-caption text-foreground-muted">
+                      {row.hint}
+                    </span>
                   </span>
-                </span>
-                <span className="flex gap-5 sm:contents">
-                  {CHANNELS.map(({ channel, label }) => (
-                    <Switch
-                      key={channel}
-                      name={`${channel}:${row.category}`}
-                      label={label}
-                      rowLabel={row.label}
-                      defaultChecked={values[channel][row.category] ?? false}
-                    />
-                  ))}
-                </span>
-              </li>
-            ))}
-          </ul>
-        </div>
+                  <span className="flex gap-5 sm:contents">
+                    {CHANNELS.map(({ channel, label }) => (
+                      <Switch
+                        key={channel}
+                        name={`${channel}:${row.category}`}
+                        label={label}
+                        rowLabel={row.label}
+                        defaultChecked={values[channel][row.category] ?? false}
+                      />
+                    ))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </Card>
 
-        {state.error ? (
-          <p className="text-sm text-danger" role="alert">
-            {state.error}
-          </p>
-        ) : null}
+          {state.error ? <Callout tone="danger">{state.error}</Callout> : null}
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="vu-btn vu-btn-primary inline-flex h-10 items-center px-4 text-[14px] disabled:opacity-60"
-        >
-          {pending ? "Saving…" : "Save notification settings"}
-        </button>
-      </form>
-    </section>
+          <div>
+            <Button type="submit" variant="primary" disabled={pending}>
+              {pending ? "Saving…" : "Save notification settings"}
+            </Button>
+          </div>
+        </form>
+      </FormSection>
+    </div>
   );
 }
 
+/**
+ * A native checkbox drawn as a switch. Same construction as the privacy
+ * switches in the profile editor.
+ */
 function Switch({
   name,
   label,
@@ -134,7 +129,7 @@ function Switch({
   const [on, setOn] = useState(defaultChecked);
   return (
     <label className="flex min-h-11 cursor-pointer items-center gap-2 sm:justify-center">
-      <span className="relative shrink-0">
+      <span className="relative inline-flex shrink-0">
         <input
           name={name}
           type="checkbox"
@@ -142,14 +137,16 @@ function Switch({
           checked={on}
           onChange={(event) => setOn(event.target.checked)}
           aria-label={`${rowLabel}: ${label}`}
-          className="peer h-5 w-9 cursor-pointer appearance-none rounded-full border border-field-border bg-default transition checked:border-brand checked:bg-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+          className={SWITCH_TRACK}
         />
-        <span
-          className="pointer-events-none absolute left-0.5 top-1/2 size-4 -translate-y-1/2 rounded-full bg-foreground transition-transform peer-checked:translate-x-4 peer-checked:bg-on-brand"
-          aria-hidden
-        />
+        <span className={SWITCH_THUMB} aria-hidden />
       </span>
-      <span className={cn("text-[12px] text-foreground-muted sm:sr-only")}>{label}</span>
+      <span className="text-caption text-foreground-muted sm:sr-only">{label}</span>
     </label>
   );
 }
+
+const SWITCH_TRACK =
+  "peer h-5 w-9 cursor-pointer appearance-none rounded-full border border-field-border bg-default transition checked:border-brand-fill checked:bg-brand-fill";
+const SWITCH_THUMB =
+  "pointer-events-none absolute left-0.5 top-1/2 size-4 -translate-y-1/2 rounded-full bg-foreground-muted shadow-e1 transition-transform peer-checked:translate-x-4 peer-checked:bg-brand-fill-foreground";

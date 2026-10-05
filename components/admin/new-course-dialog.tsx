@@ -11,13 +11,21 @@ import {
   X,
 } from "lucide-react";
 import { createCourseAction } from "@/app/admin/courses/actions";
+import {
+  Button,
+  Callout,
+  Field,
+  Input,
+  backdropClass,
+  dialogClass,
+} from "@/components/app/ui";
 import { cn } from "@/lib/utils";
 
 /**
- * "New Product", to the supplied design.
+ * "New product", to the supplied design.
  *
  * All four product types are listed because the design lists them. Only Online
- * Courses can be created: this platform has no Digital Downloads or Webinar
+ * courses can be created: this platform has no Digital downloads or Webinar
  * entity at all, and a Bundle is a SamCart billing product rather than
  * something authored here. The other three are shown disabled with the reason,
  * which is the same choice the message composer makes about members it cannot
@@ -27,7 +35,7 @@ import { cn } from "@/lib/utils";
 const TYPES = [
   {
     value: "course",
-    title: "Online Courses",
+    title: "Online courses",
     body: "Create a series of lessons with files, posts, and quizzes.",
     icon: GraduationCap,
     tone: "bg-brand-wash text-on-brand-wash",
@@ -35,7 +43,7 @@ const TYPES = [
   },
   {
     value: "downloads",
-    title: "Digital Downloads",
+    title: "Digital downloads",
     body: "Offer a file or collection of files for download.",
     icon: FileDown,
     tone: "bg-default text-foreground-muted",
@@ -115,54 +123,43 @@ export function NewCourseDialog({ open }: { open: boolean }) {
       aria-modal="true"
       aria-labelledby={titleId}
       onClick={close}
-      className="fixed inset-0 z-[80] flex items-center justify-center bg-black/55 p-4"
+      className={cn(
+        backdropClass,
+        "z-80 flex items-start justify-center overflow-y-auto p-3 sm:p-6",
+      )}
     >
       <form
         onClick={(event) => event.stopPropagation()}
         onSubmit={submit}
-        className="w-full max-w-[560px] overflow-hidden rounded-modal bg-overlay shadow-e3"
+        className={cn(dialogClass, "my-auto w-full max-w-140 overflow-hidden")}
       >
-        <div className="flex items-center justify-between gap-3 px-5 pb-1 pt-5">
-          <h2
-            id={titleId}
-            className="font-display text-[1.15rem] font-bold text-foreground"
-          >
-            New Product
+        <div className="flex items-center justify-between gap-3 border-b border-separator py-3 pl-5 pr-3">
+          <h2 id={titleId} className="text-title font-semibold text-foreground">
+            New product
           </h2>
-          <button
-            type="button"
-            onClick={close}
-            aria-label="Close"
-            className="grid size-8 place-items-center rounded-full text-foreground-muted transition hover:bg-mint hover:text-foreground"
-          >
-            <X className="size-5" aria-hidden />
-          </button>
+          <Button variant="ghost" size="sm" iconOnly onClick={close} aria-label="Close">
+            <X className="size-4.5" aria-hidden />
+          </Button>
         </div>
 
-        <div className="space-y-4 px-5 py-4">
-          <div>
-            <label
-              htmlFor={nameId}
-              className="mb-1.5 block text-[13px] font-bold text-foreground"
-            >
-              Product name
-            </label>
-            <input
+        <div className="flex flex-col gap-5 px-5 py-5">
+          <Field label="Product name" htmlFor={nameId}>
+            <Input
               ref={inputRef}
               id={nameId}
+              size="lg"
               value={name}
               onChange={(event) => setName(event.target.value)}
               placeholder="How to launch product fast in 2025"
               maxLength={160}
-              className="h-11 w-full rounded-ctl border border-border bg-field-background px-3 text-[14px] text-foreground outline-none transition placeholder:text-foreground-muted focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
-          </div>
+          </Field>
 
-          <fieldset>
-            <legend className="mb-1.5 text-[13px] font-bold text-foreground">
-              Product Type
+          <fieldset className="min-w-0">
+            <legend className="mb-2 text-label font-medium text-foreground">
+              Product type
             </legend>
-            <div className="space-y-1">
+            <div className="-mx-2 flex flex-col gap-0.5">
               {TYPES.map((option) => {
                 const Icon = option.icon;
                 const checked = type === option.value;
@@ -173,7 +170,7 @@ export function NewCourseDialog({ open }: { open: boolean }) {
                       "flex items-start gap-3 rounded-ctl px-2 py-2.5 transition",
                       option.disabled
                         ? "cursor-not-allowed opacity-60"
-                        : "cursor-pointer hover:bg-mint",
+                        : "cursor-pointer hover:bg-surface-muted",
                     )}
                   >
                     <span
@@ -187,10 +184,10 @@ export function NewCourseDialog({ open }: { open: boolean }) {
                     </span>
 
                     <span className="min-w-0 flex-1">
-                      <span className="block text-[13.5px] font-bold text-foreground">
+                      <span className="block text-body font-medium text-foreground">
                         {option.title}
                       </span>
-                      <span className="block text-[12.5px] leading-snug text-foreground-muted">
+                      <span className="mt-0.5 block text-caption text-foreground-muted">
                         {option.disabled ? (
                           <span className="inline-flex items-center gap-1">
                             <Lock className="size-3 shrink-0" aria-hidden />
@@ -209,7 +206,7 @@ export function NewCourseDialog({ open }: { open: boolean }) {
                       checked={checked}
                       disabled={Boolean(option.disabled)}
                       onChange={() => setType(option.value)}
-                      className="mt-1 size-4 shrink-0 accent-[var(--brand)]"
+                      className="mt-1 size-4 shrink-0 accent-brand"
                     />
                   </label>
                 );
@@ -217,33 +214,19 @@ export function NewCourseDialog({ open }: { open: boolean }) {
             </div>
           </fieldset>
 
-          {error ? (
-            <p role="alert" className="text-[12.5px] font-semibold text-danger">
-              {error}
-            </p>
-          ) : null}
+          {error ? <Callout tone="danger">{error}</Callout> : null}
         </div>
 
-        <div className="flex items-center justify-end gap-2 border-t border-border px-5 py-3.5">
-          <button
-            type="button"
-            onClick={close}
-            className="h-9 rounded-ctl border border-border bg-background px-4 text-[13.5px] font-semibold text-foreground transition hover:border-hairline-firm"
-          >
-            Discard
-          </button>
-          <button
+        <div className="flex items-center justify-end gap-2 border-t border-separator px-5 py-3.5">
+          <Button onClick={close}>Discard</Button>
+          <Button
             type="submit"
+            variant="primary"
             disabled={saving || !name.trim()}
-            className={cn(
-              "h-9 rounded-ctl px-4 text-[13.5px] font-semibold transition",
-              saving || !name.trim()
-                ? "bg-default text-foreground-muted"
-                : "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover",
-            )}
+            aria-busy={saving || undefined}
           >
-            {saving ? "Creating…" : "Create Product"}
-          </button>
+            {saving ? "Creating…" : "Create product"}
+          </Button>
         </div>
       </form>
     </div>

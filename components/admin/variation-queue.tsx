@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { Check, Star, X } from "lucide-react";
-import { AdminButton } from "@/components/admin/ui";
+import { Button } from "@/components/app/ui";
 import { toast } from "@/components/ui/toast";
 import {
   reviewVariationAction,
@@ -38,19 +38,21 @@ export function VariationControls({
   return (
     <div className="flex flex-wrap items-center gap-2">
       {status !== "approved" ? (
-        <AdminButton
+        <Button
           type="button"
+          size="sm"
           variant="primary"
           disabled={pending}
           onClick={() => run(reviewVariationAction, form({ approve: "1" }), "Published.")}
         >
-          <Check className="size-3.5" aria-hidden />
+          <Check className="size-4" aria-hidden />
           Publish
-        </AdminButton>
+        </Button>
       ) : null}
       {status !== "rejected" ? (
-        <AdminButton
+        <Button
           type="button"
+          size="sm"
           variant="danger"
           disabled={pending}
           onClick={() =>
@@ -61,19 +63,20 @@ export function VariationControls({
             )
           }
         >
-          <X className="size-3.5" aria-hidden />
+          <X className="size-4" aria-hidden />
           Turn down
-        </AdminButton>
+        </Button>
       ) : null}
       {status === "approved" ? (
-        <AdminButton
+        <Button
           type="button"
+          size="sm"
           disabled={pending}
           onClick={() => run(setFeaturedAction, form({ featured: featured ? "0" : "1" }), "Saved.")}
         >
-          <Star className="size-3.5" aria-hidden />
+          <Star className="size-4" aria-hidden />
           {featured ? "Unfeature" : "Feature"}
-        </AdminButton>
+        </Button>
       ) : null}
     </div>
   );

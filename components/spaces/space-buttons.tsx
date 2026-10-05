@@ -7,6 +7,7 @@ import {
   leaveSpaceAction,
   toggleFavoriteSpaceAction,
 } from "@/app/(member)/spaces/actions";
+import { Button } from "@/components/app/ui";
 import { cn } from "@/lib/utils";
 
 /**
@@ -41,27 +42,16 @@ export function JoinButton({
 
   return (
     <div className="flex min-w-0 flex-col items-start gap-1">
-      <button
-        type="button"
-        onClick={join}
-        disabled={pending}
-        className={cn(
-          "inline-flex items-center gap-1.5 rounded-full font-bold transition active:scale-[0.97]",
-          "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-          "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover disabled:opacity-60",
-          "",
-          size === "sm" ? "h-8 px-3 text-[12.5px]" : "h-9 px-4 text-[13.5px]",
-        )}
-      >
+      <Button variant="primary" size={size} onClick={join} disabled={pending}>
         {pending ? (
-          <Loader2 className="size-3.5 animate-spin" aria-hidden />
+          <Loader2 className="size-4 animate-spin" aria-hidden />
         ) : (
-          <UserPlus className="size-3.5" aria-hidden />
+          <UserPlus className="size-4" aria-hidden />
         )}
         Join
-      </button>
+      </Button>
       {error ? (
-        <p className="text-[11.5px] font-semibold text-danger" role="alert">
+        <p className="text-caption font-medium text-danger" role="alert">
           {error}
         </p>
       ) : null}
@@ -96,35 +86,23 @@ export function LeaveButton({
       {confirming ? (
         // One step of confirmation: leaving loses your unread position and, in
         // a private room, your way back in.
-        <span className="flex items-center gap-1">
-          <button
-            type="button"
-            onClick={leave}
-            disabled={pending}
-            className="inline-flex h-9 items-center rounded-full bg-danger px-3 text-[12.5px] font-bold text-danger-foreground transition hover:opacity-90 disabled:opacity-60"
-          >
+        <span className="flex items-center gap-1.5">
+          <Button variant="danger" onClick={leave} disabled={pending}>
+            {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
             {pending ? "Leaving…" : "Confirm"}
-          </button>
-          <button
-            type="button"
-            onClick={() => setConfirming(false)}
-            className="inline-flex h-9 items-center rounded-full px-2.5 text-[12.5px] font-bold text-foreground-muted transition hover:text-foreground"
-          >
+          </Button>
+          <Button variant="ghost" onClick={() => setConfirming(false)}>
             Cancel
-          </button>
+          </Button>
         </span>
       ) : (
-        <button
-          type="button"
-          onClick={() => setConfirming(true)}
-          className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border px-3.5 text-[13px] font-bold text-foreground-muted transition hover:border-danger/50 hover:text-danger"
-        >
-          <Check className="size-3.5" aria-hidden />
+        <Button variant="secondary" onClick={() => setConfirming(true)}>
+          <Check className="size-4" aria-hidden />
           Joined
-        </button>
+        </Button>
       )}
       {error ? (
-        <p className="max-w-48 text-right text-[11.5px] font-semibold text-danger" role="alert">
+        <p className="max-w-48 text-right text-caption font-medium text-danger" role="alert">
           {error}
         </p>
       ) : null}
@@ -158,22 +136,18 @@ export function FavoriteButton({
   }
 
   return (
-    <button
-      type="button"
+    <Button
+      variant="secondary"
+      iconOnly
       onClick={toggle}
       disabled={pending}
       aria-pressed={on}
       title={on ? "Remove from favourites" : "Add to favourites"}
-      className={cn(
-        "grid size-9 shrink-0 place-items-center rounded-full border transition",
-        "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-        on
-          ? "border-apricot/50 bg-apricot/15 text-apricot"
-          : "border-border text-foreground-muted hover:border-apricot/50 hover:text-apricot",
-      )}
     >
-      <Star className={cn("size-4", on && "fill-current")} aria-hidden />
+      {/* The button face stays neutral; the star itself carries the state, in
+          the brand colour and filled, so it reads on both grounds. */}
+      <Star className={cn("size-4", on && "fill-current text-brand")} aria-hidden />
       <span className="sr-only">{on ? "Favourited" : "Add to favourites"}</span>
-    </button>
+    </Button>
   );
 }

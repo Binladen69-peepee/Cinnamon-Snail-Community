@@ -60,6 +60,7 @@ export function PageHeader({
   eyebrow,
   back,
   actions,
+  tone = "default",
   className,
   children,
 }: {
@@ -68,12 +69,25 @@ export function PageHeader({
   eyebrow?: ReactNode;
   back?: { href: string; label: string };
   actions?: ReactNode;
+  /**
+   * `hero` sets the header in the teal band. For a section's front page (the
+   * overview, the catalogue), not for every page: a band on every screen
+   * stops meaning anything.
+   */
+  tone?: "default" | "hero";
   className?: string;
   /** Rendered under the title row: tabs, filters, a summary. */
   children?: ReactNode;
 }) {
+  const hero = tone === "hero";
   return (
-    <header className={cn("flex flex-col gap-4", className)}>
+    <header
+      className={cn(
+        "flex flex-col gap-4",
+        hero && "vu-band relative overflow-hidden rounded-card px-5 py-7 shadow-e2 sm:px-8 sm:py-9",
+        className,
+      )}
+    >
       {back ? (
         <Link
           href={back.href}
@@ -86,15 +100,31 @@ export function PageHeader({
       <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between sm:gap-6">
         <div className="min-w-0">
           {eyebrow ? (
-            <div className="mb-1.5 text-micro font-semibold uppercase tracking-[0.08em] text-brand-strong">
+            <div
+              className={cn(
+                "mb-1.5 text-micro font-semibold uppercase tracking-[0.08em]",
+                hero ? "text-foreground-muted" : "text-brand-strong",
+              )}
+            >
               {eyebrow}
             </div>
           ) : null}
-          <h1 className="text-display font-semibold tracking-[-0.02em] text-foreground text-balance">
+          <h1
+            className={cn(
+              "font-bold tracking-[-0.025em] text-foreground text-balance",
+              hero ? "text-[2rem] leading-[2.375rem] sm:text-[2.5rem] sm:leading-[2.875rem]" : "text-display",
+            )}
+          >
             {title}
           </h1>
+
           {description ? (
-            <p className="mt-1.5 max-w-[64ch] text-body text-foreground-muted text-pretty">
+            <p
+              className={cn(
+                "max-w-[64ch] text-foreground-muted text-pretty",
+                hero ? "mt-3 text-reading" : "mt-1.5 text-body",
+              )}
+            >
               {description}
             </p>
           ) : null}
@@ -480,18 +510,21 @@ export function ChipLink({
   children,
   className,
   scroll = false,
+  ariaCurrent = "true",
 }: {
   href: string;
   active: boolean;
   children: ReactNode;
   className?: string;
   scroll?: boolean;
+  /** "page" when the chip is a navigation between views. */
+  ariaCurrent?: "true" | "page";
 }) {
   return (
     <Link
       href={href}
       scroll={scroll}
-      aria-current={active ? "true" : undefined}
+      aria-current={active ? ariaCurrent : undefined}
       className={chipClass(active, className)}
     >
       {children}
@@ -965,7 +998,7 @@ export function Stat({
       <dt className="text-caption font-medium text-foreground-muted">{label}</dt>
       <dd
         className={cn(
-          "mt-1.5 text-display font-semibold leading-none tracking-[-0.02em] tabular-nums",
+          "mt-2 text-display font-bold leading-none tracking-[-0.025em] tabular-nums",
           tone === "good" && "text-success",
           tone === "warn" && "text-warning",
           tone === "bad" && "text-danger",
@@ -1054,17 +1087,20 @@ export function Pager({
   prevHref,
   nextHref,
   summary,
+  label = "Pagination",
   className,
 }: {
   prevHref?: string | null;
   nextHref?: string | null;
   summary?: ReactNode;
+  /** Spoken name of the pager, e.g. "Member pages". */
+  label?: string;
   className?: string;
 }) {
   const end = buttonClass({ size: "sm", className: "pointer-events-none opacity-50" });
   return (
     <nav
-      aria-label="Pagination"
+      aria-label={label}
       className={cn("flex items-center justify-between gap-3", className)}
     >
       {prevHref ? (

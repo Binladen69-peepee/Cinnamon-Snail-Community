@@ -11,6 +11,9 @@ import { playingEmbedSrc } from "@/lib/marketing/class-library";
  * hand a third party a request — and a frame's worth of network — on every
  * class page open, whether or not anybody watched. Pressing play is also the
  * moment autoplay is legitimate, which is why the src only gains it then.
+ *
+ * The scrim and the play disc sit on the photo, so they keep their literal
+ * black and white in both themes; the empty placeholder is a surface well.
  */
 export function ClassPlayer({
   photo,
@@ -43,7 +46,7 @@ export function ClassPlayer({
         // eslint-disable-next-line @next/next/no-img-element
         <img src={photo} alt="" className="size-full object-cover" />
       ) : (
-        <span className="grid size-full place-items-center bg-brand-wash text-on-brand-wash/40">
+        <span className="grid size-full place-items-center bg-surface-muted text-foreground-muted/50">
           <ChefHat className="size-12" aria-hidden />
         </span>
       )}
@@ -52,9 +55,9 @@ export function ClassPlayer({
         <button
           type="button"
           onClick={() => setPlaying(true)}
-          className="absolute inset-0 grid place-items-center bg-black/25 transition hover:bg-black/35 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
+          className="group absolute inset-0 grid place-items-center bg-black/25 transition hover:bg-black/35 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white"
         >
-          <span className="grid size-16 place-items-center rounded-full bg-white/95 text-black shadow-e2">
+          <span className="grid size-16 place-items-center rounded-full bg-white/95 text-black shadow-e2 transition group-hover:scale-105">
             <Play className="size-7 translate-x-0.5 fill-current" aria-hidden />
           </span>
           <span className="sr-only">Play the {title} teaser</span>

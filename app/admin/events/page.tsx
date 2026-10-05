@@ -3,16 +3,16 @@ import { CalendarDays, MapPin, Plus } from "lucide-react";
 import { listAdminEvents } from "@/lib/admin/spaces";
 import { formatEventTime, safeTimeZone } from "@/lib/events/timezone";
 import {
-  AdminLink,
   Badge,
-  EmptyPanel,
+  ButtonLink,
+  Card,
+  EmptyState,
   PageHeader,
-  Panel,
   Table,
   Td,
   Th,
   Tr,
-} from "@/components/admin/ui";
+} from "@/components/app/ui";
 
 export const metadata = { title: "Events" };
 
@@ -36,33 +36,34 @@ export default async function AdminEventsPage() {
   ];
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Events"
-        subtitle={
+        description={
           events.length === 0
             ? "No events have been scheduled."
             : `${upcoming.length} upcoming of ${events.length} total.`
         }
         actions={
-          <AdminLink href="/admin/events/new" variant="primary">
+          <ButtonLink href="/admin/events/new" variant="primary">
             <Plus className="size-4" aria-hidden />
             New event
-          </AdminLink>
+          </ButtonLink>
         }
       />
 
-      <Panel>
+      <Card padding="none" className="overflow-hidden">
         {ordered.length === 0 ? (
-          <EmptyPanel
-            icon={<CalendarDays className="size-6" aria-hidden />}
+          <EmptyState
+            bordered={false}
+            icon={<CalendarDays />}
             title="Nothing scheduled"
-            body="Live classes and gatherings appear here once they are created."
+            description="Live classes and gatherings appear here once they are created."
             action={
-              <AdminLink href="/admin/events/new" variant="primary">
+              <ButtonLink href="/admin/events/new" variant="primary">
                 <Plus className="size-4" aria-hidden />
                 Schedule one
-              </AdminLink>
+              </ButtonLink>
             }
           />
         ) : (
@@ -83,53 +84,53 @@ export default async function AdminEventsPage() {
                   <span className="flex flex-wrap items-center gap-2">
                     <Link
                       href={`/admin/events/${event.slug}`}
-                      className="text-[13.5px] font-bold text-foreground no-underline hover:underline"
+                      className="font-semibold text-foreground no-underline transition hover:text-brand-strong"
                     >
                       {event.title}
                     </Link>
                     {event.past ? <Badge tone="neutral">Past</Badge> : null}
-                    {event.status === "DRAFT" ? <Badge tone="warn">Draft</Badge> : null}
+                    {event.status === "DRAFT" ? <Badge tone="warning">Draft</Badge> : null}
                     {event.status === "CANCELED" ? (
-                      <Badge tone="bad">Canceled</Badge>
+                      <Badge tone="danger">Canceled</Badge>
                     ) : null}
                   </span>
                 </Td>
-                <Td className="whitespace-nowrap text-[12.5px] tabular-nums text-foreground-muted">
+                <Td className="whitespace-nowrap tabular-nums text-foreground-muted">
                   <time dateTime={event.startsAt.toISOString()}>
                     {formatEventTime(event.startsAt, safeTimeZone(event.timezone), {
                       weekday: undefined,
                       year: "numeric",
                     })}
                   </time>
-                  <span className="ml-1 text-[11px]">{event.timezone}</span>
+                  <span className="ml-1 text-caption">{event.timezone}</span>
                 </Td>
-                <Td className="hidden text-[12.5px] text-foreground-muted md:table-cell">
+                <Td className="hidden text-foreground-muted md:table-cell">
                   {event.location ? (
                     <span className="inline-flex items-center gap-1">
-                      <MapPin className="size-3" aria-hidden />
+                      <MapPin className="size-3.5 shrink-0" aria-hidden />
                       {event.location}
                     </span>
                   ) : (
                     "—"
                   )}
                 </Td>
-                <Td className="hidden text-[12.5px] tabular-nums text-foreground-muted sm:table-cell">
+                <Td className="hidden whitespace-nowrap tabular-nums text-foreground-muted sm:table-cell">
                   {event.going}
                   {event.capacity ? ` / ${event.capacity}` : ""}
                   {event.waitlist > 0 ? (
-                    <span className="ml-1.5 text-warning">
+                    <span className="ml-1.5 font-medium text-warning">
                       +{event.waitlist} waiting
                     </span>
                   ) : null}
                 </Td>
-                <Td className="hidden text-[12.5px] text-foreground-muted lg:table-cell">
+                <Td className="hidden text-foreground-muted lg:table-cell">
                   {event.spaceName ?? "—"}
                 </Td>
               </Tr>
             ))}
           </Table>
         )}
-      </Panel>
+      </Card>
     </div>
   );
 }

@@ -2,18 +2,27 @@ import Link from "next/link";
 import { headers } from "next/headers";
 import { notFound, redirect } from "next/navigation";
 import {
-  ArrowLeft,
+  ArrowUpRight,
   CalendarClock,
   MapPin,
-  Radio,
+  MessagesSquare,
   Repeat,
   Users,
   Video,
 } from "lucide-react";
 import { auth } from "@/auth";
 import { AppShell } from "@/components/app/app-shell";
+import {
+  ButtonLink,
+  Callout,
+  Card,
+  PageHeader,
+  Section,
+  buttonClass,
+} from "@/components/app/ui";
 import { Avatar } from "@/components/ui/avatar";
 import { AddToCalendar } from "@/components/events/add-to-calendar";
+import { EventBadges } from "@/components/events/event-badges";
 import { EventTime } from "@/components/events/event-time";
 import { RsvpButton } from "@/components/events/rsvp-button";
 import { getEventViewer } from "@/lib/events/access";
@@ -21,7 +30,6 @@ import { googleCalendarUrl } from "@/lib/events/calendar-links";
 import { loadEvent } from "@/lib/events/queries";
 import { describeRecurrence } from "@/lib/events/recurrence";
 import { safeTimeZone } from "@/lib/events/timezone";
-import { cn } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
@@ -36,6 +44,10 @@ export async function generateMetadata({
   return { title: event.title };
 }
 
+/** A row inside a card: the recording link, a date in the run. */
+const ROW =
+  "flex items-center gap-3 px-4 py-3 text-body text-foreground no-underline transition hover:bg-surface-muted sm:px-5";
+
 /**
  * One gathering.
  *
@@ -43,6 +55,10 @@ export async function generateMetadata({
  * largest control on it — and it only appears for someone who said they are
  * coming and only once the doors are open. A Zoom URL visible to anyone who
  * can see the event is a Zoom URL in a search index.
+ *
+ * Top to bottom: what and when, then the one card that holds the member's
+ * answer (RSVP, the joining link, adding it to their own calendar), then what
+ * the event is about and everything around it.
  */
 export default async function EventPage({
   params,
@@ -85,242 +101,242 @@ export default async function EventPage({
         }
       : null,
   );
+  const hasBadges = event.live || event.status !== "PUBLISHED";
 
   return (
-    <AppShell wide>
-      <div className="mx-auto w-full max-w-[760px] space-y-4 pb-6">
-        <Link
-          href="/calendar"
-          className="inline-flex items-center gap-1.5 text-[13px] font-semibold text-foreground-muted no-underline transition hover:text-foreground"
-        >
-          <ArrowLeft className="size-4" aria-hidden />
-          Calendar
-        </Link>
-
-        {event.coverUrl ? (
-          // The cover comes from the client's own media host, not the optimizer.
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={event.coverUrl}
-            alt=""
-            className="aspect-[16/7] w-full rounded-card object-cover"
-          />
-        ) : null}
-
-        <header className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            {event.live ? (
-              <span className="inline-flex items-center gap-1 rounded-chip bg-danger px-2 py-0.5 text-[11px] font-bold text-white">
-                <Radio className="size-2.5" aria-hidden />
-                Live now
+    <AppShell>
+      <div className="flex flex-col gap-8">
+        <PageHeader
+          back={{ href: "/calendar", label: "Calendar" }}
+          title={event.title}
+          description={
+            <span className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+              <span className="inline-flex items-center gap-1.5">
+                <CalendarClock className="size-4 shrink-0" aria-hidden />
+                <EventTime
+                  startsAt={event.startsAt}
+                  endsAt={event.endsAt}
+                  eventTimeZone={event.timezone}
+                  viewerTimeZone={timeZone}
+                  className="tabular-nums text-foreground"
+                />
               </span>
-            ) : null}
-            {event.status === "CANCELED" ? (
-              <span className="rounded-chip border border-danger/40 px-2 py-0.5 text-[11px] font-bold text-danger">
-                Canceled
-              </span>
-            ) : null}
-            {event.status === "DRAFT" ? (
-              <span className="rounded-chip border border-border px-2 py-0.5 text-[11px] font-bold text-foreground-muted">
-                Draft — only staff can see this
-              </span>
-            ) : null}
-          </div>
-
-          <h1 className="font-display text-[1.6rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-            {event.title}
-          </h1>
-
-          <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-foreground-muted">
-            <span className="inline-flex items-center gap-1.5">
-              <CalendarClock className="size-3.5 shrink-0" aria-hidden />
-              <EventTime
-                startsAt={event.startsAt}
-                endsAt={event.endsAt}
-                eventTimeZone={event.timezone}
-                viewerTimeZone={timeZone}
-                className="tabular-nums"
-              />
+              {event.location ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <MapPin className="size-4 shrink-0" aria-hidden />
+                  {event.location}
+                </span>
+              ) : null}
+              {recurrence ? (
+                <span className="inline-flex items-center gap-1.5">
+                  <Repeat className="size-4 shrink-0" aria-hidden />
+                  {recurrence}
+                </span>
+              ) : null}
             </span>
-            {event.location ? (
-              <span className="inline-flex items-center gap-1">
-                <MapPin className="size-3.5" aria-hidden />
-                {event.location}
-              </span>
-            ) : null}
-            {recurrence ? (
-              <span className="inline-flex items-center gap-1">
-                <Repeat className="size-3.5" aria-hidden />
-                {recurrence}
-              </span>
-            ) : null}
-          </p>
-
-          {event.host ? (
-            <p className="flex items-center gap-2 text-[13px] text-foreground-muted">
-              <Avatar name={event.host.name} src={event.host.image} size="sm" />
-              Hosted by{" "}
-              <Link
-                href={`/members/${event.host.handle}`}
-                className="font-semibold text-foreground no-underline hover:underline"
-              >
-                {event.host.name}
-              </Link>
-            </p>
+          }
+        >
+          {hasBadges || event.host ? (
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              {hasBadges ? (
+                <EventBadges
+                  live={event.live}
+                  status={event.status}
+                  draftLabel="Draft — only staff can see this"
+                />
+              ) : null}
+              {event.host ? (
+                <p className="flex items-center gap-2 text-label text-foreground-muted">
+                  <Avatar
+                    name={event.host.name}
+                    src={event.host.image}
+                    size="xs"
+                  />
+                  <span>
+                    Hosted by{" "}
+                    <Link
+                      href={`/members/${event.host.handle}`}
+                      className="font-semibold text-foreground no-underline hover:underline"
+                    >
+                      {event.host.name}
+                    </Link>
+                  </span>
+                </p>
+              ) : null}
+            </div>
           ) : null}
-        </header>
+        </PageHeader>
 
-        {event.status === "CANCELED" ? (
-          <p className="rounded-card border border-danger/30 bg-default px-4 py-3 text-[13.5px] text-foreground">
-            This event was canceled. Nothing will happen at the time above.
-          </p>
-        ) : (
-          <section className="space-y-3 rounded-card border border-border bg-surface p-4">
-            {event.past ? (
-              <p className="inline-flex items-center gap-1.5 text-[13.5px] text-foreground-muted">
-                <Users className="size-4" aria-hidden />
-                {event.goingCount}{" "}
-                {event.goingCount === 1 ? "person went" : "people went"}.
-              </p>
-            ) : (
-              <RsvpButton
-                eventId={event.id}
-                status={event.myStatus}
-                waitlistPosition={event.myWaitlistPosition}
-                goingCount={event.goingCount}
-                capacity={event.capacity}
-                disabled={event.status !== "PUBLISHED"}
-                disabledReason="This event is not open for RSVPs yet."
-              />
-            )}
+        <div className="flex flex-col gap-4">
+          {event.coverUrl ? (
+            // The cover comes from the client's own media host, not the optimizer.
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={event.coverUrl}
+              alt=""
+              className="aspect-16/7 w-full rounded-card bg-surface-muted object-cover"
+            />
+          ) : null}
 
-            {canJoin ? (
-              <a
-                href={event.zoomUrl ?? "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex h-11 items-center gap-2 rounded-ctl bg-brand-fill px-5 text-[15px] font-semibold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover"
-              >
-                <Video className="size-4" aria-hidden />
-                Join the class
-              </a>
-            ) : going && event.zoomUrl && !event.past ? (
-              <p className="text-[12.5px] text-foreground-muted">
-                The joining link appears here half an hour before the start.
-              </p>
-            ) : null}
+          {event.status === "CANCELED" ? (
+            <Callout tone="danger" role="status">
+              This event was canceled. Nothing will happen at the time above.
+            </Callout>
+          ) : (
+            <Card padding="none" className="overflow-hidden">
+              <div className="flex flex-col gap-4 p-4 sm:p-5">
+                {event.past ? (
+                  <p className="inline-flex items-center gap-2 text-body text-foreground-muted">
+                    <Users className="size-4" aria-hidden />
+                    {event.goingCount}{" "}
+                    {event.goingCount === 1 ? "person went" : "people went"}.
+                  </p>
+                ) : (
+                  <RsvpButton
+                    eventId={event.id}
+                    status={event.myStatus}
+                    waitlistPosition={event.myWaitlistPosition}
+                    goingCount={event.goingCount}
+                    capacity={event.capacity}
+                    disabled={event.status !== "PUBLISHED"}
+                    disabledReason="This event is not open for RSVPs yet."
+                  />
+                )}
 
-            {!event.past ? (
-              <AddToCalendar
-                icsHref={`/api/learn/events/${event.slug}/ics`}
-                googleHref={googleCalendarUrl(icsEvent, { baseUrl: origin })}
-              />
-            ) : null}
-          </section>
-        )}
+                {canJoin ? (
+                  <a
+                    href={event.zoomUrl ?? "#"}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={buttonClass({
+                      variant: "primary",
+                      size: "lg",
+                      className: "w-full sm:w-fit",
+                    })}
+                  >
+                    <Video className="size-4" aria-hidden />
+                    Join the class
+                  </a>
+                ) : going && event.zoomUrl && !event.past ? (
+                  <p className="text-label text-foreground-muted">
+                    The joining link appears here half an hour before the start.
+                  </p>
+                ) : null}
+              </div>
+
+              {!event.past ? (
+                <div className="border-t border-separator bg-surface-muted/50 px-4 py-3 sm:px-5">
+                  <AddToCalendar
+                    icsHref={`/api/learn/events/${event.slug}/ics`}
+                    googleHref={googleCalendarUrl(icsEvent, {
+                      baseUrl: origin,
+                    })}
+                  />
+                </div>
+              ) : null}
+            </Card>
+          )}
+        </div>
 
         {event.description ? (
-          <p className="whitespace-pre-line text-[15px] leading-relaxed text-foreground">
+          <p className="whitespace-pre-line text-reading text-foreground">
             {event.description}
           </p>
         ) : null}
 
         {event.recording || event.recordingUrl ? (
-          <section className="space-y-2">
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-              The recording
-            </h2>
-            {event.recording ? (
-              <Link
-                href={event.recording.href}
-                className="flex items-center gap-2.5 rounded-card border border-border bg-surface px-3.5 py-3 text-[14px] text-foreground no-underline transition hover:border-hairline-firm"
-              >
-                <Video className="size-4 shrink-0 text-brand" aria-hidden />
-                <span className="min-w-0 flex-1 truncate">
-                  {event.recording.title}
-                </span>
-                <span className="shrink-0 text-[12px] font-semibold text-foreground-muted">
-                  {event.recording.kind === "lesson" ? "In the course" : "In the room"}
-                </span>
-              </Link>
-            ) : (
-              <a
-                href={event.recordingUrl ?? "#"}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2.5 rounded-card border border-border bg-surface px-3.5 py-3 text-[14px] text-foreground no-underline transition hover:border-hairline-firm"
-              >
-                <Video className="size-4 shrink-0 text-brand" aria-hidden />
-                Watch the recording
-              </a>
-            )}
-          </section>
+          <Section title="The recording">
+            <Card as="div" padding="none" className="overflow-hidden">
+              {event.recording ? (
+                <Link href={event.recording.href} className={ROW}>
+                  <Video className="size-4 shrink-0 text-brand" aria-hidden />
+                  <span className="min-w-0 flex-1 truncate font-medium">
+                    {event.recording.title}
+                  </span>
+                  <span className="shrink-0 text-caption text-foreground-muted">
+                    {event.recording.kind === "lesson"
+                      ? "In the course"
+                      : "In the room"}
+                  </span>
+                </Link>
+              ) : (
+                <a
+                  href={event.recordingUrl ?? "#"}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={ROW}
+                >
+                  <Video className="size-4 shrink-0 text-brand" aria-hidden />
+                  <span className="min-w-0 flex-1 font-medium">
+                    Watch the recording
+                  </span>
+                  <ArrowUpRight
+                    className="size-4 shrink-0 text-foreground-muted"
+                    aria-hidden
+                  />
+                </a>
+              )}
+            </Card>
+          </Section>
         ) : null}
 
         {event.attendees.length > 0 ? (
-          <section className="space-y-2">
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-              Who is coming
-            </h2>
+          <Section title="Who is coming" count={event.goingCount}>
             <ul className="flex flex-wrap gap-2">
               {event.attendees.map((person) => (
-                <li key={person.handle}>
+                <li key={person.handle} className="min-w-0">
                   <Link
                     href={`/members/${person.handle}`}
                     title={person.name}
-                    className="flex items-center gap-1.5 rounded-full border border-border bg-surface py-1 pl-1 pr-2.5 text-[12.5px] text-foreground no-underline transition hover:border-hairline-firm"
+                    className="flex h-9 min-w-0 items-center gap-2 rounded-full border border-border bg-surface pl-1 pr-3 text-label text-foreground no-underline shadow-e1 transition hover:border-hairline-firm"
                   >
-                    <Avatar name={person.name} src={person.image} size="sm" />
-                    <span className="max-w-[10rem] truncate">{person.name}</span>
+                    <Avatar name={person.name} src={person.image} size="xs" />
+                    <span className="max-w-40 truncate">{person.name}</span>
                   </Link>
                 </li>
               ))}
             </ul>
             {event.goingCount > event.attendees.length ? (
-              <p className="text-[12.5px] text-foreground-muted">
+              <p className="text-label text-foreground-muted">
                 and {event.goingCount - event.attendees.length} more.
               </p>
             ) : null}
-          </section>
+          </Section>
         ) : null}
 
         {event.siblings.length > 0 ? (
-          <section className="space-y-2">
-            <h2 className="text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-              The rest of the run
-            </h2>
-            <ul className="space-y-1.5">
-              {event.siblings.map((sibling) => (
-                <li key={sibling.slug}>
-                  <Link
-                    href={`/calendar/${sibling.slug}`}
-                    className="flex items-center gap-2 rounded-ctl border border-border bg-surface px-3 py-2 text-[13.5px] text-foreground no-underline transition hover:border-hairline-firm"
-                  >
-                    <CalendarClock className="size-3.5 shrink-0 text-foreground-muted" aria-hidden />
-                    <EventTime
-                      startsAt={sibling.startsAt}
-                      eventTimeZone={event.timezone}
-                      viewerTimeZone={timeZone}
-                      showZone={false}
-                      className="tabular-nums"
-                    />
-                  </Link>
-                </li>
-              ))}
-            </ul>
-          </section>
+          <Section title="The rest of the run">
+            <Card as="div" padding="none" className="overflow-hidden">
+              <ul className="divide-y divide-separator">
+                {event.siblings.map((sibling) => (
+                  <li key={sibling.slug}>
+                    <Link href={`/calendar/${sibling.slug}`} className={ROW}>
+                      <CalendarClock
+                        className="size-4 shrink-0 text-foreground-muted"
+                        aria-hidden
+                      />
+                      <EventTime
+                        startsAt={sibling.startsAt}
+                        eventTimeZone={event.timezone}
+                        viewerTimeZone={timeZone}
+                        showZone={false}
+                        className="min-w-0 flex-1 tabular-nums"
+                      />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Card>
+          </Section>
         ) : null}
 
         {event.space ? (
-          <Link
-            href={`/spaces/${event.space.slug}`}
-            className={cn(
-              "inline-flex h-9 items-center gap-2 rounded-ctl border border-border bg-surface px-3.5",
-              "text-[13.5px] font-semibold text-foreground no-underline transition hover:border-hairline-firm",
-            )}
-          >
-            Talk about it in {event.space.name}
-          </Link>
+          <div>
+            <ButtonLink href={`/spaces/${event.space.slug}`}>
+              <MessagesSquare className="size-4" aria-hidden />
+              Talk about it in {event.space.name}
+            </ButtonLink>
+          </div>
         ) : null}
       </div>
     </AppShell>

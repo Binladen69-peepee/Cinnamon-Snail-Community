@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Check, Lock, Search, SendHorizonal } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { Button, Callout, EmptyState, Field, Input } from "@/components/app/ui";
 import { startConversationAction } from "@/app/(member)/messages/actions";
 import type { MessageableMember } from "@/lib/messages/start";
 import { cn } from "@/lib/utils";
@@ -68,11 +69,11 @@ export function NewMessagePicker({
         <input key={handle} type="hidden" name="handle" value={handle} />
       ))}
 
-      <div className="shrink-0 space-y-2.5 border-b border-border px-3 py-2.5">
+      <div className="flex shrink-0 flex-col gap-3 border-b border-separator px-3 py-3 sm:px-4">
         {error ? (
-          <p role="alert" className="text-[12.5px] font-semibold text-danger">
+          <Callout tone="danger" className="px-3 py-2 text-label">
             {error}
-          </p>
+          </Callout>
         ) : null}
 
         <div className="relative">
@@ -80,40 +81,49 @@ export function NewMessagePicker({
             className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground-muted"
             aria-hidden
           />
-          <input
+          <Input
             type="search"
+            size="lg"
             value={filter}
             onChange={(event) => setFilter(event.target.value)}
             placeholder="Search members"
             aria-label="Search members"
-            className="h-10 w-full rounded-ctl border border-border bg-field-background pl-9 pr-3 text-[14px] text-foreground outline-none transition placeholder:text-foreground-muted focus:border-brand focus:ring-2 focus:ring-brand/20 [&::-webkit-search-cancel-button]:appearance-none"
+            className="pl-9 [&::-webkit-search-cancel-button]:appearance-none"
           />
         </div>
 
         {isGroup ? (
-          <input
-            type="text"
-            name="title"
-            value={title}
-            onChange={(event) => setTitle(event.target.value)}
-            placeholder="Group name (optional)"
-            aria-label="Group name"
-            maxLength={80}
-            className="h-10 w-full rounded-ctl border border-border bg-field-background px-3 text-[14px] text-foreground outline-none transition placeholder:text-foreground-muted focus:border-brand focus:ring-2 focus:ring-brand/20"
-          />
+          <Field label="Group name" htmlFor="new-message-group-name" optional>
+            <Input
+              id="new-message-group-name"
+              type="text"
+              name="title"
+              value={title}
+              onChange={(event) => setTitle(event.target.value)}
+              placeholder="Group name (optional)"
+              aria-label="Group name"
+              maxLength={80}
+            />
+          </Field>
         ) : null}
 
         {full ? (
-          <p className="text-[12px] font-semibold text-foreground-muted">
+          <p className="text-caption font-medium text-foreground-muted">
             A group holds {maxGroup} people including you — that is the limit.
           </p>
         ) : null}
       </div>
 
-      <ul className="min-h-0 flex-1 overflow-y-auto">
+      <ul className="min-h-0 flex-1 divide-y divide-separator overflow-y-auto">
         {visible.length === 0 ? (
-          <li className="px-4 py-10 text-center text-[13.5px] text-foreground-muted">
-            No member matches that.
+          <li>
+            <EmptyState
+              size="sm"
+              bordered={false}
+              icon={<Search />}
+              title="No member matches that."
+              description="Try a name, a handle or a city."
+            />
           </li>
         ) : null}
 
@@ -128,22 +138,17 @@ export function NewMessagePicker({
                 disabled={disabled}
                 aria-pressed={chosen}
                 className={cn(
-                  "flex w-full items-center gap-2.5 border-b border-border px-3 py-2.5 text-left transition",
-                  chosen ? "bg-brand-wash" : "hover:bg-mint",
+                  "flex w-full items-center gap-3 px-3 py-3 text-left transition sm:px-4",
+                  chosen ? "bg-brand-wash" : "hover:bg-surface-muted",
                   disabled && "cursor-not-allowed opacity-55 hover:bg-transparent",
                 )}
               >
-                <Avatar
-                  name={member.name}
-                  src={member.avatarUrl}
-                  size="md"
-                  className="size-10"
-                />
+                <Avatar name={member.name} src={member.avatarUrl} size="md" />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-[14px] font-semibold text-foreground">
+                  <span className="block truncate text-body font-semibold text-foreground">
                     {member.name}
                   </span>
-                  <span className="block truncate text-[12.5px] text-foreground-muted">
+                  <span className="block truncate text-caption text-foreground-muted">
                     {member.blockedReason ? (
                       <span className="inline-flex items-center gap-1">
                         <Lock className="size-3 shrink-0" aria-hidden />
@@ -156,7 +161,7 @@ export function NewMessagePicker({
                 </span>
                 {chosen ? (
                   <span
-                    className="grid size-5 shrink-0 place-items-center rounded-full bg-brand text-on-brand"
+                    className="grid size-5 shrink-0 place-items-center rounded-full bg-brand-fill text-brand-fill-foreground"
                     aria-hidden
                   >
                     <Check className="size-3.5" />
@@ -168,16 +173,13 @@ export function NewMessagePicker({
         })}
       </ul>
 
-      <div className="shrink-0 border-t border-border bg-surface px-3 py-2.5">
-        <button
+      <div className="shrink-0 border-t border-border bg-surface px-3 py-3 sm:px-4">
+        <Button
           type="submit"
+          variant="primary"
+          size="lg"
           disabled={selected.length === 0}
-          className={cn(
-            "inline-flex h-10 w-full items-center justify-center gap-2 rounded-ctl text-[14px] font-semibold transition",
-            selected.length > 0
-              ? "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover"
-              : "bg-default text-foreground-muted",
-          )}
+          className="w-full"
         >
           <SendHorizonal className="size-4" aria-hidden />
           {selected.length === 0
@@ -185,7 +187,7 @@ export function NewMessagePicker({
             : isGroup
               ? `Start group with ${selected.length} people`
               : "Start conversation"}
-        </button>
+        </Button>
       </div>
     </form>
   );

@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { Loader2, RotateCw } from "lucide-react";
+import { Button } from "@/components/app/ui";
 import { PostCard } from "@/components/feed/post-card";
 import type { Density } from "@/components/feed/feed-toolbar";
 import {
@@ -117,27 +118,28 @@ export function FeedStream({
 
       <div ref={sentinel} aria-hidden className="h-px" />
 
-      <div className="py-4 text-center" aria-live="polite">
+      <div className="flex flex-col items-center py-4 text-center" aria-live="polite">
         {loading ? (
-          <span className="inline-flex items-center gap-2 text-[13px] text-foreground-muted">
+          <span className="inline-flex h-8 items-center gap-2 text-label text-foreground-muted">
             <Loader2 className="size-4 animate-spin" aria-hidden />
             Loading more posts
           </span>
         ) : failed ? (
-          <div className="space-y-2">
-            <p className="text-[13px] text-foreground-muted">
+          <div className="flex flex-col items-center gap-2.5">
+            <p className="text-label text-foreground-muted">
               That did not load. Your place in the feed is safe.
             </p>
-            <button type="button" onClick={() => void loadMore()} className="vu-btn">
+            <Button size="sm" onClick={() => void loadMore()}>
+              <RotateCw className="size-4" aria-hidden />
               Try again
-            </button>
+            </Button>
           </div>
         ) : cursor ? (
-          <button type="button" onClick={() => void loadMore()} className="vu-btn">
+          <Button size="sm" onClick={() => void loadMore()}>
             Load more posts
-          </button>
+          </Button>
         ) : (
-          <p className="text-[13px] text-foreground-muted">
+          <p className="text-caption text-foreground-muted">
             That is everything for now.
           </p>
         )}

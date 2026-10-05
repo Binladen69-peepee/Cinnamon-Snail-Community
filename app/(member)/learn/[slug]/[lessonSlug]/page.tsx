@@ -3,14 +3,24 @@ import { notFound, redirect } from "next/navigation";
 import {
   ArrowLeft,
   ArrowRight,
-  FileText,
+  ChevronLeft,
+  FileClock,
   Lock,
   MessageSquare,
+  PenLine,
 } from "lucide-react";
 import { auth } from "@/auth";
 import { getLessonPage } from "@/lib/learn/lesson";
 import { renderMarkdown } from "@/lib/markdown";
 import { AppShell } from "@/components/app/app-shell";
+import {
+  ButtonLink,
+  Card,
+  EmptyState,
+  PageHeader,
+  Section,
+  cardClass,
+} from "@/components/app/ui";
 import { LessonPlayer } from "@/components/learn/lesson-player";
 import { LessonSyllabus } from "@/components/learn/lesson-syllabus";
 import {
@@ -18,7 +28,9 @@ import {
   ReflectionForm,
 } from "@/components/learn/lesson-actions-bar";
 import { LessonDiscussion } from "@/components/learn/lesson-discussion";
+import { ResourceList } from "@/components/learn/resource-list";
 import { classHref } from "@/lib/learn/classes";
+import { cn } from "@/lib/utils";
 
 /**
  * `notFound()` here as well as in the page, and deliberately so.
@@ -47,13 +59,22 @@ export async function generateMetadata({
   return { title: `${page.lesson.title} · ${page.course.title}` };
 }
 
+/** The previous/next cards at the foot of a lesson. */
+const STEP_CARD = cardClass({
+  padding: "none",
+  interactive: true,
+  className: "flex min-w-0 items-center gap-3 px-4 py-3 no-underline",
+});
+
 /**
  * One lesson.
  *
- * The syllabus on the left, the lesson on the right, and previous/next at the
- * bottom — the shape every course player converges on, for the reason that it
- * keeps "where am I" and "what now" both on screen without either taking the
- * page over.
+ * The lesson in the main column — the player first, then its title, what to do
+ * with it and the conversation about it — with the syllabus beside it from
+ * `lg` up and previous/next at the bottom: the shape every course player
+ * converges on, for the reason that it keeps "where am I" and "what now" both
+ * on screen without either taking the page over. On a phone the syllabus is a
+ * folded bar above the player.
  *
  * Nothing about the media is rendered here. The player asks for its own source
  * from an endpoint that re-checks entitlement on every request, so this page's
@@ -82,20 +103,23 @@ export default async function LessonPage({
   const showPlayer =
     gate.state === "open" &&
     (plays || lesson.kind === "DOWNLOAD" || lesson.kind === "LIVE");
+  const resources = lesson.resources.filter(
+    (resource) => resource.kind !== "captions",
+  );
 
   return (
-    <AppShell wide>
-      <div className="mx-auto w-full max-w-[1160px] pb-6">
+    <AppShell size="wide">
+      <div className="flex flex-col gap-4">
         <Link
           href={classHref(course.slug)}
-          className="mb-3 inline-flex items-center gap-1.5 text-[13px] font-semibold text-foreground-muted no-underline transition hover:text-foreground"
+          className="-ml-1 inline-flex w-fit max-w-full items-center gap-1 rounded-ctl px-1 text-label font-medium text-foreground-muted no-underline transition hover:text-foreground"
         >
-          <ArrowLeft className="size-4" aria-hidden />
-          {course.title}
+          <ChevronLeft className="size-4 shrink-0" aria-hidden />
+          <span className="min-w-0 truncate">{course.title}</span>
         </Link>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-[300px_minmax(0,1fr)]">
-          <div className="lg:order-1">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] xl:gap-8">
+          <div className="lg:order-2">
             <LessonSyllabus
               sections={course.sections}
               currentLessonId={lesson.id}
@@ -107,22 +131,7 @@ export default async function LessonPage({
             />
           </div>
 
-          <div className="min-w-0 space-y-4 lg:order-2">
-            <header className="space-y-1.5">
-              <p className="text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-                {lesson.sectionTitle} · Lesson {lesson.index} of{" "}
-                {course.lessonCount}
-              </p>
-              <h1 className="font-display text-[1.45rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-                {lesson.title}
-              </h1>
-              {lesson.summary ? (
-                <p className="text-[14px] leading-relaxed text-foreground-muted">
-                  {lesson.summary}
-                </p>
-              ) : null}
-            </header>
-
+          <div className="flex min-w-0 flex-col gap-6 lg:order-1">
             {showPlayer ? (
               // Keyed on the lesson so moving to the next one mounts a fresh
               // player rather than reusing the last one's loaded source.
@@ -139,40 +148,68 @@ export default async function LessonPage({
             ) : null}
 
             {gate.state === "locked" ? (
-              <div className="rounded-card border border-brand/25 bg-brand-wash px-4 py-5 text-center">
-                <Lock className="mx-auto size-6 text-brand-strong" aria-hidden />
-                <h2 className="mt-2 text-[15px] font-bold text-foreground">
-                  {gate.membership === "expired"
-                    ? "Your membership has run out"
-                    : "This lesson is for members"}
-                </h2>
-                <p className="mx-auto mt-1 max-w-[44ch] text-[13.5px] text-foreground-muted">
-                  {gate.membership === "expired"
-                    ? "Renew and everything comes back exactly where you left it — this lesson included."
-                    : "Members get every class in the library, and keep their place across devices."}
-                </p>
-                <Link
-                  href={gate.membership === "expired" ? "/billing" : "/membership"}
-                  className="mt-3.5 inline-flex h-10 items-center rounded-ctl bg-brand-fill px-5 text-[14px] font-semibold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover"
-                >
-                  {gate.membership === "expired"
-                    ? "Check your membership"
-                    : "See membership"}
-                </Link>
-              </div>
+              <Card as="div" padding="none">
+                <EmptyState
+                  bordered={false}
+                  icon={<Lock />}
+                  title={
+                    gate.membership === "expired"
+                      ? "Your membership has run out"
+                      : "This lesson is for members"
+                  }
+                  description={
+                    gate.membership === "expired"
+                      ? "Renew and everything comes back exactly where you left it — this lesson included."
+                      : "Members get every class in the library, and keep their place across devices."
+                  }
+                  action={
+                    <ButtonLink
+                      href={
+                        gate.membership === "expired"
+                          ? "/billing"
+                          : "/membership"
+                      }
+                      variant="primary"
+                      size="lg"
+                    >
+                      {gate.membership === "expired"
+                        ? "Check your membership"
+                        : "See membership"}
+                    </ButtonLink>
+                  }
+                />
+              </Card>
             ) : null}
 
             {gate.state === "unavailable" ? (
-              <p className="rounded-card border border-dashed border-border bg-surface px-4 py-6 text-center text-[13.5px] text-foreground-muted">
-                {gate.reason === "draft"
-                  ? "This lesson is still being written."
-                  : "Nothing has been attached to this lesson yet. It will appear here the moment it is."}
-              </p>
+              gate.reason === "draft" ? (
+                <EmptyState
+                  icon={<PenLine />}
+                  title="This lesson is still being written."
+                />
+              ) : (
+                <EmptyState
+                  icon={<FileClock />}
+                  title="Nothing has been attached to this lesson yet."
+                  description="It will appear here the moment it is."
+                />
+              )
             ) : null}
+
+            <PageHeader
+              eyebrow={
+                <>
+                  {lesson.sectionTitle} · Lesson {lesson.index} of{" "}
+                  {course.lessonCount}
+                </>
+              }
+              title={lesson.title}
+              description={lesson.summary || undefined}
+            />
 
             {gate.state === "open" && bodyHtml ? (
               <div
-                className="prose-vu text-[15px] leading-relaxed text-foreground"
+                className="prose-vu text-reading text-foreground"
                 dangerouslySetInnerHTML={{ __html: bodyHtml }}
               />
             ) : null}
@@ -188,55 +225,33 @@ export default async function LessonPage({
               />
             ) : null}
 
-            {gate.state === "open" && lesson.resources.length > 0 ? (
-              <section className="space-y-2">
-                <h2 className="text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-                  For this lesson
-                </h2>
-                <ul className="space-y-1.5">
-                  {lesson.resources
-                    .filter((resource) => resource.kind !== "captions")
-                    .map((resource) => (
-                      <li key={resource.id}>
-                        <a
-                          href={resource.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2.5 rounded-card border border-border bg-surface px-3.5 py-2.5 text-[14px] text-foreground no-underline transition hover:border-hairline-firm"
-                        >
-                          <FileText
-                            className="size-4 shrink-0 text-brand"
-                            aria-hidden
-                          />
-                          <span className="min-w-0 flex-1 truncate">
-                            {resource.title}
-                          </span>
-                        </a>
-                      </li>
-                    ))}
-                </ul>
-              </section>
+            {/* Counted after the captions are taken out, so a lesson whose
+                only file is its subtitles shows no empty heading. */}
+            {gate.state === "open" && resources.length > 0 ? (
+              <Section title="For this lesson">
+                <ResourceList resources={resources} />
+              </Section>
             ) : null}
 
             <nav
               aria-label="Lessons"
-              className="grid grid-cols-1 gap-2 border-t border-border pt-4 sm:grid-cols-2"
+              className="grid grid-cols-1 gap-3 sm:grid-cols-2"
             >
               {page.previous ? (
                 <Link
                   href={page.previous.href}
                   rel="prev"
-                  className="group flex min-w-0 items-center gap-2 rounded-card border border-border bg-surface px-3.5 py-3 no-underline transition hover:border-hairline-firm"
+                  className={STEP_CARD}
                 >
                   <ArrowLeft
                     className="size-4 shrink-0 text-foreground-muted"
                     aria-hidden
                   />
                   <span className="min-w-0">
-                    <span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-foreground-muted">
+                    <span className="block text-caption font-medium text-foreground-muted">
                       Previous
                     </span>
-                    <span className="block truncate text-[13.5px] font-semibold text-foreground">
+                    <span className="block truncate text-body font-semibold text-foreground">
                       {page.previous.title}
                     </span>
                   </span>
@@ -249,13 +264,13 @@ export default async function LessonPage({
                 <Link
                   href={page.next.href}
                   rel="next"
-                  className="group flex min-w-0 items-center justify-end gap-2 rounded-card border border-border bg-surface px-3.5 py-3 text-right no-underline transition hover:border-hairline-firm"
+                  className={cn(STEP_CARD, "justify-end text-right")}
                 >
                   <span className="min-w-0">
-                    <span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-foreground-muted">
+                    <span className="block text-caption font-medium text-foreground-muted">
                       Next
                     </span>
-                    <span className="block truncate text-[13.5px] font-semibold text-foreground">
+                    <span className="block truncate text-body font-semibold text-foreground">
                       {page.next.title}
                     </span>
                   </span>
@@ -267,13 +282,13 @@ export default async function LessonPage({
               ) : (
                 <Link
                   href={classHref(course.slug)}
-                  className="flex min-w-0 items-center justify-end gap-2 rounded-card border border-border bg-surface px-3.5 py-3 text-right no-underline transition hover:border-hairline-firm"
+                  className={cn(STEP_CARD, "justify-end text-right")}
                 >
                   <span className="min-w-0">
-                    <span className="block text-[11px] font-bold uppercase tracking-[0.1em] text-foreground-muted">
+                    <span className="block text-caption font-medium text-foreground-muted">
                       That was the last one
                     </span>
-                    <span className="block truncate text-[13.5px] font-semibold text-foreground">
+                    <span className="block truncate text-body font-semibold text-foreground">
                       Back to {course.title}
                     </span>
                   </span>
@@ -296,13 +311,12 @@ export default async function LessonPage({
                 spaceHref={course.discussHref}
               />
             ) : course.discussHref ? (
-              <Link
-                href={course.discussHref}
-                className="inline-flex h-9 items-center gap-2 rounded-ctl border border-border bg-surface px-3.5 text-[13.5px] font-semibold text-foreground no-underline transition hover:border-hairline-firm"
-              >
-                <MessageSquare className="size-4" aria-hidden />
-                Ask about this class
-              </Link>
+              <div>
+                <ButtonLink href={course.discussHref}>
+                  <MessageSquare className="size-4" aria-hidden />
+                  Ask about this class
+                </ButtonLink>
+              </div>
             ) : null}
           </div>
         </div>

@@ -1,7 +1,16 @@
 "use client";
 
 import { useEffect, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { Loader2 } from "lucide-react";
+import {
+  Button,
+  Field,
+  Select,
+  backdropClass,
+  dialogClass,
+  fieldClass,
+} from "@/components/app/ui";
 import {
   deletePostAction,
   reportPostAction,
@@ -68,6 +77,14 @@ export function PostOverflow({
  * Escape closes it, the backdrop closes it, and the panel stops clicks from
  * reaching the backdrop. Small enough to keep here rather than reaching for a
  * dialog library for three uses.
+ *
+ * It portals into the app root rather than rendering where the menu is. The
+ * menu sits inside a post card, and anything that gives the card paint
+ * containment or clipping (an `overflow-hidden`, a `content-visibility`) also
+ * makes it the containing block for a fixed child, so the dialog was confined
+ * to the card it came from. Into the app root rather than <body>, so the app's
+ * type and button rules still reach it. It only ever mounts after a click, so
+ * `document` is always there.
  */
 function Modal({
   title,
@@ -86,9 +103,14 @@ function Modal({
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
 
-  return (
+  const root =
+    typeof document === "undefined"
+      ? null
+      : (document.querySelector("[data-app-shell]") ?? document.body);
+
+  const modal = (
     <div
-      className="fixed inset-0 z-50 grid place-items-center bg-black/50 p-4"
+      className={cn(backdropClass, "z-70 grid place-items-center p-4")}
       onClick={onClose}
       role="presentation"
     >
@@ -97,13 +119,15 @@ function Modal({
         aria-modal="true"
         aria-label={title}
         onClick={(event) => event.stopPropagation()}
-        className="w-full max-w-[420px] rounded-card border border-border bg-surface p-5 shadow-e2"
+        className={cn(dialogClass, "w-full max-w-md p-5 sm:p-6")}
       >
-        <h2 className="text-[16px] font-bold text-foreground">{title}</h2>
-        <div className="mt-3">{children}</div>
+        <h2 className="text-title font-semibold text-foreground">{title}</h2>
+        <div className="mt-2">{children}</div>
       </div>
     </div>
   );
+
+  return root ? createPortal(modal, root) : modal;
 }
 
 function ReportDialog({ postId, onClose }: { postId: string; onClose: () => void }) {
@@ -129,19 +153,19 @@ function ReportDialog({ postId, onClose }: { postId: string; onClose: () => void
 
   return (
     <Modal title="Report this post" onClose={onClose}>
-      <p className="text-[13px] text-foreground-muted">
+      <p className="text-body text-foreground-muted">
         Moderators see the reason you pick. The author is not told who reported
         them.
       </p>
-      <div role="radiogroup" aria-label="Reason" className="mt-3 space-y-1.5">
+      <div role="radiogroup" aria-label="Reason" className="mt-4 space-y-1.5">
         {REPORT_REASONS.map((option) => (
           <label
             key={option.value}
             className={cn(
-              "flex cursor-pointer items-center gap-2.5 rounded-ctl border p-2.5 text-[13.5px] transition",
+              "flex cursor-pointer items-center gap-3 rounded-ctl border px-3 py-2.5 text-body transition",
               reason === option.value
-                ? "border-foreground text-foreground"
-                : "border-border text-foreground-muted hover:text-foreground",
+                ? "border-brand bg-brand-wash font-medium text-foreground"
+                : "border-border text-foreground-muted hover:border-hairline-firm hover:bg-surface-muted hover:text-foreground",
             )}
           >
             <input
@@ -150,7 +174,7 @@ function ReportDialog({ postId, onClose }: { postId: string; onClose: () => void
               value={option.value}
               checked={reason === option.value}
               onChange={() => setReason(option.value)}
-              className="size-4 accent-foreground"
+              className="size-4 shrink-0"
             />
             {option.label}
           </label>
@@ -162,7 +186,7 @@ function ReportDialog({ postId, onClose }: { postId: string; onClose: () => void
         rows={3}
         maxLength={500}
         placeholder="Anything else a moderator should know (optional)"
-        className="mt-3 w-full rounded-ctl border border-field-border bg-field-background p-2.5 text-[13.5px] text-foreground outline-none focus:border-brand"
+        className={fieldClass({ multiline: true, className: "mt-3 min-h-20" })}
       />
       <DialogButtons
         pending={pending}
@@ -223,44 +247,40 @@ function ShareDialog({ postId, onClose }: { postId: string; onClose: () => void 
   return (
     <Modal title="Share to a space" onClose={onClose}>
       {spaces === null ? (
-        <p className="flex items-center gap-2 text-[13.5px] text-foreground-muted">
+        <p className="flex items-center gap-2 py-2 text-body text-foreground-muted">
           <Loader2 className="size-4 animate-spin" aria-hidden />
           Loading your spaces
         </p>
       ) : spaces.length === 0 ? (
-        <p className="text-[13.5px] text-foreground-muted">
+        <p className="py-2 text-body text-foreground-muted">
           There is nowhere you can post this right now.
         </p>
       ) : (
         <>
-          <label
-            htmlFor="share-space"
-            className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
-          >
-            Space
-          </label>
-          <select
-            id="share-space"
-            value={target}
-            onChange={(event) => setTarget(event.target.value)}
-            className="h-11 w-full rounded-ctl border border-field-border bg-field-background px-3 text-[14px] text-foreground outline-none focus:border-brand"
-          >
-            {spaces.map((space) => (
-              <option key={space.id} value={space.id}>
-                {space.name}
-              </option>
-            ))}
-          </select>
+          <Field label="Space" htmlFor="share-space" className="mt-3">
+            <Select
+              id="share-space"
+              size="lg"
+              value={target}
+              onChange={(event) => setTarget(event.target.value)}
+            >
+              {spaces.map((space) => (
+                <option key={space.id} value={space.id}>
+                  {space.name}
+                </option>
+              ))}
+            </Select>
+          </Field>
           <textarea
             value={note}
             onChange={(event) => setNote(event.target.value)}
             rows={3}
             maxLength={500}
             placeholder="Say something about it (optional)"
-            className="mt-3 w-full rounded-ctl border border-field-border bg-field-background p-2.5 text-[13.5px] text-foreground outline-none focus:border-brand"
+            className={fieldClass({ multiline: true, className: "mt-3 min-h-20" })}
           />
           {chosen?.needsApproval ? (
-            <p className="mt-2 text-[12.5px] text-foreground-muted">
+            <p className="mt-2 text-caption text-foreground-muted">
               Posts in that space wait for a host before anyone sees them.
             </p>
           ) : null}
@@ -295,7 +315,7 @@ function DeleteDialog({ postId, onClose }: { postId: string; onClose: () => void
 
   return (
     <Modal title="Delete this post" onClose={onClose}>
-      <p className="text-[13.5px] leading-relaxed text-foreground-muted">
+      <p className="text-body leading-relaxed text-foreground-muted">
         This cannot be undone. The replies go with it.
       </p>
       <DialogButtons
@@ -323,24 +343,16 @@ function DialogButtons({
   onConfirm: () => void;
 }) {
   return (
-    <div className="mt-4 flex items-center justify-end gap-2">
-      <button type="button" onClick={onCancel} className="vu-btn h-11 px-4 text-[13.5px]">
-        Cancel
-      </button>
-      <button
-        type="button"
+    <div className="mt-5 flex items-center justify-end gap-2">
+      <Button onClick={onCancel}>Cancel</Button>
+      <Button
+        variant={destructive ? "danger" : "primary"}
         disabled={pending}
         onClick={onConfirm}
-        className={cn(
-          "vu-btn h-11 px-4 text-[13.5px]",
-          destructive ? "text-danger" : "vu-btn-primary",
-        )}
       >
-        {pending ? (
-          <Loader2 className="mr-1.5 inline size-4 animate-spin" aria-hidden />
-        ) : null}
+        {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
         {confirmLabel}
-      </button>
+      </Button>
     </div>
   );
 }

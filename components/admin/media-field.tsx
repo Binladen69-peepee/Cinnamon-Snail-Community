@@ -1,11 +1,11 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useId, useRef, useState } from "react";
 import { Loader2, Paperclip, X } from "lucide-react";
 import { requestUploadAction } from "@/app/(member)/upload-actions";
 import { prepareForUpload, putWithProgress } from "@/lib/uploads/client";
 import { VIDEO_ACCEPT, formatBytes, validateUpload } from "@/lib/uploads/policy";
-import { cn } from "@/lib/utils";
+import { Button, Field, Input, ProgressBar } from "@/components/app/ui";
 
 /**
  * Where a lesson's media comes from: an upload, or an address.
@@ -39,6 +39,7 @@ export function MediaField({
   uploadsEnabled: boolean;
   placeholder?: string;
 }) {
+  const inputId = useId();
   const [current, setCurrent] = useState(value ?? "");
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -80,57 +81,72 @@ export function MediaField({
   }
 
   return (
-    <div className="min-w-0">
-      <span className="mb-1.5 block text-[12.5px] font-semibold text-foreground">
-        {label}
-      </span>
-
-      <div className="flex gap-2">
-        <input
+    <Field
+      label={label}
+      htmlFor={inputId}
+      error={error}
+      hint={
+        help ? (
+          <>
+            {help}{" "}
+            {uploadsEnabled ? `Uploads up to ${formatBytes(maxBytes)}.` : null}
+          </>
+        ) : undefined
+      }
+      className="min-w-0"
+    >
+      <div className="flex min-w-0 gap-2">
+        <Input
+          id={inputId}
           type="text"
           name={name}
           value={current}
           onChange={(event) => setCurrent(event.target.value)}
           placeholder={placeholder}
           spellCheck={false}
-          className="h-9 min-w-0 flex-1 rounded-ctl border border-field-border bg-field-background px-3 text-[13px] text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/25"
+          className="flex-1"
         />
 
         {current ? (
-          <button
-            type="button"
+          <Button
+            variant="ghost"
+            iconOnly
             onClick={() => setCurrent("")}
             aria-label={`Clear ${label}`}
-            className="grid size-9 shrink-0 place-items-center rounded-ctl border border-border bg-background text-foreground-muted transition hover:border-hairline-firm hover:text-foreground"
+            title={`Clear ${label}`}
           >
             <X className="size-4" aria-hidden />
-          </button>
+          </Button>
         ) : null}
 
         {uploadsEnabled ? (
-          <button
-            type="button"
+          <Button
             onClick={() => fileRef.current?.click()}
             disabled={busy}
-            className={cn(
-              "inline-flex h-9 shrink-0 items-center gap-1.5 rounded-ctl border border-border bg-background px-3 text-[12.5px] font-semibold text-foreground transition hover:border-hairline-firm",
-              busy && "opacity-60",
-            )}
+            aria-busy={busy || undefined}
           >
             {busy ? (
               <>
-                <Loader2 className="size-3.5 animate-spin" aria-hidden />
+                <Loader2 className="size-4 animate-spin" aria-hidden />
                 {progress > 0 ? `${Math.round(progress * 100)}%` : "Uploading"}
               </>
             ) : (
               <>
-                <Paperclip className="size-3.5" aria-hidden />
+                <Paperclip className="size-4" aria-hidden />
                 Upload
               </>
             )}
-          </button>
+          </Button>
         ) : null}
       </div>
+
+      {busy ? (
+        <ProgressBar
+          value={Math.round(progress * 100)}
+          label={`Uploading ${label}`}
+          size="sm"
+        />
+      ) : null}
 
       <input
         ref={fileRef}
@@ -143,17 +159,6 @@ export function MediaField({
           event.target.value = "";
         }}
       />
-
-      {error ? (
-        <p role="alert" className="mt-1.5 text-[12px] font-semibold text-danger">
-          {error}
-        </p>
-      ) : help ? (
-        <p className="mt-1.5 text-[12px] text-foreground-muted">
-          {help}{" "}
-          {uploadsEnabled ? `Uploads up to ${formatBytes(maxBytes)}.` : null}
-        </p>
-      ) : null}
-    </div>
+    </Field>
   );
 }

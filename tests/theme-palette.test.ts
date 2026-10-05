@@ -12,12 +12,12 @@ import { describe, expect, it } from "vitest";
  * tokens, so one stray hue in those blocks repaints hundreds of components.
  *
  * Everything signed in — the member app and the admin console — carries the
- * forest palette (`DEC-076`): forest for action, sage for tint, terracotta for
- * the one thing to notice, and amber, red and blue for status. It is declared
- * once, in the "App design system" section at the end of `globals.css`, and
- * nowhere else. So the policy is now about *where* a hue may live, which is a
- * stricter property than "none at all": a forest anywhere outside that section
- * is still the regression this catches.
+ * teal palette (`DEC-076`, `DEC-077`): teal for action and the major areas,
+ * neutrals for everything else, and amber, red and blue for status. It is
+ * declared once, in the "App design system" section at the end of
+ * `globals.css`, and nowhere else. So the policy is now about *where* a hue may
+ * live, which is a stricter property than "none at all": a green anywhere
+ * outside that section is still the regression this catches.
  */
 
 const root = process.cwd();
@@ -56,11 +56,11 @@ const MARKETING_FAMILIES: [string, number, number][] = [
   ["red / terracotta", 0, 24],
 ];
 
-/** The app's families: the brand's greens, its terracotta, and status. */
+/** The app's families: teal, the yellow accent, and status. */
 const APP_FAMILIES: [string, number, number][] = [
-  ["red / terracotta", 0, 24],
-  ["amber / warm neutral", 25, 60],
-  ["forest / sage", 120, 165],
+  ["danger red", 0, 24],
+  ["yellow / amber", 25, 60],
+  ["teal", 165, 190],
   ["info blue", 200, 215],
 ];
 
@@ -177,16 +177,20 @@ describe("marketing palette", () => {
 describe("app palette", () => {
   it("is the palette the client briefed", () => {
     const light = blockAfter(APP_LIGHT);
-    expect(tokenIn(light, "background")).toBe("#f7f5ef");
+    expect(tokenIn(light, "background")).toBe("#fafaf7");
     expect(tokenIn(light, "surface")).toBe("#ffffff");
-    expect(tokenIn(light, "foreground")).toBe("#18221e");
-    expect(tokenIn(light, "brand-fill")).toBe("#1f5a45");
-    expect(tokenIn(light, "accent-sage")).toBe("#8faf96");
-    expect(tokenIn(light, "highlight")).toBe("#d47755");
+    expect(tokenIn(light, "foreground")).toBe("#171717");
+    expect(tokenIn(light, "brand-fill")).toBe("#0f746f");
+    expect(tokenIn(light, "sidebar")).toBe("#0f746f");
+    expect(tokenIn(light, "highlight")).toBe("#0f746f");
+  });
 
-    const dark = blockAfter(APP_DARK);
-    expect(tokenIn(dark, "background")).toBe("#0d1512");
-    expect(tokenIn(dark, "surface")).toBe("#14201b");
+  it("has no trace of the forest palette it replaced", () => {
+    // DEC-077 retired forest, sage and terracotta from the app entirely.
+    // The client then asked for no yellow either: teal and neutrals only.
+    for (const retired of ["#1f5a45", "#8faf96", "#d47755", "#f7f5ef", "#0d1512", "accent-sage", "#ffd447"]) {
+      expect(appCss.toLowerCase(), retired).not.toContain(retired);
+    }
   });
 
   it("uses only the brand's families and status hues", () => {
@@ -198,8 +202,8 @@ describe("app palette", () => {
   });
 
   it("designs dark mode rather than inverting light", () => {
-    // Forest is 2.3:1 on the dark ground, so dark mode must not reuse it for
-    // brand text or for the fill.
+    // Teal #0f746f is too dim as text on the dark ground, so dark mode lifts
+    // brand text to a bright teal and keeps the fill legible against its ground.
     const light = blockAfter(APP_LIGHT);
     const dark = blockAfter(APP_DARK);
     expect(tokenIn(dark, "brand-strong")).not.toBe(tokenIn(light, "brand-strong"));

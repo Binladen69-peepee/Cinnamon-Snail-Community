@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { AlertTriangle, Eye, Play, RotateCw } from "lucide-react";
-import { AdminButton, Badge } from "@/components/admin/ui";
+import { Badge, Button } from "@/components/app/ui";
 import { toast } from "@/components/ui/toast";
 import {
   previewRuleAction,
@@ -34,9 +34,14 @@ export function PauseAllSwitch({ paused }: { paused: boolean }) {
       }
     >
       <input type="hidden" name="paused" value={paused ? "0" : "1"} />
-      <AdminButton type="submit" variant={paused ? "primary" : "danger"} disabled={pending}>
+      <Button
+        type="submit"
+        variant={paused ? "primary" : "danger"}
+        disabled={pending}
+        aria-busy={pending || undefined}
+      >
         {pending ? "Working…" : paused ? "Resume automations" : "Pause all automations"}
-      </AdminButton>
+      </Button>
     </form>
   );
 }
@@ -53,18 +58,19 @@ export function RuleControls({ rule }: { rule: RuleRow }) {
     });
 
   return (
-    <div className="space-y-3">
+    <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-2">
         <form action={enabledForm}>
           <input type="hidden" name="slug" value={rule.slug} />
           <input type="hidden" name="enabled" value={rule.enabled ? "0" : "1"} />
-          <AdminButton
+          <Button
             type="submit"
+            size="sm"
             variant={rule.enabled ? "secondary" : "primary"}
             disabled={pending || Boolean(rule.problem)}
           >
             {rule.enabled ? "Turn off" : "Turn on"}
-          </AdminButton>
+          </Button>
         </form>
 
         <form
@@ -77,10 +83,10 @@ export function RuleControls({ rule }: { rule: RuleRow }) {
           }
         >
           <input type="hidden" name="slug" value={rule.slug} />
-          <AdminButton type="submit" disabled={pending}>
+          <Button type="submit" size="sm" disabled={pending}>
             <Eye className="size-3.5" aria-hidden />
             Dry run
-          </AdminButton>
+          </Button>
         </form>
 
         <form
@@ -96,31 +102,35 @@ export function RuleControls({ rule }: { rule: RuleRow }) {
           }
         >
           <input type="hidden" name="slug" value={rule.slug} />
-          <AdminButton type="submit" disabled={pending || !rule.enabled || Boolean(rule.problem)}>
+          <Button
+            type="submit"
+            size="sm"
+            disabled={pending || !rule.enabled || Boolean(rule.problem)}
+          >
             <Play className="size-3.5" aria-hidden />
             Run now
-          </AdminButton>
+          </Button>
         </form>
       </div>
 
       {preview?.ok ? (
-        <div className="rounded-card border border-border bg-default/50 p-3">
-          <p className="text-[12.5px] font-semibold text-foreground">
+        <div className="rounded-ctl bg-surface-muted p-3 sm:p-4">
+          <p className="text-label font-medium text-foreground">
             {preview.matched} match this rule now — {preview.wouldFire} would be acted on.
           </p>
           {preview.matched > preview.wouldFire ? (
-            <p className="mt-0.5 text-[12px] text-foreground-muted">
+            <p className="mt-0.5 text-caption text-foreground-muted">
               The rest have already been handled for their current state, so they would be skipped.
             </p>
           ) : null}
           {preview.members.length === 0 ? (
-            <p className="mt-1.5 text-[12px] text-foreground-muted">Nobody matches right now.</p>
+            <p className="mt-1.5 text-caption text-foreground-muted">Nobody matches right now.</p>
           ) : (
-            <ul className="mt-2 max-h-48 space-y-1 overflow-y-auto text-[12px]">
+            <ul className="mt-2.5 flex max-h-48 flex-col gap-1.5 overflow-y-auto text-caption">
               {preview.members.map((member) => (
-                <li key={member.dedupeKey + member.userId} className="flex items-center gap-2">
-                  <Badge tone={member.wouldFire ? "good" : "neutral"}>
-                    {member.wouldFire ? "would fire" : "already done"}
+                <li key={member.dedupeKey + member.userId} className="flex min-w-0 items-center gap-2">
+                  <Badge tone={member.wouldFire ? "success" : "neutral"}>
+                    {member.wouldFire ? "Would fire" : "Already done"}
                   </Badge>
                   <span className="truncate text-foreground-muted">
                     {member.handle ? `@${member.handle}` : (member.email ?? member.userId)}
@@ -130,7 +140,7 @@ export function RuleControls({ rule }: { rule: RuleRow }) {
             </ul>
           )}
           {preview.members.length === 50 ? (
-            <p className="mt-1.5 text-[11.5px] text-foreground-muted">
+            <p className="mt-2 text-caption text-foreground-muted">
               Showing the first 50 of {preview.matched}.
             </p>
           ) : null}
@@ -153,18 +163,18 @@ export function RetryButton({ executionId }: { executionId: string }) {
       }
     >
       <input type="hidden" name="executionId" value={executionId} />
-      <AdminButton type="submit" disabled={pending} className="h-8 px-2.5 text-[12px]">
+      <Button type="submit" size="sm" disabled={pending} aria-busy={pending || undefined}>
         <RotateCw className="size-3.5" aria-hidden />
         Retry
-      </AdminButton>
+      </Button>
     </form>
   );
 }
 
 export function BrokenRule({ problem }: { problem: string }) {
   return (
-    <p className="flex items-start gap-1.5 text-[12.5px] text-danger">
-      <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
+    <p className="flex items-start gap-2 text-label text-danger">
+      <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden />
       <span>
         This rule cannot run: {problem}. It is skipped entirely rather than run in part.
       </span>

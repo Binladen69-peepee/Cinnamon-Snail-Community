@@ -9,10 +9,18 @@ import {
   Gauge,
   Loader2,
   Lock,
+  Radio,
   RotateCcw,
 } from "lucide-react";
 import type { LessonKind } from "@prisma/client";
 import { formatChapterTime, type Chapter } from "@/lib/learn/chapters";
+import {
+  Button,
+  CardHeader,
+  Select,
+  buttonClass,
+  cardClass,
+} from "@/components/app/ui";
 import { cn } from "@/lib/utils";
 
 /**
@@ -32,6 +40,11 @@ import { cn } from "@/lib/utils";
  *
  * Every control is a real button in the tab order, and the shortcuts are the
  * ones people already know from other players: space, arrows, `f`, `m`.
+ *
+ * Every state that is not a player — loading, locked, missing, failed, live,
+ * download — takes the player's frame, so the page does not change shape
+ * when the source arrives. The video itself keeps a black ground in both
+ * themes: it is the letterbox, not a surface.
  */
 
 type Source =
@@ -104,7 +117,10 @@ export function LessonPlayer({
         if (response.ok && body.ok) {
           setSource({ status: "ready", ...body });
         } else if (response.status === 403 && body.error === "entitlement") {
-          setSource({ status: "locked", membership: body.membership ?? "none" });
+          setSource({
+            status: "locked",
+            membership: body.membership ?? "none",
+          });
         } else if (response.status === 404) {
           setSource({ status: "missing" });
         } else if (response.status === 429) {
@@ -264,7 +280,7 @@ export function LessonPlayer({
   if (source.status === "loading") {
     return (
       <Frame>
-        <span className="inline-flex items-center gap-2 text-[13.5px] text-foreground-muted">
+        <span className="inline-flex items-center gap-2 text-body text-foreground-muted">
           <Loader2 className="size-4 animate-spin" aria-hidden />
           Loading the lesson…
         </span>
@@ -275,22 +291,26 @@ export function LessonPlayer({
   if (source.status === "locked") {
     return (
       <Frame tone="brand">
-        <Lock className="size-6 text-brand-strong" aria-hidden />
-        <p className="mt-2 text-[14px] font-bold text-foreground">
+        <FrameIcon>
+          <Lock aria-hidden />
+        </FrameIcon>
+        <p className="mt-3 text-title font-semibold text-foreground">
           {source.membership === "expired"
             ? "Your membership has run out"
             : "This lesson is for members"}
         </p>
-        <p className="mx-auto mt-1 max-w-[42ch] text-[13px] text-foreground-muted">
+        <p className="mx-auto mt-1 max-w-[42ch] text-body text-foreground-muted">
           {source.membership === "expired"
             ? "Renew and everything you had before comes straight back, including where you got to."
             : "Join to watch the full class. Your progress is kept from the moment you do."}
         </p>
         <a
           href="/membership"
-          className="mt-3 inline-flex h-9 items-center rounded-ctl bg-brand-fill px-4 text-[13.5px] font-semibold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover"
+          className={buttonClass({ variant: "primary", className: "mt-4" })}
         >
-          {source.membership === "expired" ? "Renew membership" : "See membership"}
+          {source.membership === "expired"
+            ? "Renew membership"
+            : "See membership"}
         </a>
       </Frame>
     );
@@ -299,11 +319,13 @@ export function LessonPlayer({
   if (source.status === "missing") {
     return (
       <Frame>
-        <AlertTriangle className="size-6 text-foreground-muted" aria-hidden />
-        <p className="mt-2 text-[14px] font-bold text-foreground">
+        <FrameIcon tone="neutral">
+          <AlertTriangle aria-hidden />
+        </FrameIcon>
+        <p className="mt-3 text-title font-semibold text-foreground">
           Nothing to play here yet
         </p>
-        <p className="mx-auto mt-1 max-w-[42ch] text-[13px] text-foreground-muted">
+        <p className="mx-auto mt-1 max-w-[42ch] text-body text-foreground-muted">
           This lesson has no recording attached. It will appear the moment one
           is.
         </p>
@@ -314,21 +336,19 @@ export function LessonPlayer({
   if (source.status === "error") {
     return (
       <Frame>
-        <AlertTriangle className="size-6 text-danger" aria-hidden />
-        <p className="mt-2 text-[14px] font-bold text-foreground">
+        <FrameIcon tone="danger">
+          <AlertTriangle aria-hidden />
+        </FrameIcon>
+        <p className="mt-3 text-title font-semibold text-foreground">
           That did not load
         </p>
-        <p className="mx-auto mt-1 max-w-[42ch] text-[13px] text-foreground-muted">
+        <p className="mx-auto mt-1 max-w-[42ch] text-body text-foreground-muted">
           {source.message}
         </p>
-        <button
-          type="button"
-          onClick={retry}
-          className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-ctl border border-border bg-background px-4 text-[13.5px] font-semibold text-foreground transition hover:border-hairline-firm"
-        >
-          <RotateCcw className="size-3.5" aria-hidden />
+        <Button onClick={retry} className="mt-4">
+          <RotateCcw className="size-4" aria-hidden />
           Try again
-        </button>
+        </Button>
       </Frame>
     );
   }
@@ -338,9 +358,14 @@ export function LessonPlayer({
     const when = source.liveAt ? new Date(source.liveAt) : null;
     return (
       <Frame tone="brand">
-        <p className="text-[14px] font-bold text-foreground">Live session</p>
+        <FrameIcon>
+          <Radio aria-hidden />
+        </FrameIcon>
+        <p className="mt-3 text-title font-semibold text-foreground">
+          Live session
+        </p>
         {when ? (
-          <p className="mt-1 text-[13px] text-foreground-muted">
+          <p className="mt-1 text-body text-foreground-muted">
             {when.toLocaleString(undefined, {
               weekday: "long",
               day: "numeric",
@@ -355,10 +380,10 @@ export function LessonPlayer({
             href={source.liveUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-ctl bg-brand-fill px-4 text-[13.5px] font-semibold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover"
+            className={buttonClass({ variant: "primary", className: "mt-4" })}
           >
             Join the session
-            <ExternalLink className="size-3.5" aria-hidden />
+            <ExternalLink className="size-4" aria-hidden />
           </a>
         ) : null}
       </Frame>
@@ -368,16 +393,18 @@ export function LessonPlayer({
   if (kind === "DOWNLOAD") {
     return (
       <Frame tone="brand">
-        <Download className="size-6 text-brand-strong" aria-hidden />
-        <p className="mt-2 text-[14px] font-bold text-foreground">{title}</p>
+        <FrameIcon>
+          <Download aria-hidden />
+        </FrameIcon>
+        <p className="mt-3 text-title font-semibold text-foreground">{title}</p>
         <a
           href={source.src}
           target="_blank"
           rel="noopener noreferrer"
           onClick={() => save(0, null, true)}
-          className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-ctl bg-brand-fill px-4 text-[13.5px] font-semibold text-brand-fill-foreground no-underline transition hover:bg-brand-fill-hover"
+          className={buttonClass({ variant: "primary", className: "mt-4" })}
         >
-          <Download className="size-3.5" aria-hidden />
+          <Download className="size-4" aria-hidden />
           Download
         </a>
       </Frame>
@@ -385,7 +412,8 @@ export function LessonPlayer({
   }
 
   // --- the player -----------------------------------------------------------
-  const chapters = source.chapters.length > 0 ? source.chapters : initialChapters;
+  const chapters =
+    source.chapters.length > 0 ? source.chapters : initialChapters;
   const startAt = source.resumeAt || resumeAt;
 
   const mediaProps = {
@@ -420,8 +448,8 @@ export function LessonPlayer({
   };
 
   return (
-    <div className="space-y-2.5">
-      <div className={cn(kind === "AUDIO" && "rounded-card bg-surface p-4")}>
+    <div className="flex flex-col gap-3">
+      <div className={cn(kind === "AUDIO" && cardClass())}>
         {source.embed ? (
           <iframe
             src={source.src}
@@ -466,42 +494,39 @@ export function LessonPlayer({
       {!source.embed ? (
         <div className="flex flex-wrap items-center gap-2">
           <div className="inline-flex items-center gap-1.5">
-            <Gauge className="size-3.5 text-foreground-muted" aria-hidden />
+            <Gauge className="size-4 text-foreground-muted" aria-hidden />
             <label htmlFor="lesson-speed" className="sr-only">
               Playback speed
             </label>
-            <select
+            <Select
               id="lesson-speed"
+              size="sm"
               value={speed}
               onChange={(event) => changeSpeed(Number(event.target.value))}
-              className="h-8 rounded-ctl border border-border bg-surface px-2 text-[12.5px] font-semibold text-foreground outline-none focus:border-brand focus:ring-2 focus:ring-brand/25"
+              className="w-auto font-medium"
             >
               {SPEEDS.map((value) => (
                 <option key={value} value={value}>
                   {value}×
                 </option>
               ))}
-            </select>
+            </Select>
           </div>
 
           {done ? (
-            <span className="inline-flex h-8 items-center gap-1.5 rounded-ctl border border-brand/40 px-2.5 text-[12.5px] font-semibold text-brand-strong">
-              <Check className="size-3.5" aria-hidden />
+            <span className="inline-flex h-8 items-center gap-1.5 rounded-ctl bg-success-wash px-2.5 text-label font-medium text-success">
+              <Check className="size-4" aria-hidden />
               Completed
             </span>
           ) : (
-            <button
-              type="button"
-              onClick={() => saveNow(true)}
-              className="inline-flex h-8 items-center gap-1.5 rounded-ctl border border-border bg-surface px-2.5 text-[12.5px] font-semibold text-foreground transition hover:border-hairline-firm"
-            >
-              <Check className="size-3.5" aria-hidden />
+            <Button size="sm" onClick={() => saveNow(true)}>
+              <Check className="size-4" aria-hidden />
               Mark complete
-            </button>
+            </Button>
           )}
 
           {startAt > 2 ? (
-            <span className="text-[12px] text-foreground-muted">
+            <span className="text-caption text-foreground-muted">
               Resumed at {formatChapterTime(startAt)}
             </span>
           ) : null}
@@ -509,22 +534,25 @@ export function LessonPlayer({
       ) : null}
 
       {chapters.length > 0 && !source.embed ? (
-        <div className="rounded-card border border-border bg-surface">
-          <h2 className="border-b border-border px-3.5 py-2 text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-            Chapters
-          </h2>
-          <ul className="max-h-56 overflow-y-auto">
+        <div
+          className={cardClass({
+            padding: "none",
+            className: "overflow-hidden",
+          })}
+        >
+          <CardHeader title="Chapters" count={chapters.length} />
+          <ul className="max-h-56 divide-y divide-separator overflow-y-auto">
             {chapters.map((chapter) => (
               <li key={chapter.atSeconds}>
                 <button
                   type="button"
                   onClick={() => seekTo(chapter.atSeconds)}
-                  className="flex w-full items-center gap-3 px-3.5 py-2 text-left transition hover:bg-mint"
+                  className="flex w-full items-center gap-3 px-4 py-2.5 text-left transition hover:bg-surface-muted sm:px-5"
                 >
-                  <span className="shrink-0 font-mono text-[12px] tabular-nums text-brand">
+                  <span className="w-12 shrink-0 font-mono text-caption tabular-nums text-brand-strong">
                     {formatChapterTime(chapter.atSeconds)}
                   </span>
-                  <span className="min-w-0 flex-1 truncate text-[13.5px] text-foreground">
+                  <span className="min-w-0 flex-1 truncate text-body text-foreground">
                     {chapter.title}
                   </span>
                 </button>
@@ -537,6 +565,11 @@ export function LessonPlayer({
   );
 }
 
+/**
+ * The player's frame, for every state that is not a player. On a phone the
+ * 16:9 box is too short for a heading, a sentence and a button, so it grows
+ * to fit them there and keeps the video's proportions from `sm` up.
+ */
 function Frame({
   children,
   tone = "plain",
@@ -547,13 +580,35 @@ function Frame({
   return (
     <div
       className={cn(
-        "grid aspect-video w-full place-content-center rounded-card border px-6 text-center",
+        "grid min-h-56 w-full place-content-center px-6 py-8 text-center sm:aspect-video sm:min-h-0",
         tone === "brand"
-          ? "border-brand/25 bg-brand-wash"
-          : "border-border bg-surface",
+          ? "rounded-card bg-brand-wash"
+          : cardClass({ padding: "none" }),
       )}
     >
       <div className="flex flex-col items-center">{children}</div>
     </div>
+  );
+}
+
+/** The round icon at the top of a frame. */
+function FrameIcon({
+  children,
+  tone = "brand",
+}: {
+  children: React.ReactNode;
+  tone?: "brand" | "neutral" | "danger";
+}) {
+  return (
+    <span
+      className={cn(
+        "grid size-12 place-items-center rounded-full [&_svg]:size-5",
+        tone === "brand" && "bg-surface text-brand shadow-e1",
+        tone === "neutral" && "bg-default text-foreground-muted",
+        tone === "danger" && "bg-danger-wash text-danger",
+      )}
+    >
+      {children}
+    </span>
   );
 }

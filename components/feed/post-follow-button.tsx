@@ -3,9 +3,14 @@
 import { useOptimistic, useTransition } from "react";
 import { UserPlus } from "lucide-react";
 import { toggleFollowAction } from "@/app/(member)/follow-actions";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/app/ui";
 
-/** Compact LinkedIn-style follow control for post headers. */
+/**
+ * Compact follow control for post headers, member cards and reels.
+ *
+ * Primary while it is an invitation, secondary once it is a state: a row of
+ * people you already follow should not be a row of filled buttons.
+ */
 export function PostFollowButton({
   handle,
   initialFollowing = false,
@@ -34,17 +39,14 @@ export function PostFollowButton({
   }
 
   return (
-    <button
-      type="button"
+    <Button
+      size="sm"
+      variant={following ? "secondary" : "primary"}
       onClick={onClick}
-      className={cn(
-        "vu-btn inline-flex h-8 shrink-0 items-center gap-1 px-3 text-[13px]",
-        following ? "vu-btn-secondary text-foreground-muted" : "vu-btn-primary",
-        className,
-      )}
+      className={className}
     >
       {!following ? <UserPlus className="size-3.5" aria-hidden /> : null}
       {following ? "Following" : "Follow"}
-    </button>
+    </Button>
   );
 }

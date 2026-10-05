@@ -10,8 +10,10 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, ArrowDown } from "lucide-react";
+import { ArrowDown, MessageSquare, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { Button, EmptyState } from "@/components/app/ui";
+import { PaneBackLink, PaneHeader } from "@/components/messages/pane-header";
 import { MessageBubble, type ThreadMessage } from "@/components/messages/message-bubble";
 import { ThreadComposer } from "@/components/messages/thread-composer";
 import { ThreadMenu } from "@/components/messages/thread-menu";
@@ -83,6 +85,9 @@ export function Thread({
     () => new Map(initialPreviews.map((preview) => [preview.url, preview])),
   );
   const [older, setOlder] = useState({ hasMore, loading: false });
+  // Why the page above could not be fetched, when it could not. The action
+  // already says; this only keeps the reason on screen instead of dropping it.
+  const [olderError, setOlderError] = useState<string | null>(null);
   const [typing, setTyping] = useState<string[]>([]);
   const [receipts, setReceipts] = useState(
     others.map((other) => ({ name: other.name, lastReadAt: other.lastReadAt })),
@@ -145,6 +150,7 @@ export function Thread({
     });
     if (!result.ok) {
       setOlder({ hasMore: false, loading: false });
+      setOlderError(result.error);
       return;
     }
 
@@ -297,30 +303,26 @@ export function Thread({
   const blockedOther = others.find((other) => other.blockedByViewer);
 
   return (
-    <section className="flex h-full min-h-0 flex-col bg-background">
-      <header className="flex shrink-0 items-center gap-2.5 border-b border-border bg-surface px-3 py-2.5">
-        <Link
-          href="/messages"
-          aria-label="Back to conversations"
-          className="-ml-1 grid size-8 shrink-0 place-items-center rounded-full text-foreground-muted no-underline transition hover:bg-brand-wash hover:text-on-brand-wash lg:hidden"
-        >
-          <ArrowLeft className="size-5" aria-hidden />
-        </Link>
+    <section className="flex h-full min-h-0 flex-col bg-surface">
+      <PaneHeader>
+        <PaneBackLink />
 
         {others.length === 1 ? (
           <Link href={`/members/${others[0].handle}`} className="shrink-0 no-underline">
-            <Avatar
-              name={others[0].name}
-              src={others[0].avatarUrl}
-              size="sm"
-              className="size-9"
-            />
+            <Avatar name={others[0].name} src={others[0].avatarUrl} size="sm" />
           </Link>
+        ) : isGroup ? (
+          <span
+            className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-wash text-on-brand-wash"
+            aria-hidden
+          >
+            <Users className="size-4" />
+          </span>
         ) : null}
 
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-[15px] font-bold text-foreground">{title}</h1>
-          <p className="truncate text-[12px] text-foreground-muted" aria-live="polite">
+          <h1 className="truncate text-title font-semibold text-foreground">{title}</h1>
+          <p className="truncate text-caption text-foreground-muted" aria-live="polite">
             {typing.length > 0
               ? `${typing.join(", ")} ${typing.length === 1 ? "is" : "are"} typing…`
               : isGroup
@@ -334,39 +336,48 @@ export function Thread({
           isGroup={isGroup}
           others={others}
         />
-      </header>
+      </PaneHeader>
 
       <StreamStatus state={streamState} />
 
       <div
         ref={scrollRef}
         onScroll={onScroll}
-        className="relative min-h-0 flex-1 overflow-y-auto px-3 py-3"
+        className="relative min-h-0 flex-1 overflow-y-auto px-3 py-4 sm:px-5"
       >
+        {olderError ? (
+          <p role="status" className="mb-3 text-center text-caption text-foreground-muted">
+            {olderError}
+          </p>
+        ) : null}
+
         {older.hasMore && all.length > 0 ? (
-          <div className="mb-2 flex justify-center">
-            <button
-              type="button"
+          <div className="mb-3 flex justify-center">
+            <Button
+              size="sm"
               onClick={() => void loadOlder()}
               disabled={older.loading}
-              className="h-8 rounded-full border border-border bg-surface px-3.5 text-[12.5px] font-semibold text-foreground-muted transition hover:border-hairline-firm hover:text-foreground disabled:opacity-60"
             >
               {older.loading ? "Loading…" : "Older messages"}
-            </button>
+            </Button>
           </div>
         ) : null}
 
         {all.length === 0 ? (
-          <p className="mx-auto mt-10 max-w-[38ch] text-center text-[14px] text-foreground-muted">
-            No messages yet. Say hello — a first message is usually about what
-            you are cooking this week.
-          </p>
+          <EmptyState
+            size="sm"
+            bordered={false}
+            icon={<MessageSquare />}
+            title="No messages yet."
+            description="Say hello — a first message is usually about what you are cooking this week."
+            className="mt-6"
+          />
         ) : null}
 
         {groups.map((group) => (
           <div key={group.day}>
-            <p className="sticky top-0 z-10 my-2 flex justify-center">
-              <span className="rounded-full bg-background/90 px-2.5 py-0.5 text-[11px] font-semibold text-foreground-muted shadow-e1 backdrop-blur">
+            <p className="sticky top-0 z-10 my-3 flex justify-center">
+              <span className="rounded-full border border-border bg-surface/90 px-2.5 py-0.5 text-micro font-medium text-foreground-muted shadow-e1 backdrop-blur">
                 {group.label}
               </span>
             </p>
@@ -404,19 +415,20 @@ export function Thread({
 
       {behind ? (
         <div className="relative">
-          <button
-            type="button"
+          <Button
+            variant="primary"
+            size="sm"
             onClick={() => scrollToBottom("smooth")}
-            className="absolute bottom-2 left-1/2 z-10 inline-flex -translate-x-1/2 items-center gap-1.5 rounded-full bg-brand-fill px-3 py-1.5 text-[12.5px] font-semibold text-brand-fill-foreground shadow-e2"
+            className="absolute bottom-3 left-1/2 z-10 -translate-x-1/2 shadow-e2"
           >
             <ArrowDown className="size-3.5" aria-hidden />
             New messages
-          </button>
+          </Button>
         </div>
       ) : null}
 
       {blockedOther ? (
-        <p className="shrink-0 border-t border-border bg-surface px-3 py-3 text-center text-[13px] text-foreground-muted">
+        <p className="shrink-0 border-t border-border bg-surface px-4 py-3 text-center text-label text-foreground-muted">
           You blocked {blockedOther.name}. Unblock them from the menu above to
           write again.
         </p>

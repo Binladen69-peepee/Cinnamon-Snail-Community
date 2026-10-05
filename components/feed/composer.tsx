@@ -15,6 +15,7 @@ import { createPostAction } from "@/app/(member)/community-actions";
 import { RichEditor } from "@/components/feed/rich-editor";
 import { useIsMobile } from "@/components/hooks/use-media-query";
 import { Avatar } from "@/components/ui/avatar";
+import { Button, cardClass, chipClass, fieldClass } from "@/components/app/ui";
 import { UploadTray } from "@/components/feed/upload-tray";
 import { useUploads } from "@/components/feed/use-uploads";
 import { IMAGE_ACCEPT, VIDEO_ACCEPT } from "@/lib/uploads/policy";
@@ -124,7 +125,7 @@ export function Composer({
 
   if (spaces.length === 0) {
     return (
-      <div className="rounded-card border border-border bg-surface px-4 py-3 text-[14px] text-foreground-muted">
+      <div className={cardClass({ className: "text-body text-foreground-muted" })}>
         You need a space membership before you can post. Ask a host to seat you
         at a table.
       </div>
@@ -134,11 +135,11 @@ export function Composer({
   return (
     <section
       className={cn(
-        "rounded-card border bg-surface shadow-e1 transition-colors",
-        open ? "border-brand/40" : "border-border",
+        "rounded-card border bg-surface transition-[border-color,box-shadow]",
+        open ? "border-hairline-firm shadow-e2" : "border-border shadow-e1",
       )}
     >
-      <div className="flex gap-3 p-3.5">
+      <div className="flex gap-3 p-4">
         <Avatar name={name} src={avatar} size="sm" />
 
         <div className="min-w-0 flex-1">
@@ -149,7 +150,7 @@ export function Composer({
               placeholder="Title (optional)"
               aria-label="Post title"
               maxLength={300}
-              className="mb-1.5 w-full border-0 bg-transparent p-0 text-[15.5px] font-bold text-foreground outline-none placeholder:font-semibold placeholder:text-foreground-muted"
+              className="mb-2 w-full border-0 bg-transparent p-0 pt-1.5 text-title font-semibold text-foreground outline-none placeholder:font-medium placeholder:text-field-placeholder"
             />
           ) : null}
 
@@ -180,15 +181,15 @@ export function Composer({
                 setOpen(true);
                 grow(event.currentTarget);
               }}
-              className="w-full resize-none border-0 bg-transparent p-0 pt-1 text-[15px] leading-normal text-foreground outline-none placeholder:text-foreground-muted disabled:opacity-60"
+              className="w-full resize-none border-0 bg-transparent p-0 pt-1.5 text-reading leading-normal text-foreground outline-none placeholder:text-field-placeholder disabled:opacity-60"
             />
           )}
 
           {open && scheduling ? (
-            <div className="mt-2 flex flex-wrap items-center gap-2 rounded-ctl border border-border bg-background px-3 py-2">
+            <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-ctl bg-surface-muted px-3 py-2.5">
               <label
                 htmlFor="composer-schedule"
-                className="text-[12.5px] font-semibold text-foreground"
+                className="text-label font-medium text-foreground"
               >
                 Post at
               </label>
@@ -197,9 +198,9 @@ export function Composer({
                 type="datetime-local"
                 value={scheduledAt}
                 onChange={(event) => setScheduledAt(event.currentTarget.value)}
-                className="h-9 rounded-ctl border border-field-border bg-field-background px-2 text-[13px] text-foreground outline-none focus:border-brand"
+                className={fieldClass({ size: "sm", className: "w-auto" })}
               />
-              <span className="text-[12px] text-foreground-muted">
+              <span className="text-caption text-foreground-muted">
                 Your device&rsquo;s time zone.
               </span>
             </div>
@@ -215,14 +216,14 @@ export function Composer({
           />
 
           {error ? (
-            <p className="mt-2 text-[12.5px] font-semibold text-danger" role="alert">
+            <p className="mt-2 text-caption font-medium text-danger" role="alert">
               {error}
             </p>
           ) : null}
 
           {open && spaces.length > 1 ? (
-            <div className="mt-2.5 flex flex-wrap items-center gap-1">
-              <span className="mr-0.5 text-[10.5px] uppercase tracking-[0.12em] text-foreground-muted">
+            <div className="mt-3 flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-micro font-semibold uppercase tracking-[0.08em] text-foreground-muted">
                 Post to
               </span>
               {spaces.map((space) => (
@@ -231,12 +232,7 @@ export function Composer({
                   type="button"
                   onClick={() => setSpaceId(space.id)}
                   aria-pressed={spaceId === space.id}
-                  className={cn(
-                    "inline-flex h-6.5 items-center rounded-full px-2 text-[12px] transition",
-                    spaceId === space.id
-                      ? "bg-brand-wash text-on-brand-wash ring-1 ring-on-brand-wash/30"
-                      : "text-foreground-muted hover:bg-surface-muted hover:text-foreground",
-                  )}
+                  className={chipClass(spaceId === space.id, "h-7 px-2.5")}
                 >
                   {space.name}
                 </button>
@@ -244,7 +240,7 @@ export function Composer({
             </div>
           ) : null}
 
-          <div className="mt-2.5 flex flex-wrap items-center gap-0.5 border-t border-border pt-2">
+          <div className="mt-3 flex flex-wrap items-center gap-0.5 border-t border-separator pt-2.5">
             <input
               ref={photoRef}
               type="file"
@@ -303,7 +299,7 @@ export function Composer({
             <span className="flex-1" />
 
             {uploads.busy ? (
-              <span className="mr-2 text-[11.5px] text-foreground-muted">
+              <span className="mr-2 text-caption text-foreground-muted">
                 Uploading…
               </span>
             ) : null}
@@ -311,8 +307,8 @@ export function Composer({
             {open && text.length > MAX - 500 ? (
               <span
                 className={cn(
-                  "mr-2 text-[11.5px] tabular-nums",
-                  text.length > MAX ? "text-danger" : "text-foreground-muted",
+                  "mr-2 text-caption tabular-nums",
+                  text.length > MAX ? "font-medium text-danger" : "text-foreground-muted",
                 )}
               >
                 {MAX - text.length}
@@ -320,15 +316,16 @@ export function Composer({
             ) : null}
 
             {open ? (
-              <button
-                type="button"
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => submit("DRAFT")}
                 disabled={!hasContent || pending}
                 title="Keep this without posting it"
-                className="mr-1 inline-flex h-8 items-center rounded-full px-3 text-[13px] text-foreground-muted transition hover:text-foreground disabled:opacity-40"
+                className="mr-0.5"
               >
                 Save draft
-              </button>
+              </Button>
             ) : null}
 
             {open ? (
@@ -337,7 +334,11 @@ export function Composer({
                 onClick={() => setScheduling((value) => !value)}
                 aria-pressed={scheduling}
                 title="Post this later"
-                className="mr-1 inline-flex size-8 items-center justify-center rounded-full text-foreground-muted transition hover:text-foreground"
+                className={cn(
+                  TOOL,
+                  "mr-1 w-8 justify-center px-0",
+                  scheduling && "bg-brand-wash text-on-brand-wash hover:bg-brand-wash hover:text-on-brand-wash",
+                )}
               >
                 <CalendarClock className="size-4" aria-hidden />
                 <span className="sr-only">Schedule</span>
@@ -345,18 +346,12 @@ export function Composer({
             ) : null}
 
             {open ? (
-              <button
-                type="button"
+              <Button
+                variant="primary"
+                size="sm"
                 onClick={() => submit(scheduling ? "SCHEDULE" : "PUBLISH")}
                 disabled={!canPost}
-                className={cn(
-                  "inline-flex h-8 min-w-0 items-center justify-center gap-1.5 rounded-full px-3 sm:min-w-18 sm:px-3.5",
-                  "text-[13px] transition active:scale-[0.97]",
-                  "focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand",
-                  "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover",
-                  "disabled:cursor-not-allowed disabled:opacity-40 disabled:active:scale-100",
-                  "",
-                )}
+                className="min-w-0 sm:min-w-18"
               >
                 {pending ? (
                   <>
@@ -368,7 +363,7 @@ export function Composer({
                 ) : (
                   "Post"
                 )}
-              </button>
+              </Button>
             ) : null}
           </div>
         </div>
@@ -376,6 +371,14 @@ export function Composer({
     </section>
   );
 }
+
+/**
+ * A composer tool: quieter than a ghost button, because the row holds six of
+ * them and the Post button is the one meant to be seen. The icon carries the
+ * brand colour; the label comes in at `sm`.
+ */
+const TOOL =
+  "inline-flex h-8 items-center gap-1.5 rounded-ctl px-2 text-label font-medium text-foreground-muted no-underline transition hover:bg-surface-muted hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-transparent";
 
 function Tool({
   icon: Icon,
@@ -396,7 +399,7 @@ function Tool({
       onClick={onClick}
       disabled={disabled}
       title={title ?? label}
-      className="inline-flex h-8 items-center gap-1.5 rounded-chip px-2 text-[12.5px] text-foreground-muted transition hover:bg-mint hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+      className={TOOL}
     >
       <Icon className="size-4 text-brand" aria-hidden />
       <span className="hidden sm:inline">{label}</span>
@@ -417,7 +420,7 @@ function ToolLink({
     <Link
       href={href}
       title={label}
-      className="inline-flex h-8 items-center gap-1.5 rounded-chip px-2 text-[12.5px] text-foreground-muted no-underline transition hover:bg-mint hover:text-foreground"
+      className={TOOL}
       aria-label={label || "More"}
     >
       <Icon className="size-4 text-brand" aria-hidden />

@@ -4,6 +4,8 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { Ellipsis, Flag, Pin, PinOff, Share2, Trash2 } from "lucide-react";
 import { pinPostAction } from "@/app/(member)/community-actions";
 import { runAction, type ActionResult } from "@/components/feed/run-action";
+import { menuClass, menuItemClass } from "@/components/app/ui";
+import { cn } from "@/lib/utils";
 
 /**
  * Post overflow menu.
@@ -72,15 +74,18 @@ export function PostMenu({
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         aria-label="Post actions"
-        className="grid size-9 place-items-center rounded-full text-foreground-muted transition hover:bg-surface-muted hover:text-foreground"
+        className={cn(
+          "grid size-9 place-items-center rounded-ctl text-foreground-muted transition hover:bg-surface-muted hover:text-foreground",
+          open && "bg-surface-muted text-foreground",
+        )}
       >
-        <Ellipsis className="size-4" aria-hidden />
+        <Ellipsis className="size-4.5" aria-hidden />
       </button>
 
       {open ? (
         <div
           role="menu"
-          className="absolute right-0 top-[calc(100%+0.35rem)] z-30 w-44 overflow-hidden rounded-card border border-border bg-surface py-1.5 shadow-e2"
+          className={cn(menuClass, "absolute right-0 top-[calc(100%+0.25rem)] z-30 w-52")}
         >
           {canPin ? (
             <MenuItem
@@ -147,9 +152,10 @@ function MenuItem({
       type="button"
       role="menuitem"
       onClick={onClick}
-      className={`flex w-full items-center gap-2.5 px-3.5 py-2.5 text-left text-sm font-medium transition hover:bg-mint ${
-        tone === "danger" ? "text-danger hover:text-danger" : "text-foreground"
-      }`}
+      className={cn(
+        menuItemClass,
+        tone === "danger" && "text-danger [&_svg]:text-danger",
+      )}
     >
       {icon}
       {label}

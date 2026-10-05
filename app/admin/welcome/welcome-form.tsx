@@ -1,8 +1,9 @@
 "use client";
 
 import { useActionState } from "react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { saveWelcomeMessageAction } from "@/app/admin/actions";
-import { AdminButton } from "@/components/admin/ui";
+import { Button } from "@/components/app/ui";
 import {
   Checkbox,
   FormLayout,
@@ -45,7 +46,7 @@ export function WelcomeForm({
   const [state, action, pending] = useActionState(saveWelcomeMessageAction, {});
 
   return (
-    <form action={action} className="space-y-5">
+    <form action={action} className="flex flex-col gap-5">
       <Checkbox
         name="enabled"
         defaultChecked={initial.enabled}
@@ -94,20 +95,24 @@ export function WelcomeForm({
         help="Read fresh when each message is sent, so editing this also fixes anything still in the queue."
       />
 
-      {state.error ? (
-        <p role="alert" className="text-[13px] font-semibold text-danger">
-          {state.error}
-        </p>
-      ) : null}
-      {state.saved ? (
-        <p role="status" className="text-[13px] font-semibold text-brand">
-          Saved.
-        </p>
-      ) : null}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-separator pt-4">
+        <Button type="submit" variant="primary" disabled={pending} aria-busy={pending || undefined}>
+          {pending ? "Saving…" : "Save"}
+        </Button>
 
-      <AdminButton type="submit" variant="primary" disabled={pending}>
-        {pending ? "Saving…" : "Save"}
-      </AdminButton>
+        {state.error ? (
+          <p role="alert" className="flex items-center gap-1.5 text-label font-medium text-danger">
+            <AlertCircle className="size-4 shrink-0" aria-hidden />
+            {state.error}
+          </p>
+        ) : null}
+        {state.saved ? (
+          <p role="status" className="flex items-center gap-1.5 text-label font-medium text-success">
+            <CheckCircle2 className="size-4 shrink-0" aria-hidden />
+            Saved.
+          </p>
+        ) : null}
+      </div>
     </form>
   );
 }

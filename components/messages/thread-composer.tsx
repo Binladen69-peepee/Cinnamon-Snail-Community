@@ -5,7 +5,7 @@ import { ImagePlus, Loader2, SendHorizonal, X } from "lucide-react";
 import { requestUploadAction } from "@/app/(member)/upload-actions";
 import { prepareForUpload, putWithProgress } from "@/lib/uploads/client";
 import { IMAGE_ACCEPT, validateUpload } from "@/lib/uploads/policy";
-import { cn } from "@/lib/utils";
+import { Button, Callout, fieldClass } from "@/components/app/ui";
 
 /** A typing ping at most this often, however fast someone types. */
 const TYPING_THROTTLE_MS = 3000;
@@ -127,20 +127,22 @@ export function ThreadComposer({
   const tooLong = body.length > MAX_LENGTH;
 
   return (
-    <div className="shrink-0 border-t border-border bg-surface px-3 py-2.5">
+    <div className="shrink-0 border-t border-border bg-surface px-3 py-3 sm:px-4">
+      {/* A refused send or a failed upload. The draft is already back in the
+          box, so this only has to say why. */}
       {problem ? (
-        <p role="alert" className="mb-2 text-[12.5px] font-semibold text-danger">
+        <Callout tone="danger" className="mb-2.5 px-3 py-2 text-label">
           {problem}
-        </p>
+        </Callout>
       ) : null}
 
       {image ? (
-        <div className="relative mb-2 inline-block">
+        <div className="relative mb-2.5 inline-block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={image.preview}
             alt="Attached"
-            className="h-20 w-auto rounded-ctl border border-border object-cover"
+            className="h-20 w-auto rounded-ctl border border-border bg-default object-cover"
           />
           <button
             type="button"
@@ -149,7 +151,7 @@ export function ThreadComposer({
               setImage(null);
             }}
             aria-label="Remove image"
-            className="absolute -right-2 -top-2 grid size-6 place-items-center rounded-full bg-foreground text-background shadow-e2"
+            className="absolute -right-2 -top-2 grid size-6 place-items-center rounded-full bg-foreground text-background shadow-e2 transition hover:opacity-85"
           >
             <X className="size-3.5" aria-hidden />
           </button>
@@ -170,19 +172,19 @@ export function ThreadComposer({
                 event.target.value = "";
               }}
             />
-            <button
-              type="button"
+            <Button
+              variant="ghost"
+              iconOnly
               onClick={() => fileRef.current?.click()}
               disabled={uploading || Boolean(image)}
               aria-label="Attach an image"
-              className="grid size-9 shrink-0 place-items-center rounded-full text-foreground-muted transition hover:bg-brand-wash hover:text-on-brand-wash disabled:opacity-40"
             >
               {uploading ? (
                 <Loader2 className="size-4 animate-spin" aria-hidden />
               ) : (
-                <ImagePlus className="size-5" aria-hidden />
+                <ImagePlus className="size-[1.125rem]" aria-hidden />
               )}
-            </button>
+            </Button>
           </>
         ) : null}
 
@@ -203,27 +205,26 @@ export function ThreadComposer({
           }}
           placeholder="Write a message"
           aria-label="Write a message"
-          className="max-h-[140px] min-h-[2.25rem] flex-1 resize-none rounded-ctl border border-border bg-field-background px-3 py-2 text-[14px] leading-snug text-foreground outline-none transition placeholder:text-foreground-muted focus:border-brand focus:ring-2 focus:ring-brand/20"
+          aria-invalid={tooLong || undefined}
+          className={fieldClass({
+            multiline: true,
+            className: "max-h-35 min-h-9 flex-1 resize-none py-1.75 leading-snug",
+          })}
         />
 
-        <button
-          type="button"
+        <Button
+          variant="primary"
+          iconOnly
           onClick={send}
           disabled={(!body.trim() && !image) || uploading || tooLong}
           aria-label="Send"
-          className={cn(
-            "grid size-9 shrink-0 place-items-center rounded-full transition",
-            (body.trim() || image) && !tooLong && !uploading
-              ? "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover"
-              : "bg-default text-foreground-muted",
-          )}
         >
           <SendHorizonal className="size-4" aria-hidden />
-        </button>
+        </Button>
       </div>
 
       {tooLong ? (
-        <p role="alert" className="mt-1 text-[12px] font-semibold text-danger">
+        <p role="alert" className="mt-1.5 text-caption font-medium text-danger">
           {body.length} of {MAX_LENGTH} characters — trim it before sending.
         </p>
       ) : null}

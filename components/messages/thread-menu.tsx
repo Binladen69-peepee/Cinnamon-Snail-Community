@@ -8,6 +8,8 @@ import {
   leaveConversationAction,
 } from "@/app/(member)/messages/actions";
 import type { ThreadOther } from "@/components/messages/thread";
+import { Button, menuClass, menuItemClass } from "@/components/app/ui";
+import { cn } from "@/lib/utils";
 
 /**
  * Block, unblock, leave, and a way to the other person's profile.
@@ -26,6 +28,9 @@ export function ThreadMenu({
   others: ThreadOther[];
 }) {
   const [open, setOpen] = useState(false);
+  // A refused block comes back as a message rather than a throw; it is shown
+  // in the menu it came from instead of the menu closing as if it had worked.
+  const [error, setError] = useState<string | null>(null);
   const [, startTransition] = useTransition();
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -56,7 +61,12 @@ export function ThreadMenu({
     data.set("handle", handle);
     if (blocked) data.set("unblock", "1");
     startTransition(async () => {
-      await blockMemberAction(data);
+      const result = await blockMemberAction(data);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setError(null);
       setOpen(false);
     });
   }
@@ -78,29 +88,30 @@ export function ThreadMenu({
 
   return (
     <div ref={rootRef} className="relative shrink-0">
-      <button
-        type="button"
-        onClick={() => setOpen((value) => !value)}
+      <Button
+        variant="ghost"
+        size="sm"
+        iconOnly
+        onClick={() => {
+          setError(null);
+          setOpen((value) => !value);
+        }}
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Conversation options"
-        className="grid size-8 place-items-center rounded-full text-foreground-muted transition hover:bg-brand-wash hover:text-on-brand-wash"
       >
-        <MoreHorizontal className="size-5" aria-hidden />
-      </button>
+        <MoreHorizontal className="size-[1.125rem]" aria-hidden />
+      </Button>
 
       {open ? (
-        <div
-          role="menu"
-          className="absolute right-0 top-9 z-30 w-60 overflow-hidden rounded-card border border-border bg-overlay py-1 shadow-e3"
-        >
+        <div role="menu" className={cn(menuClass, "absolute right-0 top-10 z-30 w-60")}>
           {single ? (
             <Link
               href={`/members/${single.handle}`}
               role="menuitem"
-              className="flex items-center gap-2 px-3 py-2 text-[13.5px] text-foreground no-underline transition hover:bg-brand-wash"
+              className={menuItemClass}
             >
-              <UserRound className="size-4" aria-hidden />
+              <UserRound aria-hidden />
               View profile
             </Link>
           ) : null}
@@ -110,9 +121,9 @@ export function ThreadMenu({
               type="button"
               role="menuitem"
               onClick={() => toggleBlock(single.handle, single.name, single.blockedByViewer)}
-              className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13.5px] text-foreground transition hover:bg-brand-wash"
+              className={menuItemClass}
             >
-              <Ban className="size-4" aria-hidden />
+              <Ban aria-hidden />
               {single.blockedByViewer ? "Unblock" : "Block"} {single.name}
             </button>
           ) : null}
@@ -121,11 +132,23 @@ export function ThreadMenu({
             type="button"
             role="menuitem"
             onClick={leave}
-            className="flex w-full items-center gap-2 px-3 py-2 text-left text-[13.5px] text-danger transition hover:bg-brand-wash"
+            className={cn(
+              menuItemClass,
+              "text-danger hover:bg-danger-wash [&_svg]:text-danger",
+            )}
           >
-            <LogOut className="size-4" aria-hidden />
+            <LogOut aria-hidden />
             Leave {isGroup ? "group" : "conversation"}
           </button>
+
+          {error ? (
+            <p
+              role="alert"
+              className="mx-1 mb-1 mt-1.5 rounded-chip bg-danger-wash px-2.5 py-2 text-caption font-medium text-danger"
+            >
+              {error}
+            </p>
+          ) : null}
         </div>
       ) : null}
     </div>

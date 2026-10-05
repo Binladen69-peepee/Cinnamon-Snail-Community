@@ -25,11 +25,8 @@ export function SaveMark({ postId, saved }: { postId: string; saved: boolean }) 
       aria-label={on ? "Unsave" : "Save"}
       aria-pressed={on}
       className={cn(
-        "grid size-7 place-items-center rounded-md transition",
-        "focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-brand",
-        on
-          ? "text-brand"
-          : "text-foreground-muted hover:bg-surface-muted hover:text-foreground",
+        "grid size-8 place-items-center rounded-ctl transition hover:bg-surface-muted",
+        on ? "text-brand" : "text-foreground-muted hover:text-foreground",
       )}
     >
       <Bookmark className="size-4" fill={on ? "currentColor" : "none"} aria-hidden />

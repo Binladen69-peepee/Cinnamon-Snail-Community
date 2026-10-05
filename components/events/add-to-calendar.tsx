@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CalendarPlus, Check, Download, ExternalLink } from "lucide-react";
+import { buttonClass } from "@/components/app/ui";
 
 /**
  * Getting the event into the member's own calendar.
@@ -13,6 +14,9 @@ import { CalendarPlus, Check, Download, ExternalLink } from "lucide-react";
  * The Google URL is built on the server and passed in, so the two cannot
  * disagree about the time — building it here from a Date would use the
  * browser's zone and quietly produce a different entry from the `.ics`.
+ *
+ * Plain anchors styled as small secondary buttons: one is a file and the
+ * other leaves the site, so neither is a client-side navigation.
  */
 export function AddToCalendar({
   icsHref,
@@ -28,12 +32,12 @@ export function AddToCalendar({
       <a
         href={icsHref}
         onClick={() => setTaken(true)}
-        className="inline-flex h-9 items-center gap-1.5 rounded-ctl border border-border bg-surface px-3.5 text-[13px] font-semibold text-foreground no-underline transition hover:border-hairline-firm"
+        className={buttonClass({ size: "sm" })}
       >
         {taken ? (
-          <Check className="size-3.5" aria-hidden />
+          <Check className="size-4 text-success" aria-hidden />
         ) : (
-          <Download className="size-3.5" aria-hidden />
+          <Download className="size-4" aria-hidden />
         )}
         Download .ics
       </a>
@@ -42,11 +46,11 @@ export function AddToCalendar({
         href={googleHref}
         target="_blank"
         rel="noopener noreferrer"
-        className="inline-flex h-9 items-center gap-1.5 rounded-ctl border border-border bg-surface px-3.5 text-[13px] font-semibold text-foreground no-underline transition hover:border-hairline-firm"
+        className={buttonClass({ size: "sm" })}
       >
-        <CalendarPlus className="size-3.5" aria-hidden />
+        <CalendarPlus className="size-4" aria-hidden />
         Google Calendar
-        <ExternalLink className="size-3" aria-hidden />
+        <ExternalLink className="size-3.5 text-foreground-muted" aria-hidden />
       </a>
     </div>
   );

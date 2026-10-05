@@ -4,14 +4,14 @@ import { listAdminSpaces } from "@/lib/admin/spaces";
 import { SPACE_KIND_LABEL } from "@/lib/spaces/kinds";
 import {
   Badge,
-  EmptyPanel,
+  Card,
+  EmptyState,
   PageHeader,
-  Panel,
   Table,
   Td,
   Th,
   Tr,
-} from "@/components/admin/ui";
+} from "@/components/app/ui";
 
 export const metadata = { title: "Spaces" };
 
@@ -28,10 +28,10 @@ export default async function AdminSpacesPage() {
   const quiet = spaces.filter((space) => space.postsLast30 === 0).length;
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Spaces"
-        subtitle={
+        description={
           spaces.length === 0
             ? "No rooms exist yet."
             : `${spaces.length} rooms${
@@ -40,12 +40,13 @@ export default async function AdminSpacesPage() {
         }
       />
 
-      <Panel>
+      <Card padding="none" className="overflow-hidden">
         {spaces.length === 0 ? (
-          <EmptyPanel
-            icon={<Users className="size-6" aria-hidden />}
+          <EmptyState
+            bordered={false}
+            icon={<Users />}
             title="No rooms yet"
-            body="Spaces are created by seeds and by hosts. They will be listed here."
+            description="Spaces are created by seeds and by hosts. They will be listed here."
           />
         ) : (
           <Table
@@ -54,8 +55,8 @@ export default async function AdminSpacesPage() {
                 <Th>Room</Th>
                 <Th className="hidden sm:table-cell">Kind</Th>
                 <Th>Access</Th>
-                <Th className="hidden md:table-cell">Members</Th>
-                <Th className="hidden lg:table-cell">Posts</Th>
+                <Th className="hidden text-right md:table-cell">Members</Th>
+                <Th className="hidden text-right lg:table-cell">Posts</Th>
                 <Th className="hidden xl:table-cell">Last post</Th>
               </>
             }
@@ -65,44 +66,44 @@ export default async function AdminSpacesPage() {
                 <Td>
                   <Link
                     href={`/spaces/${space.slug}`}
-                    className="text-[13.5px] font-bold text-foreground no-underline hover:text-brand hover:underline"
+                    className="font-semibold text-foreground no-underline transition hover:text-brand-strong"
                   >
                     {space.name}
                   </Link>
                   {space.group ? (
-                    <span className="block text-[11.5px] text-foreground-muted">
+                    <span className="block text-caption text-foreground-muted">
                       {space.group}
                     </span>
                   ) : null}
                 </Td>
-                <Td className="hidden text-[12.5px] text-foreground-muted sm:table-cell">
+                <Td className="hidden text-foreground-muted sm:table-cell">
                   {SPACE_KIND_LABEL[space.kind]}
                 </Td>
                 <Td>
                   {space.visibility === "PRIVATE" ? (
-                    <Badge tone="warn">
-                      <Lock className="size-3" aria-hidden />
+                    <Badge tone="warning" icon={<Lock aria-hidden />}>
                       Private
                     </Badge>
                   ) : space.visibility === "PUBLIC" ? (
-                    <Badge tone="good">
-                      <Globe className="size-3" aria-hidden />
+                    <Badge tone="success" icon={<Globe aria-hidden />}>
                       Public
                     </Badge>
                   ) : (
                     <Badge tone="neutral">Members</Badge>
                   )}
                 </Td>
-                <Td className="hidden text-[12.5px] tabular-nums text-foreground-muted md:table-cell">
+                <Td className="hidden text-right tabular-nums text-foreground-muted md:table-cell">
                   {space.members}
                 </Td>
-                <Td className="hidden text-[12.5px] tabular-nums text-foreground-muted lg:table-cell">
+                <Td className="hidden whitespace-nowrap text-right tabular-nums text-foreground-muted lg:table-cell">
                   {space.posts}
                   {space.postsLast30 > 0 ? (
-                    <span className="ml-1.5 text-brand">+{space.postsLast30}</span>
+                    <span className="ml-1.5 font-medium text-brand-strong">
+                      +{space.postsLast30}
+                    </span>
                   ) : null}
                 </Td>
-                <Td className="hidden whitespace-nowrap text-[12.5px] tabular-nums text-foreground-muted xl:table-cell">
+                <Td className="hidden whitespace-nowrap tabular-nums text-foreground-muted xl:table-cell">
                   {space.lastPostAt
                     ? space.lastPostAt.toLocaleDateString("en-GB", {
                         day: "numeric",
@@ -115,7 +116,7 @@ export default async function AdminSpacesPage() {
             ))}
           </Table>
         )}
-      </Panel>
+      </Card>
     </div>
   );
 }

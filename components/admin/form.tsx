@@ -1,7 +1,8 @@
 "use client";
 
 import { useId, type ComponentProps, type ReactNode } from "react";
-import { Check, ChevronDown, Minus } from "lucide-react";
+import { Check, Minus } from "lucide-react";
+import { Field, fieldClass } from "@/components/app/ui";
 import { cn } from "@/lib/utils";
 
 /**
@@ -17,9 +18,15 @@ import { cn } from "@/lib/utils";
  * Its successor is a set of web components meant to be embedded in Shopify
  * Admin, not used in a standalone app.
  *
- * Everything paints from role tokens, so the always-dark scope styles it and
- * the same components would work on a light surface unchanged.
+ * The look is the app's: `Field` lays out the label, help and error, and
+ * `fieldClass` draws the control, so a console form and a member-app form are
+ * the same form. Everything paints from role tokens, in light and dark alike.
  */
+
+/** Ids on the help and error lines, so the control can point at them. */
+function describedBy(id: string, help?: string, error?: string) {
+  return error ? `${id}-error` : help ? `${id}-help` : undefined;
+}
 
 function Labelled({
   id,
@@ -36,46 +43,21 @@ function Labelled({
   required?: boolean;
   children: ReactNode;
 }) {
+  // Error replaces help rather than stacking under it: two lines of guidance
+  // where one contradicts the other is how a form gets ignored. `Field` does
+  // exactly that; the spans carry the ids the control's aria-describedby uses.
   return (
-    <div className="min-w-0">
-      <label
-        htmlFor={id}
-        className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
-      >
-        {label}
-        {required ? (
-          <span className="ml-1 text-danger" aria-hidden>
-            *
-          </span>
-        ) : null}
-      </label>
+    <Field
+      label={label}
+      htmlFor={id}
+      required={required}
+      className="min-w-0"
+      hint={help ? <span id={`${id}-help`}>{help}</span> : undefined}
+      error={error ? <span id={`${id}-error`}>{error}</span> : undefined}
+    >
       {children}
-      {/* Error replaces help rather than stacking under it: two lines of
-          guidance where one contradicts the other is how a form gets ignored. */}
-      {error ? (
-        <p
-          id={`${id}-error`}
-          role="alert"
-          className="mt-1.5 text-[12px] font-semibold text-danger"
-        >
-          {error}
-        </p>
-      ) : help ? (
-        <p id={`${id}-help`} className="mt-1.5 text-[12px] text-foreground-muted">
-          {help}
-        </p>
-      ) : null}
-    </div>
+    </Field>
   );
-}
-
-const FIELD_BASE =
-  "w-full rounded-ctl border bg-field-background text-[13.5px] text-foreground outline-none transition placeholder:text-field-placeholder focus:ring-2 focus:ring-brand/25 disabled:cursor-not-allowed disabled:opacity-50";
-
-function fieldBorder(error?: string) {
-  return error
-    ? "border-danger focus:border-danger focus:ring-danger/25"
-    : "border-field-border focus:border-brand";
 }
 
 export function TextField({
@@ -105,23 +87,15 @@ export function TextField({
     >
       <div className="relative">
         {prefix ? (
-          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted">
+          <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted [&_svg]:size-4">
             {prefix}
           </span>
         ) : null}
         <input
           id={fieldId}
           aria-invalid={error ? true : undefined}
-          aria-describedby={
-            error ? `${fieldId}-error` : help ? `${fieldId}-help` : undefined
-          }
-          className={cn(
-            FIELD_BASE,
-            fieldBorder(error),
-            "h-9 px-3",
-            prefix && "pl-9",
-            className,
-          )}
+          aria-describedby={describedBy(fieldId, help, error)}
+          className={fieldClass({ className: cn(prefix && "pl-9", className) })}
           {...props}
         />
       </div>
@@ -157,10 +131,8 @@ export function TextArea({
         id={fieldId}
         rows={rows}
         aria-invalid={error ? true : undefined}
-        aria-describedby={
-          error ? `${fieldId}-error` : help ? `${fieldId}-help` : undefined
-        }
-        className={cn(FIELD_BASE, fieldBorder(error), "resize-y px-3 py-2", className)}
+        aria-describedby={describedBy(fieldId, help, error)}
+        className={fieldClass({ multiline: true, className: cn("resize-y", className) })}
         {...props}
       />
     </Labelled>
@@ -192,32 +164,21 @@ export function Select({
       error={error}
       required={props.required}
     >
-      <div className="relative">
-        <select
-          id={fieldId}
-          aria-invalid={error ? true : undefined}
-          aria-describedby={
-            error ? `${fieldId}-error` : help ? `${fieldId}-help` : undefined
-          }
-          className={cn(
-            FIELD_BASE,
-            fieldBorder(error),
-            "h-9 appearance-none pl-3 pr-9",
-            className,
-          )}
-          {...props}
-        >
-          {options.map((option) => (
-            <option key={option.value} value={option.value} disabled={option.disabled}>
-              {option.label}
-            </option>
-          ))}
-        </select>
-        <ChevronDown
-          className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-foreground-muted"
-          aria-hidden
-        />
-      </div>
+      {/* `vu-select` replaces the system chevron with one that matches the
+          inputs beside it. */}
+      <select
+        id={fieldId}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy(fieldId, help, error)}
+        className={fieldClass({ className: cn("vu-select pr-8", className) })}
+        {...props}
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value} disabled={option.disabled}>
+            {option.label}
+          </option>
+        ))}
+      </select>
     </Labelled>
   );
 }
@@ -226,8 +187,8 @@ export function Select({
  * A checkbox with a real input underneath.
  *
  * The box is drawn rather than styled, because `appearance: none` on a native
- * checkbox loses the indeterminate state and the focus ring. The input keeps
- * its semantics and its keyboard behaviour; only the paint is ours.
+ * checkbox loses the indeterminate state. The input keeps its semantics, its
+ * keyboard behaviour and the app's focus ring; only the paint is ours.
  */
 export function Checkbox({
   label,
@@ -252,24 +213,22 @@ export function Checkbox({
         htmlFor={fieldId}
         className={cn(
           "group flex items-start gap-2.5",
-          props.disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+          props.disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
         )}
       >
-        <span className="relative mt-px grid size-[18px] shrink-0 place-items-center">
+        <span className="relative mt-0.5 grid size-4.5 shrink-0 place-items-center">
           <input
             id={fieldId}
             type="checkbox"
             aria-invalid={error ? true : undefined}
-            aria-describedby={
-              error ? `${fieldId}-error` : help ? `${fieldId}-help` : undefined
-            }
-            className="peer size-[18px] cursor-pointer appearance-none rounded-chip border border-field-border bg-field-background transition checked:border-brand checked:bg-brand indeterminate:border-brand indeterminate:bg-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:cursor-not-allowed"
+            aria-describedby={describedBy(fieldId, help, error)}
+            className="peer size-4.5 cursor-pointer appearance-none rounded-chip border border-field-border bg-field-background transition checked:border-brand-fill checked:bg-brand-fill indeterminate:border-brand-fill indeterminate:bg-brand-fill aria-invalid:border-danger disabled:cursor-not-allowed"
             ref={(node) => {
               if (node) node.indeterminate = indeterminate;
             }}
             {...props}
           />
-          <span className="pointer-events-none absolute inset-0 grid place-items-center text-on-brand opacity-0 transition peer-checked:opacity-100 peer-indeterminate:opacity-100">
+          <span className="pointer-events-none absolute inset-0 grid place-items-center text-brand-fill-foreground opacity-0 transition peer-checked:opacity-100 peer-indeterminate:opacity-100">
             {indeterminate ? (
               <Minus className="size-3" strokeWidth={3} aria-hidden />
             ) : (
@@ -279,19 +238,19 @@ export function Checkbox({
         </span>
 
         <span className="min-w-0">
-          <span className="block text-[13.5px] text-foreground">{label}</span>
+          <span className="block text-body text-foreground">{label}</span>
           {error ? (
             <span
               id={`${fieldId}-error`}
               role="alert"
-              className="mt-0.5 block text-[12px] font-semibold text-danger"
+              className="mt-0.5 block text-caption font-medium text-danger"
             >
               {error}
             </span>
           ) : help ? (
             <span
               id={`${fieldId}-help`}
-              className="mt-0.5 block text-[12px] text-foreground-muted"
+              className="mt-0.5 block text-caption text-foreground-muted"
             >
               {help}
             </span>
@@ -320,20 +279,22 @@ export function RadioField({
       htmlFor={fieldId}
       className={cn(
         "flex items-start gap-2.5",
-        props.disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+        props.disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
         className,
       )}
     >
+      {/* The native radio takes the brand fill from the console's
+          accent-color rule in globals.css. */}
       <input
         id={fieldId}
         type="radio"
-        className="mt-0.5 size-4 shrink-0 cursor-pointer accent-[var(--brand)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+        className="mt-0.5 size-4 shrink-0 cursor-pointer"
         {...props}
       />
       <span className="min-w-0">
-        <span className="block text-[13.5px] text-foreground">{label}</span>
+        <span className="block text-body text-foreground">{label}</span>
         {help ? (
-          <span className="mt-0.5 block text-[12px] text-foreground-muted">
+          <span className="mt-0.5 block text-caption text-foreground-muted">
             {help}
           </span>
         ) : null}
@@ -361,14 +322,14 @@ export function Toggle({
       htmlFor={fieldId}
       className={cn(
         "flex items-start justify-between gap-4",
-        props.disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer",
+        props.disabled ? "cursor-not-allowed opacity-60" : "cursor-pointer",
         className,
       )}
     >
       <span className="min-w-0">
-        <span className="block text-[13.5px] text-foreground">{label}</span>
+        <span className="block text-body text-foreground">{label}</span>
         {help ? (
-          <span className="mt-0.5 block text-[12px] text-foreground-muted">
+          <span className="mt-0.5 block text-caption text-foreground-muted">
             {help}
           </span>
         ) : null}
@@ -379,11 +340,11 @@ export function Toggle({
           id={fieldId}
           type="checkbox"
           role="switch"
-          className="peer h-5 w-9 cursor-pointer appearance-none rounded-full border border-field-border bg-default transition checked:border-brand checked:bg-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40 disabled:cursor-not-allowed"
+          className="peer block h-5 w-9 cursor-pointer appearance-none rounded-full border border-field-border bg-default transition checked:border-brand-fill checked:bg-brand-fill disabled:cursor-not-allowed"
           {...props}
         />
         <span
-          className="pointer-events-none absolute left-0.5 top-1/2 size-4 -translate-y-1/2 rounded-full bg-foreground transition-transform peer-checked:translate-x-4 peer-checked:bg-on-brand"
+          className="pointer-events-none absolute left-0.5 top-1/2 size-4 -translate-y-1/2 rounded-full bg-foreground-muted shadow-e1 transition-transform peer-checked:translate-x-4 peer-checked:bg-brand-fill-foreground"
           aria-hidden
         />
       </span>
@@ -404,7 +365,7 @@ export function FormLayout({
   return (
     <div
       className={cn(
-        "grid gap-4",
+        "grid grid-cols-1 gap-4",
         columns === 2 && "sm:grid-cols-2",
         className,
       )}

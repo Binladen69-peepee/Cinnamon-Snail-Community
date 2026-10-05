@@ -1,11 +1,10 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import Link from "next/link";
 import { Bell, BellOff, BellRing, Settings, ShieldCheck } from "lucide-react";
 import { setNotificationLevelAction } from "@/app/(member)/spaces/actions";
 import { toast } from "@/components/ui/toast";
-import { cn } from "@/lib/utils";
+import { ButtonLink, CountBadge, Select } from "@/components/app/ui";
 
 type Level = "ALL" | "HIGHLIGHTS" | "NONE" | "";
 
@@ -25,6 +24,10 @@ const LEVELS: { value: Level; label: string; icon: typeof Bell }[] = [
  * different from "every post": it moves when the host changes the space.
  *
  * The host links only render for a host. The pages behind them check again.
+ *
+ * A plain row rather than a card: it renders inside the space header, above
+ * the tabs, so it is part of the room's masthead and not one more box above
+ * the first post.
  */
 export function SpaceTools({
   spaceId,
@@ -69,57 +72,45 @@ export function SpaceTools({
   if (!joined && !canManage && !canModerate) return null;
 
   return (
-    <div className="flex flex-wrap items-center gap-2 rounded-card border border-border bg-surface px-3 py-2">
+    <div className="flex flex-wrap items-center gap-2">
       {joined ? (
-        <label className="flex items-center gap-2 text-[12.5px] text-foreground-muted">
-          <span className="font-semibold text-foreground">Notify me</span>
-          <select
+        <label className="flex min-w-0 items-center gap-2 text-label text-foreground-muted">
+          <span className="shrink-0 font-medium text-foreground">Notify me</span>
+          <Select
+            size="sm"
             value={current}
             disabled={pending}
             onChange={(event) => choose(event.target.value as Level)}
             aria-label="Notifications for this space"
-            className="h-11 rounded-ctl border border-field-border bg-field-background px-2 text-[12.5px] text-foreground outline-none focus:border-brand"
+            className="w-auto"
           >
             {LEVELS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
               </option>
             ))}
-          </select>
+          </Select>
         </label>
       ) : null}
 
-      <div className="ml-auto flex items-center gap-2">
-        {canModerate ? (
-          <Link
-            href={`/spaces/${slug}/review`}
-            className={cn(
-              "inline-flex h-11 items-center gap-1.5 rounded-ctl border border-border px-3 text-[12.5px] font-semibold no-underline transition",
-              pendingCount > 0
-                ? "border-foreground text-foreground"
-                : "text-foreground-muted hover:text-foreground",
-            )}
-          >
-            <ShieldCheck className="size-3.5" aria-hidden />
-            Review
-            {pendingCount > 0 ? (
-              <span className="rounded-full bg-brand-fill px-1.5 text-[11px] font-bold text-brand-fill-foreground tabular-nums">
-                {pendingCount}
-              </span>
-            ) : null}
-          </Link>
-        ) : null}
+      {canModerate || canManage ? (
+        <div className="ml-auto flex items-center gap-2">
+          {canModerate ? (
+            <ButtonLink href={`/spaces/${slug}/review`} size="sm">
+              <ShieldCheck className="size-4" aria-hidden />
+              Review
+              <CountBadge count={pendingCount} />
+            </ButtonLink>
+          ) : null}
 
-        {canManage ? (
-          <Link
-            href={`/spaces/${slug}/settings`}
-            className="inline-flex h-11 items-center gap-1.5 rounded-ctl border border-border px-3 text-[12.5px] font-semibold text-foreground-muted no-underline transition hover:text-foreground"
-          >
-            <Settings className="size-3.5" aria-hidden />
-            Settings
-          </Link>
-        ) : null}
-      </div>
+          {canManage ? (
+            <ButtonLink href={`/spaces/${slug}/settings`} size="sm">
+              <Settings className="size-4" aria-hidden />
+              Settings
+            </ButtonLink>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 }

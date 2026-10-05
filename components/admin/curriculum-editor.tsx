@@ -26,6 +26,17 @@ import {
 } from "@/app/admin/courses/curriculum-actions";
 import { LessonForm, type LessonDraft } from "@/components/admin/lesson-form";
 import { ResourceList, type ResourceRow } from "@/components/admin/resource-list";
+import {
+  Badge,
+  Button,
+  Callout,
+  Card,
+  EmptyState,
+  Field,
+  Input,
+  SectionHeader,
+  cardClass,
+} from "@/components/app/ui";
 import type { EditSection } from "@/lib/admin/courses";
 import { cn } from "@/lib/utils";
 
@@ -38,6 +49,9 @@ import { cn } from "@/lib/utils";
  * This is where a section, a lesson, its media and its handouts are written,
  * and everything it saves is the same `Course`/`CourseSection`/`Lesson` tree
  * the member library reads.
+ *
+ * Each section is its own card with its lessons as divided rows, so a long
+ * syllabus reads as a stack of modules rather than one undifferentiated list.
  *
  * Ordering is by explicit move buttons rather than drag and drop. Drag is
  * nicer with a mouse and unusable with a keyboard or on a phone, and an admin
@@ -149,174 +163,160 @@ export function CurriculumEditor({
   );
 
   return (
-    <section className="overflow-hidden rounded-card border border-border bg-surface">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
-        <h2 className="text-[14px] font-bold text-foreground">Curriculum</h2>
-        <span className="text-[12px] font-semibold text-foreground-muted">
-          {sections.length} {sections.length === 1 ? "section" : "sections"} ·{" "}
-          {lessonCount} {lessonCount === 1 ? "lesson" : "lessons"}
-        </span>
-      </div>
+    <section className="flex min-w-0 flex-col gap-3" aria-busy={pending || undefined}>
+      <SectionHeader
+        title="Curriculum"
+        description={
+          <>
+            {sections.length} {sections.length === 1 ? "section" : "sections"} ·{" "}
+            {lessonCount} {lessonCount === 1 ? "lesson" : "lessons"}
+          </>
+        }
+      />
 
-      {error ? (
-        <p
-          role="alert"
-          className="border-b border-border bg-default px-4 py-2 text-[12.5px] font-semibold text-danger"
-        >
-          {error}
-        </p>
-      ) : null}
+      {error ? <Callout tone="danger">{error}</Callout> : null}
 
       {sections.length === 0 && !addingSection ? (
-        <div className="px-4 py-9 text-center">
-          <span className="mx-auto grid size-11 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
-            <ListChecks className="size-5" aria-hidden />
-          </span>
-          <p className="mt-2.5 text-[13.5px] font-bold text-foreground">
-            No curriculum yet
-          </p>
-          <p className="mx-auto mt-1 max-w-[46ch] text-[13px] text-foreground-muted">
-            Start with a section — &ldquo;Week one&rdquo;, or
-            &ldquo;Fundamentals&rdquo; — then add the lessons that belong in it.
-          </p>
-          <button
-            type="button"
-            onClick={() => setAddingSection(true)}
-            className="mt-4 inline-flex h-9 items-center gap-1.5 rounded-ctl bg-brand-fill px-4 text-[13px] font-semibold text-brand-fill-foreground transition hover:bg-brand-fill-hover"
-          >
-            <Plus className="size-4" aria-hidden />
-            Add a section
-          </button>
-        </div>
+        <Card padding="none">
+          <EmptyState
+            icon={<ListChecks />}
+            title="No curriculum yet"
+            description={
+              <>
+                Start with a section — &ldquo;Week one&rdquo;, or
+                &ldquo;Fundamentals&rdquo; — then add the lessons that belong in it.
+              </>
+            }
+            action={
+              <Button variant="primary" onClick={() => setAddingSection(true)}>
+                <Plus className="size-4" aria-hidden />
+                Add a section
+              </Button>
+            }
+            size="sm"
+            bordered={false}
+          />
+        </Card>
       ) : null}
 
-      <div className="divide-y divide-border">
-        {sections.map((section, index) => (
-          <div key={section.id} className="min-w-0">
-            {editingSection === section.id ? (
-              <form
-                onSubmit={(event) => saveSection(event, section.id)}
-                className="space-y-2.5 bg-default/40 px-4 py-3"
-              >
-                <input
-                  name="title"
-                  defaultValue={section.title}
-                  required
-                  maxLength={160}
-                  className={INPUT}
-                />
-                <input
-                  name="summary"
-                  defaultValue={section.summary ?? ""}
-                  maxLength={240}
-                  placeholder="One line about this section. Optional."
-                  className={INPUT}
-                />
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setEditingSection(null)}
-                    className={GHOST_BTN}
-                  >
-                    Cancel
-                  </button>
-                  <button type="submit" className={PRIMARY_BTN}>
-                    Save section
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <div className="flex flex-wrap items-start gap-2 px-4 pb-1.5 pt-3">
-                <div className="min-w-0 flex-1">
-                  <h3 className="truncate text-[13px] font-bold text-foreground">
-                    {section.title}
-                  </h3>
-                  {section.summary ? (
-                    <p className="mt-0.5 text-[12px] leading-snug text-foreground-muted">
-                      {section.summary}
-                    </p>
-                  ) : null}
-                </div>
-
-                <div className="flex shrink-0 items-center gap-0.5">
-                  <IconButton
-                    label={`Move ${section.title} up`}
-                    disabled={index === 0 || pending}
-                    onClick={() => moveSection(section.id, "up")}
-                  >
-                    <ChevronUp className="size-4" aria-hidden />
-                  </IconButton>
-                  <IconButton
-                    label={`Move ${section.title} down`}
-                    disabled={index === sections.length - 1 || pending}
-                    onClick={() => moveSection(section.id, "down")}
-                  >
-                    <ChevronDown className="size-4" aria-hidden />
-                  </IconButton>
-                  <IconButton
-                    label={`Rename ${section.title}`}
-                    onClick={() => setEditingSection(section.id)}
-                  >
-                    <Pencil className="size-3.5" aria-hidden />
-                  </IconButton>
-                  <IconButton
-                    label={`Delete ${section.title}`}
-                    danger
-                    disabled={pending}
-                    onClick={() => removeSection(section)}
-                  >
-                    <Trash2 className="size-3.5" aria-hidden />
-                  </IconButton>
-                </div>
+      {sections.map((section, index) => (
+        <Card key={section.id} padding="none" className="min-w-0 overflow-hidden">
+          {editingSection === section.id ? (
+            <form
+              onSubmit={(event) => saveSection(event, section.id)}
+              className="flex flex-col gap-3 bg-surface-muted px-4 py-4 sm:px-5"
+            >
+              <SectionFields
+                idPrefix={`section-${section.id}`}
+                title={section.title}
+                summary={section.summary}
+              />
+              <div className="flex justify-end gap-2">
+                <Button variant="ghost" size="sm" onClick={() => setEditingSection(null)}>
+                  Cancel
+                </Button>
+                <Button type="submit" variant="primary" size="sm">
+                  Save section
+                </Button>
               </div>
-            )}
+            </form>
+          ) : (
+            <div className="flex flex-wrap items-start gap-x-3 gap-y-1 py-3 pl-4 pr-2.5 sm:pl-5 sm:pr-3">
+              <div className="min-w-0 flex-1 basis-40 py-1">
+                <h3 className="truncate text-body font-semibold text-foreground">
+                  {section.title}
+                </h3>
+                {section.summary ? (
+                  <p className="mt-0.5 text-caption text-foreground-muted">
+                    {section.summary}
+                  </p>
+                ) : null}
+              </div>
 
-            <ul className="pb-1">
+              <div className="ml-auto flex shrink-0 items-center gap-0.5">
+                <IconButton
+                  label={`Move ${section.title} up`}
+                  disabled={index === 0 || pending}
+                  onClick={() => moveSection(section.id, "up")}
+                >
+                  <ChevronUp aria-hidden />
+                </IconButton>
+                <IconButton
+                  label={`Move ${section.title} down`}
+                  disabled={index === sections.length - 1 || pending}
+                  onClick={() => moveSection(section.id, "down")}
+                >
+                  <ChevronDown aria-hidden />
+                </IconButton>
+                <IconButton
+                  label={`Rename ${section.title}`}
+                  onClick={() => setEditingSection(section.id)}
+                >
+                  <Pencil aria-hidden />
+                </IconButton>
+                <IconButton
+                  label={`Delete ${section.title}`}
+                  danger
+                  disabled={pending}
+                  onClick={() => removeSection(section)}
+                >
+                  <Trash2 aria-hidden />
+                </IconButton>
+              </div>
+            </div>
+          )}
+
+          {section.lessons.length > 0 ? (
+            <ul className="divide-y divide-separator border-t border-separator">
               {section.lessons.map((lesson, lessonIndex) => {
                 const Icon = KIND_ICON[lesson.kind] ?? FileText;
                 const expanded = openLesson === lesson.id;
+                const flags = lesson.isPreview || !lesson.published || lesson.empty;
                 return (
                   <li key={lesson.id} className="min-w-0">
-                    <div className="flex items-center gap-2.5 px-4 py-2">
+                    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 py-2.5 pl-4 pr-2.5 transition hover:bg-surface-muted/60 sm:pl-5 sm:pr-3">
                       <span
-                        className="grid size-8 shrink-0 place-items-center rounded-ctl bg-brand-wash text-on-brand-wash"
+                        className="grid size-8 shrink-0 place-items-center rounded-ctl bg-surface-muted text-foreground-muted"
                         aria-hidden
                       >
                         <Icon className="size-4" />
                       </span>
 
-                      <button
-                        type="button"
-                        onClick={() =>
-                          setOpenLesson(expanded ? null : lesson.id)
-                        }
-                        aria-expanded={expanded}
-                        className="min-w-0 flex-1 text-left"
-                      >
-                        <span className="block truncate text-[13.5px] font-bold text-foreground">
-                          {lesson.title}
-                        </span>
-                        <span className="block truncate text-[12px] text-foreground-muted">
-                          {lesson.parts}
-                          {lesson.durationMin
-                            ? ` · ${lesson.durationMin} min`
-                            : ""}
-                        </span>
-                      </button>
+                      <div className="min-w-0 flex-1 basis-40">
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setOpenLesson(expanded ? null : lesson.id)
+                          }
+                          aria-expanded={expanded}
+                          className="block w-full min-w-0 rounded-chip text-left"
+                        >
+                          <span className="block truncate text-label font-medium text-foreground">
+                            {lesson.title}
+                          </span>
+                          <span className="block truncate text-caption text-foreground-muted">
+                            {lesson.parts}
+                            {lesson.durationMin
+                              ? ` · ${lesson.durationMin} min`
+                              : ""}
+                          </span>
+                        </button>
+                        {flags ? (
+                          <span className="mt-1 flex flex-wrap items-center gap-1">
+                            {lesson.isPreview ? <Badge tone="brand">Preview</Badge> : null}
+                            {!lesson.published ? <Badge>Draft</Badge> : null}
+                            {lesson.empty ? <Badge tone="warning">Empty</Badge> : null}
+                          </span>
+                        ) : null}
+                      </div>
 
-                      <span className="flex shrink-0 items-center gap-1">
-                        {lesson.isPreview ? <Tag>Preview</Tag> : null}
-                        {!lesson.published ? <Tag>Draft</Tag> : null}
-                        {lesson.empty ? <Tag tone="warn">Empty</Tag> : null}
-                      </span>
-
-                      <div className="flex shrink-0 items-center gap-0.5">
+                      <div className="ml-auto flex shrink-0 items-center gap-0.5">
                         <IconButton
                           label={`Move ${lesson.title} up`}
                           disabled={lessonIndex === 0 || pending}
                           onClick={() => moveLesson(lesson.id, "up")}
                         >
-                          <ChevronUp className="size-4" aria-hidden />
+                          <ChevronUp aria-hidden />
                         </IconButton>
                         <IconButton
                           label={`Move ${lesson.title} down`}
@@ -325,7 +325,7 @@ export function CurriculumEditor({
                           }
                           onClick={() => moveLesson(lesson.id, "down")}
                         >
-                          <ChevronDown className="size-4" aria-hidden />
+                          <ChevronDown aria-hidden />
                         </IconButton>
                         <IconButton
                           label={`Edit ${lesson.title}`}
@@ -333,7 +333,7 @@ export function CurriculumEditor({
                             setForm({ sectionId: section.id, lesson })
                           }
                         >
-                          <Pencil className="size-3.5" aria-hidden />
+                          <Pencil aria-hidden />
                         </IconButton>
                         <IconButton
                           label={`Delete ${lesson.title}`}
@@ -341,14 +341,14 @@ export function CurriculumEditor({
                           disabled={pending}
                           onClick={() => removeLesson(lesson)}
                         >
-                          <Trash2 className="size-3.5" aria-hidden />
+                          <Trash2 aria-hidden />
                         </IconButton>
                       </div>
                     </div>
 
                     {expanded ? (
-                      <div className="border-t border-separator bg-default/30 px-4 py-3 pl-[4.4rem]">
-                        <p className="mb-2 text-[12px] font-semibold text-foreground">
+                      <div className="border-t border-separator bg-surface-muted px-4 py-3 sm:pl-16 sm:pr-5">
+                        <p className="mb-1 text-caption font-medium text-foreground">
                           Lesson files
                         </p>
                         <ResourceList
@@ -364,63 +364,46 @@ export function CurriculumEditor({
                 );
               })}
             </ul>
+          ) : (
+            <p className="border-t border-separator px-4 py-3 text-label text-foreground-muted sm:px-5">
+              No lessons in this section yet.
+            </p>
+          )}
 
-            <div className="px-4 pb-3">
-              <button
-                type="button"
-                onClick={() => setForm({ sectionId: section.id, lesson: null })}
-                className="inline-flex h-8 items-center gap-1.5 rounded-ctl border border-border bg-background px-3 text-[12.5px] font-semibold text-foreground transition hover:border-hairline-firm"
-              >
-                <Plus className="size-3.5" aria-hidden />
-                Add a lesson
-              </button>
-            </div>
+          <div className="border-t border-separator px-2 py-2 sm:px-3">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setForm({ sectionId: section.id, lesson: null })}
+            >
+              <Plus className="size-4" aria-hidden />
+              Add a lesson
+            </Button>
           </div>
-        ))}
-      </div>
+        </Card>
+      ))}
 
       {addingSection ? (
         <form
           onSubmit={(event) => saveSection(event, null)}
-          className="space-y-2.5 border-t border-border bg-default/40 px-4 py-3"
+          className={cardClass({ className: "flex flex-col gap-3" })}
         >
-          <input
-            name="title"
-            required
-            maxLength={160}
-            autoFocus
-            placeholder="Section title — “Week one”"
-            className={INPUT}
-          />
-          <input
-            name="summary"
-            maxLength={240}
-            placeholder="One line about this section. Optional."
-            className={INPUT}
-          />
+          <SectionFields idPrefix="new-section" autoFocus />
           <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={() => setAddingSection(false)}
-              className={GHOST_BTN}
-            >
+            <Button variant="ghost" size="sm" onClick={() => setAddingSection(false)}>
               Cancel
-            </button>
-            <button type="submit" className={PRIMARY_BTN}>
+            </Button>
+            <Button type="submit" variant="primary" size="sm">
               Add section
-            </button>
+            </Button>
           </div>
         </form>
       ) : sections.length > 0 ? (
-        <div className="border-t border-border px-4 py-3">
-          <button
-            type="button"
-            onClick={() => setAddingSection(true)}
-            className="inline-flex h-8 items-center gap-1.5 rounded-ctl border border-border bg-background px-3 text-[12.5px] font-semibold text-foreground transition hover:border-hairline-firm"
-          >
-            <Plus className="size-3.5" aria-hidden />
+        <div>
+          <Button onClick={() => setAddingSection(true)}>
+            <Plus className="size-4" aria-hidden />
             Add a section
-          </button>
+          </Button>
         </div>
       ) : null}
 
@@ -436,15 +419,50 @@ export function CurriculumEditor({
   );
 }
 
-const INPUT =
-  "h-9 w-full rounded-ctl border border-field-border bg-field-background px-3 text-[13px] text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/25";
+/** The two fields a section has, for both the rename and the add form. */
+function SectionFields({
+  idPrefix,
+  title,
+  summary,
+  autoFocus,
+}: {
+  idPrefix: string;
+  title?: string;
+  summary?: string | null;
+  autoFocus?: boolean;
+}) {
+  const adding = title === undefined;
+  return (
+    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <Field label="Section title" htmlFor={`${idPrefix}-title`} className="min-w-0">
+        <Input
+          id={`${idPrefix}-title`}
+          name="title"
+          defaultValue={title}
+          required
+          maxLength={160}
+          autoFocus={autoFocus}
+          placeholder={adding ? "Section title — “Week one”" : undefined}
+        />
+      </Field>
+      <Field label="Summary" htmlFor={`${idPrefix}-summary`} className="min-w-0">
+        <Input
+          id={`${idPrefix}-summary`}
+          name="summary"
+          defaultValue={summary ?? ""}
+          maxLength={240}
+          placeholder="One line about this section. Optional."
+        />
+      </Field>
+    </div>
+  );
+}
 
-const GHOST_BTN =
-  "h-8 rounded-ctl border border-border bg-background px-3 text-[12.5px] font-semibold text-foreground transition hover:border-hairline-firm";
-
-const PRIMARY_BTN =
-  "h-8 rounded-ctl bg-brand-fill px-3 text-[12.5px] font-semibold text-brand-fill-foreground transition hover:bg-brand-fill-hover";
-
+/**
+ * A move, rename or delete control on a row. Deletes stay quiet until hovered:
+ * a red bin on every row would turn the syllabus into a list of alarms, and
+ * each one asks before it acts.
+ */
 function IconButton({
   label,
   onClick,
@@ -459,39 +477,20 @@ function IconButton({
   children: React.ReactNode;
 }) {
   return (
-    <button
-      type="button"
+    <Button
+      variant="ghost"
+      size="sm"
+      iconOnly
       onClick={onClick}
       disabled={disabled}
       aria-label={label}
       title={label}
       className={cn(
-        "grid size-7 place-items-center rounded-ctl text-foreground-muted transition hover:bg-mint disabled:pointer-events-none disabled:opacity-35",
-        danger ? "hover:text-danger" : "hover:text-foreground",
+        "[&_svg]:size-4",
+        danger && "[&:hover:not(:disabled)_svg]:text-danger",
       )}
     >
       {children}
-    </button>
-  );
-}
-
-function Tag({
-  children,
-  tone = "neutral",
-}: {
-  children: React.ReactNode;
-  tone?: "neutral" | "warn";
-}) {
-  return (
-    <span
-      className={cn(
-        "whitespace-nowrap rounded-chip border px-1.5 py-0.5 text-[10.5px] font-bold",
-        tone === "warn"
-          ? "border-danger/40 text-danger"
-          : "border-border text-foreground-muted",
-      )}
-    >
-      {children}
-    </span>
+    </Button>
   );
 }

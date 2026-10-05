@@ -4,7 +4,15 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Loader2, Video } from "lucide-react";
 import { attachRecordingAction } from "@/app/admin/events/actions";
-import { cn } from "@/lib/utils";
+import {
+  Button,
+  Callout,
+  CardHeader,
+  Field,
+  Input,
+  Select,
+  cardClass,
+} from "@/components/app/ui";
 
 /**
  * What happens to the class after it has happened.
@@ -58,50 +66,33 @@ export function EventRecording({
   }
 
   return (
-    <form onSubmit={submit} className="rounded-card border border-border bg-surface">
-      <div className="border-b border-border px-4 py-3">
-        <h2 className="flex items-center gap-2 text-[14px] font-bold text-foreground">
-          <Video className="size-4 text-foreground-muted" aria-hidden />
-          Recording
-        </h2>
-        <p className="mt-0.5 text-[12.5px] text-foreground-muted">
-          Everyone who said they were coming is told when this is attached.
-        </p>
-      </div>
+    <form onSubmit={submit} className={cardClass({ padding: "none" })}>
+      <CardHeader
+        title="Recording"
+        icon={<Video />}
+        description="Everyone who said they were coming is told when this is attached."
+      />
 
-      <div className="space-y-4 px-4 py-4">
-        <div className="min-w-0">
-          <label
-            htmlFor="recording-url"
-            className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
-          >
-            Recording link
-          </label>
-          <input
+      <div className="flex flex-col gap-5 p-4 sm:p-5">
+        <Field
+          label="Recording link"
+          htmlFor="recording-url"
+          hint="Leave blank to take the recording away again."
+        >
+          <Input
             id="recording-url"
             name="recordingUrl"
             defaultValue={recordingUrl ?? ""}
             placeholder="https://…"
-            className={INPUT}
           />
-          <p className="mt-1.5 text-[12px] text-foreground-muted">
-            Leave blank to take the recording away again.
-          </p>
-        </div>
+        </Field>
 
-        <div className="min-w-0">
-          <label
-            htmlFor="recording-publish"
-            className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
-          >
-            Also publish it
-          </label>
-          <select
+        <Field label="Also publish it" htmlFor="recording-publish">
+          <Select
             id="recording-publish"
             name="publishTo"
             value={publishTo}
             onChange={(event) => setPublishTo(event.target.value)}
-            className={INPUT}
           >
             <option value="none">Just attach it to the event</option>
             <option value="course" disabled={hasLesson || courses.length === 0}>
@@ -118,18 +109,12 @@ export function EventRecording({
                   ? "This event has no room"
                   : "As a post in the room"}
             </option>
-          </select>
-        </div>
+          </Select>
+        </Field>
 
         {publishTo === "course" ? (
-          <div className="min-w-0">
-            <label
-              htmlFor="recording-section"
-              className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
-            >
-              Which section
-            </label>
-            <select id="recording-section" name="sectionId" className={INPUT}>
+          <Field label="Which section" htmlFor="recording-section">
+            <Select id="recording-section" name="sectionId">
               {courses.map((course) =>
                 course.sections.map((section) => (
                   <option key={section.id} value={section.id}>
@@ -137,47 +122,31 @@ export function EventRecording({
                   </option>
                 )),
               )}
-            </select>
-          </div>
+            </Select>
+          </Field>
         ) : null}
 
-        {error ? (
-          <p role="alert" className="text-[12.5px] font-semibold text-danger">
-            {error}
-          </p>
-        ) : null}
+        {error ? <Callout tone="danger">{error}</Callout> : null}
       </div>
 
-      <div className="flex items-center justify-end gap-2 border-t border-border px-4 py-3">
+      <div className="flex items-center justify-end gap-3 border-t border-separator px-4 py-3 sm:px-5">
         {saved && !saving ? (
-          <span className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-foreground-muted">
-            <Check className="size-3.5" aria-hidden />
+          <span className="inline-flex items-center gap-1 text-label font-medium text-foreground-muted">
+            <Check className="size-4 text-success" aria-hidden />
             Saved
           </span>
         ) : null}
-        <button
-          type="submit"
-          disabled={saving}
-          className={cn(
-            "inline-flex h-9 items-center gap-1.5 rounded-ctl px-4 text-[13.5px] font-semibold transition",
-            saving
-              ? "bg-default text-foreground-muted"
-              : "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover",
-          )}
-        >
+        <Button type="submit" variant="primary" disabled={saving}>
           {saving ? (
             <>
-              <Loader2 className="size-3.5 animate-spin" aria-hidden />
+              <Loader2 className="size-4 animate-spin" aria-hidden />
               Saving
             </>
           ) : (
             "Save recording"
           )}
-        </button>
+        </Button>
       </div>
     </form>
   );
 }
-
-const INPUT =
-  "h-9 w-full rounded-ctl border border-field-border bg-field-background px-3 text-[13.5px] text-foreground outline-none transition placeholder:text-field-placeholder focus:border-brand focus:ring-2 focus:ring-brand/25";

@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { Paperclip, ShieldCheck } from "lucide-react";
 import { auth } from "@/auth";
 import { listPendingPosts } from "@/lib/community/posts";
 import { getSpaceForMember } from "@/lib/spaces";
@@ -7,7 +7,7 @@ import { canModerateSpace } from "@/lib/permissions";
 import { getUserAuth } from "@/lib/community/viewer";
 import { AppShell } from "@/components/app/app-shell";
 import { Avatar } from "@/components/ui/avatar";
-import { EmptyState } from "@/components/ui/empty-state";
+import { ButtonLink, Card, EmptyState, PageHeader } from "@/components/app/ui";
 import { ReviewDecision } from "@/app/(member)/spaces/[slug]/review/review-decision";
 import { formatShortTime } from "@/lib/community/format-count";
 
@@ -42,70 +42,65 @@ export default async function SpaceReviewPage({
 
   return (
     <AppShell>
-      <div className="space-y-4 pb-10">
-        <div>
-          <Link
-            href={`/spaces/${slug}`}
-            className="text-[12.5px] font-semibold text-foreground-muted no-underline hover:text-foreground"
-          >
-            ← {result.space.name}
-          </Link>
-          <h1 className="mt-1 font-display text-[1.6rem] font-bold tracking-[-0.02em] text-foreground">
-            Posts to review
-          </h1>
-          <p className="mt-1 text-[14px] text-foreground-muted">
-            Nobody else can see these until you let them through.
-          </p>
-        </div>
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="Posts to review"
+          description="Nobody else can see these until you let them through."
+          back={{ href: `/spaces/${slug}`, label: result.space.name }}
+        />
 
         {pending.length === 0 ? (
           <EmptyState
+            icon={<ShieldCheck />}
             title="Nothing waiting"
-            body="New posts in this space will appear here before they go live."
+            description="New posts in this space will appear here before they go live."
+            action={
+              <ButtonLink href={`/spaces/${slug}`}>Back to {result.space.name}</ButtonLink>
+            }
           />
         ) : (
-          <ul className="space-y-3">
-            {pending.map((post) => (
-              <li
-                key={post.id}
-                className="rounded-card border border-border bg-surface p-4"
-              >
-                <div className="flex items-center gap-2.5">
-                  <Avatar
-                    name={post.author.profile?.displayName ?? post.author.handle}
-                    src={post.author.profile?.avatarUrl ?? null}
-                    size="sm"
-                  />
-                  <div className="min-w-0">
-                    <p className="truncate text-[13.5px] font-semibold text-foreground">
-                      {post.author.profile?.displayName ?? post.author.handle}
-                    </p>
-                    <p className="text-[12px] text-foreground-muted">
-                      {formatShortTime(post.createdAt)}
-                    </p>
+          <Card padding="none">
+            <ul className="divide-y divide-separator">
+              {pending.map((post) => (
+                <li key={post.id} className="px-4 py-4 sm:px-5 sm:py-5">
+                  <div className="flex items-center gap-3">
+                    <Avatar
+                      name={post.author.profile?.displayName ?? post.author.handle}
+                      src={post.author.profile?.avatarUrl ?? null}
+                      size="sm"
+                    />
+                    <div className="min-w-0">
+                      <p className="truncate text-body font-semibold text-foreground">
+                        {post.author.profile?.displayName ?? post.author.handle}
+                      </p>
+                      <p className="text-caption text-foreground-muted">
+                        {formatShortTime(post.createdAt)}
+                      </p>
+                    </div>
                   </div>
-                </div>
 
-                {post.title ? (
-                  <h2 className="mt-3 text-[15.5px] font-bold text-foreground">
-                    {post.title}
-                  </h2>
-                ) : null}
-                <p className="mt-1.5 whitespace-pre-wrap text-[14px] leading-relaxed text-foreground">
-                  {post.plainText.slice(0, 900)}
-                </p>
-
-                {post.attachments.length > 0 ? (
-                  <p className="mt-2 text-[12.5px] text-foreground-muted">
-                    {post.attachments.length}{" "}
-                    {post.attachments.length === 1 ? "attachment" : "attachments"}
+                  {post.title ? (
+                    <h2 className="mt-3 text-title font-semibold text-foreground">
+                      {post.title}
+                    </h2>
+                  ) : null}
+                  <p className="mt-1.5 whitespace-pre-wrap text-reading text-foreground">
+                    {post.plainText.slice(0, 900)}
                   </p>
-                ) : null}
 
-                <ReviewDecision postId={post.id} />
-              </li>
-            ))}
-          </ul>
+                  {post.attachments.length > 0 ? (
+                    <p className="mt-2 inline-flex items-center gap-1 text-caption text-foreground-muted">
+                      <Paperclip className="size-3.5" aria-hidden />
+                      {post.attachments.length}{" "}
+                      {post.attachments.length === 1 ? "attachment" : "attachments"}
+                    </p>
+                  ) : null}
+
+                  <ReviewDecision postId={post.id} />
+                </li>
+              ))}
+            </ul>
+          </Card>
         )}
       </div>
     </AppShell>

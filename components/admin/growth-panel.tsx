@@ -1,10 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import { TrendingUp } from "lucide-react";
 import type { GrowthSeries } from "@/lib/admin/dashboard";
 import { AreaChart } from "@/components/admin/dashboard-charts";
-import { Panel } from "@/components/admin/ui";
+import { Card, CardHeader, EmptyState, Select } from "@/components/app/ui";
 
 /**
  * Community growth.
@@ -32,50 +32,50 @@ export function GrowthPanel({
   if (!active) return null;
 
   return (
-    <Panel className="p-4">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-[13.5px] font-bold text-foreground">Community growth</h2>
-          <p className="mt-0.5 text-[12px] text-foreground-muted">
-            {active.total.toLocaleString()} new{" "}
-            {active.label.toLowerCase()} over the last {windowDays} days
-          </p>
-        </div>
-
-        <div className="relative shrink-0">
-          <select
+    <Card padding="none" className="flex flex-col">
+      <CardHeader
+        title="Community growth"
+        description={
+          <>
+            {active.total.toLocaleString()} new {active.label.toLowerCase()} over the
+            last {windowDays} days
+          </>
+        }
+        action={
+          <Select
+            size="sm"
             value={key}
             onChange={(event) => setKey(event.target.value)}
             aria-label="Which measure to plot"
-            className="h-8 appearance-none rounded-ctl border border-border bg-surface py-0 pl-3 pr-8 text-[12.5px] font-semibold text-foreground outline-none transition hover:border-hairline-firm focus-visible:border-hairline-firm"
+            className="w-auto font-medium"
           >
             {series.map((entry) => (
               <option key={entry.key} value={entry.key}>
                 {entry.label}
               </option>
             ))}
-          </select>
-          <ChevronDown
-            className="pointer-events-none absolute right-2.5 top-1/2 size-3.5 -translate-y-1/2 text-foreground-muted"
-            aria-hidden
-          />
-        </div>
-      </div>
+          </Select>
+        }
+      />
 
-      {/* The chart wears the brand hue. A graphical object needs 3:1 against
-          its surface; this clears 6.46:1 in light and 10.28:1 in dark, and the
-          theme check asserts it. */}
-      <div className="mt-4 text-brand">
+      {/* The chart wears the brand hue: forest in light, sage in dark, 8.06:1
+          and 6.98:1 on their surfaces, well past the 3:1 a graphical object
+          needs. The theme check asserts the pair. */}
+      <div className="flex-1 p-4 text-brand sm:p-5">
         {active.total === 0 ? (
           // A flat line along the axis reads as "measured, and flat". It
           // actually means nothing happened, which is a different thing to say.
-          <p className="py-14 text-center text-[12.5px] text-foreground-muted">
-            No {active.label.toLowerCase()} in the last {windowDays} days.
-          </p>
+          <EmptyState
+            size="sm"
+            bordered={false}
+            icon={<TrendingUp />}
+            title={`No ${active.label.toLowerCase()} in the last ${windowDays} days.`}
+            className="py-12"
+          />
         ) : (
           <AreaChart points={active.points} label={active.label} />
         )}
       </div>
-    </Panel>
+    </Card>
   );
 }

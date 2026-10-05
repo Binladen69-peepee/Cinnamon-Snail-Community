@@ -10,7 +10,6 @@ import {
   UserRound,
 } from "lucide-react";
 import type { LinkPreview } from "@/lib/messages/link-preview";
-import { cn } from "@/lib/utils";
 
 /**
  * A link to something inside the community, unfurled.
@@ -44,22 +43,21 @@ const LABELS: Record<LinkPreview["kind"], string> = {
 
 export function LinkCard({
   preview,
-  mine,
 }: {
   preview: LinkPreview;
-  /** Own bubbles are on the brand fill, so the card borrows its ink. */
+  /**
+   * Whose bubble the card sits in. It used to borrow the own bubble's ink as
+   * white-alpha literals, which were white on white once the fill went light
+   * in dark mode. The card is a surface of its own now, painted from the same
+   * tokens in both bubbles, so it reads on the brand fill and the muted one.
+   */
   mine: boolean;
 }) {
   const Icon = ICONS[preview.kind];
   return (
     <Link
       href={preview.href}
-      className={cn(
-        "mt-1.5 flex items-center gap-2.5 rounded-ctl border px-2.5 py-2 no-underline transition",
-        mine
-          ? "border-white/25 bg-white/10 hover:bg-white/15"
-          : "border-border bg-background hover:border-hairline-firm",
-      )}
+      className="mt-1.5 flex items-center gap-2.5 rounded-ctl border border-border bg-surface px-2.5 py-2 text-foreground no-underline shadow-e1 transition hover:border-hairline-firm hover:bg-surface-muted"
     >
       {preview.imageUrl ? (
         // Member and class images come from our own media host, not the
@@ -68,14 +66,11 @@ export function LinkCard({
         <img
           src={preview.imageUrl}
           alt=""
-          className="size-9 shrink-0 rounded-ctl object-cover"
+          className="size-9 shrink-0 rounded-chip bg-default object-cover"
         />
       ) : (
         <span
-          className={cn(
-            "grid size-9 shrink-0 place-items-center rounded-ctl",
-            mine ? "bg-white/15" : "bg-brand-wash text-on-brand-wash",
-          )}
+          className="grid size-9 shrink-0 place-items-center rounded-chip bg-brand-wash text-on-brand-wash"
           aria-hidden
         >
           <Icon className="size-4" />
@@ -83,29 +78,14 @@ export function LinkCard({
       )}
 
       <span className="min-w-0 flex-1">
-        <span
-          className={cn(
-            "block text-[10px] font-bold uppercase tracking-[0.12em]",
-            mine ? "text-white/60" : "text-foreground-muted",
-          )}
-        >
+        <span className="block text-micro font-semibold uppercase tracking-[0.08em] text-foreground-muted">
           {LABELS[preview.kind]}
         </span>
-        <span
-          className={cn(
-            "block truncate text-[13px] font-semibold",
-            mine ? "text-white" : "text-foreground",
-          )}
-        >
+        <span className="block truncate text-label font-semibold text-foreground">
           {preview.title}
         </span>
         {preview.detail ? (
-          <span
-            className={cn(
-              "block truncate text-[11.5px]",
-              mine ? "text-white/70" : "text-foreground-muted",
-            )}
-          >
+          <span className="block truncate text-caption text-foreground-muted">
             {preview.detail}
           </span>
         ) : null}

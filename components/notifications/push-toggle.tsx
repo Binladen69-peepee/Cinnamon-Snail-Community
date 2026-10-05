@@ -3,6 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { BellRing, BellOff } from "lucide-react";
 import { toast } from "@/components/ui/toast";
+import { Button, Card } from "@/components/app/ui";
 import {
   subscribePushAction,
   unsubscribePushAction,
@@ -112,7 +113,7 @@ export function PushToggle({
   };
 
   return (
-    <div className="flex flex-col gap-3 rounded-card border border-border bg-surface p-4 sm:flex-row sm:items-center sm:justify-between">
+    <Card as="div" className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
       <div className="flex min-w-0 items-start gap-3">
         <span
           className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-wash text-on-brand-wash"
@@ -121,23 +122,22 @@ export function PushToggle({
           {on ? <BellRing className="size-4" /> : <BellOff className="size-4" />}
         </span>
         <div className="min-w-0">
-          <p className="text-[14px] font-semibold text-foreground">Push on this device</p>
-          <p className="mt-0.5 text-[12.5px] leading-snug text-foreground-muted" aria-live="polite">
+          <p className="text-body font-semibold text-foreground">Push on this device</p>
+          <p className="mt-0.5 text-label text-foreground-muted" aria-live="polite">
             {text[status]}
           </p>
         </div>
       </div>
       {status === "off" || status === "on" ? (
-        <button
-          type="button"
+        <Button
           onClick={on ? disable : enable}
           disabled={pending}
-          className={`vu-btn ${on ? "vu-btn-secondary" : "vu-btn-primary"} inline-flex h-10 shrink-0 items-center justify-center px-4 text-[13.5px] disabled:opacity-60`}
+          className="self-start sm:self-auto"
         >
           {pending ? "Working…" : on ? "Turn off" : "Turn on"}
-        </button>
+        </Button>
       ) : null}
-    </div>
+    </Card>
   );
 }
 

@@ -1,9 +1,10 @@
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
-import { Button } from "@/components/ui/button";
 import { deleteAccountAction } from "@/app/(member)/billing/actions";
-import Link from "next/link";
 import { AppShell } from "@/components/app/app-shell";
+import { Button, ButtonLink, Callout, Card, PageHeader } from "@/components/app/ui";
+
+export const metadata = { title: "Close account" };
 
 export default async function DeleteAccountPage({
   searchParams,
@@ -16,26 +17,28 @@ export default async function DeleteAccountPage({
 
   return (
     <AppShell>
-      <div className="mx-auto max-w-xl space-y-6 pb-10">
-      <h1 className="font-display text-[1.6rem] sm:text-3xl text-foreground">Close this account</h1>
-      <p className="text-foreground-muted">
-        If you have a paid membership, we cancel billing with SamCart first. We
-        will not soft-delete a paying member when cancellation is unconfirmed.
-      </p>
-      {blocked ? (
-        <p className="rounded-2xl bg-danger/10 px-4 py-3 text-sm text-danger" role="alert">
-          SamCart has not confirmed cancellation, so the account stays open.
-        </p>
-      ) : null}
-      <form action={deleteAccountAction} className="space-y-4 rounded-[1.5rem] border border-sand bg-warm-white p-6">
-        <input type="hidden" name="reason" value="member_request" />
-        <Button type="submit" variant="danger">
-          Request deletion
-        </Button>
-        <Link href="/billing" className="ml-4 text-sm text-foreground-muted">
-          Never mind
-        </Link>
-      </form>
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          back={{ href: "/billing", label: "Membership" }}
+          title="Close this account"
+          description="If you have a paid membership, we cancel billing with SamCart first. We will not soft-delete a paying member when cancellation is unconfirmed."
+        />
+        {blocked ? (
+          <Callout tone="danger" role="alert">
+            SamCart has not confirmed cancellation, so the account stays open.
+          </Callout>
+        ) : null}
+        <Card>
+          <form action={deleteAccountAction} className="flex flex-wrap items-center gap-2">
+            <input type="hidden" name="reason" value="member_request" />
+            <Button type="submit" variant="danger">
+              Request deletion
+            </Button>
+            <ButtonLink href="/billing" variant="ghost">
+              Never mind
+            </ButtonLink>
+          </form>
+        </Card>
       </div>
     </AppShell>
   );

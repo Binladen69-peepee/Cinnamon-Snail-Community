@@ -8,6 +8,13 @@ import { CurriculumEditor } from "@/components/admin/curriculum-editor";
 import { PublishButtons } from "@/components/admin/publish-button";
 import { ResourceList } from "@/components/admin/resource-list";
 import { StatusBadge } from "@/components/admin/course-card";
+import {
+  ButtonLink,
+  Callout,
+  Card,
+  CardHeader,
+  PageHeader,
+} from "@/components/app/ui";
 import { IMAGE_MAX_BYTES } from "@/lib/uploads/policy";
 import { uploadsConfigured } from "@/lib/uploads/storage";
 import { classHref } from "@/lib/learn/classes";
@@ -25,8 +32,10 @@ export async function generateMetadata({
 /**
  * The course editor.
  *
- * Two columns: the course's own fields, its curriculum and its shared files on
- * the left; the thumbnail, pricing and help in the rail.
+ * Two columns: the course's own fields, its curriculum, its shared files and
+ * its pricing on the left; the thumbnail and help in the rail. The rail joins
+ * at xl rather than lg, because beside it at lg the curriculum rows would have
+ * no room for their titles.
  *
  * Pricing is the one panel that still describes rather than edits. Money is
  * SamCart's — DEC-001 makes it the source of truth — so the panel points there
@@ -47,47 +56,37 @@ export default async function EditCoursePage({
   const uploadsEnabled = uploadsConfigured();
 
   return (
-    <div className="space-y-4">
-      <nav aria-label="Breadcrumb" className="text-[12.5px] text-foreground-muted">
-        <Link
-          href="/admin/courses"
-          className="font-semibold text-foreground-muted no-underline hover:text-foreground hover:underline"
-        >
-          Courses
-        </Link>
-        <span aria-hidden> / </span>
-        <span>Edit</span>
-      </nav>
-
-      <header className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="font-display text-[1.5rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-            {course.title}
-          </h1>
-          <p className="mt-1.5 flex flex-wrap items-center gap-2 text-[12.5px] text-foreground-muted">
+    <div className="flex flex-col gap-6">
+      <PageHeader
+        back={{ href: "/admin/courses", label: "Courses" }}
+        eyebrow="Edit course"
+        title={course.title}
+        description={
+          <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
             <StatusBadge published={course.published} />
             {course.category ? <span>{course.category}</span> : null}
             {course.published ? (
               <Link
                 href={classHref(course.slug)}
-                className="inline-flex items-center gap-1 font-semibold text-brand no-underline hover:underline"
+                className="inline-flex items-center gap-1 font-medium text-link no-underline transition hover:underline"
               >
                 View as a member
-                <ExternalLink className="size-3" aria-hidden />
+                <ExternalLink className="size-3.5" aria-hidden />
               </Link>
             ) : null}
-          </p>
-        </div>
+          </span>
+        }
+        actions={
+          <PublishButtons
+            slug={course.slug}
+            published={course.published}
+            lessonCount={course.lessonCount}
+          />
+        }
+      />
 
-        <PublishButtons
-          slug={course.slug}
-          published={course.published}
-          lessonCount={course.lessonCount}
-        />
-      </header>
-
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_300px]">
-        <div className="space-y-4">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="flex min-w-0 flex-col gap-6">
           <CourseDetailsForm
             slug={course.slug}
             course={course}
@@ -101,62 +100,51 @@ export default async function EditCoursePage({
             uploadsEnabled={uploadsEnabled}
           />
 
-          <section className="rounded-card border border-border bg-surface">
-            <div className="border-b border-border px-4 py-3">
-              <h2 className="text-[14px] font-bold text-foreground">
-                Course files
-              </h2>
-              <p className="mt-0.5 text-[12.5px] text-foreground-muted">
-                Shown on the class page, beside every lesson. Files that belong
-                to one lesson are attached to that lesson instead.
-              </p>
-            </div>
-            <div className="px-4 py-3.5">
+          <Card padding="none">
+            <CardHeader
+              title="Course files"
+              description="Shown on the class page, beside every lesson. Files that belong to one lesson are attached to that lesson instead."
+            />
+            <div className="px-4 py-3 sm:px-5">
               <ResourceList
                 slug={course.slug}
                 resources={course.resources}
                 uploadsEnabled={uploadsEnabled}
               />
             </div>
-          </section>
+          </Card>
 
-          <section className="rounded-card border border-border bg-surface p-4">
-            <h2 className="text-[14px] font-bold text-foreground">Pricing Plan</h2>
-            <p className="mt-1 text-[13px] leading-relaxed text-foreground-muted">
-              Membership is what members buy, and SamCart is the source of truth
-              for it. A course is included in the membership rather than priced
-              on its own, so there is no plan to create here.
-            </p>
-
-            {course.pricingProduct ? (
-              <p className="mt-2.5 text-[13px] text-foreground">
-                Sold through{" "}
-                <span className="font-bold">{course.pricingProduct.name}</span>
-                {course.pricingProduct.active ? "" : " (inactive)"}.
+          <Card padding="none">
+            <CardHeader title="Pricing plan" />
+            <div className="flex flex-col items-start gap-4 px-4 py-4 sm:px-5">
+              <p className="text-body text-foreground-muted">
+                Membership is what members buy, and SamCart is the source of truth
+                for it. A course is included in the membership rather than priced
+                on its own, so there is no plan to create here.
               </p>
-            ) : null}
 
-            <Link
-              href="/admin/billing"
-              className="mt-3 inline-flex h-9 items-center gap-1.5 rounded-ctl border border-border bg-background px-4 text-[13px] font-semibold text-foreground no-underline transition hover:border-hairline-firm"
-            >
-              Manage membership billing
-            </Link>
+              {course.pricingProduct ? (
+                <p className="text-body text-foreground">
+                  Sold through{" "}
+                  <span className="font-semibold">{course.pricingProduct.name}</span>
+                  {course.pricingProduct.active ? "" : " (inactive)"}.
+                </p>
+              ) : null}
 
-            <p className="mt-3 flex items-start gap-2 rounded-ctl bg-brand-wash px-3 py-2.5 text-[12.5px] leading-snug text-on-brand-wash">
-              <Lightbulb className="mt-px size-3.5 shrink-0" aria-hidden />
-              <span>
+              <ButtonLink href="/admin/billing">Manage membership billing</ButtonLink>
+
+              <Callout tone="brand" icon={<Lightbulb />} className="w-full text-label">
                 Need help pricing your course? Membership pricing lives in{" "}
-                <code className="font-mono text-[11.5px]">
+                <code className="rounded-chip bg-surface px-1 py-0.5 font-mono text-caption">
                   lib/marketing/checkout.ts
                 </code>{" "}
                 and on the sales page.
-              </span>
-            </p>
-          </section>
+              </Callout>
+            </div>
+          </Card>
         </div>
 
-        <aside className="space-y-3">
+        <aside className="grid grid-cols-1 content-start gap-4 sm:grid-cols-2 xl:grid-cols-1">
           <CourseThumbnail
             slug={course.slug}
             photo={course.photo}
@@ -165,26 +153,27 @@ export default async function EditCoursePage({
             uploadsEnabled={uploadsEnabled}
           />
 
-          <HelpCard
-            title="How members find this class"
-            body="Published courses appear in the class library and in search, filtered by their category."
-            href="/learn"
-            cta="See the library"
-          />
-
-          <HelpCard
-            title="Edit your sales page"
-            body="The public membership page is what sells this catalog to visitors."
-            href="/membership"
-            cta="See the page"
-          />
+          <Card padding="none" className="divide-y divide-separator self-start">
+            <HelpBlock
+              title="How members find this class"
+              body="Published courses appear in the class library and in search, filtered by their category."
+              href="/learn"
+              cta="See the library"
+            />
+            <HelpBlock
+              title="Edit your sales page"
+              body="The public membership page is what sells this catalog to visitors."
+              href="/membership"
+              cta="See the page"
+            />
+          </Card>
         </aside>
       </div>
     </div>
   );
 }
 
-function HelpCard({
+function HelpBlock({
   title,
   body,
   href,
@@ -196,17 +185,12 @@ function HelpCard({
   cta: string;
 }) {
   return (
-    <section className="rounded-card border border-border bg-surface p-3.5">
-      <h2 className="text-[13.5px] font-bold text-foreground">{title}</h2>
-      <p className="mt-1 text-[12.5px] leading-snug text-foreground-muted">
-        {body}
-      </p>
-      <Link
-        href={href}
-        className="mt-2.5 inline-flex h-8 items-center rounded-ctl border border-border bg-background px-3 text-[12.5px] font-semibold text-foreground no-underline transition hover:border-hairline-firm"
-      >
+    <div className="flex flex-col items-start gap-1 p-4">
+      <h2 className="text-body font-semibold text-foreground">{title}</h2>
+      <p className="text-label text-foreground-muted">{body}</p>
+      <ButtonLink href={href} size="sm" className="mt-2">
         {cta}
-      </Link>
-    </section>
+      </ButtonLink>
+    </div>
   );
 }

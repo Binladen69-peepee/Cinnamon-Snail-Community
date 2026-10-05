@@ -1,44 +1,55 @@
+import { AppShell } from "@/components/app/app-shell";
+import {
+  ChipRowSkeleton,
+  PageHeaderSkeleton,
+} from "@/components/app/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cardClass } from "@/components/app/ui";
 
 /**
- * The library while it loads — header, field, category row and one shelf of
- * tiles in the same proportions, so nothing moves when the classes land.
+ * The library while it loads: header, field, category row and two shelves of
+ * tiles in the same proportions, inside the same column as the page, so
+ * nothing moves when the classes land.
+ *
+ * The class and the lesson pages have their own boundaries; this one is only
+ * ever the library's shape.
  */
 export default function LearnLoading() {
   return (
-    <div className="mx-auto w-full max-w-[1160px] space-y-5 px-3 py-5 sm:px-6">
-      <div className="space-y-3">
-        <Skeleton className="h-7 w-32" />
-        <Skeleton className="h-4 w-72" />
-        <Skeleton className="h-11 w-full rounded-ctl" />
-        <div className="flex gap-1.5">
-          {["w-[92px]", "w-[128px]", "w-[104px]", "w-[112px]"].map(
-            (width, index) => (
-              <Skeleton key={index} className={`h-8 rounded-full ${width}`} />
-            ),
-          )}
+    <AppShell size="wide">
+      <div className="flex flex-col gap-8" aria-busy>
+        <div className="flex flex-col gap-4">
+          <PageHeaderSkeleton />
+          <div className="flex flex-col gap-3">
+            <Skeleton className="h-11 w-full rounded-ctl" />
+            <ChipRowSkeleton count={5} />
+          </div>
         </div>
-      </div>
 
-      {[0, 1].map((shelf) => (
-        <div key={shelf} className="space-y-2.5">
-          <Skeleton className="h-3 w-40" />
-          <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <li
-                key={index}
-                className="overflow-hidden rounded-card border border-border bg-surface"
-              >
-                <Skeleton className="aspect-[4/3] w-full rounded-none" />
-                <div className="space-y-2 p-3">
-                  <Skeleton className="h-3.5 w-full" />
-                  <Skeleton className="h-3 w-2/3" />
-                </div>
-              </li>
-            ))}
-          </ul>
-        </div>
-      ))}
-    </div>
+        {[0, 1].map((shelf) => (
+          <div key={shelf} className="flex flex-col gap-3">
+            <Skeleton className="h-5 w-44 rounded-chip" />
+            <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-4">
+              {Array.from({ length: 4 }, (_, index) => (
+                <li
+                  key={index}
+                  className={cardClass({
+                    padding: "none",
+                    className: "overflow-hidden",
+                  })}
+                >
+                  <Skeleton className="aspect-4/3 w-full rounded-none" />
+                  <div className="flex flex-col gap-2 p-3 sm:p-4">
+                    <Skeleton className="h-4 w-full rounded-chip" />
+                    <Skeleton className="h-3 w-2/3 rounded-chip" />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+        <span className="sr-only">Loading classes</span>
+      </div>
+    </AppShell>
   );
 }

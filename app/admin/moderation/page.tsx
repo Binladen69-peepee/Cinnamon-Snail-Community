@@ -9,11 +9,12 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import {
   Badge,
+  Card,
   ChipLink,
-  EmptyPanel,
+  ChipRow,
+  EmptyState,
   PageHeader,
-  Panel,
-} from "@/components/admin/ui";
+} from "@/components/app/ui";
 import { ReportActions } from "@/components/admin/report-actions";
 
 export const metadata = { title: "Moderation" };
@@ -32,7 +33,7 @@ const FILTER_LABEL: Record<ReportFilter, string> = {
  * one. This is that screen: what was reported, who reported it, who it is
  * about, and the four things a moderator can do about it.
  *
- * Cards rather than a table. A report is a paragraph of context plus a decision
+ * Rows rather than a table. A report is a paragraph of context plus a decision
  * — a row of cells would either truncate the thing being judged or push the
  * actions off the side.
  */
@@ -46,70 +47,68 @@ export default async function AdminModerationPage({
   const data = await loadModeration({ filter });
 
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-6">
       <PageHeader
         title="Moderation"
-        subtitle={
+        description={
           data.counts.open > 0
             ? `${data.counts.open} unread, ${data.counts.reviewing} being looked at.`
             : "Nothing is waiting to be read."
         }
-      />
-
-      <ul className="flex flex-wrap gap-1.5">
-        {(Object.keys(FILTER_LABEL) as ReportFilter[]).map((option) => (
-          <li key={option}>
+      >
+        <ChipRow label="Filter reports">
+          {(Object.keys(FILTER_LABEL) as ReportFilter[]).map((option) => (
             <ChipLink
+              key={option}
               href={option === "open" ? "/admin/moderation" : `/admin/moderation?filter=${option}`}
               active={option === filter}
             >
               {FILTER_LABEL[option]}
-              <span className="ml-1.5 tabular-nums opacity-70">
+              <span className="tabular-nums opacity-70">
                 {data.counts[option === "resolved" ? "resolved" : option]}
               </span>
             </ChipLink>
-          </li>
-        ))}
-      </ul>
+          ))}
+        </ChipRow>
+      </PageHeader>
 
-      {data.rows.length === 0 ? (
-        <Panel>
-          <EmptyPanel
-            icon={<ShieldCheck className="size-6" aria-hidden />}
+      <Card padding="none">
+        {data.rows.length === 0 ? (
+          <EmptyState
+            bordered={false}
+            icon={<ShieldCheck />}
             title={filter === "open" ? "Nothing to review" : "No reports here"}
-            body={
+            description={
               filter === "open"
                 ? "When a member reports a post, a message or another member, it lands here."
                 : "Try another filter — closed reports are kept rather than deleted."
             }
           />
-        </Panel>
-      ) : (
-        <ul className="space-y-3">
-          {data.rows.map((report) => (
-            <li key={report.id}>
-              <Panel className="p-4">
-                <div className="flex flex-wrap items-start justify-between gap-3">
+        ) : (
+          <ul className="divide-y divide-separator">
+            {data.rows.map((report) => (
+              <li key={report.id} className="flex flex-col gap-3 px-4 py-4 sm:px-5">
+                <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1.5">
                   <div className="flex min-w-0 items-center gap-2">
                     <Badge
                       tone={
                         report.status === "OPEN"
-                          ? "bad"
+                          ? "danger"
                           : report.status === "REVIEWING"
-                            ? "warn"
+                            ? "warning"
                             : "neutral"
                       }
+                      icon={<Flag aria-hidden />}
                     >
-                      <Flag className="size-3" aria-hidden />
                       {REPORT_STATUS_LABEL[report.status]}
                     </Badge>
-                    <span className="truncate text-[13.5px] font-bold text-foreground">
+                    <span className="truncate text-body font-semibold text-foreground">
                       {report.reason}
                     </span>
                   </div>
                   <time
                     dateTime={report.createdAt.toISOString()}
-                    className="shrink-0 text-[11.5px] tabular-nums text-foreground-muted"
+                    className="shrink-0 text-caption tabular-nums text-foreground-muted"
                   >
                     {report.createdAt.toLocaleString("en-GB", {
                       day: "numeric",
@@ -122,24 +121,24 @@ export default async function AdminModerationPage({
                 </div>
 
                 {report.details ? (
-                  <p className="mt-2 text-[13px] leading-snug text-foreground-muted">
+                  <p className="text-body leading-snug text-foreground-muted">
                     {report.details}
                   </p>
                 ) : null}
 
-                <div className="mt-3 rounded-ctl border border-border bg-background p-3">
+                <div className="rounded-ctl bg-surface-muted px-3 py-2.5">
                   {report.target.kind === "gone" ? (
-                    <p className="text-[12.5px] italic text-foreground-muted">
+                    <p className="text-label italic text-foreground-muted">
                       The reported content has already been taken down.
                     </p>
                   ) : report.target.kind === "member" ? (
-                    <p className="flex items-center gap-1.5 text-[12.5px] text-foreground-muted">
-                      <UserRound className="size-3.5 shrink-0" aria-hidden />
+                    <p className="flex items-center gap-1.5 text-label text-foreground-muted">
+                      <UserRound className="size-4 shrink-0" aria-hidden />
                       A report about the member, not about one piece of content.
                     </p>
                   ) : (
                     <>
-                      <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.1em] text-foreground-muted">
+                      <p className="flex items-center gap-1.5 text-micro font-semibold uppercase tracking-[0.08em] text-foreground-muted">
                         {report.target.kind === "post" ? (
                           <Flag className="size-3" aria-hidden />
                         ) : (
@@ -147,19 +146,19 @@ export default async function AdminModerationPage({
                         )}
                         {report.target.kind === "post" ? "Post" : "Direct message"}
                       </p>
-                      <p className="mt-1 text-[13px] leading-snug text-foreground">
+                      <p className="mt-1 text-body leading-snug text-foreground">
                         {report.target.excerpt}
                       </p>
                       {report.target.kind === "post" ? (
                         <Link
                           href={report.target.href}
-                          className="mt-1.5 inline-flex items-center gap-1 text-[12px] font-semibold text-brand no-underline hover:underline"
+                          className="mt-1.5 inline-flex items-center gap-1 text-label font-medium text-link no-underline hover:underline"
                         >
                           Open the post
-                          <ExternalLink className="size-3" aria-hidden />
+                          <ExternalLink className="size-3.5" aria-hidden />
                         </Link>
                       ) : (
-                        <p className="mt-1.5 text-[11.5px] italic text-foreground-muted">
+                        <p className="mt-1.5 text-caption italic text-foreground-muted">
                           Private thread — not linked from here.
                         </p>
                       )}
@@ -167,38 +166,37 @@ export default async function AdminModerationPage({
                   )}
                 </div>
 
-                <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-[12.5px] text-foreground-muted">
-                  {report.reporter ? (
-                    <span className="flex items-center gap-1.5">
-                      <Avatar
-                        name={report.reporter.name}
-                        src={report.reporter.avatarUrl}
-                        size="sm"
-                        className="size-6 text-[9px]"
-                      />
-                      Reported by{" "}
-                      <Link
-                        href={`/members/${report.reporter.handle}`}
-                        className="font-semibold text-foreground no-underline hover:underline"
-                      >
-                        {report.reporter.name}
-                      </Link>
-                    </span>
-                  ) : null}
-                  {report.subject ? (
-                    <span>
-                      About{" "}
-                      <Link
-                        href={`/admin/members/${report.subject.id}`}
-                        className="font-semibold text-foreground no-underline hover:underline"
-                      >
-                        {report.subject.name}
-                      </Link>
-                    </span>
-                  ) : null}
-                </div>
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                  <div className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 text-label text-foreground-muted">
+                    {report.reporter ? (
+                      <span className="flex items-center gap-1.5">
+                        <Avatar
+                          name={report.reporter.name}
+                          src={report.reporter.avatarUrl}
+                          size="xs"
+                        />
+                        Reported by{" "}
+                        <Link
+                          href={`/members/${report.reporter.handle}`}
+                          className="font-medium text-foreground no-underline hover:underline"
+                        >
+                          {report.reporter.name}
+                        </Link>
+                      </span>
+                    ) : null}
+                    {report.subject ? (
+                      <span>
+                        About{" "}
+                        <Link
+                          href={`/admin/members/${report.subject.id}`}
+                          className="font-medium text-foreground no-underline hover:underline"
+                        >
+                          {report.subject.name}
+                        </Link>
+                      </span>
+                    ) : null}
+                  </div>
 
-                <div className="mt-3 border-t border-separator pt-3">
                   <ReportActions
                     reportId={report.id}
                     status={report.status}
@@ -206,11 +204,11 @@ export default async function AdminModerationPage({
                     subject={report.subject}
                   />
                 </div>
-              </Panel>
-            </li>
-          ))}
-        </ul>
-      )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
     </div>
   );
 }

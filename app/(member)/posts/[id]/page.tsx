@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ChevronLeft, MessageSquare } from "lucide-react";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { parseCommentSort } from "@/lib/community/sort";
@@ -12,6 +12,7 @@ import {
 } from "@/lib/community/post-detail";
 import { SPACE_KIND_ICON } from "@/lib/spaces/kinds";
 import { AppShell } from "@/components/app/app-shell";
+import { Card, CardHeader } from "@/components/app/ui";
 import { PostCard } from "@/components/feed/post-card";
 import { RecipeVariations } from "@/components/feed/recipe-variations";
 import { listVariations } from "@/lib/recipes/variations";
@@ -90,7 +91,7 @@ export default async function PostPage({
     <AppShell
       rail={
         space ? (
-          <div className="space-y-2.5">
+          <div className="flex flex-col gap-4">
             <SpaceRail
               space={space}
               resources={space.resources}
@@ -101,24 +102,22 @@ export default async function PostPage({
               }))}
             />
             {more.length > 0 ? (
-              <section className="rounded-card border border-border bg-surface p-2.5">
-                <h2 className="mb-2 px-1.5 text-[10.5px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-                  More in {space.name}
-                </h2>
-                <ul className="space-y-0.5">
+              <Card padding="none" className="overflow-hidden">
+                <CardHeader title={`More in ${space.name}`} />
+                <ul className="divide-y divide-separator">
                   {more.map((item) => (
                     <li key={item.id}>
                       <Link
                         href={`/posts/${item.id}`}
-                        className="-mx-1.5 block rounded-ctl px-1.5 py-1.5 no-underline transition hover:bg-surface-muted"
+                        className="block px-4 py-3 no-underline transition hover:bg-surface-muted"
                       >
-                        <span className="line-clamp-2 text-[12.5px] font-bold leading-snug text-foreground">
+                        <span className="line-clamp-2 text-label font-medium leading-snug text-foreground">
                           {item.title || item.plainText.slice(0, 70)}
                         </span>
-                        <span className="mt-0.5 flex items-center gap-2 text-[11px] text-foreground-muted">
+                        <span className="mt-1 flex items-center gap-2.5 text-caption text-foreground-muted">
                           <span className="tabular-nums">{item.score} points</span>
                           <span className="inline-flex items-center gap-1 tabular-nums">
-                            <MessageSquare className="size-2.5" aria-hidden />
+                            <MessageSquare className="size-3" aria-hidden />
                             {item.commentCount}
                           </span>
                           <span>
@@ -129,23 +128,27 @@ export default async function PostPage({
                     </li>
                   ))}
                 </ul>
-              </section>
+              </Card>
             ) : null}
           </div>
         ) : undefined
       }
     >
-      <div className="space-y-2.5">
+      <div className="flex flex-col gap-4">
         {/* Back to the room rather than browser-back: someone arriving from a
             permalink has nothing to go back to. */}
         <Link
           href={`/spaces/${post.space.slug}`}
-          className="inline-flex items-center gap-1.5 px-1 text-[13px] font-bold text-foreground-muted no-underline transition hover:text-brand"
+          className="-ml-1 inline-flex w-fit items-center gap-1.5 rounded-ctl px-1 text-label font-medium text-foreground-muted no-underline transition hover:text-foreground"
         >
-          <ArrowLeft className="size-3.5" aria-hidden />
+          <ChevronLeft className="size-4" aria-hidden />
           {SpaceIcon ? <SpaceIcon className="size-3.5" aria-hidden /> : null}
           {post.space.name}
         </Link>
+
+        {/* The post's title is a line inside the card, so the page's heading
+            is spoken rather than shown. */}
+        <h1 className="sr-only">{post.title || `Post in ${post.space.name}`}</h1>
 
         <PostCard
           post={post}
@@ -163,19 +166,29 @@ export default async function PostPage({
           />
         ) : null}
 
-        <CommentComposer postId={post.id} viewer={viewer} joined={joined} />
+        {/* The conversation is one card: the reply box, the count and its
+            order, then the thread. */}
+        <Card padding="none" className="divide-y divide-separator">
+          <div className="px-4 py-4 sm:px-5">
+            <CommentComposer postId={post.id} viewer={viewer} joined={joined} />
+          </div>
 
-        <CommentSort
-          current={sort}
-          postId={post.id}
-          count={conversation.count}
-        />
+          <div className="px-4 py-3 sm:px-5">
+            <CommentSort
+              current={sort}
+              postId={post.id}
+              count={conversation.count}
+            />
+          </div>
 
-        <Conversation
-          comments={conversation.comments}
-          postId={post.id}
-          viewer={viewer}
-        />
+          <div className="px-4 py-5 sm:px-5">
+            <Conversation
+              comments={conversation.comments}
+              postId={post.id}
+              viewer={viewer}
+            />
+          </div>
+        </Card>
       </div>
     </AppShell>
   );

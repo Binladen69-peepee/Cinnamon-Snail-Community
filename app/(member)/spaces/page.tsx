@@ -1,12 +1,21 @@
 import { redirect } from "next/navigation";
-import { Compass, Star } from "lucide-react";
+import { Compass, LayoutGrid, Star } from "lucide-react";
 import { auth } from "@/auth";
 import { listNavSpaces } from "@/lib/spaces";
 import { AppShell } from "@/components/app/app-shell";
 import { SpaceCard } from "@/components/spaces/space-card";
-import { EmptyState } from "@/components/ui/empty-state";
+import {
+  ButtonLink,
+  Callout,
+  EmptyState,
+  PageHeader,
+  Section,
+} from "@/components/app/ui";
 
 export const metadata = { title: "Spaces" };
+
+/** One grid for every group, so the directory reads as one surface. */
+const GRID = "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3";
 
 /**
  * The space directory.
@@ -15,6 +24,9 @@ export const metadata = { title: "Spaces" };
  * the two can never disagree about how the community is organised. Private
  * rooms the member is not in are absent entirely rather than shown as locked —
  * being told a room exists but not what is in it is its own kind of leak.
+ *
+ * The same width and columns as the member directory: both are grids of
+ * things to open, and they should feel like the same kind of page.
  */
 export default async function SpacesPage() {
   const session = await auth();
@@ -25,11 +37,16 @@ export default async function SpacesPage() {
 
   if (all.length === 0) {
     return (
-      <AppShell>
-        <EmptyState
-          title="Spaces are being prepared"
-          body="Hosts will open kitchens, course rooms and event spaces here."
-        />
+      <AppShell size="wide">
+        <div className="flex flex-col gap-6">
+          <PageHeader title="Spaces" />
+          <EmptyState
+            icon={<LayoutGrid />}
+            title="Spaces are being prepared"
+            description="Hosts will open kitchens, course rooms and event spaces here."
+            action={<ButtonLink href="/home">Back to Explorer</ButtonLink>}
+          />
+        </div>
       </AppShell>
     );
   }
@@ -38,65 +55,45 @@ export default async function SpacesPage() {
   const unread = all.reduce((sum, space) => sum + space.unread, 0);
 
   return (
-    <AppShell>
-      <div className="space-y-5">
-        <header>
-          <h1 className="font-display text-[1.5rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-            Spaces
-          </h1>
-          <p className="mt-1 text-[14px] text-foreground-muted">
-            Every post lives in a room. You are in {joined} of {all.length}
-            {unread > 0 ? `, with ${unread} unread` : ""}.
-          </p>
-        </header>
+    <AppShell size="wide">
+      <div className="flex flex-col gap-8">
+        <PageHeader
+          title="Spaces"
+          description={
+            <>
+              Every post lives in a room. You are in {joined} of {all.length}
+              {unread > 0 ? `, with ${unread} unread` : ""}.
+            </>
+          }
+        />
+
+        {joined === 0 ? (
+          <Callout tone="brand" icon={<Compass />}>
+            You have not joined a room yet — your feed will stay empty until you
+            do.
+          </Callout>
+        ) : null}
 
         {favorites.length > 0 ? (
-          <Section
-            title="Favourites"
-            icon={<Star className="size-2.5 fill-current" aria-hidden />}
-          >
-            {favorites.map((space) => (
-              <SpaceCard key={space.id} space={space} />
-            ))}
+          <Section title="Favourites" icon={<Star className="fill-current" />}>
+            <div className={GRID}>
+              {favorites.map((space) => (
+                <SpaceCard key={space.id} space={space} />
+              ))}
+            </div>
           </Section>
         ) : null}
 
         {groups.map((group) => (
           <Section key={group.id ?? "ungrouped"} title={group.name}>
-            {group.spaces.map((space) => (
-              <SpaceCard key={space.id} space={space} />
-            ))}
+            <div className={GRID}>
+              {group.spaces.map((space) => (
+                <SpaceCard key={space.id} space={space} />
+              ))}
+            </div>
           </Section>
         ))}
-
-        {joined === 0 ? (
-          <p className="flex items-center gap-2 rounded-card border border-border bg-surface px-3 py-2.5 text-[13.5px] text-foreground-muted">
-            <Compass className="size-4 shrink-0 text-brand" aria-hidden />
-            You have not joined a room yet — your feed will stay empty until you
-            do.
-          </p>
-        ) : null}
       </div>
     </AppShell>
-  );
-}
-
-function Section({
-  title,
-  icon,
-  children,
-}: {
-  title: string;
-  icon?: React.ReactNode;
-  children: React.ReactNode;
-}) {
-  return (
-    <section>
-      <h2 className="mb-2 flex items-center gap-1.5 text-[10.5px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-        {icon}
-        {title}
-      </h2>
-      <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-2">{children}</div>
-    </section>
   );
 }

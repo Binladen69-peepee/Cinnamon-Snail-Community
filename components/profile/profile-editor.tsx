@@ -7,6 +7,17 @@ import type { InterestKind, SkillLevel } from "@prisma/client";
 import { saveProfileAction } from "@/app/(member)/settings/profile-actions";
 import { requestUploadAction } from "@/app/(member)/upload-actions";
 import { Avatar } from "@/components/ui/avatar";
+import {
+  Button,
+  Callout,
+  Card,
+  Field,
+  FormSection,
+  Input,
+  Select,
+  Textarea,
+  chipClass,
+} from "@/components/app/ui";
 import { prepareForUpload, putWithProgress } from "@/lib/uploads/client";
 import { IMAGE_ACCEPT, validateUpload } from "@/lib/uploads/policy";
 import {
@@ -165,417 +176,374 @@ export function ProfileEditor({
   }
 
   return (
-    <form onSubmit={submit} className="space-y-6">
+    <form onSubmit={submit} className="flex flex-col gap-10">
       {/* --- who you are ---------------------------------------------------- */}
-      <section className="space-y-4 rounded-card border border-border bg-surface p-4">
-        <h2 className="text-[14px] font-bold text-foreground">Who you are</h2>
-
-        <div className="flex flex-wrap items-center gap-4">
-          <Avatar
-            name={profile.displayName}
-            src={preview}
-            size="lg"
-            className="size-16"
-          />
-          <div className="min-w-0 space-y-1.5">
-            {uploadsEnabled ? (
-              <>
-                <input
-                  ref={fileRef}
-                  type="file"
-                  accept={IMAGE_ACCEPT}
-                  className="sr-only"
-                  onChange={(event) => {
-                    const file = event.target.files?.[0];
-                    if (file) void upload(file);
-                    event.target.value = "";
-                  }}
-                />
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    type="button"
-                    onClick={() => fileRef.current?.click()}
-                    disabled={uploading}
-                    className="inline-flex h-9 items-center gap-1.5 rounded-ctl border border-border bg-background px-3.5 text-[13px] font-semibold text-foreground transition hover:border-hairline-firm disabled:opacity-60"
-                  >
-                    {uploading ? (
-                      <>
-                        <Loader2 className="size-3.5 animate-spin" aria-hidden />
-                        Uploading
-                      </>
-                    ) : (
-                      "Change photo"
-                    )}
-                  </button>
-                  {avatar ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setAvatar(null);
-                        setPreview(null);
-                      }}
-                      className="inline-flex h-9 items-center gap-1.5 rounded-ctl border border-border bg-background px-3 text-[13px] font-semibold text-foreground-muted transition hover:border-hairline-firm hover:text-foreground"
+      <FormSection title="Who you are">
+        <Card className="flex flex-col gap-5">
+          <div className="flex flex-wrap items-center gap-4">
+            <Avatar
+              name={profile.displayName}
+              src={preview}
+              size="lg"
+              className="size-16"
+            />
+            <div className="flex min-w-0 flex-col gap-1.5">
+              {uploadsEnabled ? (
+                <>
+                  <input
+                    ref={fileRef}
+                    type="file"
+                    accept={IMAGE_ACCEPT}
+                    className="sr-only"
+                    onChange={(event) => {
+                      const file = event.target.files?.[0];
+                      if (file) void upload(file);
+                      event.target.value = "";
+                    }}
+                  />
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={() => fileRef.current?.click()}
+                      disabled={uploading}
                     >
-                      <Trash2 className="size-3.5" aria-hidden />
-                      Remove
-                    </button>
-                  ) : null}
-                </div>
-              </>
-            ) : (
-              <p className="text-[12.5px] text-foreground-muted">
-                Uploads are not configured on this deployment.
-              </p>
-            )}
-            <FieldError message={errors.avatarUrl} />
+                      {uploading ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" aria-hidden />
+                          Uploading
+                        </>
+                      ) : (
+                        "Change photo"
+                      )}
+                    </Button>
+                    {avatar ? (
+                      <Button
+                        variant="ghost"
+                        onClick={() => {
+                          setAvatar(null);
+                          setPreview(null);
+                        }}
+                      >
+                        <Trash2 className="size-4" aria-hidden />
+                        Remove
+                      </Button>
+                    ) : null}
+                  </div>
+                </>
+              ) : (
+                <p className="text-label text-foreground-muted">
+                  Uploads are not configured on this deployment.
+                </p>
+              )}
+              <FieldError message={errors.avatarUrl} />
+            </div>
           </div>
-        </div>
 
-        <Field label="Display name" htmlFor="displayName" error={errors.displayName}>
-          <input
-            id="displayName"
-            name="displayName"
-            defaultValue={profile.displayName}
-            required
-            maxLength={80}
-            className={input(errors.displayName)}
-          />
-        </Field>
-
-        <Field
-          label="What I'm cooking lately"
-          htmlFor="cookingLately"
-          help="One line, changed as often as you like. It leads your card in the directory."
-          error={errors.cookingLately}
-        >
-          <input
-            id="cookingLately"
-            name="cookingLately"
-            defaultValue={profile.cookingLately ?? ""}
-            maxLength={140}
-            placeholder="Working my way through a bag of dried beans"
-            className={input(errors.cookingLately)}
-          />
-        </Field>
-
-        <Field label="Bio" htmlFor="bio" error={errors.bio}>
-          <textarea
-            id="bio"
-            name="bio"
-            rows={4}
-            defaultValue={profile.bio ?? ""}
-            maxLength={1000}
-            className={cn(input(errors.bio), "h-auto resize-y py-2 leading-relaxed")}
-          />
-        </Field>
-
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-          <Field label="City" htmlFor="city" error={errors.city}>
-            <input
-              id="city"
-              name="city"
-              defaultValue={profile.city ?? ""}
+          <Field label="Display name" htmlFor="displayName" error={errors.displayName}>
+            <Input
+              id="displayName"
+              name="displayName"
+              defaultValue={profile.displayName}
+              required
               maxLength={80}
-              className={input(errors.city)}
+              aria-invalid={errors.displayName ? true : undefined}
             />
           </Field>
-          <Field label="Region" htmlFor="region" error={errors.region}>
-            <input
-              id="region"
-              name="region"
-              defaultValue={profile.region ?? ""}
-              maxLength={80}
-              className={input(errors.region)}
+
+          <Field
+            label="What I'm cooking lately"
+            htmlFor="cookingLately"
+            hint="One line, changed as often as you like. It leads your card in the directory."
+            error={errors.cookingLately}
+          >
+            <Input
+              id="cookingLately"
+              name="cookingLately"
+              defaultValue={profile.cookingLately ?? ""}
+              maxLength={140}
+              placeholder="Working my way through a bag of dried beans"
+              aria-invalid={errors.cookingLately ? true : undefined}
             />
           </Field>
-          <Field label="Country" htmlFor="country" error={errors.country}>
-            <input
-              id="country"
-              name="country"
-              defaultValue={profile.country ?? ""}
-              maxLength={80}
-              className={input(errors.country)}
+
+          <Field label="Bio" htmlFor="bio" error={errors.bio}>
+            <Textarea
+              id="bio"
+              name="bio"
+              rows={4}
+              defaultValue={profile.bio ?? ""}
+              maxLength={1000}
+              className="resize-y"
+              aria-invalid={errors.bio ? true : undefined}
             />
           </Field>
-        </div>
-        <p className="text-[12px] text-foreground-muted">
-          City level only. No street address is ever stored on a profile.
-        </p>
-      </section>
+
+          <div className="flex flex-col gap-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              <Field label="City" htmlFor="city" error={errors.city}>
+                <Input
+                  id="city"
+                  name="city"
+                  defaultValue={profile.city ?? ""}
+                  maxLength={80}
+                  aria-invalid={errors.city ? true : undefined}
+                />
+              </Field>
+              <Field label="Region" htmlFor="region" error={errors.region}>
+                <Input
+                  id="region"
+                  name="region"
+                  defaultValue={profile.region ?? ""}
+                  maxLength={80}
+                  aria-invalid={errors.region ? true : undefined}
+                />
+              </Field>
+              <Field label="Country" htmlFor="country" error={errors.country}>
+                <Input
+                  id="country"
+                  name="country"
+                  defaultValue={profile.country ?? ""}
+                  maxLength={80}
+                  aria-invalid={errors.country ? true : undefined}
+                />
+              </Field>
+            </div>
+            <p className="text-caption text-foreground-muted">
+              City level only. No street address is ever stored on a profile.
+            </p>
+          </div>
+        </Card>
+      </FormSection>
 
       {/* --- how you cook --------------------------------------------------- */}
-      <section className="space-y-4 rounded-card border border-border bg-surface p-4">
-        <div>
-          <h2 className="text-[14px] font-bold text-foreground">How you cook</h2>
-          <p className="mt-0.5 text-[12.5px] text-foreground-muted">
+      <FormSection
+        title="How you cook"
+        description={
+          <>
             Pick up to {MAX_INTERESTS_PER_MEMBER}. These are what the directory
             filters on, and what member matching will use later — which is why
             they are a list rather than a text box.
-          </p>
-        </div>
+          </>
+        }
+      >
+        <Card className="flex flex-col gap-5">
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-2 text-label font-medium text-foreground">
+              Skill level
+            </legend>
+            <div className="flex flex-wrap gap-2">
+              {SKILLS.map((option) => (
+                <label
+                  key={option.value || "none"}
+                  className="cursor-pointer"
+                  title={option.hint}
+                >
+                  <input
+                    type="radio"
+                    name="skill"
+                    value={option.value}
+                    defaultChecked={(profile.skill ?? "") === option.value}
+                    className="peer sr-only"
+                  />
+                  <span
+                    className={cn(
+                      chipClass(false),
+                      "peer-checked:border-transparent peer-checked:bg-brand-wash peer-checked:text-on-brand-wash peer-focus-visible:ring-2 peer-focus-visible:ring-brand peer-focus-visible:ring-offset-2 peer-focus-visible:ring-offset-surface",
+                    )}
+                  >
+                    {option.label}
+                  </span>
+                </label>
+              ))}
+            </div>
+          </fieldset>
 
-        <fieldset>
-          <legend className="mb-1.5 text-[12.5px] font-semibold text-foreground">
-            Skill level
-          </legend>
-          <div className="flex flex-wrap gap-1.5">
-            {SKILLS.map((option) => (
-              <label
-                key={option.value || "none"}
-                className="cursor-pointer"
-                title={option.hint}
-              >
-                <input
-                  type="radio"
-                  name="skill"
-                  value={option.value}
-                  defaultChecked={(profile.skill ?? "") === option.value}
-                  className="peer sr-only"
-                />
-                <span className="inline-flex h-9 items-center rounded-full border border-border bg-background px-3.5 text-[13px] font-semibold text-foreground-muted transition peer-checked:border-brand peer-checked:bg-brand-wash peer-checked:text-on-brand-wash peer-focus-visible:ring-2 peer-focus-visible:ring-on-brand-wash/40 hover:border-hairline-firm">
-                  {option.label}
-                </span>
-              </label>
+          <div className="flex flex-col gap-4 border-t border-separator pt-4">
+            {[...byKind.entries()].map(([kind, group]) => (
+              <fieldset key={kind}>
+                <legend className="mb-2 text-micro font-semibold uppercase tracking-[0.08em] text-foreground-muted">
+                  {INTEREST_KIND_LABELS[kind]}
+                </legend>
+                <div className="flex flex-wrap gap-2">
+                  {group.map((option) => {
+                    const on = picked.includes(option.slug);
+                    const full = !on && picked.length >= MAX_INTERESTS_PER_MEMBER;
+                    return (
+                      <button
+                        key={option.slug}
+                        type="button"
+                        onClick={() => toggleInterest(option.slug)}
+                        disabled={full}
+                        aria-pressed={on}
+                        className={chipClass(
+                          on,
+                          cn("[&_svg]:size-3", full && "cursor-not-allowed opacity-40"),
+                        )}
+                      >
+                        {on ? (
+                          <Check aria-hidden />
+                        ) : (
+                          <Plus aria-hidden />
+                        )}
+                        {option.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
             ))}
           </div>
-        </fieldset>
 
-        <div className="space-y-3">
-          {[...byKind.entries()].map(([kind, group]) => (
-            <fieldset key={kind}>
-              <legend className="mb-1.5 text-[12px] font-bold uppercase tracking-[0.1em] text-foreground-muted">
-                {INTEREST_KIND_LABELS[kind]}
-              </legend>
-              <div className="flex flex-wrap gap-1.5">
-                {group.map((option) => {
-                  const on = picked.includes(option.slug);
-                  const full = !on && picked.length >= MAX_INTERESTS_PER_MEMBER;
-                  return (
-                    <button
-                      key={option.slug}
-                      type="button"
-                      onClick={() => toggleInterest(option.slug)}
-                      disabled={full}
-                      aria-pressed={on}
-                      className={cn(
-                        "inline-flex h-8 items-center gap-1 rounded-full border px-3 text-[12.5px] font-semibold transition",
-                        on
-                          ? "border-brand bg-brand-wash text-on-brand-wash"
-                          : "border-border bg-background text-foreground-muted hover:border-hairline-firm hover:text-foreground",
-                        full && "cursor-not-allowed opacity-40",
-                      )}
-                    >
-                      {on ? (
-                        <Check className="size-3" aria-hidden />
-                      ) : (
-                        <Plus className="size-3" aria-hidden />
-                      )}
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
-            </fieldset>
-          ))}
-        </div>
-
-        <p className="text-[12px] tabular-nums text-foreground-muted">
-          {picked.length} of {MAX_INTERESTS_PER_MEMBER} picked
-        </p>
-      </section>
+          <p className="text-caption tabular-nums text-foreground-muted">
+            {picked.length} of {MAX_INTERESTS_PER_MEMBER} picked
+          </p>
+        </Card>
+      </FormSection>
 
       {/* --- links ---------------------------------------------------------- */}
-      <section className="space-y-3 rounded-card border border-border bg-surface p-4">
-        <h2 className="text-[14px] font-bold text-foreground">Links</h2>
-        {links.map((link, index) => (
-          <div key={index} className="flex gap-2">
-            <input
-              value={link}
-              onChange={(event) =>
-                setLinks((current) =>
-                  current.map((item, at) => (at === index ? event.target.value : item)),
-                )
-              }
-              placeholder="yoursite.com"
-              aria-label={`Link ${index + 1}`}
-              className={cn(input(undefined), "min-w-0 flex-1")}
-            />
-            <button
-              type="button"
-              onClick={() =>
-                setLinks((current) =>
-                  current.length === 1
-                    ? [""]
-                    : current.filter((_, at) => at !== index),
-                )
-              }
-              aria-label={`Remove link ${index + 1}`}
-              className="grid size-9 shrink-0 place-items-center rounded-ctl border border-border bg-background text-foreground-muted transition hover:border-hairline-firm hover:text-danger"
+      <FormSection title="Links">
+        <Card className="flex flex-col gap-3">
+          {links.map((link, index) => (
+            <div key={index} className="flex gap-2">
+              <Input
+                value={link}
+                onChange={(event) =>
+                  setLinks((current) =>
+                    current.map((item, at) => (at === index ? event.target.value : item)),
+                  )
+                }
+                placeholder="yoursite.com"
+                aria-label={`Link ${index + 1}`}
+                className="flex-1"
+              />
+              <Button
+                variant="ghost"
+                iconOnly
+                onClick={() =>
+                  setLinks((current) =>
+                    current.length === 1
+                      ? [""]
+                      : current.filter((_, at) => at !== index),
+                  )
+                }
+                aria-label={`Remove link ${index + 1}`}
+              >
+                <X className="size-4" aria-hidden />
+              </Button>
+            </div>
+          ))}
+          <FieldError message={errors.links} />
+          {links.length < 5 ? (
+            <Button
+              size="sm"
+              onClick={() => setLinks((current) => [...current, ""])}
+              className="self-start"
             >
-              <X className="size-4" aria-hidden />
-            </button>
-          </div>
-        ))}
-        <FieldError message={errors.links} />
-        {links.length < 5 ? (
-          <button
-            type="button"
-            onClick={() => setLinks((current) => [...current, ""])}
-            className="inline-flex h-8 items-center gap-1.5 rounded-ctl border border-border bg-background px-3 text-[12.5px] font-semibold text-foreground transition hover:border-hairline-firm"
-          >
-            <Plus className="size-3.5" aria-hidden />
-            Add a link
-          </button>
-        ) : null}
-      </section>
+              <Plus className="size-4" aria-hidden />
+              Add a link
+            </Button>
+          ) : null}
+        </Card>
+      </FormSection>
 
       {/* --- privacy -------------------------------------------------------- */}
-      <section className="space-y-3 rounded-card border border-border bg-surface p-4">
-        <div>
-          <h2 className="text-[14px] font-bold text-foreground">Who can see what</h2>
-          <p className="mt-0.5 text-[12.5px] text-foreground-muted">
-            Every one of these is enforced on the server. Hiding something
-            removes it from the directory, from search and from anything that
-            reads your profile — not just from the page.
-          </p>
+      <FormSection
+        title="Who can see what"
+        description="Every one of these is enforced on the server. Hiding something removes it from the directory, from search and from anything that reads your profile — not just from the page."
+      >
+        <Card padding="none" className="overflow-hidden">
+          <div className="divide-y divide-separator">
+            <Switch
+              name="directoryVisible"
+              label="Show me in the member directory"
+              help="Off also removes you from search and from suggestions."
+              defaultChecked={profile.directoryVisible}
+              icon
+            />
+            <Switch
+              name="showLocation"
+              label="Show my city"
+              help="Your country and region follow the same switch."
+              defaultChecked={profile.showLocation}
+            />
+            <Switch
+              name="showInterests"
+              label="Show how I cook"
+              help="Your skill level and the tags above."
+              defaultChecked={profile.showInterests}
+            />
+            <Switch
+              name="showLinks"
+              label="Show my links"
+              defaultChecked={profile.showLinks}
+            />
+          </div>
+
+          <div className="border-t border-separator px-4 py-4 sm:px-5">
+            <Field label="Who can message me" htmlFor="dmPreference">
+              <Select
+                id="dmPreference"
+                name="dmPreference"
+                defaultValue={profile.dmPreference}
+              >
+                <option value="EVERYONE">Any member</option>
+                <option value="CONNECTIONS">Only people I follow</option>
+                <option value="NOBODY">Nobody</option>
+              </Select>
+            </Field>
+          </div>
+        </Card>
+      </FormSection>
+
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-[minmax(0,14rem)_minmax(0,1fr)] md:gap-8">
+        <div className="flex flex-col gap-4 md:col-start-2">
+          {formError ? <Callout tone="danger">{formError}</Callout> : null}
+
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <Button type="submit" variant="primary" size="lg" disabled={saving}>
+              {saving ? (
+                <>
+                  <Loader2 className="size-4 animate-spin" aria-hidden />
+                  Saving
+                </>
+              ) : (
+                "Save profile"
+              )}
+            </Button>
+            {saved && !saving ? (
+              <span
+                role="status"
+                className="inline-flex items-center gap-1 text-label font-medium text-success"
+              >
+                <Check className="size-4" aria-hidden />
+                Saved
+              </span>
+            ) : null}
+            <a
+              href={`/members/${profile.handle}`}
+              className="ml-auto text-label font-medium text-link no-underline hover:underline"
+            >
+              View your profile
+            </a>
+          </div>
         </div>
-
-        <Switch
-          name="directoryVisible"
-          label="Show me in the member directory"
-          help="Off also removes you from search and from suggestions."
-          defaultChecked={profile.directoryVisible}
-          icon
-        />
-        <Switch
-          name="showLocation"
-          label="Show my city"
-          help="Your country and region follow the same switch."
-          defaultChecked={profile.showLocation}
-        />
-        <Switch
-          name="showInterests"
-          label="Show how I cook"
-          help="Your skill level and the tags above."
-          defaultChecked={profile.showInterests}
-        />
-        <Switch
-          name="showLinks"
-          label="Show my links"
-          defaultChecked={profile.showLinks}
-        />
-
-        <Field label="Who can message me" htmlFor="dmPreference">
-          <select
-            id="dmPreference"
-            name="dmPreference"
-            defaultValue={profile.dmPreference}
-            className={input(undefined)}
-          >
-            <option value="EVERYONE">Any member</option>
-            <option value="CONNECTIONS">Only people I follow</option>
-            <option value="NOBODY">Nobody</option>
-          </select>
-        </Field>
-      </section>
-
-      {formError ? (
-        <p role="alert" className="text-[13px] font-semibold text-danger">
-          {formError}
-        </p>
-      ) : null}
-
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="submit"
-          disabled={saving}
-          className={cn(
-            "inline-flex h-10 items-center gap-1.5 rounded-ctl px-5 text-[14px] font-semibold transition",
-            saving
-              ? "bg-default text-foreground-muted"
-              : "bg-brand-fill text-brand-fill-foreground hover:bg-brand-fill-hover",
-          )}
-        >
-          {saving ? (
-            <>
-              <Loader2 className="size-4 animate-spin" aria-hidden />
-              Saving
-            </>
-          ) : (
-            "Save profile"
-          )}
-        </button>
-        {saved && !saving ? (
-          <span
-            role="status"
-            className="inline-flex items-center gap-1 text-[13px] font-semibold text-foreground-muted"
-          >
-            <Check className="size-4" aria-hidden />
-            Saved
-          </span>
-        ) : null}
-        <a
-          href={`/members/${profile.handle}`}
-          className="text-[13px] font-semibold text-brand no-underline hover:underline"
-        >
-          View your profile
-        </a>
       </div>
     </form>
-  );
-}
-
-function input(error: string | undefined) {
-  return cn(
-    "h-9 w-full rounded-ctl border bg-field-background px-3 text-[13.5px] text-foreground outline-none transition placeholder:text-field-placeholder focus:ring-2 focus:ring-brand/25",
-    error
-      ? "border-danger focus:border-danger focus:ring-danger/25"
-      : "border-field-border focus:border-brand",
-  );
-}
-
-function Field({
-  label,
-  htmlFor,
-  help,
-  error,
-  children,
-}: {
-  label: string;
-  htmlFor: string;
-  help?: string;
-  error?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="min-w-0">
-      <label
-        htmlFor={htmlFor}
-        className="mb-1.5 block text-[12.5px] font-semibold text-foreground"
-      >
-        {label}
-      </label>
-      {children}
-      {error ? (
-        <FieldError message={error} />
-      ) : help ? (
-        <p className="mt-1.5 text-[12px] leading-snug text-foreground-muted">
-          {help}
-        </p>
-      ) : null}
-    </div>
   );
 }
 
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return (
-    <p role="alert" className="mt-1.5 text-[12px] font-semibold text-danger">
+    <p role="alert" className="text-caption font-medium text-danger">
       {message}
     </p>
   );
 }
 
+/**
+ * A native checkbox drawn as a switch, so the form posts with or without
+ * JavaScript. Same construction as the one in notification-settings.
+ */
 function Switch({
   name,
   label,
@@ -593,27 +561,27 @@ function Switch({
   return (
     <label
       htmlFor={name}
-      className="flex cursor-pointer items-start justify-between gap-4"
+      className="flex cursor-pointer items-start justify-between gap-4 px-4 py-3.5 transition hover:bg-surface-muted sm:px-5"
     >
       <span className="min-w-0">
-        <span className="flex items-center gap-1.5 text-[13.5px] text-foreground">
+        <span className="flex items-center gap-1.5 text-body font-medium text-foreground">
           {icon ? (
             on ? (
-              <Eye className="size-3.5 text-foreground-muted" aria-hidden />
+              <Eye className="size-4 text-foreground-muted" aria-hidden />
             ) : (
-              <EyeOff className="size-3.5 text-foreground-muted" aria-hidden />
+              <EyeOff className="size-4 text-foreground-muted" aria-hidden />
             )
           ) : null}
           {label}
         </span>
         {help ? (
-          <span className="mt-0.5 block text-[12px] leading-snug text-foreground-muted">
+          <span className="mt-0.5 block text-caption text-foreground-muted">
             {help}
           </span>
         ) : null}
       </span>
 
-      <span className="relative mt-0.5 shrink-0">
+      <span className="relative mt-0.5 inline-flex shrink-0">
         <input
           id={name}
           name={name}
@@ -621,13 +589,15 @@ function Switch({
           role="switch"
           checked={on}
           onChange={(event) => setOn(event.target.checked)}
-          className="peer h-5 w-9 cursor-pointer appearance-none rounded-full border border-field-border bg-default transition checked:border-brand checked:bg-brand focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/40"
+          className={SWITCH_TRACK}
         />
-        <span
-          className="pointer-events-none absolute left-0.5 top-1/2 size-4 -translate-y-1/2 rounded-full bg-foreground transition-transform peer-checked:translate-x-4 peer-checked:bg-on-brand"
-          aria-hidden
-        />
+        <span className={SWITCH_THUMB} aria-hidden />
       </span>
     </label>
   );
 }
+
+const SWITCH_TRACK =
+  "peer h-5 w-9 cursor-pointer appearance-none rounded-full border border-field-border bg-default transition checked:border-brand-fill checked:bg-brand-fill";
+const SWITCH_THUMB =
+  "pointer-events-none absolute left-0.5 top-1/2 size-4 -translate-y-1/2 rounded-full bg-foreground-muted shadow-e1 transition-transform peer-checked:translate-x-4 peer-checked:bg-brand-fill-foreground";

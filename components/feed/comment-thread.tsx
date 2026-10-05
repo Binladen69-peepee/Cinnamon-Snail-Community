@@ -4,6 +4,7 @@ import { useState, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
 import { CornerDownLeft, Minus, Plus } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { Badge, Button, fieldClass } from "@/components/app/ui";
 import { VoteRail } from "@/components/feed/vote-rail";
 import { formatShortTime } from "@/lib/community/format-count";
 import { cn } from "@/lib/utils";
@@ -42,6 +43,7 @@ export function CommentThread({
   const [collapsed, setCollapsed] = useState(false);
   const [replyOpen, setReplyOpen] = useState(false);
   const [replyPending, setReplyPending] = useState(false);
+  const [replyFailed, setReplyFailed] = useState(false);
   const router = useRouter();
   const name = comment.author.profile?.displayName ?? comment.author.handle;
   const hidden = countDescendants(comment);
@@ -54,13 +56,18 @@ export function CommentThread({
     const body = String(new FormData(form).get("body") ?? "").trim();
     if (!body) return;
     setReplyPending(true);
+    setReplyFailed(false);
     try {
       const response = await fetch(`/api/community/posts/${comment.postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ body, parentId: comment.id }),
       });
-      if (!response.ok) return;
+      if (!response.ok) {
+        // The reply stays in the box, so saying so is all it takes to retry.
+        setReplyFailed(true);
+        return;
+      }
       form.reset();
       setReplyOpen(false);
       if (onPosted) onPosted();
@@ -72,17 +79,17 @@ export function CommentThread({
 
   if (collapsed) {
     return (
-      <div className="flex items-center gap-2 py-1.5">
+      <div className="flex items-center gap-2.5 py-1">
         <button
           type="button"
           onClick={() => setCollapsed(false)}
           aria-label="Expand thread"
-          className="grid size-5 shrink-0 place-items-center rounded-full border border-border text-foreground-muted transition hover:border-brand hover:text-brand"
+          className="grid size-6 shrink-0 place-items-center rounded-full border border-hairline-firm bg-surface text-foreground-muted transition hover:border-brand hover:text-brand"
         >
           <Plus className="size-3" aria-hidden />
         </button>
-        <p className="truncate text-[13px] text-foreground-muted">
-          <span className="text-foreground">{name}</span>
+        <p className="truncate text-label text-foreground-muted">
+          <span className="font-medium text-foreground">{name}</span>
           {hidden > 0 ? ` · ${hidden} more` : ""}
         </p>
       </div>
@@ -97,7 +104,7 @@ export function CommentThread({
             name={name}
             src={comment.author.profile?.avatarUrl}
             size="sm"
-            className="relative z-[1] size-8 text-[10px]"
+            className="relative z-1 size-8 text-micro"
           />
           {hasReplies ? (
             <button
@@ -105,28 +112,22 @@ export function CommentThread({
               onClick={() => setCollapsed(true)}
               aria-label={`Collapse ${name}'s thread`}
               title="Collapse thread"
-              className="group/collapse mt-1 grid size-4 place-items-center rounded-full border border-border bg-background text-foreground-muted transition hover:border-brand hover:text-brand"
+              className="group/collapse mt-1 grid size-5 place-items-center rounded-full border border-hairline-firm bg-surface text-foreground-muted transition hover:border-brand hover:text-brand"
             >
-              <Minus className="size-2.5" aria-hidden />
+              <Minus className="size-3" aria-hidden />
             </button>
           ) : null}
         </div>
 
         <div className="min-w-0 flex-1 pb-1">
-          <p className="flex flex-wrap items-center gap-x-1.5 text-[13px] leading-tight">
-            <span className="font-semibold text-foreground">{name}</span>
-            {isHost ? (
-              <span className="rounded-full bg-brand-wash px-1.5 py-px text-[10px] uppercase tracking-[0.08em] text-on-brand-wash">
-                Host
-              </span>
-            ) : null}
-            <span className="text-foreground-muted">
-              · {formatShortTime(new Date(comment.createdAt))}
-            </span>
+          <p className="flex flex-wrap items-center gap-x-1.5 text-caption leading-tight text-foreground-muted">
+            <span className="text-label font-semibold text-foreground">{name}</span>
+            {isHost ? <Badge tone="brand">Host</Badge> : null}
+            <span>· {formatShortTime(new Date(comment.createdAt))}</span>
           </p>
 
           <div
-            className="prose-vu mt-1 text-[14.5px] leading-[1.55] text-foreground [&_p]:mb-1.5 [&_p:last-child]:mb-0"
+            className="prose-vu mt-1 text-body leading-relaxed text-foreground [&_p]:mb-1.5 [&_p:last-child]:mb-0"
             dangerouslySetInnerHTML={{ __html: comment.bodyHtml || comment.plainText }}
           />
 
@@ -143,10 +144,10 @@ export function CommentThread({
               onClick={() => setReplyOpen((open) => !open)}
               aria-expanded={replyOpen}
               className={cn(
-                "inline-flex h-7 items-center gap-1.5 rounded-full px-2.5 text-[12.5px] transition",
+                "inline-flex h-7 items-center gap-1.5 rounded-ctl px-2 text-caption font-medium transition",
                 replyOpen
                   ? "bg-brand-wash text-on-brand-wash"
-                  : "text-foreground-muted hover:bg-mint hover:text-foreground",
+                  : "text-foreground-muted hover:bg-surface-muted hover:text-foreground",
               )}
             >
               <CornerDownLeft className="size-3.5" aria-hidden />
@@ -161,17 +162,20 @@ export function CommentThread({
                 required
                 autoFocus
                 placeholder={`Reply to ${name}…`}
+                aria-label={`Reply to ${name}`}
+                aria-invalid={replyFailed || undefined}
                 disabled={replyPending}
-                className="h-9 min-w-0 flex-1 rounded-[12px] border border-border bg-mint/40 px-3.5 text-[14px] text-foreground outline-none transition focus:border-brand focus:bg-surface disabled:opacity-60"
+                className={fieldClass({ size: "sm", className: "flex-1" })}
               />
-              <button
-                type="submit"
-                disabled={replyPending}
-                className="inline-flex h-9 shrink-0 items-center rounded-[12px] bg-brand-fill px-3.5 text-[13px] text-brand-fill-foreground transition hover:bg-brand-fill-hover disabled:opacity-50 "
-              >
+              <Button type="submit" variant="primary" size="sm" disabled={replyPending}>
                 {replyPending ? "Posting…" : "Reply"}
-              </button>
+              </Button>
             </form>
+          ) : null}
+          {replyOpen && replyFailed ? (
+            <p role="alert" className="mt-1.5 text-caption font-medium text-danger">
+              That reply did not post. Try again.
+            </p>
           ) : null}
         </div>
       </div>

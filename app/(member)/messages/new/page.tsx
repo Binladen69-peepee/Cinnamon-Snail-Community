@@ -1,10 +1,9 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { auth } from "@/auth";
 import { listMessageableMembers } from "@/lib/messages/start";
 import { MAX_GROUP_MEMBERS } from "@/lib/messages/permissions";
 import { NewMessagePicker } from "@/components/messages/new-message-picker";
+import { PaneBackLink, PaneHeader } from "@/components/messages/pane-header";
 
 export const metadata = { title: "New message" };
 
@@ -39,17 +38,11 @@ export default async function NewMessagePage({
         : (params.error ?? null);
 
   return (
-    <section className="flex h-full min-h-0 flex-col bg-background">
-      <header className="flex shrink-0 items-center gap-2 border-b border-border bg-surface px-3 py-2.5">
-        <Link
-          href="/messages"
-          aria-label="Back to conversations"
-          className="-ml-1 grid size-8 shrink-0 place-items-center rounded-full text-foreground-muted no-underline transition hover:bg-brand-wash hover:text-on-brand-wash lg:hidden"
-        >
-          <ArrowLeft className="size-5" aria-hidden />
-        </Link>
-        <h1 className="text-[15px] font-bold text-foreground">New message</h1>
-      </header>
+    <section className="flex h-full min-h-0 flex-col bg-surface">
+      <PaneHeader>
+        <PaneBackLink />
+        <h1 className="truncate text-title font-semibold text-foreground">New message</h1>
+      </PaneHeader>
 
       <NewMessagePicker
         members={members}

@@ -2,7 +2,13 @@ import Link from "next/link";
 import { CalendarDays, ChefHat, Hash, MapPin, Sprout, X } from "lucide-react";
 import type { DirectoryData, FacetOption, MemberSort } from "@/lib/community/directory";
 import { MEMBER_SORTS, groupInterestFacets } from "@/lib/community/directory";
-import { cn } from "@/lib/utils";
+import {
+  ButtonLink,
+  ChipRow,
+  Segmented,
+  chipClass,
+  segmentClass,
+} from "@/components/app/ui";
 
 const SORT_LABEL: Record<MemberSort, string> = {
   suggested: "Suggested",
@@ -12,6 +18,10 @@ const SORT_LABEL: Record<MemberSort, string> = {
 
 type Active = DirectoryData["active"];
 type ActiveKey = keyof Active;
+
+/** The small label at the start of a row: "Sort", "Where", "Level". */
+const ROW_LABEL =
+  "inline-flex shrink-0 items-center gap-1 text-micro font-semibold uppercase tracking-[0.08em] text-foreground-muted [&_svg]:size-3";
 
 /**
  * Filters and sort, as links.
@@ -27,6 +37,10 @@ type ActiveKey = keyof Active;
  * trust and one you poke at: "Japanese 4" tells you whether it is worth the
  * click, and the count is real because the facets are grouped by the database
  * over the same visibility predicate the page itself uses.
+ *
+ * Sort is a segmented control, because it is one choice of three; the facets
+ * are chips, because each row is a set of independent narrowings. Both mark
+ * the chosen item the same way the rest of the app does.
  */
 export function MemberFilters({
   facets,
@@ -105,33 +119,29 @@ export function MemberFilters({
   );
 
   return (
-    <div className="space-y-2.5">
+    <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <ul className="-mx-1 flex items-center gap-1 overflow-x-auto px-1" role="list">
-          <li className="mr-1 text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
+        <div className="flex min-w-0 items-center gap-2.5">
+          <span className={ROW_LABEL} aria-hidden>
             Sort
-          </li>
-          {MEMBER_SORTS.map((option) => (
-            <li key={option}>
+          </span>
+          <Segmented label="Sort">
+            {MEMBER_SORTS.map((option) => (
               <Link
+                key={option}
                 href={href({ sort: option })}
                 scroll={false}
                 aria-current={option === sort ? "true" : undefined}
-                className={cn(
-                  "inline-flex h-8 items-center rounded-full border px-3 text-[12.5px] font-semibold no-underline transition",
-                  option === sort
-                    ? "border-brand-fill bg-brand-fill text-brand-fill-foreground"
-                    : "border-border bg-surface text-foreground-muted hover:border-hairline-firm hover:text-foreground",
-                )}
+                className={segmentClass(option === sort)}
               >
                 {SORT_LABEL[option]}
               </Link>
-            </li>
-          ))}
-        </ul>
+            ))}
+          </Segmented>
+        </div>
 
         {hasFilters ? (
-          <Link
+          <ButtonLink
             href={href({
               location: null,
               interest: null,
@@ -140,22 +150,19 @@ export function MemberFilters({
               space: null,
             })}
             scroll={false}
-            className="inline-flex items-center gap-1 text-[12.5px] font-semibold text-brand no-underline hover:underline"
+            variant="ghost"
+            size="sm"
           >
-            <X className="size-3.5" aria-hidden />
+            <X className="size-4" aria-hidden />
             Clear filters
-          </Link>
+          </ButtonLink>
         ) : null}
       </div>
 
       {groups.map((group) => {
         const Icon = group.icon;
         return (
-          <FacetRow
-            key={group.key}
-            label={group.label}
-            icon={<Icon className="size-3" aria-hidden />}
-          >
+          <FacetRow key={group.key} label={group.label} icon={<Icon aria-hidden />}>
             {group.values.map((option) => (
               <Chip
                 key={option.value}
@@ -175,11 +182,7 @@ export function MemberFilters({
           answer different questions and a single row of fifty chips is one
           nobody reads to the end of. */}
       {interestGroups.map((group) => (
-        <FacetRow
-          key={group.kind}
-          label={group.label}
-          icon={<Sprout className="size-3" aria-hidden />}
-        >
+        <FacetRow key={group.kind} label={group.label} icon={<Sprout aria-hidden />}>
           {group.options.map((option) => (
             <Chip
               key={option.value}
@@ -197,6 +200,10 @@ export function MemberFilters({
   );
 }
 
+/**
+ * One facet: its label, then its chips. Scrolls sideways on a phone and wraps
+ * from `sm` up, where there is room to see every option at once.
+ */
 function FacetRow({
   label,
   icon,
@@ -207,13 +214,13 @@ function FacetRow({
   children: React.ReactNode;
 }) {
   return (
-    <ul className="-mx-3 flex gap-1.5 overflow-x-auto px-3 pb-0.5 [scrollbar-width:none] sm:mx-0 sm:flex-wrap sm:px-0 [&::-webkit-scrollbar]:hidden">
-      <li className="flex shrink-0 items-center gap-1 pr-1 text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
+    <ChipRow label={label} className="sm:flex-wrap">
+      <span className={`${ROW_LABEL} pr-1`} aria-hidden>
         {icon}
         {label}
-      </li>
+      </span>
       {children}
-    </ul>
+    </ChipRow>
   );
 }
 
@@ -229,21 +236,14 @@ function Chip({
   count: number;
 }) {
   return (
-    <li>
-      <Link
-        href={href}
-        scroll={false}
-        aria-current={active ? "true" : undefined}
-        className={cn(
-          "inline-flex h-8 items-center gap-1.5 whitespace-nowrap rounded-full border px-3 text-[12.5px] font-semibold no-underline transition",
-          active
-            ? "border-brand bg-brand-wash text-on-brand-wash"
-            : "border-border bg-surface text-foreground-muted hover:border-hairline-firm hover:text-foreground",
-        )}
-      >
-        {label}
-        <span className="tabular-nums opacity-60">{count}</span>
-      </Link>
-    </li>
+    <Link
+      href={href}
+      scroll={false}
+      aria-current={active ? "true" : undefined}
+      className={chipClass(active)}
+    >
+      {label}
+      <span className="font-normal tabular-nums">{count}</span>
+    </Link>
   );
 }

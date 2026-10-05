@@ -1,12 +1,17 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CalendarClock, FileText, ShieldCheck } from "lucide-react";
+import { CalendarClock, FileText, PenLine, ShieldCheck } from "lucide-react";
 import { auth } from "@/auth";
 import { listOwnUnpublished } from "@/lib/community/feed";
 import { AppShell } from "@/components/app/app-shell";
-import { EmptyState } from "@/components/ui/empty-state";
+import {
+  ButtonLink,
+  EmptyState,
+  PageHeader,
+  TabBar,
+  TabLink,
+  cardClass,
+} from "@/components/app/ui";
 import { DraftRow } from "@/app/(member)/drafts/draft-row";
-import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Drafts" };
 
@@ -46,47 +51,37 @@ export default async function DraftsPage({
     userId: session.user.id,
     status: tab,
   });
+  const EmptyIcon = TABS.find((item) => item.value === tab)!.icon;
 
   return (
     <AppShell>
-      <div className="space-y-4 pb-10">
-        <div>
-          <h1 className="font-display text-[1.6rem] font-bold tracking-[-0.02em] text-foreground">
-            Your drafts
-          </h1>
-          <p className="mt-1 text-[14px] text-foreground-muted">
-            Nothing here is visible to anyone else.
-          </p>
-        </div>
-
-        <nav
-          aria-label="Draft state"
-          className="flex items-center gap-1 overflow-x-auto rounded-card border border-border bg-surface p-1"
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          title="Your drafts"
+          description="Nothing here is visible to anyone else."
         >
-          {TABS.map((item) => {
-            const active = tab === item.value;
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.value}
-                href={`/drafts?tab=${item.value}`}
-                aria-current={active ? "page" : undefined}
-                className={cn(
-                  "inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-chip text-[13px] font-semibold no-underline transition",
-                  active
-                    ? "bg-brand-fill text-brand-fill-foreground"
-                    : "text-foreground-muted hover:text-foreground",
-                )}
-              >
-                <Icon className="size-3.5" aria-hidden />
-                {item.label}
-              </Link>
-            );
-          })}
-        </nav>
+          <TabBar label="Draft state">
+            {TABS.map((item) => {
+              const active = tab === item.value;
+              const Icon = item.icon;
+              return (
+                <TabLink
+                  key={item.value}
+                  href={`/drafts?tab=${item.value}`}
+                  active={active}
+                  scroll
+                >
+                  <Icon aria-hidden />
+                  {item.label}
+                </TabLink>
+              );
+            })}
+          </TabBar>
+        </PageHeader>
 
         {posts.length === 0 ? (
           <EmptyState
+            icon={<EmptyIcon />}
             title={
               tab === "DRAFT"
                 ? "No drafts"
@@ -94,18 +89,22 @@ export default async function DraftsPage({
                   ? "Nothing scheduled"
                   : "Nothing in review"
             }
-            body={
+            description={
               tab === "DRAFT"
                 ? "Anything you save without posting shows up here."
                 : tab === "SCHEDULED"
                   ? "Posts you time for later wait here until they go live."
                   : "Posts waiting for a host to approve them appear here."
             }
-            actionLabel="Write a post"
-            actionHref="/compose"
+            action={
+              <ButtonLink href="/compose" variant="primary">
+                <PenLine className="size-4" aria-hidden />
+                Write a post
+              </ButtonLink>
+            }
           />
         ) : (
-          <ul className="space-y-2.5">
+          <ul className={cardClass({ padding: "none", className: "divide-y divide-separator" })}>
             {posts.map((post) => (
               <DraftRow
                 key={post.id}

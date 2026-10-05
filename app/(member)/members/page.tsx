@@ -1,6 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ChevronLeft, ChevronRight, Sparkles, UserRoundSearch, Users } from "lucide-react";
+import { Sparkles, UserRoundSearch, Users } from "lucide-react";
 import { auth } from "@/auth";
 import {
   loadDirectory,
@@ -10,10 +9,20 @@ import {
 } from "@/lib/community/directory";
 import { AppShell } from "@/components/app/app-shell";
 import { UrlSearchField } from "@/components/app/url-search-field";
+import {
+  ButtonLink,
+  EmptyState,
+  PageHeader,
+  Pager,
+  Section,
+} from "@/components/app/ui";
 import { MemberCard } from "@/components/members/member-card";
 import { MemberFilters } from "@/components/members/member-filters";
 
 export const metadata = { title: "Members" };
+
+/** The directory grid, shared by suggestions and everyone. */
+const GRID = "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3";
 
 /**
  * The member directory.
@@ -70,68 +79,58 @@ export default async function MembersPage({
   );
 
   return (
-    <AppShell wide>
-      <div className="mx-auto w-full max-w-[1160px] space-y-5 pb-4">
-        <header className="space-y-3">
-          <div>
-            <h1 className="font-display text-[1.6rem] font-bold leading-tight tracking-[-0.02em] text-foreground">
-              Members
-            </h1>
-            <p className="mt-1 text-[14px] text-foreground-muted">
-              {filtering ? (
-                <>
-                  {data.total} of {data.totalUnfiltered}{" "}
-                  {data.totalUnfiltered === 1 ? "member" : "members"} match
-                </>
-              ) : (
-                <>
-                  {data.totalUnfiltered}{" "}
-                  {data.totalUnfiltered === 1 ? "person" : "people"} you can cook
-                  alongside.
-                </>
-              )}
-            </p>
+    <AppShell size="wide">
+      <div className="flex flex-col gap-8">
+        <PageHeader
+          title="Members"
+          description={
+            filtering ? (
+              <>
+                {data.total} of {data.totalUnfiltered}{" "}
+                {data.totalUnfiltered === 1 ? "member" : "members"} match
+              </>
+            ) : (
+              <>
+                {data.totalUnfiltered}{" "}
+                {data.totalUnfiltered === 1 ? "person" : "people"} you can cook
+                alongside.
+              </>
+            )
+          }
+        >
+          <div className="flex flex-col gap-3">
+            <UrlSearchField
+              placeholder="Search by name, handle, bio or place"
+              label="Search members"
+              resetParams={["page", "location", "interest", "skill"]}
+            />
+
+            <MemberFilters
+              facets={data.facets}
+              active={data.active}
+              sort={sort}
+              q={q}
+            />
           </div>
-
-          <UrlSearchField
-            placeholder="Search by name, handle, bio or place"
-            label="Search members"
-            resetParams={["page", "location", "interest", "skill"]}
-          />
-
-          <MemberFilters
-            facets={data.facets}
-            active={data.active}
-            sort={sort}
-            q={q}
-          />
-        </header>
+        </PageHeader>
 
         {data.suggested.length > 0 ? (
-          <section className="space-y-2.5">
-            <h2 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-              <Sparkles className="size-3" aria-hidden />
-              People you should meet
-            </h2>
-            <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+          <Section title="People you should meet" icon={<Sparkles />}>
+            <ul className={GRID}>
               {data.suggested.map((member) => (
                 <li key={member.handle}>
                   <MemberCard member={member} showStarter />
                 </li>
               ))}
             </ul>
-          </section>
+          </Section>
         ) : null}
 
-        <section className="space-y-2.5">
-          {data.suggested.length > 0 ? (
-            <h2 className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-[0.13em] text-foreground-muted">
-              <Users className="size-3" aria-hidden />
-              Everyone
-              <span className="font-semibold tabular-nums">{data.total}</span>
-            </h2>
-          ) : null}
-
+        <Section
+          title={data.suggested.length > 0 ? "Everyone" : undefined}
+          icon={<Users />}
+          count={data.total}
+        >
           {data.members.length === 0 ? (
             <Blank
               filtering={filtering}
@@ -139,7 +138,7 @@ export default async function MembersPage({
               empty={data.totalUnfiltered === 0}
             />
           ) : (
-            <ul className="grid grid-cols-1 gap-2.5 sm:grid-cols-2 xl:grid-cols-3">
+            <ul className={GRID}>
               {data.members.map((member) => (
                 <li key={member.handle}>
                   <MemberCard member={member} />
@@ -147,15 +146,19 @@ export default async function MembersPage({
               ))}
             </ul>
           )}
-        </section>
+        </Section>
 
         {data.pageCount > 1 ? (
           <Pager
-            page={data.page}
-            pageCount={data.pageCount}
-            q={q}
-            sort={sort}
-            active={data.active}
+            {...pagerHrefs({
+              page: data.page,
+              pageCount: data.pageCount,
+              q,
+              sort,
+              active: data.active,
+            })}
+            summary={`Page ${data.page} of ${data.pageCount}`}
+            className="border-t border-border pt-4"
           />
         ) : null}
       </div>
@@ -184,29 +187,23 @@ function Blank({
     : "Members can keep themselves out of the directory, so someone you know may simply not be listed.";
 
   return (
-    <div className="rounded-card border border-dashed border-border bg-surface px-6 py-14 text-center">
-      <span className="mx-auto grid size-12 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
-        <UserRoundSearch className="size-6" aria-hidden />
-      </span>
-      <h3 className="mt-3 font-display text-[1.15rem] font-bold text-foreground">
-        {title}
-      </h3>
-      <p className="mx-auto mt-1.5 max-w-[46ch] text-[14px] text-foreground-muted">
-        {body}
-      </p>
-      {filtering ? (
-        <Link
-          href="/members"
-          className="mt-4 inline-flex h-9 items-center rounded-ctl border border-border bg-background px-4 text-[13.5px] font-semibold text-foreground no-underline transition hover:border-hairline-firm"
-        >
-          Show everyone
-        </Link>
-      ) : null}
-    </div>
+    <EmptyState
+      icon={<UserRoundSearch />}
+      title={title}
+      description={body}
+      action={filtering ? <ButtonLink href="/members">Show everyone</ButtonLink> : undefined}
+    />
   );
 }
 
-function Pager({
+/**
+ * Previous and next for the directory. A missing href is a disabled end.
+ *
+ * The links carry the query, the sort and the location, interest and skill
+ * filters, exactly as they always have. (They do not carry `cohort` or
+ * `space`; that is flagged rather than changed here.)
+ */
+function pagerHrefs({
   page,
   pageCount,
   q,
@@ -231,58 +228,8 @@ function Pager({
     return query ? `/members?${query}` : "/members";
   }
 
-  return (
-    <nav
-      aria-label="Directory pages"
-      className="flex items-center justify-between gap-3 border-t border-border pt-3"
-    >
-      <PagerLink href={href(page - 1)} disabled={page <= 1} rel="prev">
-        <ChevronLeft className="size-4" aria-hidden />
-        Previous
-      </PagerLink>
-      <p className="text-[12.5px] font-semibold tabular-nums text-foreground-muted">
-        Page {page} of {pageCount}
-      </p>
-      <PagerLink href={href(page + 1)} disabled={page >= pageCount} rel="next">
-        Next
-        <ChevronRight className="size-4" aria-hidden />
-      </PagerLink>
-    </nav>
-  );
-}
-
-function PagerLink({
-  href,
-  disabled,
-  rel,
-  children,
-}: {
-  href: string;
-  disabled: boolean;
-  rel: "prev" | "next";
-  children: React.ReactNode;
-}) {
-  const className =
-    "inline-flex h-9 items-center gap-1 rounded-ctl border border-border px-3 text-[13px] font-semibold no-underline transition";
-
-  if (disabled) {
-    return (
-      <span
-        aria-disabled="true"
-        className={`${className} cursor-not-allowed text-foreground-muted opacity-45`}
-      >
-        {children}
-      </span>
-    );
-  }
-
-  return (
-    <Link
-      href={href}
-      rel={rel}
-      className={`${className} bg-surface text-foreground hover:border-hairline-firm`}
-    >
-      {children}
-    </Link>
-  );
+  return {
+    prevHref: page <= 1 ? null : href(page - 1),
+    nextHref: page >= pageCount ? null : href(page + 1),
+  };
 }
