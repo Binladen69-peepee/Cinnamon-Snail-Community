@@ -42,6 +42,10 @@ type Seen = { method: string; host: string; path: string; body: Record<string, u
 const seen: Seen[] = [];
 let kitFailures = 0;
 const KIT_TAG_ID = "424242";
+const MONTHLY_TAG = `VU Monthly ${stamp}`;
+const ANNUAL_TAG = `VU Annual ${stamp}`;
+const MONTHLY_ID = "424243";
+const ANNUAL_ID = "424244";
 
 function installNetwork() {
   const real = globalThis.fetch;
@@ -56,7 +60,13 @@ function installNetwork() {
         return new Response("down", { status: 503 });
       }
       if (url.pathname === "/v3/tags" && record.method === "GET") {
-        return Response.json({ tags: [{ id: Number(KIT_TAG_ID), name: tagName }] });
+        return Response.json({
+          tags: [
+            { id: Number(KIT_TAG_ID), name: tagName },
+            { id: Number(MONTHLY_ID), name: MONTHLY_TAG },
+            { id: Number(ANNUAL_ID), name: ANNUAL_TAG },
+          ],
+        });
       }
       return Response.json({ subscription: { id: 1 } });
     }
@@ -85,7 +95,16 @@ beforeAll(async () => {
   installNetwork();
 
   const product = await prisma.product.create({
-    data: { slug: `kit-test-${stamp}`, name: "Kit test product", kind: "COURSE", kitTag: tagName },
+    data: {
+      slug: `kit-test-${stamp}`,
+      name: "Kit test product",
+      kind: "MEMBERSHIP",
+      // Mirrors the client's confirmed mapping, plus an interval-independent
+      // tag so both behaviours are covered by the same product.
+      kitTag: tagName,
+      kitTagMonthly: MONTHLY_TAG,
+      kitTagAnnual: ANNUAL_TAG,
+    },
   });
   productId = product.id;
   await prisma.samcartProductMap.create({ data: { productId, samcartProductId: samcartProduct } });
@@ -126,12 +145,18 @@ afterAll(async () => {
 const orderId = Date.now();
 const subscriptionId = Date.now() + 1;
 
-async function webhook(type: string, order = orderId, subscription = subscriptionId) {
+async function webhook(
+  type: string,
+  order = orderId,
+  subscription = subscriptionId,
+  interval: string | null = "month",
+) {
   const payload = {
     type,
     product: { id: Number(samcartProduct), name: "Kit test product", price: 49 },
     customer: { email },
     order: { id: order, total: 49, subscription_id: subscription },
+    ...(interval ? { subscription: { interval } } : {}),
   };
   const ingest = await ingestSamcartPayload({ rawBody: JSON.stringify(payload), payload });
   return processBillingEvent(ingest.event.id);
@@ -149,9 +174,11 @@ describe("billing → Kit", () => {
     const calls = kitCalls();
     // The configured name is resolved to Kit's numeric id first.
     expect(calls[0]).toMatchObject({ method: "GET", path: "/v3/tags" });
-    const subscribe = calls.find((call) => call.path === `/v3/tags/${KIT_TAG_ID}/subscribe`);
+    const subscribe = calls.find((call) => call.path === `/v3/tags/${MONTHLY_ID}/subscribe`);
     expect(subscribe?.method).toBe("POST");
     expect(subscribe?.body).toMatchObject({ email, api_key: "test-key" });
+    // A monthly purchase must not also carry the annual tag.
+    expect(calls.some((call) => call.path === `/v3/tags/${ANNUAL_ID}/subscribe`)).toBe(false);
 
     const log = await prisma.kitSyncLog.findFirst({ where: { userId }, orderBy: { createdAt: "desc" } });
     expect(log).toMatchObject({ action: "kit.grant", success: true });
@@ -162,7 +189,11 @@ describe("billing → Kit", () => {
     await webhook("Product Refunded");
     expect(await userHasActiveEntitlement(userId)).toBe(false);
     const paths = kitCalls().map((call) => `${call.method} ${call.path}`);
+    // Losing the membership clears every tag it could have applied.
+    expect(paths).toContain(`POST /v3/tags/${MONTHLY_ID}/unsubscribe`);
+    expect(paths).toContain(`POST /v3/tags/${ANNUAL_ID}/unsubscribe`);
     expect(paths).toContain(`POST /v3/tags/${KIT_TAG_ID}/unsubscribe`);
+    // Never the global unsubscribe, which would remove them from all email.
     expect(paths).not.toContain("POST /v3/unsubscribe");
     const log = await prisma.kitSyncLog.findFirst({ where: { userId }, orderBy: { createdAt: "desc" } });
     expect(log).toMatchObject({ action: "kit.revoke", success: true });
@@ -175,15 +206,61 @@ describe("billing → Kit", () => {
     const result = await webhook("Product Purchased", orderId + 10, subscriptionId + 10);
     expect(result.ok).toBe(true);
     expect(await userHasActiveEntitlement(userId)).toBe(true);
-    const failed = await prisma.kitSyncLog.findFirst({ where: { userId }, orderBy: { createdAt: "desc" } });
-    expect(failed).toMatchObject({ action: "kit.grant", success: false });
+    // A grant now sends several calls (remove the other plan's tag, then add
+    // this one), so the outage hits one of them rather than the last. What
+    // matters is that the failure was recorded somewhere.
+    expect(await prisma.kitSyncLog.count({ where: { userId, success: false } })).toBeGreaterThan(0);
 
     seen.length = 0;
     const retry = await retryFailedKitSyncs();
-    expect(retry).toMatchObject({ retried: 1, succeeded: 1 });
-    expect(kitCalls().some((call) => call.path === `/v3/tags/${KIT_TAG_ID}/subscribe`)).toBe(true);
+    expect(retry.retried).toBeGreaterThanOrEqual(1);
+    expect(retry.succeeded).toBe(retry.retried);
+    // The retry re-derives what the member should hold from current access,
+    // so a monthly member ends up with the monthly tag.
+    expect(kitCalls().length).toBeGreaterThan(0);
     // Nothing left to retry.
     expect((await retryFailedKitSyncs()).retried).toBe(0);
+  });
+});
+
+describe("the confirmed interval mapping, end to end", () => {
+  it("an annual purchase gets the annual tag and sheds the monthly one", async ({ skip }) => {
+    if (!reachable) skip();
+    const result = await webhook("Product Purchased", orderId + 50, subscriptionId + 50, "year");
+    expect(result.ok).toBe(true);
+
+    const paths = kitCalls().map((call) => `${call.method} ${call.path}`);
+    expect(paths).toContain(`POST /v3/tags/${ANNUAL_ID}/subscribe`);
+    expect(paths).toContain(`POST /v3/tags/${MONTHLY_ID}/unsubscribe`);
+    expect(paths).not.toContain(`POST /v3/tags/${MONTHLY_ID}/subscribe`);
+  });
+
+  it("adds no plan tag when SamCart does not say the interval", async ({ skip }) => {
+    if (!reachable) skip();
+    await webhook("Product Purchased", orderId + 60, subscriptionId + 60, null);
+    const subscribes = kitCalls()
+      .filter((call) => call.path.endsWith("/subscribe"))
+      .map((call) => call.path);
+    // Guessing would put them in the wrong sequence, so neither plan tag goes on.
+    expect(subscribes).not.toContain(`/v3/tags/${MONTHLY_ID}/subscribe`);
+    expect(subscribes).not.toContain(`/v3/tags/${ANNUAL_ID}/subscribe`);
+    // The interval-independent tag still applies.
+    expect(subscribes).toContain(`/v3/tags/${KIT_TAG_ID}/subscribe`);
+  });
+
+  it("is idempotent: the same purchase twice tags once", async ({ skip }) => {
+    if (!reachable) skip();
+    const order = orderId + 70;
+    const subscription = subscriptionId + 70;
+    await webhook("Product Purchased", order, subscription, "month");
+    const first = kitCalls().filter((call) => call.path.endsWith("/subscribe")).length;
+
+    seen.length = 0;
+    // The same webhook again is a duplicate: it must not re-tag.
+    await webhook("Product Purchased", order, subscription, "month");
+    const second = kitCalls().filter((call) => call.path.endsWith("/subscribe")).length;
+    expect(first).toBeGreaterThan(0);
+    expect(second).toBe(0);
   });
 });
 

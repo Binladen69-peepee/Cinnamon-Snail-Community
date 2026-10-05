@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
+import { normalizeInterval, planTags } from "@/lib/billing/kit-tags";
 
 /**
  * Billing → Kit: a product's tag follows the member's access to it.
@@ -15,9 +16,10 @@ import { writeAuditLog } from "@/lib/audit";
  *   commercial opt-out preservation in the other direction. Revocation now
  *   removes exactly the product's tag.
  * - **A tag may be named or numbered.** Kit's API addresses tags by numeric
- *   id; products were configured with names (`vu-member`). A numeric value is
- *   used as is; a name is looked up in Kit, and created there if it does not
- *   exist yet, so a purchase is never left untagged because a tag was named.
+ *   id; products are configured with names ("Vegan University Monthly"). A
+ *   numeric value is used as is; a name is looked up in Kit, and created there
+ *   if it does not exist yet, so a purchase is never left untagged because a
+ *   tag was named.
  *
  * Every attempt is written to `KitSyncLog`. Failures are retried by the
  * billing retry job (`retryFailedKitSyncs`), which re-derives the desired
@@ -194,24 +196,51 @@ export async function retryFailedKitSyncs(input: { now?: Date; limit?: number } 
     const [userId, tag] = key.split("\u0000") as [string, string];
     const user = await prisma.user.findUnique({ where: { id: userId }, select: { email: true } });
     if (!user) continue;
-    const active = await prisma.entitlement.count({
-      where: {
-        userId,
-        status: "ACTIVE",
-        product: { kitTag: tag },
-        OR: [{ endsAt: null }, { endsAt: { gt: now } }],
-      },
-    });
+    const held = await tagsMemberShouldHold(userId, now);
     const result = await syncKitForEntitlementChange({
       userId,
       email: user.email,
       tag,
-      action: active > 0 ? "grant" : "revoke",
+      action: held.has(tag) ? "grant" : "revoke",
     });
     retried += 1;
     if (result.success) succeeded += 1;
   }
   return { retried, succeeded };
+}
+
+/**
+ * Every Kit tag a member's current access entitles them to.
+ *
+ * Derived rather than remembered, which is what makes a retry safe: it asks
+ * what is true now instead of replaying a request that may since have been
+ * overtaken. It reads the interval from each entitlement's own subscription,
+ * so a monthly member is owed the monthly tag and an annual one the annual
+ * tag — matching exactly what `planTags` would have applied at the time.
+ */
+export async function tagsMemberShouldHold(userId: string, now = new Date()): Promise<Set<string>> {
+  const entitlements = await prisma.entitlement.findMany({
+    where: {
+      userId,
+      status: "ACTIVE",
+      OR: [{ endsAt: null }, { endsAt: { gt: now } }],
+    },
+    select: {
+      product: { select: { kitTag: true, kitTagMonthly: true, kitTagAnnual: true } },
+      subscription: { select: { interval: true } },
+    },
+  });
+
+  const held = new Set<string>();
+  for (const entitlement of entitlements) {
+    const plan = planTags({
+      product: entitlement.product,
+      interval: normalizeInterval(entitlement.subscription?.interval),
+      action: "grant",
+    });
+    for (const tag of plan.add) held.add(tag);
+  }
+  return held;
 }
 
 async function writeKitLog(
@@ -225,4 +254,45 @@ async function writeKitLog(
     data: { userId, action, payload, success, error },
   });
   return { success, error };
+}
+
+/**
+ * Apply several tag changes for one member in one go.
+ *
+ * Used by the entitlement path, where a change can mean "add the annual tag
+ * and remove the monthly one" — a plan switch. Each call is the same
+ * idempotent add/remove as a single sync, so repeating the whole plan is
+ * harmless, and each is logged separately so the trail shows what moved.
+ */
+export async function syncKitTags(input: {
+  userId: string;
+  email: string;
+  add: string[];
+  remove: string[];
+}): Promise<{ applied: number; failed: number }> {
+  let applied = 0;
+  let failed = 0;
+  // Removals first: on a plan switch this leaves no window where a member
+  // holds both tags and could be caught by a sequence meant for the other.
+  for (const tag of input.remove) {
+    const result = await syncKitForEntitlementChange({
+      userId: input.userId,
+      email: input.email,
+      tag,
+      action: "revoke",
+    });
+    if (result.success) applied += 1;
+    else failed += 1;
+  }
+  for (const tag of input.add) {
+    const result = await syncKitForEntitlementChange({
+      userId: input.userId,
+      email: input.email,
+      tag,
+      action: "grant",
+    });
+    if (result.success) applied += 1;
+    else failed += 1;
+  }
+  return { applied, failed };
 }

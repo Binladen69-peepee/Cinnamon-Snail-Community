@@ -3,7 +3,8 @@ import { prisma } from "@/lib/db";
 import { findUserByAnyEmail } from "@/lib/auth/magic-link";
 import { writeAuditLog } from "@/lib/audit";
 import { entitlementEffect, nextSubscriptionStatus } from "@/lib/billing/policy";
-import { syncKitForEntitlementChange } from "@/lib/billing/kit";
+import { syncKitForEntitlementChange, syncKitTags } from "@/lib/billing/kit";
+import { normalizeInterval, planTags } from "@/lib/billing/kit-tags";
 import type { CanonicalBillingEvent } from "@/lib/billing/types";
 import { isEntitlementActive } from "@/lib/entitlements/check";
 
@@ -85,12 +86,19 @@ export async function applyCanonicalEvent(
   });
 
   if (entitlementChanged) {
-    await syncKitForEntitlementChange({
-      userId: user.id,
-      email: user.email,
-      tag: product.kitTag,
+    // The interval decides the tag. SamCart's webhook is the source of truth
+    // for it; the subscription row carries what earlier events reported, and
+    // the SamCart product's own declaration is the last resort.
+    const interval =
+      normalizeInterval(event.interval) ??
+      normalizeInterval(subscription.interval) ??
+      normalizeInterval(productMap?.interval);
+    const plan = planTags({
+      product,
+      interval,
       action: effect.kind === "revoke" ? "revoke" : "grant",
     });
+    await syncKitTags({ userId: user.id, email: user.email, ...plan });
   }
 
   await writeAuditLog({
@@ -280,11 +288,14 @@ export async function claimPendingGrantsForEmail(email: string, userId: string) 
       source: "SUBSCRIPTION",
       effect: { kind: "grant" },
     });
-    await syncKitForEntitlementChange({
+    await syncKitTags({
       userId,
       email,
-      tag: grant.product.kitTag,
-      action: "grant",
+      ...planTags({
+        product: grant.product,
+        interval: normalizeInterval(event.interval) ?? normalizeInterval(subscription.interval),
+        action: "grant",
+      }),
     });
     await prisma.pendingGrant.update({
       where: { id: grant.id },
@@ -311,11 +322,13 @@ export async function grantManualEntitlement(input: {
   });
   const user = await prisma.user.findUniqueOrThrow({ where: { id: input.userId } });
   const product = await prisma.product.findUniqueOrThrow({ where: { id: input.productId } });
-  await syncKitForEntitlementChange({
+  // A manual grant has no SamCart subscription, so no interval. Only the
+  // interval-independent tag applies; staff can add a plan tag by hand if the
+  // grant is meant to stand in for one.
+  await syncKitTags({
     userId: user.id,
     email: user.email,
-    tag: product.kitTag,
-    action: "grant",
+    ...planTags({ product, interval: null, action: "grant" }),
   });
   await writeAuditLog({
     actorId: input.actorId,

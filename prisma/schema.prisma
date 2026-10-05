@@ -1237,13 +1237,22 @@ model Follow {
 }
 
 model Product {
-  id            String              @id @default(cuid())
-  slug          String              @unique
-  name          String
-  kind          ProductKind
-  description   String?
-  active        Boolean             @default(true)
-  kitTag        String?
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  name        String
+  kind        ProductKind
+  description String?
+  active      Boolean     @default(true)
+  /// Kit tag applied whatever the billing interval — a one-time product, say.
+  /// The membership uses the two interval-specific tags below instead, because
+  /// what a member is sold is monthly or annual, not "membership".
+  kitTag      String?
+
+  /// Kit tag for a monthly subscription to this product.
+  kitTagMonthly String?
+
+  /// Kit tag for an annual subscription to this product.
+  kitTagAnnual  String?
   maps          SamcartProductMap[]
   subscriptions Subscription[]
   entitlements  Entitlement[]
@@ -1252,10 +1261,16 @@ model Product {
 }
 
 model SamcartProductMap {
-  id               String  @id @default(cuid())
+  id               String @id @default(cuid())
   productId        String
-  samcartProductId String  @unique
-  product          Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  samcartProductId String @unique
+
+  /// What this SamCart product sells: "month" or "year". SamCart is the source
+  /// of truth for the interval, and its webhook normally says so — this is the
+  /// fallback for the events that do not, since monthly and annual are
+  /// separate SamCart products.
+  interval String?
+  product  Product @relation(fields: [productId], references: [id], onDelete: Cascade)
 }
 
 model Subscription {

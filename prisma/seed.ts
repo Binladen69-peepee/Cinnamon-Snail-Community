@@ -36,35 +36,42 @@ async function main() {
 
   const membership = await prisma.product.upsert({
     where: { slug: "membership" },
-    update: { kitTag: "vu-member" },
+    update: {
+      kitTag: null,
+      kitTagMonthly: "Vegan University Monthly",
+      kitTagAnnual: "Vegan University Annual",
+    },
     create: {
       slug: "membership",
       name: "Vegan University Membership",
       kind: "MEMBERSHIP",
       description: "Full community and course access",
-      kitTag: "vu-member",
+      // The client's confirmed mapping: the tag follows the billing interval,
+      // because monthly and annual are separate SamCart products.
+      kitTag: null,
+      kitTagMonthly: "Vegan University Monthly",
+      kitTagAnnual: "Vegan University Annual",
     },
   });
   await prisma.product.upsert({
     where: { slug: "course-starter" },
-    update: { kitTag: "vu-course" },
+    // No Kit tag: the client has not mapped one for the course yet.
+    update: { kitTag: null },
     create: {
       slug: "course-starter",
       name: "Starter Course",
       kind: "COURSE",
       description: "One-time course access",
-      kitTag: "vu-course",
     },
   });
   await prisma.product.upsert({
     where: { slug: "kitchen-bundle" },
-    update: { kitTag: "vu-bundle" },
+    update: { kitTag: null },
     create: {
       slug: "kitchen-bundle",
       name: "Kitchen Bundle",
       kind: "BUNDLE",
       description: "Membership plus featured course",
-      kitTag: "vu-bundle",
     },
   });
   await prisma.samcartProductMap.upsert({
