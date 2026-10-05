@@ -13,6 +13,8 @@ import {
 import { SPACE_KIND_ICON } from "@/lib/spaces/kinds";
 import { AppShell } from "@/components/app/app-shell";
 import { PostCard } from "@/components/feed/post-card";
+import { RecipeVariations } from "@/components/feed/recipe-variations";
+import { listVariations } from "@/lib/recipes/variations";
 import { Conversation } from "@/components/feed/conversation";
 import { CommentSort } from "@/components/feed/comment-sort";
 import { CommentComposer } from "@/components/feed/comment-composer";
@@ -152,6 +154,14 @@ export default async function PostPage({
           preview={false}
           canPin={canModerate}
         />
+
+        {post.recipeId ? (
+          <RecipeVariations
+            recipeId={post.recipeId}
+            postId={post.id}
+            variations={await listVariations(post.recipeId, session.user.id)}
+          />
+        ) : null}
 
         <CommentComposer postId={post.id} viewer={viewer} joined={joined} />
 

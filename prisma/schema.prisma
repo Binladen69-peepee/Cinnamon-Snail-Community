@@ -258,6 +258,8 @@ model User {
   notifications        Notification[]
   pushSubscriptions    PushSubscription[]
   challengeEntries     ChallengeParticipant[]
+  recipeVariations     RecipeVariation[]
+  variationTests       RecipeVariationTest[]
   kitRoadmapSync       KitRoadmapSync?
   pollVotes            PollVote[]
   votes                Vote[]
@@ -686,18 +688,21 @@ model CommentMention {
 }
 
 model Reaction {
-  id        String   @id @default(cuid())
-  userId    String
-  postId    String?
-  commentId String?
-  emoji     String
-  createdAt DateTime @default(now())
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  post      Post?    @relation(fields: [postId], references: [id], onDelete: Cascade)
-  comment   Comment? @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  id          String           @id @default(cuid())
+  userId      String
+  postId      String?
+  commentId   String?
+  variationId String?
+  emoji       String
+  createdAt   DateTime         @default(now())
+  user        User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post        Post?            @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment     Comment?         @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  variation   RecipeVariation? @relation(fields: [variationId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId, emoji])
   @@unique([userId, commentId, emoji])
+  @@unique([userId, variationId, emoji])
   @@index([postId])
   @@index([commentId])
 }
@@ -1807,15 +1812,62 @@ model Recipe {
   posts      Post[]
 }
 
+/// A member's take on somebody else's recipe — BUILD.md §18.
+///
+/// Every variation is reviewed before it is listed: a recipe site that
+/// publishes unchecked substitutions is how a vegan community ends up hosting
+/// a cheese recommendation. Submitting again puts it back to pending.
 model RecipeVariation {
-  id          String  @id @default(cuid())
-  recipeId    String
+  id       String @id @default(cuid())
+  recipeId String
+  authorId String
+
+  /// What they changed.
   authorNote  String
+  /// Why they changed it.
   reason      String?
   photoUrl    String?
+  /// The adjusted ingredients, when they gave them.
   ingredients Json?
-  status      String  @default("pending")
-  recipe      Recipe  @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  /// pending | approved | rejected
+  status          String    @default("pending")
+  /// Ingredients the vegan check questioned, kept for the reviewer to see.
+  veganFlags      Json?
+  rejectionReason String?
+  reviewedAt      DateTime?
+  reviewedBy      String?
+
+  /// Staff pick. Only an approved variation can be featured.
+  featured Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  recipe    Recipe                @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  author    User                  @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  tests     RecipeVariationTest[]
+  reactions Reaction[]
+
+  @@index([recipeId, status])
+  @@index([status, createdAt])
+  @@index([authorId])
+}
+
+/// "Tested by N" — a member saying they cooked this variation and it worked.
+/// One per member per variation, which is what makes the count mean anything.
+model RecipeVariationTest {
+  id          String   @id @default(cuid())
+  variationId String
+  userId      String
+  note        String?
+  createdAt   DateTime @default(now())
+
+  variation RecipeVariation @relation(fields: [variationId], references: [id], onDelete: Cascade)
+  user      User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([variationId, userId])
+  @@index([variationId])
 }
 
 /// A member's offer on the bulletin board: one card per member (BUILD.md §19,

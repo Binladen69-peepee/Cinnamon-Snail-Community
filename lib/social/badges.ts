@@ -39,6 +39,7 @@ export async function loadActivity(userId: string): Promise<MemberActivity> {
     courseProgress,
     commentsWritten,
     challengesFinished,
+    recipeVariations,
     placesReviewed,
     conversationPartners,
   ] = await Promise.all([
@@ -48,6 +49,7 @@ export async function loadActivity(userId: string): Promise<MemberActivity> {
     prisma.courseProgress.findMany({ where: { userId }, select: { percent: true } }),
     prisma.comment.count({ where: { authorId: userId } }),
     prisma.challengeParticipant.count({ where: { userId, completedAt: { not: null } } }),
+    prisma.recipeVariation.count({ where: { authorId: userId, status: "approved" } }),
     prisma.placeTestimonial.count({ where: { userId } }),
     prisma.conversationMember.findMany({
       where: {
@@ -63,8 +65,7 @@ export async function loadActivity(userId: string): Promise<MemberActivity> {
 
   return {
     recipesShared,
-    // RecipeVariation has no author column until Phase 4F models it.
-    recipeVariations: 0,
+    recipeVariations,
     lessonsCompleted,
     coursesCompleted: courseProgress.filter((row) => row.percent >= 100).length,
     // Accepted answers need a Phase 4 Q&A signal that does not exist yet.

@@ -2539,9 +2539,9 @@ Seeded local accounts (password `vegan-local-dev`):
 
 ## Phase 4E
 - [x] Challenges — seasonal, opt-in, daily prompts, target below the prompt count, badge and Kit tag on finishing, no ranking
-- [ ] Recipe variations
-- [ ] Moderation
-- [ ] Badges
+- [x] Recipe variations — changes, reason, photo, adjusted ingredients, reactions, featured, tested-by-N
+- [x] Moderation — nothing is listed until staff approve it; vegan validation refuses the hard cases first
+- [x] Badges — Recipe Remixer counts approved variations; Challenge Finisher counts completed challenges
 
 ## Phase 4F
 - [x] Happenings — exact address AES-GCM encrypted, shown to host and approved guests only

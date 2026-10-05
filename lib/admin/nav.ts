@@ -9,6 +9,7 @@ import {
   Mail,
   Map,
   Receipt,
+  Shuffle,
   Users,
   Webhook,
   Workflow,
@@ -49,6 +50,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/spaces", label: "Spaces", icon: BookOpen },
       { href: "/admin/events", label: "Events", icon: CalendarDays },
       { href: "/admin/bulletin", label: "Bulletin review", icon: ClipboardList },
+      { href: "/admin/variations", label: "Recipe variations", icon: Shuffle },
     ],
   },
   {
