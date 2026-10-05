@@ -79,11 +79,16 @@ async function main() {
     update: { productId: membership.id },
     create: { productId: membership.id, samcartProductId: "1001" },
   });
-  for (const samcartProductId of ["1069358", "1069354"]) {
+  // The client's confirmed SamCart products. The interval here is only a
+  // fallback for webhooks that do not state one; SamCart's event wins.
+  for (const [samcartProductId, interval] of [
+    ["1069358", "year"],
+    ["1069354", "month"],
+  ] as const) {
     await prisma.samcartProductMap.upsert({
       where: { samcartProductId },
-      update: { productId: membership.id },
-      create: { productId: membership.id, samcartProductId },
+      update: { productId: membership.id, interval },
+      create: { productId: membership.id, samcartProductId, interval },
     });
   }
 

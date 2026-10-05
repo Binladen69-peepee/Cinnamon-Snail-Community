@@ -107,7 +107,11 @@ beforeAll(async () => {
     },
   });
   productId = product.id;
-  await prisma.samcartProductMap.create({ data: { productId, samcartProductId: samcartProduct } });
+  // Declared annual, the way the client's real SamCart products are, so the
+  // fallback can be tested without touching the webhook.
+  await prisma.samcartProductMap.create({
+    data: { productId, samcartProductId: samcartProduct, interval: "year" },
+  });
   const user = await prisma.user.create({
     data: {
       email,
@@ -235,17 +239,52 @@ describe("the confirmed interval mapping, end to end", () => {
     expect(paths).not.toContain(`POST /v3/tags/${MONTHLY_ID}/subscribe`);
   });
 
-  it("adds no plan tag when SamCart does not say the interval", async ({ skip }) => {
+  it("falls back to the SamCart product's interval when the webhook omits it", async ({ skip }) => {
     if (!reachable) skip();
+    // No interval on the event or the subscription: the SamCart product is
+    // declared annual, so that is what decides.
     await webhook("Product Purchased", orderId + 60, subscriptionId + 60, null);
+    const subscribes = kitCalls()
+      .filter((call) => call.path.endsWith("/subscribe"))
+      .map((call) => call.path);
+    expect(subscribes).toContain(`/v3/tags/${ANNUAL_ID}/subscribe`);
+    expect(subscribes).not.toContain(`/v3/tags/${MONTHLY_ID}/subscribe`);
+  });
+
+  it("lets the webhook override the product's declared interval", async ({ skip }) => {
+    if (!reachable) skip();
+    // The product is declared annual; this event says monthly. SamCart's own
+    // event is the source of truth, so monthly wins.
+    await webhook("Product Purchased", orderId + 80, subscriptionId + 80, "month");
+    const subscribes = kitCalls()
+      .filter((call) => call.path.endsWith("/subscribe"))
+      .map((call) => call.path);
+    expect(subscribes).toContain(`/v3/tags/${MONTHLY_ID}/subscribe`);
+    expect(subscribes).not.toContain(`/v3/tags/${ANNUAL_ID}/subscribe`);
+  });
+
+  it("adds no plan tag when nothing anywhere states the interval", async ({ skip }) => {
+    if (!reachable) skip();
+    // A SamCart product with no declared interval and a silent webhook.
+    const bare = `88${Date.now() % 1_000_000}`;
+    await prisma.samcartProductMap.create({ data: { productId, samcartProductId: bare } });
+    const payload = {
+      type: "Product Purchased",
+      product: { id: Number(bare), name: "Kit test product", price: 49 },
+      customer: { email },
+      order: { id: orderId + 90, total: 49, subscription_id: subscriptionId + 90 },
+    };
+    const ingest = await ingestSamcartPayload({ rawBody: JSON.stringify(payload), payload });
+    await processBillingEvent(ingest.event.id);
+
     const subscribes = kitCalls()
       .filter((call) => call.path.endsWith("/subscribe"))
       .map((call) => call.path);
     // Guessing would put them in the wrong sequence, so neither plan tag goes on.
     expect(subscribes).not.toContain(`/v3/tags/${MONTHLY_ID}/subscribe`);
     expect(subscribes).not.toContain(`/v3/tags/${ANNUAL_ID}/subscribe`);
-    // The interval-independent tag still applies.
     expect(subscribes).toContain(`/v3/tags/${KIT_TAG_ID}/subscribe`);
+    await prisma.samcartProductMap.deleteMany({ where: { samcartProductId: bare } });
   });
 
   it("is idempotent: the same purchase twice tags once", async ({ skip }) => {
