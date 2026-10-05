@@ -56,6 +56,7 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     items: [
       { href: "/admin/courses", label: "Courses", icon: BookOpen },
       { href: "/admin/roadmap", label: "Roadmap", icon: Map },
+      { href: "/admin/challenges", label: "Challenges", icon: Flag },
     ],
   },
   {

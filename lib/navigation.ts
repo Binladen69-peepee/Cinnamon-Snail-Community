@@ -3,6 +3,7 @@ import {
   Calendar,
   ClipboardList,
   Compass,
+  Flag,
   Handshake,
   Map,
   MessageSquare,
@@ -45,6 +46,7 @@ export const MEMBER_NAV_GROUPS: { label: string | null; links: NavLink[] }[] = [
       { href: "/learn", label: "Courses", icon: BookOpen },
       { href: "/calendar", label: "Events", icon: Calendar },
       { href: "/roadmap", label: "Roadmap", icon: Map },
+      { href: "/challenges", label: "Challenges", icon: Flag },
     ],
   },
   {

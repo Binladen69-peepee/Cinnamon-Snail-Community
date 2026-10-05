@@ -2538,7 +2538,7 @@ Seeded local accounts (password `vegan-local-dev`):
 - [x] Analytics — replies and reactions on each published prompt
 
 ## Phase 4E
-- [ ] Challenges
+- [x] Challenges — seasonal, opt-in, daily prompts, target below the prompt count, badge and Kit tag on finishing, no ranking
 - [ ] Recipe variations
 - [ ] Moderation
 - [ ] Badges

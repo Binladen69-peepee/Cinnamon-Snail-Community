@@ -257,6 +257,7 @@ model User {
   reports              Report[]                @relation("ReportReporter")
   notifications        Notification[]
   pushSubscriptions    PushSubscription[]
+  challengeEntries     ChallengeParticipant[]
   kitRoadmapSync       KitRoadmapSync?
   pollVotes            PollVote[]
   votes                Vote[]
@@ -1697,27 +1698,102 @@ model MemberBadge {
   @@index([awardedAt])
 }
 
+/// A seasonal, low-pressure challenge — BUILD.md §17.
+///
+/// "No ranking" is the design, not a missing feature: there is no leaderboard,
+/// no position and no public comparison anywhere. A member's progress is their
+/// own, and the target is deliberately lower than the number of prompts so
+/// missing days is normal rather than failure.
 model Challenge {
-  id           String                 @id @default(cuid())
-  slug         String                 @unique
-  title        String
-  theme        String?
-  coverUrl     String?
-  startsAt     DateTime
-  endsAt       DateTime
-  target       String?
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  title       String
+  theme       String?
+  description String?
+  coverUrl    String?
+
+  startsAt DateTime
+  endsAt   DateTime
+
+  /// The goal in the member's words, e.g. "cook ten plant-based dinners".
+  target String?
+
+  /// How many prompts must be answered to finish. Below the prompt count on
+  /// purpose — see above.
+  targetCount Int @default(1)
+
+  /// Where the challenge is discussed. Entries post here when it is set.
+  spaceId String?
+
+  /// Limits who may join to one cohort. Null means every member.
+  cohortId String?
+
+  /// Awarded on completion, by slug, from the badge catalogue.
+  badgeSlug String?
+
+  /// Applied in Kit on completion, by tag name or id.
+  kitTag String?
+
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  prompts      ChallengePrompt[]
   participants ChallengeParticipant[]
+
+  @@index([published, startsAt])
 }
 
+/// One day's prompt. `day` is 1-based and unique within a challenge.
+model ChallengePrompt {
+  id          String @id @default(cuid())
+  challengeId String
+  day         Int
+  title       String
+  body        String
+
+  challenge Challenge        @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  entries   ChallengeEntry[]
+
+  @@unique([challengeId, day])
+  @@index([challengeId, day])
+}
+
+/// Joining is opt-in: this row exists only because the member asked.
 model ChallengeParticipant {
   id          String    @id @default(cuid())
   challengeId String
   userId      String
+  joinedAt    DateTime  @default(now())
+  /// Entry count, kept in step with `entries` so a list does not have to count.
   progress    Int       @default(0)
   completedAt DateTime?
-  challenge   Challenge @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  leftAt      DateTime?
+
+  challenge Challenge        @relation(fields: [challengeId], references: [id], onDelete: Cascade)
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries   ChallengeEntry[]
 
   @@unique([challengeId, userId])
+  @@index([userId, completedAt])
+}
+
+/// A member answering one prompt. The unique index is the idempotency: a day
+/// can be marked done once, however many times the button is pressed.
+model ChallengeEntry {
+  id            String   @id @default(cuid())
+  participantId String
+  promptId      String
+  /// The post they shared, when they shared one.
+  postId        String?
+  note          String?
+  createdAt     DateTime @default(now())
+
+  participant ChallengeParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  prompt      ChallengePrompt      @relation(fields: [promptId], references: [id], onDelete: Cascade)
+
+  @@unique([participantId, promptId])
+  @@index([participantId])
 }
 
 model Recipe {
