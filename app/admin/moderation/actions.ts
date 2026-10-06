@@ -107,7 +107,8 @@ export async function removePostAction(formData: FormData): Promise<Result> {
   });
 
   revalidatePath("/admin/moderation");
-  revalidatePath("/home");
+  revalidatePath("/kitchen-table");
+  revalidatePath("/bulletin");
   revalidatePath(`/posts/${postId}`);
   return { ok: true };
 }

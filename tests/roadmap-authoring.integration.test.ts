@@ -311,7 +311,7 @@ describe("track authoring", () => {
 
   it("refuses to delete a track members are on", async () => {
     if (!reachable) return;
-    await startTrack(userId, trackId, "weekly");
+    await startTrack(userId, trackId);
     await expect(deleteTrack(trackId)).rejects.toBeInstanceOf(TrackError);
   });
 
@@ -329,7 +329,7 @@ describe("track authoring", () => {
 describe("skip and swap", () => {
   it("settles a milestone without ever counting it as done", async () => {
     if (!reachable) return;
-    await startTrack(userId, trackId, "weekly");
+    await startTrack(userId, trackId);
 
     const before = await loadRoadmapPage(userId);
     const current = before.active!.milestones.find((m) => m.state === "current")!;

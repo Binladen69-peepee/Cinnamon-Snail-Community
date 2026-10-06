@@ -320,8 +320,9 @@ export function ProfileEditor({
         description={
           <>
             Pick up to {MAX_INTERESTS_PER_MEMBER}. These are what the directory
-            filters on, and what member matching will use later — which is why
-            they are a list rather than a text box.
+            filters on, and what &ldquo;Show similarities&rdquo; and &ldquo;Similar to
+            you&rdquo; compare — which is why they are a list rather than a text
+            box.
           </>
         }
       >
@@ -455,20 +456,20 @@ export function ProfileEditor({
             <Switch
               name="directoryVisible"
               label="Show me in the member directory"
-              help="Off also removes you from search and from suggestions."
+              help="Off also removes you from search, from the discovery lists and from Show similarities."
               defaultChecked={profile.directoryVisible}
               icon
             />
             <Switch
               name="showLocation"
               label="Show my city"
-              help="Your country and region follow the same switch."
+              help="Your country and region follow the same switch. Members near you only lists members who show it."
               defaultChecked={profile.showLocation}
             />
             <Switch
               name="showInterests"
               label="Show how I cook"
-              help="Your skill level and the tags above."
+              help="Your skill level and the tags above, here and in what members see you have in common."
               defaultChecked={profile.showInterests}
             />
             <Switch

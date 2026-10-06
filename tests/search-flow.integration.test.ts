@@ -119,11 +119,23 @@ describe("searchForViewer", () => {
 
     expect(hrefs).toEqual(
       [
-        `/calendar/${ids.eventSlug}`,
+        `/live-classes/${ids.eventSlug}`,
         `/posts/${ids.open}`,
         `/posts/${ids.open}#comment-${ids.comment}`,
       ].sort(),
     );
+  });
+
+  it("never names the room a post sits in", async () => {
+    // Rooms are retired from the interface (DEC-078): a result says what it
+    // is and who wrote it, not "# Kitchen Table".
+    if (!reachable) return;
+    const hits = await searchForViewer({ viewerId, query: WORD, limit: 40 });
+    for (const hit of hits) {
+      expect(hit.detail).not.toMatch(/Search open|Search closed/);
+    }
+    const post = hits.find((hit) => hit.href === `/posts/${ids.open}`);
+    expect(post?.detail).toBe("Post · Search author");
   });
 
   it("opens a private room's posts to its members", async () => {

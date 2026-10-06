@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { MEMBER_HOME_PATH } from "@/lib/auth/redirects";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
@@ -34,7 +35,7 @@ export default async function AdminLayout({
   const isStaff = session.user.roles.some(
     (role) => role === "ADMIN" || role === "SUPER_ADMIN",
   );
-  if (!isStaff) redirect("/home");
+  if (!isStaff) redirect(MEMBER_HOME_PATH);
 
   // One cheap count, so the rail can say how much is waiting without every
   // page loading the moderation queue to find out.

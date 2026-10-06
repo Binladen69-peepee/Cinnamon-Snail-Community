@@ -94,18 +94,17 @@ export default async function HomePage() {
             </div>
 
             <div className="mt-5 flex flex-wrap items-stretch gap-3 sm:mt-7">
-              {/* The wrapper carries the breakpoint, not the chip:
-                  `.vu-hero-proof` sets its own `display` later in the
-                  stylesheet, so a `hidden` utility on the same element loses
-                  at equal specificity and the chip stayed on screen. */}
+              {/* The wrapper carries the breakpoint, not the widget, which
+                  sets its own `display`. No white chip any more: the widget
+                  sits on the photograph with a faint glow and white type
+                  (see `onPhoto` in senja-embed.tsx), in the chip's old box so
+                  nothing around it moves. */}
               <div className="hidden self-center sm:block">
-                <div className="vu-hero-proof">
-                  <SenjaEmbed
-                    widgetId={SENJA_HOMEPAGE_WIDGET}
-                    title="What members say"
-                    wash={false}
-                  />
-                </div>
+                <SenjaEmbed
+                  widgetId={SENJA_HOMEPAGE_WIDGET}
+                  title="What members say"
+                  onPhoto
+                />
               </div>
             </div>
           </div>

@@ -1,15 +1,11 @@
+import { Fragment } from "react";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import {
-  ChefHat,
-  Clock,
-  ListVideo,
-  Lock,
-  MessageSquare,
-  PlayCircle,
-} from "lucide-react";
+import { ChefHat, Clock, ListVideo, Lock, PlayCircle } from "lucide-react";
 import { auth } from "@/auth";
-import { getClassDetail } from "@/lib/learn/library";
+import { getClassDetail, relatedShelf } from "@/lib/learn/library";
+import { categoryHref } from "@/lib/learn/classes";
+import { tileMeta } from "@/lib/learn/shelves";
 import { AppShell } from "@/components/app/app-shell";
 import {
   Badge,
@@ -22,6 +18,8 @@ import {
   Section,
 } from "@/components/app/ui";
 import { ClassPlayer } from "@/components/learn/class-player";
+import { ClassShelf } from "@/components/learn/class-shelf";
+import { ClassTile } from "@/components/learn/class-tile";
 import { ResourceList } from "@/components/learn/resource-list";
 import { StepMark } from "@/components/learn/step-mark";
 import { cn } from "@/lib/utils";
@@ -45,9 +43,8 @@ export async function generateMetadata({
 /**
  * One class.
  *
- * The destination three other places already pointed at — search results, the
- * marketing class library's `classDetailHref`, and Discover's cards — all of
- * which 404'd until now.
+ * The destination search results, the marketing class library's
+ * `classDetailHref` and every library shelf point at.
  *
  * The classes were imported without lessons, so the page is built around what
  * is real first — the still, the teaser, and what the class is — and the
@@ -57,8 +54,11 @@ export async function generateMetadata({
  * teaser is not, because it is marketing.
  *
  * The header carries what the member came to do: where they are in the class
- * and the one button that continues it. The syllabus is a single card of rows,
- * one strip per section, rather than a card per section.
+ * and the one button that continues it, with every shelf the class sits on
+ * above the title. The syllabus is a single card of rows, one strip per
+ * section, rather than a card per section. The page ends on the rest of the
+ * class's first shelf: a library suggests the next book, it does not open a
+ * discussion room (DEC-078).
  */
 export default async function ClassPage({
   params,
@@ -72,6 +72,15 @@ export default async function ClassPage({
   const cls = await getClassDetail(slug, session.user.id);
   if (!cls) notFound();
 
+  const home = cls.categories[0] ?? null;
+  const related = home
+    ? await relatedShelf({
+        courseId: cls.id,
+        categorySlug: home.slug,
+        userId: session.user.id,
+      })
+    : null;
+
   const hasMeta = Boolean(cls.instructor || cls.length || cls.lessonCount > 0);
 
   return (
@@ -80,13 +89,24 @@ export default async function ClassPage({
         <PageHeader
           back={{ href: "/learn", label: "All classes" }}
           eyebrow={
-            cls.category ? (
-              <Link
-                href={`/learn?category=${encodeURIComponent(cls.category)}`}
-                className="text-brand-strong no-underline hover:underline"
-              >
-                {cls.category}
-              </Link>
+            cls.categories.length > 0 ? (
+              <span className="flex flex-wrap items-center gap-x-1.5 gap-y-0.5">
+                {cls.categories.map((category, index) => (
+                  <Fragment key={category.slug}>
+                    {index > 0 ? (
+                      <span aria-hidden className="text-foreground-muted">
+                        ·
+                      </span>
+                    ) : null}
+                    <Link
+                      href={categoryHref(category.slug)}
+                      className="text-brand-strong no-underline hover:underline"
+                    >
+                      {category.name}
+                    </Link>
+                  </Fragment>
+                ))}
+              </span>
             ) : undefined
           }
           title={cls.title}
@@ -268,13 +288,20 @@ export default async function ClassPage({
           </Section>
         ) : null}
 
-        {cls.discussHref ? (
-          <div>
-            <ButtonLink href={cls.discussHref}>
-              <MessageSquare className="size-4" aria-hidden />
-              Talk about this class
-            </ButtonLink>
-          </div>
+        {related ? (
+          <ClassShelf
+            title={`More in ${related.category.name}`}
+            seeAllHref={categoryHref(related.category.slug)}
+          >
+            {related.classes.map((item) => (
+              <ClassTile
+                key={item.id}
+                cls={item}
+                percent={item.percent}
+                meta={tileMeta(item.categories, related.category.slug)}
+              />
+            ))}
+          </ClassShelf>
         ) : null}
       </div>
     </AppShell>

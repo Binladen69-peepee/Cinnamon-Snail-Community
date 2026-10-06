@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { signIn } from "@/auth";
 import { consumeResetToken } from "@/lib/auth/password-reset";
 import { consumeRateLimit } from "@/lib/auth/rate-limit";
+import { MEMBER_HOME_PATH } from "@/lib/auth/redirects";
 import { isRedirectAuthError } from "@/lib/auth/tokens";
 
 export type ResetState = { error?: string; done?: boolean };
@@ -55,7 +56,7 @@ export async function resetPasswordAction(
   // Every old session was just revoked, including any the attacker held. This
   // one is new.
   try {
-    await signIn("credentials", { email, password, redirectTo: "/home" });
+    await signIn("credentials", { email, password, redirectTo: MEMBER_HOME_PATH });
   } catch (error) {
     if (isRedirectAuthError(error)) throw error;
     return { done: true, error: "Password changed. Sign in to continue." };

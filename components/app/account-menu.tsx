@@ -2,22 +2,21 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { CreditCard, LogOut, Settings, User } from "lucide-react";
+import { LogOut, User } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { menuClass, menuItemClass } from "@/components/app/ui";
+import { ACCOUNT_LINKS } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
-
-const LINKS = [
-  { href: "/settings", label: "Settings", icon: Settings },
-  { href: "/billing", label: "Membership", icon: CreditCard },
-] as const;
 
 /**
  * The avatar menu.
  *
- * Account surfaces live here rather than in the rail: Billing and Settings are
- * things you visit occasionally and deliberately, and putting them beside the
- * community rooms made the rail longer without making it more useful.
+ * Account surfaces live here rather than in the rail: drafts, billing and
+ * settings are things you visit occasionally and deliberately, and putting
+ * them beside the community made the rail longer without making it more
+ * useful. Drafts arrived from the rail when the community menu was cut to its
+ * five places; it still holds scheduled posts and posts waiting on a host, so
+ * it needed a home rather than an exit.
  *
  * Closes on Escape, on outside click, and on navigation.
  */
@@ -84,7 +83,7 @@ export function AccountMenu({
             Your profile
           </Link>
 
-          {LINKS.map((link) => (
+          {ACCOUNT_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}

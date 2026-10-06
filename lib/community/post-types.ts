@@ -12,10 +12,11 @@ import {
 /**
  * The post types the composer can actually produce.
  *
- * `PostType` in the schema has nine members and this lists seven. IMAGE and
- * VIDEO are the two left out, and deliberately: they are never picked, they
- * are inferred from what was attached. Offering them as buttons would let
- * someone choose VIDEO and attach a photograph.
+ * `PostType` in the schema has eleven members and this lists seven. IMAGE and
+ * VIDEO are left out deliberately: they are never picked, they are inferred
+ * from what was attached. Offering them as buttons would let someone choose
+ * VIDEO and attach a photograph. IDEA and BULLETIN belong to the Ideas board
+ * and the Bulletin Board, which write them themselves (DEC-078).
  *
  * EVENT and RECIPE each write a row of their own — an Event with a date and a
  * place, a Recipe with a method — and the post points at it. A RECIPE post
@@ -45,6 +46,12 @@ export type ComposerType = {
   bodyPlaceholder: string;
   titleLabel?: string;
   titleRequired?: boolean;
+  /**
+   * Offered to staff and hosts only. An EVENT post writes a real Event, and
+   * every Event is listed under Live Classes (DEC-079), which are the
+   * school's classes. Member gatherings belong on the Bulletin Board.
+   */
+  staffOnly?: boolean;
 };
 
 export const COMPOSER_TYPES: ComposerType[] = [
@@ -97,13 +104,14 @@ export const COMPOSER_TYPES: ComposerType[] = [
   },
   {
     value: "EVENT",
-    label: "Event",
-    hint: "A cook-along, a meet-up, anything with a time.",
+    label: "Live class",
+    hint: "A class with a time, listed under Live Classes as well as here.",
     icon: CalendarDays,
     fields: ["title", "body", "event", "media"],
-    bodyPlaceholder: "What happens, and what should people bring?",
+    bodyPlaceholder: "What will people cook, and what should they have ready?",
     titleLabel: "What is it called",
     titleRequired: true,
+    staffOnly: true,
   },
   {
     value: "RECIPE",
@@ -122,13 +130,53 @@ export const COMPOSER_TYPES: ComposerType[] = [
 export const MAX_POLL_OPTIONS = 4;
 export const MIN_POLL_OPTIONS = 2;
 
+/** The longest post body and title the create action accepts. */
+export const POST_BODY_MAX = 5000;
+export const POST_TITLE_MAX = 300;
+
+/**
+ * The types a member may pick: every type for staff and hosts, all but the
+ * staff-only ones for everyone else.
+ */
+export function composerTypesFor(isStaff: boolean): ComposerType[] {
+  return COMPOSER_TYPES.filter((type) => isStaff || !type.staffOnly);
+}
+
+/**
+ * The post types the create action accepts from a form.
+ *
+ * Only what the composer can produce, plus IMAGE and VIDEO, which are inferred
+ * from attachments. IDEA and BULLETIN are written by the Ideas board and the
+ * Bulletin Board themselves (DEC-078) and are never accepted from here: an
+ * IDEA posted into the Kitchen Table would be invisible, and a BULLETIN post
+ * with no item behind it would be a plain post wearing a label.
+ */
+export const ACCEPTED_POST_TYPES = [
+  ...COMPOSER_TYPES.map((type) => type.value),
+  "IMAGE",
+  "VIDEO",
+] as const;
+
+export type AcceptedPostType = (typeof ACCEPTED_POST_TYPES)[number];
+
+export function parseAcceptedPostType(value: unknown): AcceptedPostType | null {
+  return typeof value === "string" &&
+    (ACCEPTED_POST_TYPES as readonly string[]).includes(value)
+    ? (value as AcceptedPostType)
+    : null;
+}
+
+export function isStaffOnlyType(value: string): boolean {
+  return COMPOSER_TYPES.some((type) => type.value === value && type.staffOnly);
+}
+
 export function parseComposerType(
   value: string | string[] | undefined,
+  options: { isStaff?: boolean } = {},
 ): ComposerType {
   const raw = Array.isArray(value) ? value[0] : value;
-  return (
-    COMPOSER_TYPES.find((type) => type.value === raw) ?? COMPOSER_TYPES[0]
-  );
+  const available = composerTypesFor(options.isStaff ?? true);
+  return available.find((type) => type.value === raw) ?? COMPOSER_TYPES[0]!;
 }
 
 export function typeHasField(type: ComposerType, field: ComposerField): boolean {
@@ -139,6 +187,10 @@ export function typeHasField(type: ComposerType, field: ComposerField): boolean 
  * Whether the form is complete enough to post, using the same rules the server
  * enforces. Returns the reason it is not, so the button can say why rather than
  * just sitting greyed out.
+ *
+ * There is no "pick a space" step any more: every post goes to the Kitchen
+ * Table (DEC-078). `spaceId` is still accepted so older callers type-check,
+ * and is ignored.
  */
 export function describeIncomplete(input: {
   type: ComposerType;
@@ -147,12 +199,10 @@ export function describeIncomplete(input: {
   link: string;
   pollOptions: string[];
   attachments: number;
-  spaceId: string;
+  spaceId?: string;
   startsAt?: string;
   method?: string;
 }): string | null {
-  if (!input.spaceId) return "Pick a space to post in.";
-
   if (input.type.titleRequired && !input.title.trim()) {
     return `${input.type.titleLabel ?? "A title"} is needed.`;
   }

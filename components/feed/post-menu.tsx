@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import { Ellipsis, Flag, Pin, PinOff, Share2, Trash2 } from "lucide-react";
+import { Ellipsis, Flag, Megaphone, MegaphoneOff, Trash2 } from "lucide-react";
 import { pinPostAction } from "@/app/(member)/community-actions";
 import { runAction, type ActionResult } from "@/components/feed/run-action";
 import { menuClass, menuItemClass } from "@/components/app/ui";
@@ -11,27 +11,31 @@ import { cn } from "@/lib/utils";
  * Post overflow menu.
  *
  * Replaces a bare <details> element, which could not be dismissed with Escape
- * or by clicking away and left the panel hanging open while navigating. Saving
- * lives in the action bar, so it is not duplicated here.
+ * or by clicking away. Pinning lives in the action bar, so it is not
+ * duplicated here, and there is no sharing: posts are not re-shared any more
+ * (DEC-078).
+ *
+ * The team's own pin is called an announcement here, so it is never confused
+ * with a member's "Pin this post", which only moves a post in their own feed.
  */
 export function PostMenu({
   postId,
   pinned,
   canPin,
   canDelete = false,
-  canShare = false,
+  canReport = true,
   onReport,
-  onShare,
   onDelete,
 }: {
   postId: string;
+  /** Whether it is an announcement (`Post.pinnedAt`). */
   pinned: boolean;
+  /** Whether this reader may make announcements (hosts and staff). */
   canPin: boolean;
   canDelete?: boolean;
-  canShare?: boolean;
+  canReport?: boolean;
   /** Opened as dialogs by the card, so the menu stays a menu. */
   onReport?: () => void;
-  onShare?: () => void;
   onDelete?: () => void;
 }) {
   const [open, setOpen] = useState(false);
@@ -54,18 +58,17 @@ export function PostMenu({
     };
   }, [open]);
 
-  function run(
-    action: (data: FormData) => Promise<ActionResult>,
-    extra?: Record<string, string>,
-  ) {
+  function run(action: (data: FormData) => Promise<ActionResult>) {
     const data = new FormData();
     data.set("postId", postId);
-    for (const [key, value] of Object.entries(extra ?? {})) data.set(key, value);
     setOpen(false);
     startTransition(async () => {
       await runAction(action, data);
     });
   }
+
+  // Nothing to offer: no empty menu behind a button.
+  if (!canPin && !canDelete && !canReport) return null;
 
   return (
     <div ref={wrapRef} className="relative shrink-0">
@@ -73,6 +76,7 @@ export function PostMenu({
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
+        aria-haspopup="menu"
         aria-label="Post actions"
         className={cn(
           "grid size-9 place-items-center rounded-ctl text-foreground-muted transition hover:bg-surface-muted hover:text-foreground",
@@ -85,29 +89,20 @@ export function PostMenu({
       {open ? (
         <div
           role="menu"
-          className={cn(menuClass, "absolute right-0 top-[calc(100%+0.25rem)] z-30 w-52")}
+          aria-label="Post actions"
+          className={cn(menuClass, "absolute right-0 top-[calc(100%+0.25rem)] z-30 w-56")}
         >
           {canPin ? (
             <MenuItem
               onClick={() => run(pinPostAction)}
               icon={
                 pinned ? (
-                  <PinOff className="size-4" aria-hidden />
+                  <MegaphoneOff className="size-4" aria-hidden />
                 ) : (
-                  <Pin className="size-4" aria-hidden />
+                  <Megaphone className="size-4" aria-hidden />
                 )
               }
-              label={pinned ? "Unpin from space" : "Pin to space"}
-            />
-          ) : null}
-          {canShare ? (
-            <MenuItem
-              onClick={() => {
-                setOpen(false);
-                onShare?.();
-              }}
-              icon={<Share2 className="size-4" aria-hidden />}
-              label="Share to a space"
+              label={pinned ? "Remove announcement" : "Make an announcement"}
             />
           ) : null}
           {canDelete ? (
@@ -121,15 +116,17 @@ export function PostMenu({
               tone="danger"
             />
           ) : null}
-          <MenuItem
-            onClick={() => {
-              setOpen(false);
-              onReport?.();
-            }}
-            icon={<Flag className="size-4" aria-hidden />}
-            label="Report post"
-            tone="danger"
-          />
+          {canReport ? (
+            <MenuItem
+              onClick={() => {
+                setOpen(false);
+                onReport?.();
+              }}
+              icon={<Flag className="size-4" aria-hidden />}
+              label="Report post"
+              tone="danger"
+            />
+          ) : null}
         </div>
       ) : null}
     </div>
@@ -152,10 +149,7 @@ function MenuItem({
       type="button"
       role="menuitem"
       onClick={onClick}
-      className={cn(
-        menuItemClass,
-        tone === "danger" && "text-danger [&_svg]:text-danger",
-      )}
+      className={cn(menuItemClass, tone === "danger" && "text-danger [&_svg]:text-danger")}
     >
       {icon}
       {label}

@@ -4,6 +4,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { requestMagicLink, inspectMagicToken } from "@/lib/auth/magic-link";
+import { MEMBER_HOME_PATH, safeCallbackUrl } from "@/lib/auth/redirects";
 import { isRedirectAuthError } from "@/lib/auth/tokens";
 import { normalizeEmail } from "@/lib/community/format";
 import { z } from "zod";
@@ -45,12 +46,17 @@ export async function passwordSignInAction(
 ): Promise<{ error?: string }> {
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
-  const callbackUrl = String(formData.get("callbackUrl") ?? "/home");
+  // Reduced to a path on this site: the hidden field carries whatever the URL
+  // said, and checking for a leading slash alone let `//elsewhere.example`
+  // through.
+  const callbackUrl = safeCallbackUrl(formData.get("callbackUrl"), {
+    host: (await headers()).get("host"),
+  });
   try {
     await signIn("credentials", {
       email,
       password,
-      redirectTo: callbackUrl.startsWith("/") ? callbackUrl : "/home",
+      redirectTo: callbackUrl,
     });
     return {};
   } catch (error) {
@@ -78,7 +84,7 @@ export async function completeMagicSignIn(formData: FormData) {
     await signIn("credentials", {
       email: normalizeEmail(email),
       magicToken: token,
-      redirectTo: "/home",
+      redirectTo: MEMBER_HOME_PATH,
     });
   } catch (error) {
     if (isRedirectAuthError(error)) {

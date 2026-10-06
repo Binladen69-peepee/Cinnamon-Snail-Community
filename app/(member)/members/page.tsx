@@ -1,10 +1,20 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Sparkles, UserRoundSearch, Users } from "lucide-react";
+import { MapPin, UserRoundSearch, Users } from "lucide-react";
 import { auth } from "@/auth";
 import {
+  CLUSTER_LIMIT,
+  CLUSTER_PREVIEW,
+  CLUSTER_VIEWS,
+  countVisibleMembers,
+  isClusterView,
   loadDirectory,
+  loadMemberClusters,
   parseMemberSort,
   parsePage,
+  resolveMemberView,
+  viewerLocation,
+  type DirectoryFilters,
   type MemberSort,
 } from "@/lib/community/directory";
 import { AppShell } from "@/components/app/app-shell";
@@ -18,47 +28,175 @@ import {
 } from "@/components/app/ui";
 import { MemberCard } from "@/components/members/member-card";
 import { MemberFilters } from "@/components/members/member-filters";
+import { MemberCluster, MEMBER_GRID } from "@/components/members/member-cluster";
+import { MemberViewTabs } from "@/components/members/member-views";
 
 export const metadata = { title: "Members" };
 
-/** The directory grid, shared by suggestions and everyone. */
-const GRID = "grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3";
+type Params = {
+  q?: string;
+  sort?: string;
+  page?: string;
+  location?: string;
+  interest?: string;
+  skill?: string;
+  cohort?: string;
+  space?: string;
+  view?: string;
+};
 
 /**
- * The member directory.
+ * Members: the community's people, three ways in.
  *
- * Built to the two things BUILD.md asks of it — search and filter (9.x), and
- * suggestions carrying an explicit reason (12.2) — and to the one thing it
- * forbids: no points, no leaderboard. So there is no activity score on a card
- * and no "top members" sort. What a card shows instead is what the two of you
- * have in common, which is the only number that helps you decide to say hello.
+ * - **Discover** (the default) is Mighty Networks' People Explorer: Top
+ *   members, Members near you, New members and Similar to you, a short row of
+ *   each with "See all".
+ * - **One cluster** on its own, as a full list.
+ * - **All members**: the searchable directory with its filters, sort and
+ *   pages, exactly as before. Any search or filter in the URL opens it, so
+ *   every old link (`/members?interest=japanese`) still lands on the filtered
+ *   directory.
  *
- * Search, filters, sort and page all live in the URL, so a narrowed directory
- * is a link someone can send.
+ * Every list honours the same rules: only members in the directory, never
+ * across a block, never a field its owner hid, and no score or rank on any
+ * card. View, search, filters, sort and page all live in the URL, so any of
+ * them is a link someone can send.
  */
 export default async function MembersPage({
   searchParams,
 }: {
-  searchParams: Promise<{
-    q?: string;
-    sort?: string;
-    page?: string;
-    location?: string;
-    interest?: string;
-    skill?: string;
-    cohort?: string;
-    space?: string;
-  }>;
+  searchParams: Promise<Params>;
 }) {
   const session = await auth();
-  if (!session?.user.id) redirect("/login");
+  if (!session?.user.id) redirect("/login?callbackUrl=/members");
+  const viewerId = session.user.id;
 
   const params = await searchParams;
+  const place = await viewerLocation(viewerId);
+  const view = resolveMemberView(params, place !== null);
+
+  return (
+    <AppShell size="wide">
+      {view === "all" ? (
+        <Directory viewerId={viewerId} params={params} hasLocation={place !== null} />
+      ) : (
+        <Clusters
+          viewerId={viewerId}
+          view={view}
+          hasLocation={place !== null}
+        />
+      )}
+    </AppShell>
+  );
+}
+
+function Header({
+  description,
+  view,
+  hasLocation,
+  children,
+}: {
+  description: React.ReactNode;
+  view: Parameters<typeof MemberViewTabs>[0]["view"];
+  hasLocation: boolean;
+  children?: React.ReactNode;
+}) {
+  return (
+    <PageHeader title="Members" description={description}>
+      <div className="flex flex-col gap-3">
+        <UrlSearchField
+          placeholder="Search by name, handle, bio or place"
+          label="Search members"
+          resetParams={["page", "location", "interest", "skill"]}
+        />
+        <MemberViewTabs view={view} viewerHasLocation={hasLocation} />
+        {children}
+      </div>
+    </PageHeader>
+  );
+}
+
+function headline(count: number) {
+  return (
+    <>
+      {count} {count === 1 ? "person" : "people"} you can cook alongside.
+    </>
+  );
+}
+
+async function Clusters({
+  viewerId,
+  view,
+  hasLocation,
+}: {
+  viewerId: string;
+  view: "discover" | (typeof CLUSTER_VIEWS)[number];
+  hasLocation: boolean;
+}) {
+  const views = isClusterView(view) ? [view] : [...CLUSTER_VIEWS];
+  const [count, data] = await Promise.all([
+    countVisibleMembers(viewerId),
+    loadMemberClusters({
+      viewerId,
+      views,
+      limit: isClusterView(view) ? CLUSTER_LIMIT : CLUSTER_PREVIEW,
+    }),
+  ]);
+  const shown = views.filter((option) => option !== "near" || data.viewerHasLocation);
+
+  return (
+    <div className="flex flex-col gap-8">
+      <Header description={headline(count)} view={view} hasLocation={hasLocation} />
+      {count === 0 ? (
+        <EmptyState
+          icon={<UserRoundSearch />}
+          title="No one is in the directory yet"
+          description="Members appear here once they join and leave their profile visible."
+        />
+      ) : (
+        <div className="flex flex-col gap-10">
+          {shown.map((option) => (
+            <MemberCluster
+              key={option}
+              view={option}
+              result={data.clusters[option]}
+              preview={!isClusterView(view)}
+            />
+          ))}
+          {/* "Near you" needs to know where you are; it stays out of the way
+              until it does, and says how to switch it on. */}
+          {!isClusterView(view) && !data.viewerHasLocation ? (
+            <p className="flex items-center gap-2 text-label text-foreground-muted">
+              <MapPin className="size-4 shrink-0" aria-hidden />
+              <span>
+                Add your city to{" "}
+                <Link href="/settings" className="font-medium text-link no-underline hover:underline">
+                  your profile
+                </Link>{" "}
+                to see members near you.
+              </span>
+            </p>
+          ) : null}
+        </div>
+      )}
+    </div>
+  );
+}
+
+async function Directory({
+  viewerId,
+  params,
+  hasLocation,
+}: {
+  viewerId: string;
+  params: Params;
+  hasLocation: boolean;
+}) {
   const sort = parseMemberSort(params.sort);
   const q = (params.q ?? "").trim();
 
   const data = await loadDirectory({
-    viewerId: session.user.id,
+    viewerId,
     q,
     sort,
     page: parsePage(params.page),
@@ -79,90 +217,57 @@ export default async function MembersPage({
   );
 
   return (
-    <AppShell size="wide">
-      <div className="flex flex-col gap-8">
-        <PageHeader
-          title="Members"
-          description={
-            filtering ? (
-              <>
-                {data.total} of {data.totalUnfiltered}{" "}
-                {data.totalUnfiltered === 1 ? "member" : "members"} match
-              </>
-            ) : (
-              <>
-                {data.totalUnfiltered}{" "}
-                {data.totalUnfiltered === 1 ? "person" : "people"} you can cook
-                alongside.
-              </>
-            )
-          }
-        >
-          <div className="flex flex-col gap-3">
-            <UrlSearchField
-              placeholder="Search by name, handle, bio or place"
-              label="Search members"
-              resetParams={["page", "location", "interest", "skill"]}
-            />
-
-            <MemberFilters
-              facets={data.facets}
-              active={data.active}
-              sort={sort}
-              q={q}
-            />
-          </div>
-        </PageHeader>
-
-        {data.suggested.length > 0 ? (
-          <Section title="People you should meet" icon={<Sparkles />}>
-            <ul className={GRID}>
-              {data.suggested.map((member) => (
-                <li key={member.handle}>
-                  <MemberCard member={member} showStarter />
-                </li>
-              ))}
-            </ul>
-          </Section>
-        ) : null}
-
-        <Section
-          title={data.suggested.length > 0 ? "Everyone" : undefined}
-          icon={<Users />}
-          count={data.total}
-        >
-          {data.members.length === 0 ? (
-            <Blank
-              filtering={filtering}
-              q={q}
-              empty={data.totalUnfiltered === 0}
-            />
+    <div className="flex flex-col gap-8">
+      <Header
+        view="all"
+        hasLocation={hasLocation}
+        description={
+          filtering ? (
+            <>
+              {data.total} of {data.totalUnfiltered}{" "}
+              {data.totalUnfiltered === 1 ? "member" : "members"} match
+            </>
           ) : (
-            <ul className={GRID}>
-              {data.members.map((member) => (
-                <li key={member.handle}>
-                  <MemberCard member={member} />
-                </li>
-              ))}
-            </ul>
-          )}
-        </Section>
+            headline(data.totalUnfiltered)
+          )
+        }
+      >
+        <MemberFilters facets={data.facets} active={data.active} sort={sort} q={q} />
+      </Header>
 
-        {data.pageCount > 1 ? (
-          <Pager
-            {...pagerHrefs({
-              page: data.page,
-              pageCount: data.pageCount,
-              q,
-              sort,
-              active: data.active,
-            })}
-            summary={`Page ${data.page} of ${data.pageCount}`}
-            className="border-t border-border pt-4"
+      <Section icon={<Users />} count={data.total} title="Everyone">
+        {data.members.length === 0 ? (
+          <Blank
+            filtering={filtering}
+            q={q}
+            empty={data.totalUnfiltered === 0}
           />
-        ) : null}
-      </div>
-    </AppShell>
+        ) : (
+          <ul className={MEMBER_GRID}>
+            {data.members.map((member) => (
+              <li key={member.handle}>
+                <MemberCard member={member} context="similar" />
+              </li>
+            ))}
+          </ul>
+        )}
+      </Section>
+
+      {data.pageCount > 1 ? (
+        <Pager
+          {...pagerHrefs({
+            page: data.page,
+            pageCount: data.pageCount,
+            q,
+            sort,
+            active: data.active,
+          })}
+          summary={`Page ${data.page} of ${data.pageCount}`}
+          label="Member pages"
+          className="border-t border-border pt-4"
+        />
+      ) : null}
+    </div>
   );
 }
 
@@ -191,7 +296,9 @@ function Blank({
       icon={<UserRoundSearch />}
       title={title}
       description={body}
-      action={filtering ? <ButtonLink href="/members">Show everyone</ButtonLink> : undefined}
+      action={
+        filtering ? <ButtonLink href="/members?view=all">Show everyone</ButtonLink> : undefined
+      }
     />
   );
 }
@@ -199,9 +306,9 @@ function Blank({
 /**
  * Previous and next for the directory. A missing href is a disabled end.
  *
- * The links carry the query, the sort and the location, interest and skill
- * filters, exactly as they always have. (They do not carry `cohort` or
- * `space`; that is flagged rather than changed here.)
+ * The links carry the query, the sort and every filter, so paging through a
+ * filtered directory stays filtered. (They used to drop `cohort` and `space`,
+ * so page two of "Joined March" was page two of everyone.)
  */
 function pagerHrefs({
   page,
@@ -214,7 +321,7 @@ function pagerHrefs({
   pageCount: number;
   q: string;
   sort: MemberSort;
-  active: { location: string | null; interest: string | null; skill: string | null };
+  active: DirectoryFilters;
 }) {
   function href(next: number) {
     const search = new URLSearchParams();
@@ -222,10 +329,14 @@ function pagerHrefs({
     if (active.location) search.set("location", active.location);
     if (active.interest) search.set("interest", active.interest);
     if (active.skill) search.set("skill", active.skill);
+    if (active.cohort) search.set("cohort", active.cohort);
+    if (active.space) search.set("space", active.space);
     if (sort !== "suggested") search.set("sort", sort);
     if (next > 1) search.set("page", String(next));
+    // A bare "/members" is Discover, so page one of an unfiltered directory
+    // says so explicitly.
     const query = search.toString();
-    return query ? `/members?${query}` : "/members";
+    return query ? `/members?${query}` : "/members?view=all";
   }
 
   return {

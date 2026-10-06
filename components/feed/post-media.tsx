@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Play } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Pause, Play } from "lucide-react";
 import { InlineVideo } from "@/components/feed/inline-video";
-import { useIsMobile } from "@/components/hooks/use-media-query";
+import { useIsMobile, useMediaQuery } from "@/components/hooks/use-media-query";
 import { videoEmbedSrc, videoPosterUrl } from "@/lib/community/media";
+import { isAnimatedMedia } from "@/lib/uploads/policy";
 import { cn } from "@/lib/utils";
 
 export type MediaItem = {
@@ -15,11 +17,22 @@ export type MediaItem = {
   width?: number | null;
   height?: number | null;
   thumbnailUrl?: string | null;
+  /** When the caller has it. GIFs are recognised by kind or file name without it. */
+  mimeType?: string | null;
 };
 
 /** Tallest a single image may be, as width/height. Anything taller is cropped. */
 const MIN_RATIO = 0.8;
 const MAX_RATIO = 2.2;
+
+/**
+ * A video to play, as opposed to an image. A GIF is an image even when a row
+ * calls it a video: `<video>` cannot play a GIF, and showing it as an image is
+ * what makes it move.
+ */
+function isVideo(item: MediaItem): boolean {
+  return item.kind === "video" && !isAnimatedMedia(item);
+}
 
 /**
  * A post's media, in the feed.
@@ -35,6 +48,13 @@ const MAX_RATIO = 2.2;
  *
  * Video plays inline at every width. Opening a modal to press play was never
  * the shorter path to watching something.
+ *
+ * GIFs play where they sit too, as plain `<img>` (an image optimizer keeps
+ * only the first frame). Anything that moves on its own needs a way to stop
+ * it, so a post with GIFs carries one "GIF" control that pauses and plays
+ * them; it sits beside the media rather than inside the lightbox button,
+ * because a button cannot hold a button. Someone who has asked their device
+ * for reduced motion gets them paused on a still frame until they press play.
  */
 export function PostMedia({
   items,
@@ -53,9 +73,22 @@ export function PostMedia({
   href?: string;
 }) {
   const isMobile = useIsMobile();
+  const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  // The member's own choice wins over the device setting once they make one.
+  const [gifChoice, setGifChoice] = useState<boolean | null>(null);
   if (items.length === 0) return null;
 
   const single = items.length === 1;
+  const gifCount = items.filter((item) => isAnimatedMedia(item)).length;
+  const gifsPlaying = gifChoice ?? !reduceMotion;
+  const gifToggle =
+    gifCount > 0 ? (
+      <GifToggle
+        playing={gifsPlaying}
+        count={gifCount}
+        onToggle={() => setGifChoice(!gifsPlaying)}
+      />
+    ) : null;
 
   /* ---------------------------------------------------------------- compact */
   // The thumbnail beside a compact row. Too small to play anything in, so on
@@ -64,8 +97,8 @@ export function PostMedia({
     const first = items[0]!;
     const inner = (
       <>
-        <Frame item={first} fill />
-        {first.kind === "video" ? (
+        <Frame item={first} fill playing={gifsPlaying} />
+        {isVideo(first) ? (
           <span
             className="pointer-events-none absolute inset-0 grid place-items-center bg-black/30"
             aria-hidden
@@ -73,6 +106,14 @@ export function PostMedia({
             <span className="grid size-7 place-items-center rounded-full bg-white/90 text-black">
               <Play className="size-3 translate-x-px" />
             </span>
+          </span>
+        ) : null}
+        {isAnimatedMedia(first) ? (
+          <span
+            className="pointer-events-none absolute bottom-1 left-1 rounded-chip bg-black/70 px-1 text-micro font-semibold text-white"
+            aria-hidden
+          >
+            GIF
           </span>
         ) : null}
         {items.length > 1 ? (
@@ -110,7 +151,7 @@ export function PostMedia({
 
   /* ------------------------------------------------------------------ video */
   // One video, at any width: it plays where it is.
-  if (single && items[0]!.kind === "video") {
+  if (single && isVideo(items[0]!)) {
     return (
       <div className={flush ? "" : "mt-2"}>
         <InlineVideo
@@ -131,12 +172,13 @@ export function PostMedia({
       return (
         <div
           className={cn(
-            "w-full overflow-hidden bg-surface-muted",
+            "relative w-full overflow-hidden bg-surface-muted",
             flush ? "rounded-none" : "mt-2 rounded-ctl border border-border",
           )}
           style={{ aspectRatio: String(ratioOf(item)) }}
         >
-          <Frame item={item} eager />
+          <Frame item={item} eager playing={gifsPlaying} />
+          {gifToggle}
         </div>
       );
     }
@@ -144,7 +186,7 @@ export function PostMedia({
     // Several: a strip you swipe, with every item reachable without leaving
     // the post. Scroll snapping makes it land on one image at a time.
     return (
-      <div className={flush ? "" : "mt-2"}>
+      <div className={cn("relative", flush ? "" : "mt-2")}>
         <ul
           className={cn(
             "vu-scroll-x flex snap-x snap-mandatory gap-1.5 overflow-x-auto",
@@ -160,7 +202,7 @@ export function PostMedia({
               )}
               style={{ aspectRatio: String(ratioOf(item)) }}
             >
-              {item.kind === "video" ? (
+              {isVideo(item) ? (
                 <InlineVideo
                   url={item.url}
                   alt={item.alt}
@@ -169,7 +211,7 @@ export function PostMedia({
                   rounded={false}
                 />
               ) : (
-                <Frame item={item} fill eager={index === 0} />
+                <Frame item={item} fill eager={index === 0} playing={gifsPlaying} />
               )}
               <span className="absolute bottom-2 right-2 rounded-full bg-black/70 px-2 py-0.5 text-micro font-semibold tabular-nums text-white">
                 {index + 1}/{items.length}
@@ -177,6 +219,7 @@ export function PostMedia({
             </li>
           ))}
         </ul>
+        {gifToggle}
       </div>
     );
   }
@@ -185,7 +228,7 @@ export function PostMedia({
   const shown = items.slice(0, 4);
   const extra = items.length - shown.length;
 
-  return (
+  const grid = (
     <button
       type="button"
       onClick={() => onOpen?.(0)}
@@ -194,12 +237,13 @@ export function PostMedia({
       }
       className={cn(
         "group/media block w-full overflow-hidden bg-surface-muted text-left",
-        flush ? "rounded-none border-0" : "mt-2 rounded-ctl border border-border",
+        flush ? "rounded-none border-0" : "rounded-ctl border border-border",
+        !flush && !gifToggle && "mt-2",
       )}
       style={single ? { aspectRatio: String(ratioOf(items[0]!)) } : undefined}
     >
       {single ? (
-        <Frame item={items[0]!} eager />
+        <Frame item={items[0]!} eager playing={gifsPlaying} />
       ) : (
         <div className={cn("grid gap-0.5", gridFor(shown.length))}>
           {shown.map((item, index) => (
@@ -210,8 +254,8 @@ export function PostMedia({
                 shown.length === 3 && index === 0 && "row-span-2",
               )}
             >
-              <Frame item={item} fill />
-              {item.kind === "video" ? (
+              <Frame item={item} fill playing={gifsPlaying} />
+              {isVideo(item) ? (
                 <span
                   className="pointer-events-none absolute inset-0 grid place-items-center bg-black/30"
                   aria-hidden
@@ -232,6 +276,15 @@ export function PostMedia({
       )}
     </button>
   );
+
+  if (!gifToggle) return grid;
+  // The pause control is the lightbox button's sibling, laid over its corner.
+  return (
+    <div className={cn("relative", flush ? "" : "mt-2")}>
+      {grid}
+      {gifToggle}
+    </div>
+  );
 }
 
 function gridFor(count: number) {
@@ -246,16 +299,48 @@ function ratioOf(item: MediaItem) {
   return Math.min(Math.max(raw, MIN_RATIO), MAX_RATIO).toFixed(4);
 }
 
+/** The one control that pauses and plays a post's GIFs. */
+function GifToggle({
+  playing,
+  count,
+  onToggle,
+}: {
+  playing: boolean;
+  count: number;
+  onToggle: () => void;
+}) {
+  const noun = count > 1 ? "GIFs" : "GIF";
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-label={playing ? `Pause ${noun}` : `Play ${noun}`}
+      title={playing ? `Pause ${noun}` : `Play ${noun}`}
+      className="absolute bottom-2 left-2 z-10 inline-flex h-7 items-center gap-1 rounded-full bg-black/70 px-2.5 text-micro font-semibold uppercase tracking-[0.06em] text-white transition hover:bg-black/85"
+    >
+      {playing ? (
+        <Pause className="size-3" aria-hidden />
+      ) : (
+        <Play className="size-3" aria-hidden />
+      )}
+      GIF
+    </button>
+  );
+}
+
 function Frame({
   item,
   fill,
   eager,
+  playing = true,
 }: {
   item: MediaItem;
   fill?: boolean;
   eager?: boolean;
+  /** For a GIF: whether it moves. Ignored for anything else. */
+  playing?: boolean;
 }) {
-  if (item.kind === "video") {
+  if (isVideo(item)) {
     const poster = videoPosterUrl(item.url, item.thumbnailUrl);
     if (poster) {
       return (
@@ -292,6 +377,9 @@ function Frame({
       />
     );
   }
+  if (isAnimatedMedia(item)) {
+    return <AnimatedFrame item={item} fill={fill} eager={eager} playing={playing} />;
+  }
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
@@ -307,4 +395,108 @@ function Frame({
       )}
     />
   );
+}
+
+/**
+ * A GIF that can be held still.
+ *
+ * An `<img>` cannot pause a GIF, so a paused one is a canvas holding the frame
+ * that was showing, drawn the way `object-cover` would crop it. Drawing a
+ * cross-origin image only marks the canvas unreadable; it still shows, which
+ * is all this needs. If drawing fails the canvas stays blank over the muted
+ * plate, which is still not moving.
+ */
+function AnimatedFrame({
+  item,
+  fill,
+  eager,
+  playing,
+}: {
+  item: MediaItem;
+  fill?: boolean;
+  eager?: boolean;
+  playing: boolean;
+}) {
+  const imageRef = useRef<HTMLImageElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    if (playing) return;
+    const image = imageRef.current;
+    const canvas = canvasRef.current;
+    if (!image || !canvas) return;
+    const paint = () => paintStill(canvas, image);
+    if (image.complete) paint();
+    image.addEventListener("load", paint);
+    const observer =
+      typeof ResizeObserver === "function" ? new ResizeObserver(paint) : null;
+    observer?.observe(canvas);
+    return () => {
+      image.removeEventListener("load", paint);
+      observer?.disconnect();
+    };
+  }, [playing]);
+
+  const description = item.alt || "GIF";
+  return (
+    <span
+      className={cn(
+        "block overflow-hidden bg-surface-muted",
+        fill ? "absolute inset-0" : "relative size-full",
+      )}
+    >
+      {/* A plain <img>: next/image would keep only the first frame. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        ref={imageRef}
+        src={item.url}
+        alt={item.alt ?? ""}
+        width={item.width ?? undefined}
+        height={item.height ?? undefined}
+        loading={eager ? undefined : "lazy"}
+        decoding="async"
+        className={cn("size-full object-cover", !playing && "invisible")}
+      />
+      {!playing ? (
+        <canvas
+          ref={canvasRef}
+          role="img"
+          aria-label={`${description} (paused)`}
+          className="absolute inset-0 size-full"
+        />
+      ) : null}
+    </span>
+  );
+}
+
+function paintStill(canvas: HTMLCanvasElement, image: HTMLImageElement) {
+  const width = canvas.clientWidth;
+  const height = canvas.clientHeight;
+  const naturalWidth = image.naturalWidth;
+  const naturalHeight = image.naturalHeight;
+  if (!width || !height || !naturalWidth || !naturalHeight) return;
+  const scale = Math.min(window.devicePixelRatio || 1, 2);
+  canvas.width = Math.round(width * scale);
+  canvas.height = Math.round(height * scale);
+  const context = canvas.getContext("2d");
+  if (!context) return;
+  // object-fit: cover — fill the box, crop the overflow evenly.
+  const fit = Math.max(canvas.width / naturalWidth, canvas.height / naturalHeight);
+  const sourceWidth = canvas.width / fit;
+  const sourceHeight = canvas.height / fit;
+  try {
+    context.drawImage(
+      image,
+      (naturalWidth - sourceWidth) / 2,
+      (naturalHeight - sourceHeight) / 2,
+      sourceWidth,
+      sourceHeight,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
+  } catch {
+    // A broken image cannot be drawn; the plate behind stays.
+  }
 }

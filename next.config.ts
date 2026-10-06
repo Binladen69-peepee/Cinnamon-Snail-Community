@@ -7,7 +7,33 @@ const posthogHost = (
 // The static-assets host is the ingest host with `-assets` on the region.
 const posthogAssets = posthogHost.replace(".i.posthog.com", "-assets.i.posthog.com");
 
+/**
+ * Member addresses that were retired, and where they live now.
+ *
+ * Explorer and the list of spaces gave way to the Kitchen Table (DEC-078), and
+ * Events became Live Classes (DEC-079), so old bookmarks, emails and
+ * notification links still land somewhere real. These run before proxy.ts,
+ * which then asks a signed-out visitor to sign in to the new address.
+ *
+ * - Temporary (307), not permanent: a browser caches a 308 for good, and any
+ *   of these paths may be wanted for something else later.
+ * - The query string comes along by itself, so `/home?view=reels` lands on
+ *   `/kitchen-table?view=reels`.
+ * - `/spaces/:slug` is one segment only. A space's `/settings` and `/review`
+ *   pages are still where staff and hosts manage it, so they do not move.
+ */
+const retiredRoutes = [
+  { source: "/home", destination: "/kitchen-table", permanent: false },
+  { source: "/spaces", destination: "/kitchen-table", permanent: false },
+  { source: "/spaces/:slug", destination: "/kitchen-table", permanent: false },
+  { source: "/calendar", destination: "/live-classes", permanent: false },
+  { source: "/calendar/:slug", destination: "/live-classes/:slug", permanent: false },
+];
+
 const nextConfig: NextConfig = {
+  async redirects() {
+    return retiredRoutes;
+  },
   images: {
     remotePatterns: [
       {

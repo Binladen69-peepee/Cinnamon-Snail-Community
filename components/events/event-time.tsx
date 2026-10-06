@@ -94,6 +94,42 @@ export function EventTime({
   );
 }
 
+/**
+ * One part of a date (the month, or the day of the month), in the zone
+ * `EventTime` settles on: the profile's on the server, the browser's once
+ * hydrated. A date tile beside an `EventTime` must not say the 7th while the
+ * time beside it says Thursday the 8th, which is what a member travelling, or
+ * one whose profile zone is not where they are, saw when the tile stayed in
+ * the profile's zone.
+ */
+export function EventDatePart({
+  date,
+  part,
+  viewerTimeZone,
+}: {
+  date: string | Date;
+  part: "month" | "day";
+  /** What the server rendered in. */
+  viewerTimeZone: string;
+}) {
+  const when = typeof date === "string" ? new Date(date) : date;
+  const zone = useSyncExternalStore(subscribeToNothing, getBrowserZone, () => viewerTimeZone);
+  return (
+    <>
+      {new Intl.DateTimeFormat("en-US", {
+        timeZone: zone,
+        ...(part === "month" ? { month: "short" as const } : { day: "numeric" as const }),
+      }).format(when)}
+    </>
+  );
+}
+
+/** The zone the times on the page are shown in, named the same way they are chosen. */
+export function ViewerZoneName({ viewerTimeZone }: { viewerTimeZone: string }) {
+  const zone = useSyncExternalStore(subscribeToNothing, getBrowserZone, () => viewerTimeZone);
+  return <>{zone}</>;
+}
+
 /** The browser's zone does not change while the page is open, so nothing subscribes. */
 function subscribeToNothing(): () => void {
   return () => undefined;

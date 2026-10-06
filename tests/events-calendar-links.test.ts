@@ -50,9 +50,9 @@ describe("eventIcs", () => {
     expect(eventIcs(event)).toContain("https://zoom.us/j/123456");
   });
 
-  it("links back to the event page", () => {
+  it("links back to the class page on Live Classes", () => {
     expect(eventIcs(event, { baseUrl: "https://example.test" })).toContain(
-      "URL:https://example.test/calendar/weeknight-plants-live-cook",
+      "URL:https://example.test/live-classes/weeknight-plants-live-cook",
     );
   });
 
@@ -121,10 +121,11 @@ describe("googleCalendarUrl", () => {
     expect(url.searchParams.get("location")).toBe("Kitchen Table (online)");
   });
 
-  it("puts the joining link and the event page in the details", () => {
+  it("puts the joining link and the class page in the details", () => {
     const url = new URL(googleCalendarUrl(event, { baseUrl: "https://example.test" }));
     const details = url.searchParams.get("details") ?? "";
     expect(details).toContain("https://zoom.us/j/123456");
-    expect(details).toContain("https://example.test/calendar/weeknight-plants-live-cook");
+    expect(details).toContain("https://example.test/live-classes/weeknight-plants-live-cook");
+    expect(details).not.toContain("/calendar/");
   });
 });

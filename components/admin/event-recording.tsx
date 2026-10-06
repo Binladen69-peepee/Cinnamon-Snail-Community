@@ -17,10 +17,12 @@ import {
 /**
  * What happens to the class after it has happened.
  *
- * A recording sitting on a past event is useful; a recording that becomes a
- * lesson in the course it belongs to, or a post in the room that watched it
- * live, is where people actually go looking for it. Both write through the
- * systems that already own those things.
+ * A recording sitting on a past class is useful, and members find it there
+ * ("Watch recording" on Live Classes). A recording that also becomes a lesson
+ * in the class library, or a post the community sees, is where people go
+ * looking for it later. Both write through the systems that already own those
+ * things. A class with no room of its own, which is every class from Zoom,
+ * posts to the Kitchen Table.
  *
  * Publishing is offered once. A lesson or post already made is shown as done
  * rather than offered again, because the second press would make a duplicate
@@ -94,20 +96,20 @@ export function EventRecording({
             value={publishTo}
             onChange={(event) => setPublishTo(event.target.value)}
           >
-            <option value="none">Just attach it to the event</option>
+            <option value="none">Just attach it to the class</option>
             <option value="course" disabled={hasLesson || courses.length === 0}>
               {hasLesson
-                ? "Already a lesson in a course"
+                ? "Already a lesson in a class"
                 : courses.length === 0
-                  ? "No course has a section yet"
-                  : "As a lesson in a course"}
+                  ? "No class in the library has a section yet"
+                  : "As a lesson in the class library"}
             </option>
-            <option value="space" disabled={hasPost || !hasSpace}>
+            <option value="space" disabled={hasPost}>
               {hasPost
-                ? "Already posted in the room"
-                : !hasSpace
-                  ? "This event has no room"
-                  : "As a post in the room"}
+                ? "Already posted"
+                : hasSpace
+                  ? "As a post in the class's room"
+                  : "As a post at the Kitchen Table"}
             </option>
           </Select>
         </Field>
@@ -131,7 +133,10 @@ export function EventRecording({
 
       <div className="flex items-center justify-end gap-3 border-t border-separator px-4 py-3 sm:px-5">
         {saved && !saving ? (
-          <span className="inline-flex items-center gap-1 text-label font-medium text-foreground-muted">
+          <span
+            role="status"
+            className="inline-flex items-center gap-1 text-label font-medium text-foreground-muted"
+          >
             <Check className="size-4 text-success" aria-hidden />
             Saved
           </span>

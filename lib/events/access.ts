@@ -3,18 +3,22 @@ import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { getUserAuth } from "@/lib/community/viewer";
 import { canEnterSpace, isStaff } from "@/lib/permissions";
+import { canAccessPaidContent, isEntitlementActive } from "@/lib/entitlements/check";
+import type { MembershipStanding } from "@/lib/events/join";
 
 /**
- * Which events a member may see, and what they may do to one.
+ * Which live classes a member may see, and what they may do to one.
  *
- * An event belonging to a space inherits that space's door. A private room's
- * cook-along must not appear on a calendar belonging to someone who cannot get
- * into the room — the title alone would say who is meeting and when. An event
- * with no space is community-wide and open to any active member.
+ * A class belonging to a space inherits that space's door. A private room's
+ * cook-along must not appear on the schedule of someone who cannot get into
+ * the room: the title alone would say who is meeting and when. A class with no
+ * space (every class from Zoom) is community-wide and open to any active
+ * member. Whether they may *join* it is a separate question, answered by
+ * `lib/events/join.ts` with the membership standing below.
  *
- * The decision is made here so the calendar, the event page, the RSVP action,
+ * The decision is made here so Live Classes, the class page, the RSVP action,
  * the `.ics` route and the reminder job all agree. They previously did not:
- * the `.ics` route handed any signed-in member any event's details.
+ * the `.ics` route handed any signed-in member any class's details.
  */
 
 export type EventViewer = {
@@ -111,6 +115,30 @@ export function canSeeEvent(
   if (!event.spaceId) return true;
   return viewer.spaceIds.has(event.spaceId);
 }
+
+/**
+ * Whether this member's membership is live, ran out, or never was.
+ *
+ * Live classes are part of the membership (DEC-079), so this is what decides
+ * whether a member gets the Zoom link, by the same rule the class library uses
+ * to decide whether a lesson plays: any entitlement live right now. Run out
+ * and never-had are told apart because they need different sentences and
+ * different links. Memoised for the request.
+ */
+export const getMembershipStanding = cache(async function getMembershipStanding(
+  userId: string,
+): Promise<MembershipStanding> {
+  const entitlements = await prisma.entitlement.findMany({
+    where: { userId },
+    select: { status: true, startsAt: true, endsAt: true, revokedAt: true },
+  });
+  if (canAccessPaidContent(entitlements)) return "active";
+  const now = new Date();
+  const lapsed = entitlements.some(
+    (item) => !isEntitlementActive(item, now) && item.startsAt <= now,
+  );
+  return lapsed ? "expired" : "none";
+});
 
 /**
  * Whether this member may RSVP.

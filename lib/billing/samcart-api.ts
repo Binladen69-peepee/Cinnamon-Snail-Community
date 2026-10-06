@@ -10,6 +10,12 @@ export type SamcartSubscriptionSnapshot = {
   customerEmail: string | null;
   productId: string | null;
   periodEnd: Date | null;
+  /**
+   * When the subscription originally started, as SamCart reports it. This is
+   * what places a member in their cohort crew (DEC-078); null when SamCart's
+   * response carries no start date.
+   */
+  startedAt: Date | null;
 };
 
 export type SamcartProductSnapshot = {
@@ -54,6 +60,81 @@ export function readSamcartPeriodEnd(raw: unknown): Date | null {
   return null;
 }
 
+/**
+ * A subscription's original start, from a SamCart subscription resource (the
+ * API's `GET /subscriptions/{id}`, or one row of the list).
+ *
+ * On the resource itself `created_at` is the subscription's creation, which is
+ * when the member started paying — the date the cohort crews want. The more
+ * explicit names win when SamCart sends them.
+ */
+export function readSamcartStartedAt(raw: unknown, now = new Date()): Date | null {
+  const root = asRecord(raw);
+  const data = asRecord(root.data);
+  const source = Object.keys(data).length ? data : root;
+  return firstPlausibleDate(
+    [
+      source.start_date,
+      source.started_at,
+      source.subscription_start_date,
+      source.start_at,
+      source.created_at,
+      source.date_created,
+      source.created,
+    ],
+    now,
+  );
+}
+
+/**
+ * The start a webhook can vouch for (DEC-078).
+ *
+ * The `subscription` object in a notification describes the subscription, so
+ * a start date there is the real one. Failing that, a purchase is the start:
+ * the order's own date, else the moment the notification arrived. Anything
+ * else — a renewal charge, a cancellation — says nothing about when the
+ * member began, so it returns null and the SamCart API backfill fills it in
+ * later. Root-level timestamps are never used: on a notification they are the
+ * time of the event, which for a renewal is years after the start.
+ */
+export function samcartStartFromWebhook(
+  payload: unknown,
+  input: { type: string; receivedAt: Date },
+): Date | null {
+  const root = asRecord(payload);
+  const subscription = asRecord(root.subscription);
+  const explicit = firstPlausibleDate(
+    [
+      subscription.start_date,
+      subscription.started_at,
+      subscription.subscription_start_date,
+      subscription.start_at,
+      subscription.created_at,
+      subscription.date_created,
+    ],
+    input.receivedAt,
+  );
+  if (explicit) return explicit;
+  if (input.type !== "purchase") return null;
+  const order = asRecord(root.order);
+  return (
+    firstPlausibleDate([order.created_at, order.order_date, order.date_created], input.receivedAt) ??
+    input.receivedAt
+  );
+}
+
+/** The first value that is a date SamCart could have meant: not in the future, not before 2000. */
+function firstPlausibleDate(values: unknown[], now: Date): Date | null {
+  const latest = now.getTime() + 24 * 60 * 60 * 1000;
+  for (const value of values) {
+    const date = parseDate(value);
+    if (!date) continue;
+    if (date.getTime() > latest || date.getUTCFullYear() < 2000) continue;
+    return date;
+  }
+  return null;
+}
+
 export async function cancelSamcartSubscription(
   samcartSubscriptionId: string,
 ): Promise<SamcartCancelResult> {
@@ -77,7 +158,7 @@ export async function cancelSamcartSubscription(
 
 export async function getSamcartSubscription(samcartSubscriptionId: string): Promise<
   | { ok: true; subscription: SamcartSubscriptionSnapshot }
-  | { ok: false; error: string }
+  | { ok: false; error: string; status?: number }
 > {
   const result = await samcartRequest(
     `/subscriptions/${encodeURIComponent(samcartSubscriptionId)}`,
@@ -140,7 +221,7 @@ export async function listSamcartSubscriptions(): Promise<
 async function samcartRequest(
   path: string,
   options?: { method?: string; body?: unknown; base?: string },
-): Promise<{ ok: true; raw: unknown } | { ok: false; error: string }> {
+): Promise<{ ok: true; raw: unknown } | { ok: false; error: string; status?: number }> {
   const key = process.env.SAMCART_API_KEY;
   if (!key) {
     return { ok: false, error: "SAMCART_API_KEY is not configured" };
@@ -161,6 +242,7 @@ async function samcartRequest(
       return {
         ok: false,
         error: `SamCart ${options?.method ?? "GET"} ${path} failed (${response.status})`,
+        status: response.status,
       };
     }
     return { ok: true, raw };
@@ -184,6 +266,7 @@ function snapshotFromRaw(raw: unknown, fallbackId?: string): SamcartSubscription
     customerEmail: asString(customer.email)?.toLowerCase() ?? null,
     productId: asString(product.id) ?? asString(source.product_id),
     periodEnd: readSamcartPeriodEnd(raw),
+    startedAt: readSamcartStartedAt(raw),
   };
 }
 

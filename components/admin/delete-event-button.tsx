@@ -6,25 +6,30 @@ import { deleteEventAction } from "@/app/admin/events/actions";
 import { Button } from "@/components/app/ui";
 
 /**
- * Deleting an event, with the consequences said out loud.
+ * Deleting a live class, with the consequences said out loud.
  *
  * Deleting takes the RSVPs with it, and for a series head it takes every
  * generated date too. Both are cascades in the schema rather than choices
- * this button makes — but somebody pressing it should be told what the schema
+ * this button makes, but somebody pressing it should be told what the schema
  * is about to do, with the real numbers rather than a generic warning.
  *
- * Canceling is usually what is wanted instead, so the confirm says so.
+ * Canceling is usually what is wanted instead, so the confirm says so. For a
+ * class that came from Zoom it says one more thing: while the meeting still
+ * says LIVE CLASS in Zoom, the next sync brings it straight back.
  */
 export function DeleteEventButton({
   eventId,
   title,
   rsvpCount,
   occurrences,
+  fromZoom = false,
 }: {
   eventId: string;
   title: string;
   rsvpCount: number;
   occurrences: number;
+  /** A live Zoom class: deleting it here does not delete the meeting. */
+  fromZoom?: boolean;
 }) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
@@ -39,8 +44,13 @@ export function DeleteEventButton({
     if (occurrences > 0) {
       parts.push(`${occurrences} generated dates in this series go too.`);
     }
+    if (fromZoom) {
+      parts.push(
+        "This class comes from Zoom. While the meeting still says LIVE CLASS there, the next sync will bring it back. Delete or rename the meeting in Zoom instead.",
+      );
+    }
     parts.push(
-      "To call it off while keeping the record, set the status to Canceled instead — that tells everyone who was coming.",
+      "To call it off while keeping the record, set the status to Canceled instead. That tells everyone who was coming.",
     );
     if (!window.confirm(parts.join("\n\n"))) return;
 

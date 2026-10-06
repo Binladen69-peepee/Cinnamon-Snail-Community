@@ -2,14 +2,19 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BadgeCheck, CalendarDays, ChefHat, Globe2, Pin } from "lucide-react";
+import { BadgeCheck, CalendarDays, ChefHat, Megaphone, Pin } from "lucide-react";
 import { formatShortTime } from "@/lib/community/format-count";
 import { Avatar } from "@/components/ui/avatar";
+import { RichText } from "@/components/content/rich-text";
+import { BulletinFeedCard } from "@/components/bulletin/feed-card";
+import type { BulletinCardData } from "@/lib/bulletin/feed";
 import { PostFollowButton } from "@/components/feed/post-follow-button";
 import { PostFooter } from "@/components/feed/post-footer";
 import { PostGalleryModal } from "@/components/feed/post-gallery-modal";
 import { PostMedia } from "@/components/feed/post-media";
 import { PostOverflow } from "@/components/feed/post-overflow";
+import { PostPoll } from "@/components/feed/post-poll";
+import { usePin } from "@/components/feed/use-engagement";
 import type { Density } from "@/components/feed/feed-toolbar";
 import { videoEmbedSrc } from "@/lib/community/media";
 import { cn } from "@/lib/utils";
@@ -17,6 +22,7 @@ import { cn } from "@/lib/utils";
 type PreviewComment = {
   id: string;
   body: string;
+  excerpt?: string;
   author: {
     handle: string;
     profile: { displayName: string; avatarUrl: string | null } | null;
@@ -26,10 +32,15 @@ type PreviewComment = {
 export type FeedPost = {
   id: string;
   title: string | null;
+  /** The stored markdown; rendered through `<RichText>` (C2). */
+  body?: string;
   bodyHtml: string | null;
   plainText: string;
+  /** Plain text, no markup, for one-line previews. */
+  excerpt?: string;
   type: string;
   linkUrl: string | null;
+  /** Set when the team made it an announcement. */
   pinnedAt: Date | null;
   publishedAt: Date | null;
   createdAt: Date;
@@ -37,7 +48,9 @@ export type FeedPost = {
   myVote?: number;
   myReaction?: string | null;
   reactionCounts?: Record<string, number>;
+  /** Whether the reader has pinned it ("Pin this post"). */
   myBookmark?: boolean;
+  myPollOptionId?: string | null;
   comments?: PreviewComment[];
   author: {
     handle: string;
@@ -56,21 +69,38 @@ export type FeedPost = {
   pollOptions: { id: string; label: string; _count: { votes: number } }[];
   event?: {
     id: string;
+    slug?: string;
     title: string;
     startsAt: string | Date;
     endsAt: string | Date | null;
     location: string | null;
     capacity: number | null;
+    status?: string;
   } | null;
   recipe?: { id: string; slug: string; title: string } | null;
+  /** The Bulletin Board item behind a BULLETIN post (C3). */
+  bulletin?: BulletinCardData | null;
   _count: { comments: number; bookmarks: number };
   authorFollowerCount?: number;
   viewerFollowsAuthor?: boolean;
 };
 
+const EVENT_WHEN: Intl.DateTimeFormatOptions = {
+  weekday: "short",
+  day: "numeric",
+  month: "short",
+  hour: "2-digit",
+  minute: "2-digit",
+};
+
 /**
- * LinkedIn-style feed post: header, body, full-bleed media, reaction summary,
- * and a four-action bar (Like · Comment · Saved · Send).
+ * A post in the Kitchen Table: who and when, what they said, their media, and
+ * Like · Comment · Pin underneath.
+ *
+ * No room label: every general room reads as the Kitchen Table now (DEC-078),
+ * so "# Kitchen Table" on every card said nothing. Bodies go through
+ * `<RichText>`, which renders markdown and never raw HTML, so bold is bold and
+ * a pasted `<script>` is text.
  */
 export function PostCard({
   post,
@@ -78,18 +108,33 @@ export function PostCard({
   density = "card",
   preview = true,
   canPin = false,
-  showSpace = true,
+  pinnedMark = false,
+  onPostPage = false,
 }: {
   post: FeedPost;
   viewer: { name: string; avatar: string | null; handle?: string };
   density?: Density;
+  /** Clamp a long body behind "…more". Off on the post page. */
   preview?: boolean;
+  /** Whether the reader may make announcements and remove posts (hosts and staff). */
   canPin?: boolean;
+  /**
+   * The card sits in the reader's pinned section: mark it "Pinned" for as
+   * long as it stays pinned.
+   */
+  pinnedMark?: boolean;
+  /** On the post page, where the conversation is already below the card. */
+  onPostPage?: boolean;
+  /** Retired: posts no longer carry a room label. Accepted so callers compile. */
   showSpace?: boolean;
 }) {
   const [galleryOpen, setGalleryOpen] = useState(false);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [expanded, setExpanded] = useState(!preview);
+  const [removed, setRemoved] = useState(false);
+  const pin = usePin(post.id, post.myBookmark ?? false);
+
+  if (removed) return null;
 
   const compact = density === "compact";
   const name = post.author.profile?.displayName ?? post.author.handle;
@@ -105,17 +150,21 @@ export function PostCard({
     /^https?:\/\//.test(post.linkUrl ?? "") && !videoEmbedSrc(post.linkUrl ?? "")
       ? post.linkUrl
       : null;
-  const spaceLabel = post.space.name.startsWith("#")
-    ? post.space.name
-    : `# ${post.space.name}`;
   const followerLabel =
     typeof post.authorFollowerCount === "number" && post.authorFollowerCount > 0
-      ? `${post.authorFollowerCount.toLocaleString()} followers`
+      ? `${post.authorFollowerCount.toLocaleString()} ${post.authorFollowerCount === 1 ? "follower" : "followers"}`
       : null;
+  const body = post.body ?? post.plainText;
+  const excerpt = (post.excerpt ?? post.plainText ?? "").trim();
+  const longBody = excerpt.length > 280 || (body.match(/\n/g)?.length ?? 0) > 4;
+  const bulletin = post.bulletin ?? null;
+  const strip: "pinned" | "announcement" | null =
+    pinnedMark && pin.pinned ? "pinned" : post.pinnedAt ? "announcement" : null;
 
   const galleryPayload = {
     id: post.id,
     title: post.title,
+    body: post.body,
     bodyHtml: post.bodyHtml,
     plainText: post.plainText,
     score: post.score,
@@ -137,39 +186,52 @@ export function PostCard({
     setGalleryOpen(true);
   }
 
-  const bodyText = post.plainText?.trim() ?? "";
-  const longBody = bodyText.length > 180;
-  // The row shows text, not HTML, so it reads the rendered body with its tags
-  // removed. Reading `plainText` instead showed raw markdown markers on posts
-  // whose stored plain text predates the renderer.
-  const compactText = previewText(post.bodyHtml, bodyText);
+  const overflow = (
+    <PostOverflow
+      postId={post.id}
+      pinned={Boolean(post.pinnedAt)}
+      canPin={canPin}
+      // A Bulletin Board post is taken down by a host, or withdrawn on the
+      // board; its author cannot delete it from the feed (lib/community/posts).
+      canDelete={bulletin ? canPin : isOwn || canPin}
+      canReport={!isOwn}
+      onDeleted={() => setRemoved(true)}
+    />
+  );
+
+  const gallery = hasMedia ? (
+    <PostGalleryModal
+      open={galleryOpen}
+      onClose={() => setGalleryOpen(false)}
+      post={galleryPayload}
+      media={media}
+      viewer={viewer}
+      startIndex={galleryIndex}
+      canPin={canPin}
+    />
+  ) : null;
 
   /* ---------------------------------------------------------------- compact */
   // A dense list row rather than a shorter card: thumbnail on the left where a
-  // list expects it, who-and-where on one line, the text on two, and the
-  // actions as a slim strip. The old compact view kept the card's full header
-  // and dropped a round thumbnail into a band beneath it, which was neither a
-  // card nor a list.
+  // list expects it, who-and-when on one line, the text on two, and the
+  // actions as a slim strip.
   if (compact) {
+    const rowText = bulletin ? bulletin.summary || bulletin.title : excerpt;
+    const rowTitle = bulletin ? bulletin.title : post.title;
     return (
       <>
         <article
+          aria-label={rowTitle || `Post by ${name}`}
           className={cn(
             // No `content-visibility:auto` here: its paint containment clips
-            // the overflow menu to a row only ~110px tall, so Delete and
-            // Report fell off the bottom. Rows are cheap enough to skip it.
+            // the overflow menu to a row only ~110px tall.
             "group/post rounded-card border bg-surface shadow-e1",
-            post.pinnedAt ? "border-brand/40" : "border-border",
+            strip ? "border-brand/40" : "border-border",
           )}
         >
           <div className="flex gap-3 px-4 py-3">
             {hasMedia ? (
-              <PostMedia
-                items={media}
-                compact
-                onOpen={openGallery}
-                href={`/posts/${post.id}`}
-              />
+              <PostMedia items={media} compact onOpen={openGallery} href={`/posts/${post.id}`} />
             ) : (
               <Link
                 href={`/members/${post.author.handle}`}
@@ -197,52 +259,32 @@ export function PostCard({
                   {isHost ? (
                     <BadgeCheck className="size-3.5 shrink-0 text-brand" aria-label="Host" />
                   ) : null}
-                  {post.pinnedAt ? (
+                  {strip === "pinned" ? (
                     <Pin className="size-3 shrink-0 text-brand" aria-label="Pinned" />
-                  ) : null}
-                  {showSpace ? (
-                    <>
-                      <span aria-hidden>·</span>
-                      <Link
-                        href={`/spaces/${post.space.slug}`}
-                        className="truncate text-foreground-muted no-underline hover:text-foreground hover:underline"
-                      >
-                        {spaceLabel}
-                      </Link>
-                    </>
+                  ) : strip === "announcement" ? (
+                    <Megaphone className="size-3 shrink-0 text-brand" aria-label="Announcement" />
                   ) : null}
                   <span aria-hidden>·</span>
                   <time dateTime={stamp.toISOString()} title={stamp.toLocaleString()}>
                     {formatShortTime(stamp)}
                   </time>
                 </p>
-                <div className="-mr-2 -mt-1.5 shrink-0">
-                  <PostOverflow
-                    postId={post.id}
-                    pinned={Boolean(post.pinnedAt)}
-                    canPin={canPin}
-                    canDelete={isOwn || canPin}
-                  />
-                </div>
+                <div className="-mr-2 -mt-1.5 shrink-0">{overflow}</div>
               </div>
 
               <Link
                 href={`/posts/${post.id}`}
                 className="mt-1 block text-body leading-snug text-foreground no-underline"
               >
-                {post.title ? (
-                  <span className="block truncate font-semibold">{post.title}</span>
-                ) : null}
-                {compactText ? (
+                {rowTitle ? <span className="block truncate font-semibold">{rowTitle}</span> : null}
+                {rowText ? (
                   <span
                     className={cn(
                       "block",
-                      post.title
-                        ? "mt-0.5 line-clamp-1 text-foreground-muted"
-                        : "line-clamp-2 text-foreground",
+                      rowTitle ? "mt-0.5 line-clamp-1 text-foreground-muted" : "line-clamp-2 text-foreground",
                     )}
                   >
-                    {compactText}
+                    {rowText}
                   </span>
                 ) : post.recipe ? (
                   <span className="block truncate text-foreground-muted">
@@ -250,13 +292,7 @@ export function PostCard({
                   </span>
                 ) : post.event ? (
                   <span className="block truncate text-foreground-muted">
-                    {new Date(post.event.startsAt).toLocaleString(undefined, {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
+                    {new Date(post.event.startsAt).toLocaleString(undefined, EVENT_WHEN)}
                   </span>
                 ) : null}
               </Link>
@@ -266,27 +302,17 @@ export function PostCard({
                 commentCount={post._count.comments}
                 myReaction={post.myReaction ?? null}
                 counts={post.reactionCounts ?? {}}
-                saved={post.myBookmark ?? false}
+                pinned={post.myBookmark ?? false}
                 viewer={viewer}
                 compact
+                onPostPage={onPostPage}
                 previewComments={previewComments}
                 totalComments={post._count.comments}
               />
             </div>
           </div>
         </article>
-
-        {hasMedia ? (
-          <PostGalleryModal
-            open={galleryOpen}
-            onClose={() => setGalleryOpen(false)}
-            post={galleryPayload}
-            media={media}
-            viewer={viewer}
-            startIndex={galleryIndex}
-            canPin={canPin}
-          />
-        ) : null}
+        {gallery}
       </>
     );
   }
@@ -294,20 +320,31 @@ export function PostCard({
   return (
     <>
       <article
+        aria-label={post.title || bulletin?.title || `Post by ${name}`}
         className={cn(
           // No `overflow-hidden` and no `content-visibility:auto`: either one
           // clips the overflow menu, and paint containment also traps the
-          // menu's fixed dialogs inside the card. Nothing here needs clipping:
-          // the media sits between the body and the actions, never on a
-          // rounded corner, and the pinned strip rounds its own top.
+          // menu's fixed dialogs inside the card.
           "group/post rounded-card border bg-surface shadow-e1",
-          post.pinnedAt ? "border-brand/40" : "border-border",
+          strip ? "border-brand/40" : "border-border",
         )}
       >
-        {post.pinnedAt ? (
+        {strip ? (
           <p className="flex items-center gap-1.5 rounded-t-[calc(var(--r-card)-1px)] border-b border-separator bg-brand-wash px-4 py-2 text-micro font-semibold uppercase tracking-[0.08em] text-on-brand-wash sm:px-5">
-            <Pin className="size-3" aria-hidden />
-            Pinned by a host
+            {strip === "pinned" ? (
+              <>
+                <Pin className="size-3" aria-hidden />
+                Pinned
+                <span className="font-medium normal-case tracking-normal opacity-80">
+                  · only you see your pins
+                </span>
+              </>
+            ) : (
+              <>
+                <Megaphone className="size-3" aria-hidden />
+                Announcement
+              </>
+            )}
           </p>
         ) : null}
 
@@ -330,35 +367,20 @@ export function PostCard({
                 {name}
               </Link>
               {isHost ? (
-                <BadgeCheck
-                  className="size-3.5 shrink-0 text-brand"
-                  aria-label="Host"
-                />
+                <BadgeCheck className="size-3.5 shrink-0 text-brand" aria-label="Host" />
               ) : null}
             </div>
             <p className="mt-0.5 flex min-w-0 items-center gap-1.5 text-caption text-foreground-muted">
-              <span className="min-w-0 truncate">
-                {followerLabel ??
-                  (showSpace ? (
-                    <Link
-                      href={`/spaces/${post.space.slug}`}
-                      className="text-foreground-muted no-underline hover:text-foreground hover:underline"
-                    >
-                      {spaceLabel}
-                    </Link>
-                  ) : (
-                    `@${post.author.handle}`
-                  ))}
-              </span>
+              <span className="min-w-0 truncate">{followerLabel ?? `@${post.author.handle}`}</span>
               <span aria-hidden>·</span>
-              <time
-                dateTime={stamp.toISOString()}
-                title={stamp.toLocaleString()}
-                className="shrink-0"
+              <Link
+                href={`/posts/${post.id}`}
+                className="shrink-0 text-foreground-muted no-underline hover:text-foreground hover:underline"
               >
-                {formatShortTime(stamp)}
-              </time>
-              <Globe2 className="size-3 shrink-0" aria-hidden />
+                <time dateTime={stamp.toISOString()} title={stamp.toLocaleString()}>
+                  {formatShortTime(stamp)}
+                </time>
+              </Link>
             </p>
           </div>
 
@@ -369,72 +391,83 @@ export function PostCard({
                 initialFollowing={Boolean(post.viewerFollowsAuthor)}
               />
             ) : null}
-            <PostOverflow
-              postId={post.id}
-              pinned={Boolean(post.pinnedAt)}
-              canPin={canPin}
-              canDelete={isOwn || canPin}
-            />
+            {overflow}
           </div>
         </header>
 
         {/* Body */}
         <div className="px-4 pb-3 sm:px-5">
-          {post.title ? (
-            <p className="text-title font-semibold leading-snug text-foreground">
-              {post.title}
-            </p>
-          ) : null}
-
-          {bodyText ? (
-            <div className={cn(post.title && "mt-1.5")}>
-              <div
-                className={cn(
-                  "prose-vu text-reading leading-relaxed text-foreground",
-                  !expanded && longBody && "line-clamp-3",
-                )}
-                dangerouslySetInnerHTML={{
-                  __html: post.bodyHtml || post.plainText,
-                }}
-              />
-              {longBody && !expanded ? (
-                <button
-                  type="button"
-                  onClick={() => setExpanded(true)}
-                  className="mt-1 rounded-chip text-label font-medium text-foreground-muted transition hover:text-foreground"
-                >
-                  …more
-                </button>
+          {bulletin ? (
+            // A Bulletin Board item: the item itself is the content, and its
+            // reactions and comments are this post's (DEC-078).
+            <BulletinFeedCard data={bulletin} />
+          ) : (
+            <>
+              {post.title ? (
+                <p className="text-title font-semibold leading-snug text-foreground">
+                  {post.title}
+                </p>
               ) : null}
-            </div>
-          ) : null}
 
-          {/* An event post is about a thing with a time and a place, so the
-              time and the place go on the card rather than being buried in
-              the body. */}
+              {body.trim() ? (
+                <div className={cn(post.title && "mt-1.5")}>
+                  <RichText
+                    body={body}
+                    className={cn(
+                      "text-reading leading-relaxed text-foreground [&_p]:mb-2 [&_p:last-child]:mb-0",
+                      !expanded && longBody && "line-clamp-4",
+                    )}
+                  />
+                  {longBody && !expanded ? (
+                    <button
+                      type="button"
+                      onClick={() => setExpanded(true)}
+                      className="mt-1 rounded-chip text-label font-medium text-foreground-muted transition hover:text-foreground"
+                    >
+                      …more
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </>
+          )}
+
+          {/* A live class is a thing with a time and a place, so the time and
+              the place go on the card rather than being buried in the body. */}
           {post.event ? (
             <div className="mt-3 flex items-start gap-3 rounded-ctl bg-surface-muted px-3.5 py-3">
               <CalendarDays className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
-              <div className="min-w-0 text-label">
+              <div className="min-w-0 flex-1 text-label">
                 <p className="font-semibold text-foreground">
-                  {new Date(post.event.startsAt).toLocaleString(undefined, {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "short",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  })}
+                  {new Date(post.event.startsAt).toLocaleString(undefined, EVENT_WHEN)}
+                  {post.event.status === "CANCELED" ? (
+                    <span className="ml-2 font-medium text-danger">Canceled</span>
+                  ) : null}
                 </p>
                 {post.event.location ? (
                   <p className="text-foreground-muted">{post.event.location}</p>
                 ) : null}
                 {post.event.capacity ? (
-                  <p className="text-foreground-muted">
-                    {post.event.capacity} places
-                  </p>
+                  <p className="text-foreground-muted">{post.event.capacity} places</p>
                 ) : null}
               </div>
+              {post.event.slug ? (
+                <Link
+                  href={`/live-classes/${post.event.slug}`}
+                  className="shrink-0 rounded-chip text-label font-medium text-link no-underline hover:underline"
+                >
+                  Details
+                </Link>
+              ) : null}
             </div>
+          ) : null}
+
+          {post.pollOptions.length > 0 ? (
+            <PostPoll
+              postId={post.id}
+              options={post.pollOptions}
+              myOptionId={post.myPollOptionId ?? null}
+            />
           ) : null}
 
           {post.recipe ? (
@@ -448,7 +481,7 @@ export function PostCard({
             <a
               href={webLink}
               target="_blank"
-              rel="noreferrer"
+              rel="noopener noreferrer nofollow"
               className="mt-3 block truncate rounded-ctl border border-border px-3.5 py-2.5 text-label font-medium text-link no-underline transition hover:border-hairline-firm hover:bg-surface-muted"
             >
               {webLink}
@@ -459,12 +492,7 @@ export function PostCard({
         {/* Media — full bleed */}
         {hasMedia ? (
           <div className="border-y border-separator">
-            <PostMedia
-              items={media}
-              flush
-              onOpen={openGallery}
-              href={`/posts/${post.id}`}
-            />
+            <PostMedia items={media} flush onOpen={openGallery} href={`/posts/${post.id}`} />
           </div>
         ) : null}
 
@@ -475,44 +503,15 @@ export function PostCard({
             commentCount={post._count.comments}
             myReaction={post.myReaction ?? null}
             counts={post.reactionCounts ?? {}}
-            saved={post.myBookmark ?? false}
+            pinned={post.myBookmark ?? false}
             viewer={viewer}
+            onPostPage={onPostPage}
             previewComments={previewComments}
             totalComments={post._count.comments}
           />
         </div>
       </article>
-
-      {hasMedia ? (
-        <PostGalleryModal
-          open={galleryOpen}
-          onClose={() => setGalleryOpen(false)}
-          post={galleryPayload}
-          media={media}
-          viewer={viewer}
-          startIndex={galleryIndex}
-          canPin={canPin}
-        />
-      ) : null}
+      {gallery}
     </>
   );
-}
-
-/**
- * A post's text for a one-line preview: the rendered body with its tags
- * removed, falling back to the stored plain text. Regex rather than a DOM
- * parse because this runs on the server as well as in the browser.
- */
-function previewText(bodyHtml: string | null, plainText: string): string {
-  const source = bodyHtml?.trim() ? bodyHtml : plainText;
-  return source
-    .replace(/<[^>]+>/g, " ")
-    .replace(/&nbsp;/g, " ")
-    .replace(/&amp;/g, "&")
-    .replace(/&lt;/g, "<")
-    .replace(/&gt;/g, ">")
-    .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'")
-    .replace(/\s+/g, " ")
-    .trim();
 }

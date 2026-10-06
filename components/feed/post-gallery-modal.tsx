@@ -3,30 +3,32 @@
 import { useEffect, useId, useRef, useState, useTransition, type FormEvent } from "react";
 import Link from "next/link";
 import {
-  Bookmark,
   ChevronLeft,
   ChevronRight,
   Heart,
   MessageCircle,
-  Share2,
+  Pin,
   X,
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
+import { RichText } from "@/components/content/rich-text";
 import { CommentThread, type ThreadComment } from "@/components/feed/comment-thread";
 import { PostMenu } from "@/components/feed/post-menu";
 import { Skeleton } from "@/components/ui/skeleton";
-import { reactAction, saveAction } from "@/app/(member)/community-actions";
-import { runAction } from "@/components/feed/run-action";
+import { usePin, useReaction } from "@/components/feed/use-engagement";
 import { formatCount, formatShortTime } from "@/lib/community/format-count";
 import type { MediaItem } from "@/components/feed/post-media";
 import { videoEmbedSrc, videoPosterUrl } from "@/lib/community/media";
 import { useIsMobile } from "@/components/hooks/use-media-query";
 import { backdropClass, dialogClass } from "@/components/app/ui";
+import { DEFAULT_REACTION } from "@/lib/community/reactions";
 import { cn } from "@/lib/utils";
 
 export type GalleryPost = {
   id: string;
   title: string | null;
+  /** The stored markdown, rendered through `<RichText>`. Older callers omit it. */
+  body?: string;
   bodyHtml: string | null;
   plainText: string;
   score: number;
@@ -44,10 +46,6 @@ export type GalleryPost = {
   pinnedAt?: Date | string | null;
   _count: { comments: number };
 };
-
-import { DEFAULT_REACTION } from "@/lib/community/reactions";
-
-const LIKE = DEFAULT_REACTION;
 
 type GalleryProps = {
   open: boolean;
@@ -97,19 +95,16 @@ function GalleryDialog({
   const [comments, setComments] = useState<ThreadComment[] | null>(null);
   const [commentCount, setCommentCount] = useState(post._count.comments);
   const [error, setError] = useState<string | null>(null);
-  const [liked, setLiked] = useState(Boolean(post.myReaction));
-  const [likes, setLikes] = useState(
-    Object.values(post.reactionCounts ?? {}).reduce((sum, n) => sum + n, 0),
-  );
-  const [saved, setSaved] = useState(Boolean(post.myBookmark));
   const [pending, startTransition] = useTransition();
+  // The same pin and reaction the card shows: one post, not two copies of it.
+  const reaction = useReaction(post.id, post.myReaction ?? null, post.reactionCounts ?? {});
+  const pin = usePin(post.id, Boolean(post.myBookmark));
+  const liked = reaction.mine !== null;
 
   const name = post.author.profile?.displayName ?? post.author.handle;
   const stamp = new Date(post.publishedAt ?? post.createdAt);
   const current = media[index] ?? media[0];
-  const spaceLabel = post.space.name.startsWith("#")
-    ? post.space.name
-    : `# ${post.space.name}`;
+  const body = (post.body ?? post.plainText ?? "").trim();
 
   useEffect(() => {
     const previous = document.body.style.overflow;
@@ -173,37 +168,7 @@ function GalleryDialog({
   }
 
   function toggleLike() {
-    const clearing = liked;
-    const data = new FormData();
-    data.set("postId", post.id);
-    data.set("emoji", LIKE);
-    startTransition(async () => {
-      setLiked(!clearing);
-      setLikes((value) => Math.max(0, value + (clearing ? -1 : 1)));
-      await runAction(reactAction, data);
-    });
-  }
-
-  function toggleSave() {
-    const data = new FormData();
-    data.set("postId", post.id);
-    startTransition(async () => {
-      setSaved((value) => !value);
-      await runAction(saveAction, data);
-    });
-  }
-
-  async function share() {
-    const url = new URL(`/posts/${post.id}`, window.location.origin).toString();
-    if (navigator.share) {
-      await navigator.share({ url, title: name }).catch(() => undefined);
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-    } catch {
-      // ignore
-    }
+    reaction.setReaction(liked ? null : DEFAULT_REACTION);
   }
 
   function submitComment(event: FormEvent<HTMLFormElement>) {
@@ -351,22 +316,27 @@ function GalleryDialog({
                 </Link>
               </p>
               <Link
-                href={`/spaces/${post.space.slug}`}
+                href={`/posts/${post.id}`}
                 className="block truncate text-caption text-foreground-muted no-underline hover:text-foreground hover:underline"
               >
-                {spaceLabel}
+                <time dateTime={stamp.toISOString()}>{formatShortTime(stamp)}</time>
+                <span aria-hidden> · </span>
+                Open post
               </Link>
             </div>
+            {/* Only the team's announcement control here; report and delete
+                live on the card and the post page. */}
             <PostMenu
               postId={post.id}
               pinned={Boolean(post.pinnedAt)}
               canPin={canPin}
+              canReport={false}
             />
           </header>
 
           {/* Scrollable caption + comments */}
           <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
-            {(post.title || post.plainText) && (
+            {(post.title || body) && (
               <div className="mb-5 flex gap-3 border-b border-separator pb-5">
                 <Link
                   href={`/members/${post.author.handle}`}
@@ -391,12 +361,10 @@ function GalleryDialog({
                       <span className="font-semibold">{post.title} </span>
                     ) : null}
                   </p>
-                  {post.plainText ? (
-                    <div
-                      className="prose-vu mt-1 text-body leading-relaxed text-foreground"
-                      dangerouslySetInnerHTML={{
-                        __html: post.bodyHtml || post.plainText,
-                      }}
+                  {body ? (
+                    <RichText
+                      body={body}
+                      className="mt-1 text-body leading-relaxed text-foreground [&_p]:mb-1.5 [&_p:last-child]:mb-0"
                     />
                   ) : null}
                   <p className="mt-2 text-caption text-foreground-muted">
@@ -438,7 +406,11 @@ function GalleryDialog({
               <ul className="space-y-4">
                 {comments.map((comment) => (
                   <li key={comment.id}>
-                    <CommentThread comment={comment} onPosted={reloadComments} />
+                    <CommentThread
+                      comment={comment}
+                      onPosted={reloadComments}
+                      anchor={false}
+                    />
                   </li>
                 ))}
               </ul>
@@ -449,7 +421,7 @@ function GalleryDialog({
           <footer className="shrink-0 border-t border-separator">
             <div className="flex items-center gap-0.5 px-2.5 pt-2">
               <IconBtn
-                label={liked ? "Unlike" : "Like"}
+                label={liked ? "Remove your reaction" : "Like"}
                 onClick={toggleLike}
                 active={liked}
                 activeClass="text-highlight hover:text-highlight"
@@ -466,18 +438,16 @@ function GalleryDialog({
               >
                 <MessageCircle className="size-5" aria-hidden />
               </IconBtn>
-              <IconBtn label="Share" onClick={share}>
-                <Share2 className="size-5" aria-hidden />
-              </IconBtn>
               <div className="ml-auto">
                 <IconBtn
-                  label={saved ? "Unsave" : "Save"}
-                  onClick={toggleSave}
-                  active={saved}
+                  label={pin.pinned ? "Unpin this post" : "Pin this post"}
+                  onClick={pin.toggle}
+                  active={pin.pinned}
+                  activeClass="text-brand hover:text-brand"
                 >
-                  <Bookmark
+                  <Pin
                     className="size-5"
-                    fill={saved ? "currentColor" : "none"}
+                    fill={pin.pinned ? "currentColor" : "none"}
                     aria-hidden
                   />
                 </IconBtn>
@@ -486,7 +456,9 @@ function GalleryDialog({
 
             <div className="px-4 pb-3 pt-1">
               <p className="text-label font-semibold text-foreground">
-                {likes > 0 ? `${formatCount(likes)} likes` : "Be the first to like"}
+                {reaction.total > 0
+                  ? `${formatCount(reaction.total)} ${reaction.total === 1 ? "reaction" : "reactions"}`
+                  : "Be the first to react"}
               </p>
               <p className="mt-0.5 text-caption text-foreground-muted">
                 <time dateTime={stamp.toISOString()}>
@@ -522,6 +494,8 @@ function GalleryDialog({
                 ref={composerRef}
                 name="body"
                 required
+                maxLength={5000}
+                aria-label="Add a comment"
                 placeholder="Add a comment…"
                 disabled={pending}
                 className="min-w-0 flex-1 border-0 bg-transparent py-2 text-body text-foreground outline-none placeholder:text-field-placeholder disabled:opacity-60"

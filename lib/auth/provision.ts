@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { parseMentions, slugifyHandle } from "@/lib/community/format";
+import { slugifyHandle } from "@/lib/community/format";
 import { displayNameFromEmail } from "@/lib/utils";
 
 export async function uniqueHandle(seed: string): Promise<string> {
@@ -132,6 +132,3 @@ async function claimGrantsIfAny(
   }
 }
 
-export function extractMentionsFrom(text: string) {
-  return parseMentions(text);
-}

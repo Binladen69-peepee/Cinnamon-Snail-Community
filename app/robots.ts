@@ -7,6 +7,12 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: [
         "/home",
+        "/kitchen-table",
+        "/ideas",
+        "/live-classes",
+        "/crews",
+        "/challenges",
+        "/drafts",
         "/spaces",
         "/posts",
         "/compose",

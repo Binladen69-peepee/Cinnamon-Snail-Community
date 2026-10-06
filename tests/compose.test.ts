@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   COMPOSER_TYPES,
+  composerTypesFor,
   describeIncomplete,
+  isStaffOnlyType,
   MAX_POLL_OPTIONS,
   MIN_POLL_OPTIONS,
+  parseAcceptedPostType,
   parseComposerType,
   typeHasField,
 } from "@/lib/community/post-types";
@@ -66,8 +69,11 @@ describe("field table", () => {
 });
 
 describe("describeIncomplete", () => {
-  it("asks for a space before anything else", () => {
-    expect(describeIncomplete(form({ spaceId: "" }))).toMatch(/space/i);
+  it("never asks for a space: every post goes to the Kitchen Table", () => {
+    // DEC-078 retired the space picker. A missing space used to be the first
+    // thing the form complained about; now it is not a thing at all.
+    expect(describeIncomplete(form({ spaceId: "" }))).not.toMatch(/space/i);
+    expect(describeIncomplete(form({ spaceId: undefined, body: "hello" }))).toBeNull();
   });
 
   it("refuses an empty post", () => {
@@ -166,5 +172,39 @@ describe("event and recipe posts", () => {
   it("still insists on a title for both", () => {
     expect(event.titleRequired).toBe(true);
     expect(recipe.titleRequired).toBe(true);
+  });
+});
+
+describe("what the Kitchen Table composer accepts", () => {
+  it("offers the live-class type to hosts and staff only", () => {
+    // Every Event is listed under Live Classes, which are the school's
+    // classes; members post gatherings on the Bulletin Board instead.
+    expect(isStaffOnlyType("EVENT")).toBe(true);
+    expect(composerTypesFor(true).map((type) => type.value)).toContain("EVENT");
+    expect(composerTypesFor(false).map((type) => type.value)).not.toContain("EVENT");
+    expect(composerTypesFor(false).map((type) => type.value)).toEqual(
+      expect.arrayContaining(["SIMPLE", "QUESTION", "ARTICLE", "POLL", "LINK", "RECIPE"]),
+    );
+  });
+
+  it("calls it a live class, never an event", () => {
+    expect(COMPOSER_TYPES.find((type) => type.value === "EVENT")?.label).toBe("Live class");
+  });
+
+  it("falls back to a plain post when a member asks for a staff-only type", () => {
+    expect(parseComposerType("EVENT", { isStaff: false }).value).toBe("SIMPLE");
+    expect(parseComposerType("EVENT", { isStaff: true }).value).toBe("EVENT");
+  });
+
+  it("refuses the types other boards write themselves", () => {
+    // IDEA and BULLETIN posts are made by the Ideas board and the Bulletin
+    // Board (DEC-078); a form must not be able to forge one.
+    expect(parseAcceptedPostType("IDEA")).toBeNull();
+    expect(parseAcceptedPostType("BULLETIN")).toBeNull();
+    expect(parseAcceptedPostType("nonsense")).toBeNull();
+    expect(parseAcceptedPostType("POLL")).toBe("POLL");
+    // Inferred from attachments, so accepted from the action.
+    expect(parseAcceptedPostType("IMAGE")).toBe("IMAGE");
+    expect(parseAcceptedPostType("VIDEO")).toBe("VIDEO");
   });
 });

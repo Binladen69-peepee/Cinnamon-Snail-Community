@@ -7,6 +7,9 @@ import {
   getMemberVisibility,
 } from "@/lib/community/member-visibility";
 import { getUserAuth, getViewerMemberships } from "@/lib/community/viewer";
+import { commentHref } from "@/lib/community/comment-anchor";
+import { IDEAS_PATH } from "@/lib/community/system-spaces";
+import { richTextToPlain } from "@/lib/content/rich-text";
 import { canEnterSpace, type SpaceAuth } from "@/lib/permissions";
 
 /**
@@ -23,8 +26,11 @@ import { canEnterSpace, type SpaceAuth } from "@/lib/permissions";
  * - courses, lessons and events drop out once unpublished or cancelled.
  *
  * A comment row is keyed by the comment's own id, so it is resolved to its
- * post here. Linking `/posts/<comment id>` sent every comment hit to a page
- * that could not exist.
+ * post here and links to the comment itself on that post (C4).
+ *
+ * Results name what a thing is and who wrote it, never the room it sits in:
+ * rooms are retired from the interface (DEC-078). An idea links to the Ideas
+ * board, and snippets are plain text, so markdown never shows as `**`.
  *
  * The palette and the results page both read through this, so the two cannot
  * disagree about what a search is allowed to return.
@@ -49,11 +55,24 @@ export type ResultGroup = {
 const TYPE_DETAIL: Record<SearchType, string> = {
   member: "Member",
   post: "Post",
-  course: "Course",
+  course: "Class",
   lesson: "Lesson",
-  event: "Event",
+  event: "Live class",
   comment: "Comment",
 };
+
+/** A snippet with no markup: member-written text is stored as markdown. */
+function plainSnippet(type: SearchType, body: string): string {
+  let text = body ?? "";
+  if (type === "post" || type === "comment") {
+    try {
+      text = richTextToPlain(text);
+    } catch {
+      // Keep the stored text; it is already free of HTML.
+    }
+  }
+  return text.replace(/\s+/g, " ").trim().slice(0, 220);
+}
 
 const SEARCH_TYPES = new Set<string>(Object.keys(TYPE_DETAIL));
 
@@ -96,7 +115,7 @@ export async function searchForViewer(input: {
       id: row.id,
       type,
       title: row.title?.trim() || "Untitled",
-      snippet: (row.body ?? "").replace(/\s+/g, " ").trim().slice(0, 220),
+      snippet: plainSnippet(type, row.body ?? ""),
       href: live.href,
       imageUrl: live.imageUrl ?? null,
       detail: live.detail ?? TYPE_DETAIL[type],
@@ -139,7 +158,6 @@ async function resolveRows(
   const spaceSelect = {
     select: {
       id: true,
-      name: true,
       visibility: true,
       postingPermission: true,
       productId: true,
@@ -155,7 +173,13 @@ async function resolveRows(
       postIds.length
         ? prisma.post.findMany({
             where: { id: { in: postIds } },
-            select: { id: true, status: true, space: spaceSelect },
+            select: {
+              id: true,
+              status: true,
+              type: true,
+              author: { select: { handle: true, name: true, profile: { select: { displayName: true } } } },
+              space: spaceSelect,
+            },
           })
         : [],
       commentIds.length
@@ -164,7 +188,7 @@ async function resolveRows(
             select: {
               id: true,
               postId: true,
-              author: { select: { name: true, profile: { select: { displayName: true } } } },
+              author: { select: { handle: true, name: true, profile: { select: { displayName: true } } } },
               post: { select: { status: true, title: true, space: spaceSelect } },
             },
           })
@@ -198,17 +222,24 @@ async function resolveRows(
 
   for (const post of posts) {
     if (post.status !== "PUBLISHED" || !mayRead(post.space)) continue;
+    const who = post.author.profile?.displayName ?? post.author.name ?? post.author.handle;
     out.set(`post:${post.id}`, {
-      href: searchHref("post", post.id),
-      detail: `Post · ${post.space.name}`,
+      href:
+        post.type === "IDEA" ? `${IDEAS_PATH}/${post.id}` : searchHref("post", post.id),
+      detail:
+        post.type === "IDEA"
+          ? `Idea · ${who}`
+          : post.type === "BULLETIN"
+            ? `Bulletin Board · ${who}`
+            : `Post · ${who}`,
     });
   }
   for (const comment of comments) {
     if (comment.post.status !== "PUBLISHED" || !mayRead(comment.post.space)) continue;
-    const who = comment.author.profile?.displayName ?? comment.author.name ?? "A member";
+    const who = comment.author.profile?.displayName ?? comment.author.name ?? comment.author.handle;
     out.set(`comment:${comment.id}`, {
-      href: `${searchHref("post", comment.postId)}#comment-${comment.id}`,
-      detail: `${who} · ${comment.post.space.name}`,
+      href: commentHref(comment.postId, comment.id),
+      detail: `Comment · ${who}`,
     });
   }
   for (const user of users) {
@@ -222,7 +253,7 @@ async function resolveRows(
     out.set(`course:${course.slug}`, {
       href: searchHref("course", course.slug),
       imageUrl: course.coverUrl,
-      detail: course.category ? `Course · ${course.category}` : "Course",
+      detail: course.category ? `Class · ${course.category}` : "Class",
     });
   }
   for (const [key, courseTitle] of lessons) {
@@ -234,7 +265,7 @@ async function resolveRows(
   for (const event of events) {
     out.set(`event:${event.slug}`, {
       href: searchHref("event", event.slug),
-      detail: `Event · ${event.startsAt.toLocaleDateString("en-US", {
+      detail: `Live class · ${event.startsAt.toLocaleDateString("en-US", {
         month: "short",
         day: "numeric",
         year: "numeric",

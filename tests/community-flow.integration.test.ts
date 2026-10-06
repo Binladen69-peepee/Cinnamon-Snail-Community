@@ -9,7 +9,9 @@ import {
   listPendingPosts,
   listPostComments,
   publishDuePosts,
+  publishPost,
   sharePostToSpace,
+  updatePost,
 } from "@/lib/community/posts";
 import { listFeed } from "@/lib/community/feed";
 import {
@@ -87,7 +89,19 @@ beforeAll(async () => {
 
 afterAll(async () => {
   if (reachable && created.length) {
+    // A RECIPE post writes a Recipe of its own, which does not go with the
+    // post. Left behind, it takes the slug the next run expects.
+    const recipes = await prisma.post
+      .findMany({
+        where: { id: { in: created }, recipeId: { not: null } },
+        select: { recipeId: true },
+      })
+      .catch(() => []);
     await prisma.post.deleteMany({ where: { id: { in: created } } }).catch(() => {});
+    const recipeIds = recipes.flatMap((row) => (row.recipeId ? [row.recipeId] : []));
+    if (recipeIds.length) {
+      await prisma.recipe.deleteMany({ where: { id: { in: recipeIds } } }).catch(() => {});
+    }
   }
   // Posts, memberships and pending rows all cascade from the space.
   for (const id of [...extraSpaces, spaceId].filter(Boolean)) {
@@ -641,5 +655,104 @@ describe("events and recipes", () => {
     await prisma.recipe
       .deleteMany({ where: { id: { in: [row.recipeId!, second.recipeId!] } } })
       .catch(() => {});
+  }, 60_000);
+});
+
+describe("moderation stands", () => {
+  /** A plain member of the room: not its host, and not staff. */
+  async function plainMember() {
+    const row = await prisma.spaceMembership.findFirst({
+      where: { spaceId, role: "MEMBER" },
+      select: { userId: true },
+    });
+    return row?.userId ?? null;
+  }
+
+  async function postAs(
+    userId: string,
+    data: { type?: "SIMPLE" | "IDEA" | "BULLETIN"; status: "DRAFT" | "PUBLISHED" | "REMOVED" | "HIDDEN" },
+  ) {
+    const post = await prisma.post.create({
+      data: {
+        spaceId,
+        authorId: userId,
+        type: data.type ?? "SIMPLE",
+        status: data.status,
+        title: "kept as written",
+        body: "kept as written",
+        plainText: "kept as written",
+        publishedAt: data.status === "DRAFT" ? null : new Date(Date.now() - 60_000),
+      },
+      select: { id: true },
+    });
+    created.push(post.id);
+    return post.id;
+  }
+
+  const statusOf = async (id: string) =>
+    (await prisma.post.findUnique({ where: { id }, select: { status: true } }))?.status ?? null;
+
+  it("never lets an author publish a post a host removed or hid", async () => {
+    if (!reachable) return;
+    const member = await plainMember();
+    if (!member) return;
+    for (const status of ["REMOVED", "HIDDEN"] as const) {
+      const id = await postAs(member, { status });
+      await expect(publishPost({ userId: member, postId: id })).rejects.toThrow();
+      expect(await statusOf(id)).toBe(status);
+    }
+  }, 60_000);
+
+  it("still publishes the author's own draft", async () => {
+    if (!reachable) return;
+    const member = await plainMember();
+    if (!member) return;
+    const id = await postAs(member, { status: "DRAFT" });
+    await publishPost({ userId: member, postId: id });
+    expect(await statusOf(id)).toBe("PUBLISHED");
+  }, 60_000);
+
+  it("keeps a removed post, and its record, when its author deletes it", async () => {
+    if (!reachable) return;
+    const member = await plainMember();
+    if (!member) return;
+    const id = await postAs(member, { status: "REMOVED" });
+    await expect(deletePost({ userId: member, postId: id })).resolves.toEqual({ removed: true });
+    expect(await statusOf(id)).toBe("REMOVED");
+    await expect(
+      updatePost({ userId: member, postId: id, title: "back again", body: "back again" }),
+    ).rejects.toThrow();
+  }, 60_000);
+
+  it("leaves ideas to Ideas & Requests", async () => {
+    if (!reachable) return;
+    const member = await plainMember();
+    if (!member) return;
+    const id = await postAs(member, { type: "IDEA", status: "PUBLISHED" });
+    await expect(
+      updatePost({ userId: member, postId: id, title: "rewritten", body: "rewritten after the votes" }),
+    ).rejects.toThrow(/Ideas & Requests/);
+    await expect(deletePost({ userId: member, postId: id })).rejects.toThrow(/Ideas & Requests/);
+    const row = await prisma.post.findUniqueOrThrow({ where: { id }, select: { title: true, status: true } });
+    expect(row).toEqual({ title: "kept as written", status: "PUBLISHED" });
+  }, 60_000);
+
+  it("leaves Bulletin Board posts to the board; a host's removal marks them, never deletes", async () => {
+    if (!reachable) return;
+    const member = await plainMember();
+    if (!member) return;
+    const id = await postAs(member, { type: "BULLETIN", status: "PUBLISHED" });
+    await expect(
+      updatePost({ userId: member, postId: id, title: "retitled", body: "retitled" }),
+    ).rejects.toThrow(/Bulletin Board/);
+    await expect(deletePost({ userId: member, postId: id })).rejects.toThrow(/Bulletin Board/);
+    expect(await statusOf(id)).toBe("PUBLISHED");
+
+    // The room's host (a moderator), even on their own Bulletin Board post.
+    const own = await postAs(authorId, { type: "BULLETIN", status: "PUBLISHED" });
+    await deletePost({ userId: authorId, postId: own });
+    expect(await statusOf(own)).toBe("REMOVED");
+    await deletePost({ userId: authorId, postId: id });
+    expect(await statusOf(id)).toBe("REMOVED");
   }, 60_000);
 });

@@ -16,8 +16,8 @@ export default function MemberNotFound() {
         description="It may have been removed, or the link may be wrong."
         action={
           <>
-            <ButtonLink href="/home" variant="primary">
-              Back to Explorer
+            <ButtonLink href="/kitchen-table" variant="primary">
+              Back to the Kitchen Table
             </ButtonLink>
             <ButtonLink href="/search">Search</ButtonLink>
           </>

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { EventCard } from "@/lib/events/queries";
+import { liveClassHref } from "@/lib/events/paths";
 import { monthGrid } from "@/lib/events/timezone";
 import { cardClass } from "@/components/app/ui";
 import { cn } from "@/lib/utils";
@@ -126,7 +127,7 @@ export function MonthGrid({
                     {label}
                     {isToday ? ", today" : ""}
                     {events.length > 0
-                      ? `, ${events.length} ${events.length === 1 ? "event" : "events"}`
+                      ? `, ${events.length} ${events.length === 1 ? "live class" : "live classes"}`
                       : ""}
                   </span>
                   {events.length > 0 ? (
@@ -171,7 +172,7 @@ export function MonthGrid({
                       {events.slice(0, 3).map((event) => (
                         <li key={event.id}>
                           <Link
-                            href={`/calendar/${event.slug}`}
+                            href={liveClassHref(event.slug)}
                             title={event.title}
                             className={cn(
                               "block truncate rounded-chip px-1.5 py-0.5 text-micro font-medium no-underline transition",

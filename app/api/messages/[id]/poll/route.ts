@@ -1,6 +1,7 @@
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import {
+  blockedAuthorIds,
   markConversationRead,
   requireMembership,
   setTyping,
@@ -19,6 +20,18 @@ export const dynamic = "force-dynamic";
  * Membership is re-checked on every call — this is the endpoint a guessed
  * conversation id would be pointed at, and it answers 404 rather than 403 so
  * the existence of a thread is not confirmed either.
+ *
+ * A crew chat (DEC-078) is a room, and two things follow, the same as when
+ * the thread is opened (`readConversation`):
+ *
+ * - Messages from anyone on either side of a block with the viewer are not
+ *   theirs to read (`blockedAuthorIds`). They are left out here rather than
+ *   sent and hidden by the browser, so they never reach the viewer at all —
+ *   nor do their link previews, nor does "is typing" for those people.
+ * - There are no read receipts. At crew size "read by everyone" never
+ *   happens, and the list would be every member's reading habits.
+ *
+ * One-to-one and small group threads are unchanged.
  */
 export async function GET(
   request: Request,
@@ -39,10 +52,14 @@ export async function GET(
   const sinceDate = since ? new Date(since) : null;
   const validSince = sinceDate && !Number.isNaN(sinceDate.getTime()) ? sinceDate : null;
 
+  const crew = Boolean(membership.conversation.crew);
+  const hiddenAuthorIds = crew ? await blockedAuthorIds(session.user.id) : [];
+
   const messages = await prisma.message.findMany({
     where: {
       conversationId: id,
       deletedAt: null,
+      ...(hiddenAuthorIds.length ? { authorId: { notIn: hiddenAuthorIds } } : {}),
       ...(validSince ? { createdAt: { gt: validSince } } : {}),
     },
     orderBy: { createdAt: "asc" },
@@ -71,8 +88,10 @@ export async function GET(
       }).catch(() => new Map())
     : new Map();
 
+  const hidden = new Set(hiddenAuthorIds);
   const others = membership.conversation.members.filter(
-    (member) => member.userId !== session.user.id && !member.leftAt,
+    (member) =>
+      member.userId !== session.user.id && !member.leftAt && !hidden.has(member.userId),
   );
 
   return Response.json(
@@ -90,10 +109,12 @@ export async function GET(
       typing: others
         .filter((member) => isTyping(member.typingAt))
         .map((member) => member.user.profile?.displayName ?? member.user.handle),
-      readReceipts: others.map((member) => ({
-        name: member.user.profile?.displayName ?? member.user.handle,
-        lastReadAt: member.lastReadAt?.toISOString() ?? null,
-      })),
+      readReceipts: crew
+        ? []
+        : others.map((member) => ({
+            name: member.user.profile?.displayName ?? member.user.handle,
+            lastReadAt: member.lastReadAt?.toISOString() ?? null,
+          })),
       previews: [...previews.values()],
     },
     { headers: { "Cache-Control": "no-store" } },

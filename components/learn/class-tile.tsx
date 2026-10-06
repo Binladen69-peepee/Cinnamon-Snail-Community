@@ -7,36 +7,42 @@ import { cn } from "@/lib/utils";
 /**
  * One class, as a card.
  *
- * This used to be a button that opened a panel, because `/learn/[slug]` did not
- * exist and fifty-two cards pointing at a missing route would have been
- * fifty-two 404s. The route exists now, so the card is a link and the panel is
- * gone — one destination for a class, reached the same way from the library and
- * from search.
+ * A link to the class page — one destination for a class, reached the same way
+ * from every shelf, the category grid and search.
  *
- * Fixed aspect on the still and a clamped title keep a grid of these the same
- * height whatever a class is called. The play disc, the running time and the
- * progress strip sit on the photo, so they keep their literal scrims: a photo
- * is the same photo in light and dark.
+ * Fixed aspect on the still and a clamped title keep a row or a grid of these
+ * the same height whatever a class is called. The play disc, the running time
+ * and the progress strip sit on the photo, so they keep their literal scrims: a
+ * photo is the same photo in light and dark.
+ *
+ * Under the title is one quiet line: how far the member is, once they have
+ * started; otherwise whatever the page passes as `meta` (where else the class
+ * sits, or its category in a search result); otherwise nothing at all.
  */
 export function ClassTile({
   cls,
   percent = null,
   eager = false,
   href,
+  meta = null,
 }: {
   cls: ClassSummary;
   /** Progress, when this member has started it. */
   percent?: number | null;
-  /** True for the first row, which is above the fold. */
+  /** True for tiles above the fold. */
   eager?: boolean;
   /**
-   * Where the card goes. Defaults to the class page; the "pick up where you
-   * left off" rail passes the lesson itself, because a card that says
+   * Where the card goes. Defaults to the class page; the "continue where you
+   * left off" row passes the lesson itself, because a card that says
    * "62% complete" and then lands on an overview has made the member navigate
    * twice to do the thing they asked for.
    */
   href?: string;
+  /** The line under the title when the member has not started the class. */
+  meta?: string | null;
 }) {
+  const line = percent !== null ? `${percent}% complete` : meta;
+
   return (
     <Link
       href={href ?? classHref(cls.slug)}
@@ -97,18 +103,18 @@ export function ClassTile({
         <span className="line-clamp-2 text-body font-semibold text-foreground sm:text-title">
           {cls.title}
         </span>
-        <span
-          className={cn(
-            "mt-auto pt-0.5 text-caption",
-            percent !== null
-              ? "font-medium text-brand-strong"
-              : "text-foreground-muted",
-          )}
-        >
-          {percent !== null
-            ? `${percent}% complete`
-            : (cls.category ?? cls.instructor ?? "Class")}
-        </span>
+        {line ? (
+          <span
+            className={cn(
+              "mt-auto truncate pt-0.5 text-caption",
+              percent !== null
+                ? "font-medium text-brand-strong"
+                : "text-foreground-muted",
+            )}
+          >
+            {line}
+          </span>
+        ) : null}
       </span>
     </Link>
   );

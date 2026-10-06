@@ -1,87 +1,75 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { getUserAuth, getViewerMemberships } from "@/lib/community/viewer";
+import { getCommunityFeedSpaceIds } from "@/lib/community/system-spaces";
+import {
+  communityFeedWhere,
+  excerptOf,
+  feedVisibilityFilter,
+} from "@/lib/community/feed";
 
-export type TrendingSpace = {
-  name: string;
-  slug: string;
-  posts: number;
-  unread: number;
+export type PopularPost = {
+  id: string;
+  /** The post's title, or the start of what it says. Never markup. */
+  label: string;
+  authorName: string;
+  comments: number;
+  reactions: number;
 };
 
+/** How far back "this week" looks. */
+const WINDOW_MS = 7 * 86_400_000;
+
 /**
- * Spaces with the most published posts in the last two weeks.
+ * The Kitchen Table conversations with the most replies this week.
  *
- * Counts come from the database, never invented. Unread is this member's own
- * unread in that space, so "12 new" is only shown when it is true.
+ * It replaced "trending spaces" when spaces left the interface (DEC-078): the
+ * question a member has is "what is everyone talking about", and the answer is
+ * a conversation, not a room. Counts come from the columns kept in step with
+ * the rows, so every number shown is a real one; a post nobody has replied to
+ * is not "popular" and is left out.
  */
-export async function trendingSpaces(
-  userId: string,
-  take = 5,
-): Promise<TrendingSpace[]> {
-  const since = new Date(Date.now() - 14 * 86_400_000);
-
-  const grouped = await prisma.post.groupBy({
-    by: ["spaceId"],
-    where: {
-      status: "PUBLISHED",
-      publishedAt: { gte: since },
-    },
-    _count: { _all: true },
-  });
-  const rows = [...grouped]
-    .sort((a, b) => b._count._all - a._count._all)
-    .slice(0, take + 4);
-  if (rows.length === 0) return [];
-
-  const [spaces, memberships] = await Promise.all([
-    prisma.space.findMany({
-      where: {
-        id: { in: rows.map((row) => row.spaceId) },
-        visibility: { in: ["PUBLIC", "MEMBERS"] },
-      },
-      select: { id: true, name: true, slug: true },
-    }),
-    prisma.spaceMembership.findMany({
-      where: {
-        userId,
-        spaceId: { in: rows.map((row) => row.spaceId) },
-      },
-      select: { spaceId: true, lastReadAt: true },
-    }),
+export async function popularThisWeek(userId: string, take = 4): Promise<PopularPost[]> {
+  const auth = await getUserAuth(userId);
+  if (!auth) return [];
+  const [memberships, spaceIds] = await Promise.all([
+    getViewerMemberships(userId),
+    getCommunityFeedSpaceIds(),
   ]);
-  const byId = new Map(spaces.map((space) => [space.id, space]));
-  const readAt = new Map(
-    memberships.map((row) => [row.spaceId, row.lastReadAt] as const),
-  );
+  const now = new Date();
 
-  const unreadRows =
-    memberships.length === 0
-      ? []
-      : await prisma.post.groupBy({
-          by: ["spaceId"],
-          where: {
-            status: "PUBLISHED",
-            authorId: { not: userId },
-            spaceId: { in: memberships.map((row) => row.spaceId) },
-            OR: memberships.map((row) => ({
-              spaceId: row.spaceId,
-              ...(row.lastReadAt ? { publishedAt: { gt: row.lastReadAt } } : {}),
-            })),
-          },
-          _count: { _all: true },
-        });
-  const unread = new Map(unreadRows.map((row) => [row.spaceId, row._count._all]));
-
-  return rows.flatMap((row) => {
-    const space = byId.get(row.spaceId);
-    if (!space) return [];
-    return [
-      {
-        name: space.name,
-        slug: space.slug,
-        posts: row._count._all,
-        unread: readAt.has(row.spaceId) ? (unread.get(row.spaceId) ?? 0) : 0,
+  const rows = await prisma.post.findMany({
+    where: {
+      AND: [
+        {
+          status: "PUBLISHED",
+          publishedAt: { gte: new Date(now.getTime() - WINDOW_MS), lte: now },
+          commentCount: { gt: 0 },
+        },
+        communityFeedWhere(spaceIds),
+        feedVisibilityFilter(auth, [...memberships.keys()]),
+      ],
+    },
+    orderBy: [{ commentCount: "desc" }, { reactionCount: "desc" }, { id: "desc" }],
+    take,
+    select: {
+      id: true,
+      title: true,
+      body: true,
+      plainText: true,
+      commentCount: true,
+      reactionCount: true,
+      author: {
+        select: { handle: true, profile: { select: { displayName: true } } },
       },
-    ];
-  }).slice(0, take);
+    },
+  });
+
+  return rows.map((row) => ({
+    id: row.id,
+    label: row.title?.trim() || excerptOf(row.body, row.plainText).slice(0, 90) || "A post",
+    authorName: row.author.profile?.displayName ?? row.author.handle,
+    comments: row.commentCount,
+    reactions: row.reactionCount,
+  }));
 }

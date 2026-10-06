@@ -19,6 +19,7 @@ import { resolveMemberAvatar } from "@/lib/community/member-avatars";
 import { prisma } from "@/lib/db";
 import { objectPathFromUrl, verifyUploaded } from "@/lib/uploads/storage";
 import { MessageRateLimitError } from "@/lib/messages/rate-limits";
+import { markMatchMessaged } from "@/lib/social/suggestions";
 import { track } from "@/lib/analytics/server";
 
 type Result = { ok: true } | { ok: false; error: string };
@@ -79,6 +80,16 @@ export async function sendMessageAction(formData: FormData): Promise<Result> {
     });
   } catch (error) {
     return failed(error);
+  }
+
+  // The weekly match's suggested opener was in the box when this was sent:
+  // the match now shows as messaged. Scoped to the sender's own match.
+  const draftKey = String(formData.get("draftKey") ?? "").trim().slice(0, 80);
+  if (draftKey) {
+    await markMatchMessaged({ viewerId: session.user.id, draftKey, conversationId }).catch(
+      () => undefined,
+    );
+    revalidatePath("/connect");
   }
 
   revalidatePath("/messages");

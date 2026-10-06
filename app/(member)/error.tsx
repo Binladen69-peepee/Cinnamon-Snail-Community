@@ -38,7 +38,7 @@ export default function MemberError({
               <RotateCw className="size-4" aria-hidden />
               Try again
             </Button>
-            <ButtonLink href="/home">Back to Explorer</ButtonLink>
+            <ButtonLink href="/kitchen-table">Back to the Kitchen Table</ButtonLink>
           </>
         }
       />

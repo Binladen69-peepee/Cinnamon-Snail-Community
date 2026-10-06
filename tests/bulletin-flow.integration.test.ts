@@ -48,6 +48,12 @@ let reachable = true;
 const ids = { host: "", guest: "", other: "", blocker: "", staff: "" };
 const NOW = new Date();
 const LATER = new Date(NOW.getTime() + 7 * 86_400_000);
+/**
+ * Hosting and approving now also write a Kitchen Table post (DEC-078), dated
+ * by the `now` these functions take. Dating them a day back keeps them out of
+ * the unread count another suite takes in that shared room while it runs.
+ */
+const PAST = new Date(NOW.getTime() - 86_400_000);
 
 async function member(suffix: string) {
   const user = await prisma.user.create({
@@ -118,7 +124,7 @@ describe("happenings", () => {
 
   it("stores the address encrypted and shows it only to the host", async () => {
     if (!reachable) return;
-    happeningId = (await createHappening(ids.host, baseHappening)).id;
+    happeningId = (await createHappening(ids.host, baseHappening, PAST)).id;
     const row = await prisma.happening.findUniqueOrThrow({ where: { id: happeningId } });
     expect(row.encryptedAddress).not.toContain("Fern");
 
@@ -169,14 +175,18 @@ describe("happenings", () => {
 
   it("stops an open gathering at capacity", async () => {
     if (!reachable) return;
-    const open = await createHappening(ids.host, {
-      ...baseHappening,
-      title: `Market stall ${stamp}`,
-      kind: "market",
-      approvalRequired: false,
-      capacity: "1",
-      address: "",
-    });
+    const open = await createHappening(
+      ids.host,
+      {
+        ...baseHappening,
+        title: `Market stall ${stamp}`,
+        kind: "market",
+        approvalRequired: false,
+        capacity: "1",
+        address: "",
+      },
+      PAST,
+    );
     expect(await requestRsvp(ids.guest, open.id)).toBe("approved");
     await refused(requestRsvp(ids.other, open.id), "full");
   });
@@ -197,7 +207,7 @@ describe("member services", () => {
     expect((await loadServices(ids.guest)).own?.status).toBe("pending");
 
     const card = await prisma.memberCard.findUniqueOrThrow({ where: { userId: ids.guest } });
-    await reviewCard(ids.staff, card.id, true);
+    await reviewCard(ids.staff, card.id, true, PAST);
     expect((await loadServices(ids.other, { q: stamp })).cards).toHaveLength(1);
     expect(
       await prisma.auditLog.count({ where: { targetId: card.id, action: "bulletin.card.approved" } }),
@@ -243,7 +253,7 @@ describe("places", () => {
     expect((await loadPlaces(ids.guest)).pending.map((p) => p.id)).toContain(id);
     await refused(saveTestimonial(ids.other, id, "Lovely soup and bread."), "gone");
 
-    await reviewPlace(ids.staff, id, true);
+    await reviewPlace(ids.staff, id, true, PAST);
     await saveTestimonial(ids.other, id, "Lovely soup and bread.");
     await saveTestimonial(ids.other, id, "Lovely soup, and the bread is great.");
     const [place] = (await loadPlaces(ids.other, { q: stamp })).places;

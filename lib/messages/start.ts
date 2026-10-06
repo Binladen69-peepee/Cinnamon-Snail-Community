@@ -1,8 +1,42 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import { canSendDirectMessage, type DmSubject } from "@/lib/messages/permissions";
+import {
+  canSendDirectMessage,
+  conversationMemberKey,
+  type DmSubject,
+} from "@/lib/messages/permissions";
 import { resolveMemberAvatar } from "@/lib/community/member-avatars";
 import { matchesQuery } from "@/lib/community/match";
+
+/** Handles are short and plain; anything else in `?to=` is not one. */
+const HANDLE = /^[a-z0-9][a-z0-9._-]{0,39}$/i;
+
+/**
+ * Where "Message" on a profile should land: the one-to-one thread the viewer
+ * already has with that member, or the new-message picker with them chosen.
+ *
+ * Profiles link to `/messages?to=<handle>`. Only the picker used to read
+ * `to`, so those links opened an empty inbox. This answers the question
+ * without writing anything — opening a thread that does not exist yet is the
+ * picker's job, behind its own permission check — and a thread the viewer
+ * left is not reopened from a link, the picker does that on purpose.
+ */
+export async function directMessageTarget(
+  viewerId: string,
+  rawHandle: string,
+): Promise<string> {
+  const handle = rawHandle.trim().replace(/^@/, "");
+  if (!HANDLE.test(handle)) return "/messages/new";
+  const picker = `/messages/new?to=${encodeURIComponent(handle)}`;
+  const target = await prisma.user.findUnique({ where: { handle }, select: { id: true } });
+  if (!target || target.id === viewerId) return picker;
+  const thread = await prisma.conversation.findUnique({
+    where: { memberKey: conversationMemberKey([viewerId, target.id]) },
+    select: { id: true, members: { where: { userId: viewerId }, select: { leftAt: true } } },
+  });
+  const seat = thread?.members[0];
+  return thread && seat && !seat.leftAt ? `/messages/${thread.id}` : picker;
+}
 
 /**
  * Who the viewer may start a conversation with.

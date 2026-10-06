@@ -3,8 +3,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 /**
  * A post's shape while it loads: the way back, the post card, and the
- * conversation card under it, with the room's rail beside them on wide
- * screens so nothing moves sideways when the page arrives.
+ * conversation card under it, with the rail beside them on wide screens so
+ * nothing moves sideways when the page arrives.
  */
 export default function PostLoading() {
   return (
@@ -31,8 +31,8 @@ export default function PostLoading() {
             <Skeleton className="h-3.5 w-2/3 rounded-chip" />
           </div>
           <Skeleton className="aspect-video w-full rounded-none" />
-          <div className="grid grid-cols-4 gap-1 px-2 py-2 sm:px-3">
-            {Array.from({ length: 4 }, (_, index) => (
+          <div className="grid grid-cols-3 gap-1 px-2 py-2 sm:px-3">
+            {Array.from({ length: 3 }, (_, index) => (
               <Skeleton key={index} className="h-9 rounded-ctl" />
             ))}
           </div>
@@ -69,7 +69,7 @@ export default function PostLoading() {
 function RailSkeleton() {
   return (
     <div className="flex flex-col gap-4">
-      {[3, 4].map((rows, card) => (
+      {[5].map((rows, card) => (
         <div
           key={card}
           className="overflow-hidden rounded-card border border-border bg-surface shadow-e1"

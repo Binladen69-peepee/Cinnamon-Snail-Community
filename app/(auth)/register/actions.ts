@@ -1,8 +1,10 @@
 "use server";
 
 import { headers } from "next/headers";
-import { signIn } from "@/auth";
+import { redirect } from "next/navigation";
+import { auth, signIn } from "@/auth";
 import { registerAccount } from "@/lib/auth/register";
+import { safeCallbackUrl } from "@/lib/auth/redirects";
 import { isRedirectAuthError } from "@/lib/auth/tokens";
 import { track } from "@/lib/analytics/server";
 
@@ -24,14 +26,24 @@ async function clientIp() {
  * hazing ritual rather than a security control: they have already proved they
  * know it. The sign-in redirect throws, which is how Auth.js navigates, so it
  * is rethrown rather than caught as a failure.
+ *
+ * A member who is already signed in is sent on before anything is created.
+ * The page never shows them the form, but a tab left open from before they
+ * signed in can still submit it, and that must not open a second account and
+ * swap the session underneath them.
  */
 export async function registerAction(
   _prev: RegisterState,
   formData: FormData,
 ): Promise<RegisterState> {
+  const host = (await headers()).get("host");
+  const callbackUrl = safeCallbackUrl(formData.get("callbackUrl"), { host });
+
+  const session = await auth();
+  if (session?.sessionId) redirect(callbackUrl);
+
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
-  const callbackUrl = String(formData.get("callbackUrl") ?? "/home");
 
   const result = await registerAccount({
     name: String(formData.get("name") ?? ""),
@@ -51,7 +63,7 @@ export async function registerAction(
     await signIn("credentials", {
       email: result.email,
       password,
-      redirectTo: callbackUrl.startsWith("/") ? callbackUrl : "/home",
+      redirectTo: callbackUrl,
     });
   } catch (error) {
     if (isRedirectAuthError(error)) throw error;

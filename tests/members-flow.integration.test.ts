@@ -472,3 +472,36 @@ describe("following", () => {
     expect(results.reduce((sum, row) => sum + row.count, 0)).toBe(1);
   });
 });
+
+describe("nothing is found by a field its owner hid", () => {
+  const shy = () => `itdir${stamp}private`;
+
+  it("does not list them under the location they hid, or count them there", async () => {
+    if (!reachable) return;
+    const filtered = await loadDirectory({ ...base(), location: "Oslo, Norway" });
+    expect(filtered.members.map((m) => m.handle)).not.toContain(shy());
+    const all = await loadDirectory(base());
+    const oslo = all.facets.locations.find((f) => f.value === "Oslo, Norway");
+    // Either nobody else is in Oslo, or the chip counts only those who show it.
+    expect(oslo?.count ?? 0).toBe(filtered.total);
+  });
+
+  it("does not find them by searching for the city they hid, but still by name", async () => {
+    if (!reachable) return;
+    const byCity = await loadDirectory({ ...base(), q: "Oslo" });
+    expect(byCity.members.map((m) => m.handle)).not.toContain(shy());
+    const byName = await loadDirectory({ ...base(), q: "Directory private" });
+    expect(byName.members.map((m) => m.handle)).toContain(shy());
+  });
+
+  it("does not list them under an interest or a skill they hid", async () => {
+    if (!reachable) return;
+    const baking = await loadDirectory({ ...base(), interest: "baking" });
+    expect(baking.members.map((m) => m.handle)).not.toContain(shy());
+    const beginners = await loadDirectory({ ...base(), skill: "BEGINNER" });
+    expect(beginners.members.map((m) => m.handle)).not.toContain(shy());
+    const all = await loadDirectory(base());
+    const chip = all.facets.interests.find((f) => f.value === "baking");
+    expect(chip?.count ?? 0).toBe(baking.total);
+  });
+});

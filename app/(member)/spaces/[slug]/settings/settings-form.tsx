@@ -45,7 +45,10 @@ export function SpaceSettingsForm({
   groups,
   products,
   canSetProduct,
+  back = { href: "/kitchen-table", label: "Kitchen Table" },
 }: {
+  /** Where "back" goes: the Kitchen Table, or the console's list of rooms. */
+  back?: { href: string; label: string };
   space: {
     id: string;
     slug: string;
@@ -116,7 +119,7 @@ export function SpaceSettingsForm({
             <Field
               label="Icon"
               htmlFor="space-icon"
-              hint="A single emoji, shown beside the name in the sidebar."
+              hint="A single emoji. Members no longer see room icons; the console still lists it."
             >
               <Input
                 id="space-icon"
@@ -129,7 +132,7 @@ export function SpaceSettingsForm({
             <Field
               label="Order"
               htmlFor="space-sort"
-              hint="Lower numbers sit higher in the sidebar."
+              hint="Lower numbers sit higher in the console's list of rooms."
             >
               <Input
                 id="space-sort"
@@ -143,7 +146,7 @@ export function SpaceSettingsForm({
           <Field
             label="Cover image URL"
             htmlFor="space-cover"
-            hint="Shown as the banner at the top of the space."
+            hint="Kept with the room. Rooms no longer have a page of their own."
           >
             <Input
               id="space-cover"
@@ -153,7 +156,7 @@ export function SpaceSettingsForm({
               placeholder="https://"
             />
           </Field>
-          <Field label="Section" htmlFor="space-group" hint="Where it is filed in the sidebar.">
+          <Field label="Section" htmlFor="space-group" hint="Where it is filed in the console.">
             <Select id="space-group" name="groupId" defaultValue={space.groupId ?? ""}>
               <option value="">No section</option>
               {groups.map((group) => (
@@ -167,7 +170,7 @@ export function SpaceSettingsForm({
 
         <FormSection
           title="What kind of space"
-          description="Decides which tabs the space opens with."
+          description="Feed, chat and members rooms read in the Kitchen Table. Course and events rooms do not."
           className={SECTION}
         >
           <Choices
@@ -184,7 +187,7 @@ export function SpaceSettingsForm({
 
         <FormSection
           title="Who can see it"
-          description="Enforced on the server, not only here."
+          description="Enforced on the server, not only here. A private room's posts never read in the Kitchen Table."
           className={SECTION}
         >
           <Choices
@@ -268,8 +271,8 @@ export function SpaceSettingsForm({
           {pending ? <Loader2 className="size-4 animate-spin" aria-hidden /> : null}
           {pending ? "Saving…" : "Save settings"}
         </Button>
-        <ButtonLink href={`/spaces/${space.slug}`} variant="ghost">
-          Back to the space
+        <ButtonLink href={back.href} variant="ghost">
+          Back to {back.label}
         </ButtonLink>
       </div>
     </form>

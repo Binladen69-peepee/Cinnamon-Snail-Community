@@ -81,9 +81,14 @@ export async function setCoursePublishedAction(
 
   revalidatePath("/admin/courses");
   revalidatePath(`/admin/courses/${slug}/edit`);
-  // Publishing changes what members see, so their library has to forget too.
+  // Publishing changes what members see, so their library has to forget too —
+  // including which shelves exist, since a shelf shows only once something on
+  // it is published, and the category screens' published counts.
   revalidatePath("/learn");
   revalidatePath(`/learn/${slug}`);
+  revalidatePath("/(member)/learn/[slug]", "page");
+  revalidatePath("/admin/courses/categories");
+  revalidatePath("/admin/courses/categories/[slug]", "page");
   return { ok: true };
 }
 

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSelectedLayoutSegment } from "next/navigation";
 import { MessageSquare, PenSquare, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
-import { ButtonLink, CountBadge, EmptyState } from "@/components/app/ui";
+import { Badge, ButtonLink, CountBadge, EmptyState } from "@/components/app/ui";
 import { PaneHeader } from "@/components/messages/pane-header";
 import { formatShortTime } from "@/lib/community/format-count";
 import { cn } from "@/lib/utils";
@@ -13,6 +13,8 @@ export type InboxRow = {
   id: string;
   title: string;
   isGroup: boolean;
+  /** A crew's group chat (DEC-078) is marked as such in the list. */
+  isCrew?: boolean;
   others: { handle: string; name: string; avatarUrl: string | null }[];
   preview: string;
   lastMessageAt: string | null;
@@ -82,7 +84,7 @@ export function ConversationList({ rows }: { rows: InboxRow[] }) {
                     current ? "bg-brand-wash" : "hover:bg-surface-muted",
                   )}
                 >
-                  {row.isGroup ? (
+                  {row.isGroup || row.isCrew ? (
                     <span
                       className="grid size-11 shrink-0 place-items-center rounded-full bg-brand-wash text-on-brand-wash"
                       aria-hidden
@@ -99,8 +101,15 @@ export function ConversationList({ rows }: { rows: InboxRow[] }) {
 
                   <span className="min-w-0 flex-1">
                     <span className="flex items-baseline justify-between gap-2">
-                      <span className="min-w-0 truncate text-body font-semibold text-foreground">
-                        {row.title}
+                      <span className="flex min-w-0 items-center gap-1.5">
+                        <span className="min-w-0 truncate text-body font-semibold text-foreground">
+                          {row.title}
+                        </span>
+                        {row.isCrew ? (
+                          <Badge tone="neutral" className="shrink-0">
+                            Crew
+                          </Badge>
+                        ) : null}
                       </span>
                       {row.lastMessageAt ? (
                         <span className="shrink-0 text-caption tabular-nums text-foreground-muted">

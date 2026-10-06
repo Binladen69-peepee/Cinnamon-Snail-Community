@@ -67,6 +67,13 @@ const CATEGORY_ICON: Record<NotificationCategory, typeof Bell> = {
  * Each row is a form rather than a link so the read lands without JavaScript
  * and cannot be lost by a tab closing before a beacon fires.
  */
+/** How an empty tab names what it holds: "No live class notifications". */
+const EMPTY_TAB_NOUN: Partial<Record<string, string>> = {
+  mentions: "mention",
+  replies: "reply",
+  events: "live class",
+};
+
 export default async function NotificationsPage({
   searchParams,
 }: {
@@ -249,10 +256,10 @@ function Blank({ filter, empty }: { filter: InboxFilter; empty: boolean }) {
     ? "Nothing yet"
     : filter === "unread"
       ? "Nothing unread"
-      : `No ${INBOX_FILTER_LABEL[filter].toLowerCase()} notifications`;
+      : `No ${EMPTY_TAB_NOUN[filter] ?? INBOX_FILTER_LABEL[filter].toLowerCase()} notifications`;
 
   const body = empty
-    ? "Replies, mentions, messages and event reminders arrive here."
+    ? "Replies, mentions, messages and live class reminders arrive here."
     : filter === "unread"
       ? "Everything has been read. The other tabs still have your history."
       : "Other tabs may still have something — the counts above say which.";

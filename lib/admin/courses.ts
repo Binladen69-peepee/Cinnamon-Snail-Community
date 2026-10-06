@@ -116,6 +116,10 @@ export type EditLesson = {
   body: string | null;
   durationMin: number | null;
   videoUid: string | null;
+  /** Bunny Stream video (DEC-081), with Bunny's last-seen status and length. */
+  bunnyVideoId: string | null;
+  bunnyVideoStatus: number | null;
+  bunnyVideoLength: number | null;
   audioUid: string | null;
   downloadUid: string | null;
   liveUrl: string | null;
@@ -203,6 +207,9 @@ export async function getAdminCourse(
               body: true,
               durationMin: true,
               videoUid: true,
+              bunnyVideoId: true,
+              bunnyVideoStatus: true,
+              bunnyVideoLength: true,
               audioUid: true,
               downloadUid: true,
               liveUrl: true,
@@ -283,13 +290,14 @@ export function lessonIsReady(lesson: {
   kind: LessonKind;
   body: string | null;
   videoUid: string | null;
+  bunnyVideoId?: string | null;
   audioUid: string | null;
   downloadUid: string | null;
   liveUrl: string | null;
 }): boolean {
   switch (lesson.kind) {
     case "VIDEO":
-      return Boolean(lesson.videoUid);
+      return Boolean(lesson.videoUid || lesson.bunnyVideoId);
     case "AUDIO":
       return Boolean(lesson.audioUid);
     case "DOWNLOAD":
@@ -314,13 +322,14 @@ export function lessonSummary(lesson: {
   kind: LessonKind;
   body: string | null;
   videoUid: string | null;
+  bunnyVideoId?: string | null;
   audioUid: string | null;
   downloadUid: string | null;
   liveUrl: string | null;
   resources: { id: string }[];
 }): string {
   const parts: string[] = [];
-  if (lesson.videoUid) parts.push("Video");
+  if (lesson.videoUid || lesson.bunnyVideoId) parts.push("Video");
   if (lesson.audioUid) parts.push("Audio");
   if (lesson.downloadUid) parts.push("Download");
   if (lesson.liveUrl) parts.push("Live");

@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { consumeRateLimit } from "@/lib/auth/rate-limit";
-import { respondToMatch, setMatchingPreference } from "@/lib/social/suggestions";
+import {
+  respondToMatch,
+  setMatchingPreference,
+  startMatchConversation,
+} from "@/lib/social/suggestions";
 
 /**
  * The weekly match's buttons and the matching switch.
@@ -30,6 +34,32 @@ async function withinLimit(userId: string) {
   return limit.ok;
 }
 
+/**
+ * "Message <name>": opens the direct thread with this week's match and lands
+ * on it with the suggested opener in the composer, ready to edit or send.
+ *
+ * The opener is never put in the URL and never sent here — the thread page
+ * resolves `?draft=match:<id>` back into text for the match's owner only.
+ * When the other member's settings or a block would refuse the message, no
+ * thread is created and Connect says why.
+ */
+export async function messageMatchAction(formData: FormData) {
+  const userId = await viewerOrLogin();
+  const matchId = String(formData.get("matchId") ?? "").slice(0, 64);
+  if (!matchId) redirect("/connect?error=match");
+  if (!(await withinLimit(userId))) redirect("/connect?error=busy");
+
+  const result = await startMatchConversation(userId, matchId);
+  if (!result.ok) {
+    const code =
+      result.code === "busy" ? "busy" : result.code === "dm-refused" ? "dm" : "match";
+    redirect(`/connect?error=${code}#match`);
+  }
+
+  revalidatePath("/messages");
+  redirect(`/messages/${result.conversationId}?draft=${encodeURIComponent(result.draftKey)}`);
+}
+
 export async function respondToMatchAction(formData: FormData) {
   const userId = await viewerOrLogin();
   const matchId = String(formData.get("matchId") ?? "");
@@ -39,14 +69,6 @@ export async function respondToMatchAction(formData: FormData) {
 
   await respondToMatch(userId, matchId, status);
   revalidatePath("/connect");
-
-  if (status === "CONNECTED") {
-    const match = await prisma.memberMatch.findFirst({
-      where: { id: matchId, userId },
-      select: { matchedUser: { select: { handle: true } } },
-    });
-    if (match) redirect(`/messages/new?to=${encodeURIComponent(match.matchedUser.handle)}`);
-  }
   redirect("/connect#match");
 }
 

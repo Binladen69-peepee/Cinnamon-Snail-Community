@@ -1,11 +1,13 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { FileText } from "lucide-react";
 import { auth } from "@/auth";
-import { prisma } from "@/lib/db";
-import { parseComposerType } from "@/lib/community/post-types";
+import { composerTypesFor, parseComposerType } from "@/lib/community/post-types";
+import { countOwnUnpublished } from "@/lib/community/feed";
+import { hasHostRole } from "@/lib/community/kitchen-table";
+import { KITCHEN_TABLE_PATH } from "@/lib/community/system-spaces";
 import { uploadsConfigured } from "@/lib/uploads/storage";
 import { AppShell } from "@/components/app/app-shell";
-import { Card, PageHeader } from "@/components/app/ui";
+import { ButtonLink, Card, PageHeader } from "@/components/app/ui";
 import { ComposeForm } from "@/components/feed/compose-form";
 
 export const metadata = { title: "New post" };
@@ -13,64 +15,52 @@ export const metadata = { title: "New post" };
 /**
  * The full composer.
  *
- * Eight surfaces link here — the Create button in the bar, the raised centre
- * tab on phones, the Create Post button in the discovery rail, the empty feed,
- * the space pages, and the inline composer's own Link and Poll shortcuts — and
- * every one of them was a 404.
+ * The type arrives in the URL because that is how the inline composer links
+ * here (`/compose?type=POLL`), which also makes "post a poll" a URL someone can
+ * be sent. Every post goes to the Kitchen Table (DEC-078), so there is no room
+ * to choose; a staff-only type asked for by a member falls back to a plain post.
  *
- * The type arrives in the URL because that is how the inline composer already
- * linked here (`/compose?type=POLL`), which also makes "post a poll" a URL
- * someone can be sent.
- *
- * Only rooms the member can actually post in are offered. Reading them from
- * their memberships rather than from every visible room means the space picker
- * cannot suggest somewhere the server would then refuse.
+ * Drafts are no longer started anywhere (the client removed Drafts), but a
+ * member who has unpublished posts — old drafts, scheduled posts, posts
+ * waiting for a host — still needs a way to reach them. That link appears
+ * here, and only when there is something behind it.
  */
 export default async function ComposePage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string; space?: string }>;
+  searchParams: Promise<{ type?: string }>;
 }) {
   const session = await auth();
-  if (!session?.user.id) redirect("/login");
+  if (!session?.user.id) redirect("/login?callbackUrl=/compose");
 
   const params = await searchParams;
-  const type = parseComposerType(params.type);
+  const staff = hasHostRole(session.user.roles);
+  const type = parseComposerType(params.type, { isStaff: staff });
+  const types = composerTypesFor(staff).map((entry) => entry.value);
+  const unpublished = await countOwnUnpublished(session.user.id);
 
-  const memberships = await prisma.spaceMembership.findMany({
-    where: { userId: session.user.id },
-    select: { space: { select: { id: true, name: true, slug: true } } },
-    orderBy: { space: { sortOrder: "asc" } },
-  });
-  const spaces = memberships.map((row) => row.space);
-
-  // Prefer the room asked for, then the one last read, then the first joined.
-  const asked = params.space
-    ? spaces.find((space) => space.slug === params.space || space.id === params.space)
-    : undefined;
-  const lastUsed = (await cookies()).get("vu-last-space")?.value;
-  const defaultSpaceId =
-    asked?.id ??
-    spaces.find((space) => space.id === lastUsed)?.id ??
-    spaces[0]?.id ??
-    null;
+  const draftsTab =
+    unpublished.DRAFT > 0 ? "DRAFT" : unpublished.SCHEDULED > 0 ? "SCHEDULED" : "PENDING";
 
   return (
     <AppShell>
       <div className="flex flex-col gap-6">
         <PageHeader
-          back={{ href: "/home", label: "Explorer" }}
+          back={{ href: KITCHEN_TABLE_PATH, label: "Kitchen Table" }}
           title="New post"
-          description="Everything you can post, with the fields each kind needs."
+          description="It goes to the Kitchen Table. Pick what kind of post it is, and the fields it needs appear."
+          actions={
+            unpublished.total > 0 ? (
+              <ButtonLink href={`/drafts?tab=${draftsTab}`} size="sm">
+                <FileText className="size-4" aria-hidden />
+                Unpublished posts ({unpublished.total})
+              </ButtonLink>
+            ) : undefined
+          }
         />
 
         <Card padding="lg">
-          <ComposeForm
-            type={type.value}
-            spaces={spaces.map(({ id, name }) => ({ id, name }))}
-            defaultSpaceId={defaultSpaceId}
-            uploadsEnabled={uploadsConfigured()}
-          />
+          <ComposeForm type={type.value} types={types} uploadsEnabled={uploadsConfigured()} />
         </Card>
       </div>
     </AppShell>

@@ -83,6 +83,24 @@ describe("parseInternalLink", () => {
     });
   });
 
+  it("recognises a live class at its new address, and at the one it had before", () => {
+    // Live Classes moved from /calendar (DEC-079); old messages keep old links.
+    expect(parseInternalLink(`${origin}/live-classes/tofu-night`, origin)).toEqual({
+      kind: "event",
+      slug: "tofu-night",
+    });
+    expect(parseInternalLink("/live-classes/tofu-night", origin)).toEqual({
+      kind: "event",
+      slug: "tofu-night",
+    });
+    expect(parseInternalLink(`${origin}/calendar/tofu-night`, origin)).toEqual({
+      kind: "event",
+      slug: "tofu-night",
+    });
+    expect(parseInternalLink(`${origin}/live-classes`, origin)).toBeNull();
+    expect(parseInternalLink(`${origin}/live-classes/a/b`, origin)).toBeNull();
+  });
+
   it("accepts a relative path, which is ours by definition", () => {
     expect(parseInternalLink("/members/priya", origin)).toEqual({
       kind: "member",

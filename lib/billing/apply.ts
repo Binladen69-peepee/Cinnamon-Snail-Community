@@ -5,6 +5,7 @@ import { writeAuditLog } from "@/lib/audit";
 import { entitlementEffect, nextSubscriptionStatus } from "@/lib/billing/policy";
 import { syncKitForEntitlementChange, syncKitTags } from "@/lib/billing/kit";
 import { normalizeInterval, planTags } from "@/lib/billing/kit-tags";
+import { samcartStartFromWebhook } from "@/lib/billing/samcart-api";
 import type { CanonicalBillingEvent } from "@/lib/billing/types";
 import { isEntitlementActive } from "@/lib/entitlements/check";
 
@@ -67,6 +68,7 @@ export async function applyCanonicalEvent(
     productId: product.id,
     status,
     event,
+    start: await webhookStart(event, billingEventId),
   });
 
   if (billingEventId) {
@@ -112,11 +114,49 @@ export async function applyCanonicalEvent(
   return { subscriptionId: subscription.id, userId: user.id, effect };
 }
 
+/**
+ * When the member originally subscribed, as far as this notification can say
+ * (DEC-078). Read from the stored payload because the canonical event does
+ * not carry it; null for anything that is not evidence of a start, such as a
+ * renewal charge. Only ever used for `Subscription.startedAt`, which places a
+ * member in their cohort crew — nothing about access or billing reads it.
+ */
+async function webhookStart(
+  event: CanonicalBillingEvent,
+  billingEventId?: string,
+): Promise<Date | null> {
+  if (!billingEventId) return null;
+  const row = await prisma.billingEvent.findUnique({
+    where: { id: billingEventId },
+    select: { payload: true, createdAt: true },
+  });
+  if (!row) return null;
+  return samcartStartFromWebhook(row.payload, { type: event.type, receivedAt: row.createdAt });
+}
+
+/**
+ * The `startedAt` write for a subscription row, if any. The SamCart API's
+ * answer is authoritative and is never replaced by a webhook's; between
+ * webhooks the earliest start wins, because a start can only be earlier than
+ * we thought, never later.
+ */
+function startedAtChange(
+  existing: { startedAt: Date | null; startedAtSource: string | null } | null,
+  start: Date | null | undefined,
+): { startedAt?: Date; startedAtSource?: string } {
+  if (!start) return {};
+  if (existing?.startedAt && existing.startedAtSource === "samcart_api") return {};
+  if (existing?.startedAt && existing.startedAt <= start) return {};
+  return { startedAt: start, startedAtSource: "webhook" };
+}
+
 async function upsertSubscription(input: {
   userId: string;
   productId: string;
   status: SubscriptionStatus;
   event: CanonicalBillingEvent;
+  /** The original start this event vouches for; see `webhookStart`. */
+  start?: Date | null;
 }) {
   if (input.event.samcartSubscriptionId) {
     const existing = await prisma.subscription.findUnique({
@@ -126,6 +166,7 @@ async function upsertSubscription(input: {
       return prisma.subscription.update({
         where: { id: existing.id },
         data: {
+          ...startedAtChange(existing, input.start),
           status: input.status,
           samcartOrderId: input.event.samcartOrderId ?? existing.samcartOrderId,
           samcartCustomerId: input.event.samcartCustomerId ?? existing.samcartCustomerId,
@@ -160,12 +201,17 @@ async function upsertSubscription(input: {
   if (existingByOrder) {
     return prisma.subscription.update({
       where: { id: existingByOrder.id },
-      data: { status: input.status, amountCents: input.event.amountCents ?? existingByOrder.amountCents },
+      data: {
+        ...startedAtChange(existingByOrder, input.start),
+        status: input.status,
+        amountCents: input.event.amountCents ?? existingByOrder.amountCents,
+      },
     });
   }
 
   return prisma.subscription.create({
     data: {
+      ...startedAtChange(null, input.start),
       userId: input.userId,
       productId: input.productId,
       status: input.status,
@@ -280,6 +326,11 @@ export async function claimPendingGrantsForEmail(email: string, userId: string) 
       productId: grant.productId,
       status,
       event,
+      // The grant was written when SamCart's notification arrived, before
+      // this person had an account. For a purchase that is when they started;
+      // a held renewal says nothing about the start, so it waits for the
+      // SamCart API backfill. Never the claim time, which is just today.
+      start: grant.source === "purchase" ? grant.createdAt : null,
     });
     await applyEntitlementEffect({
       userId,

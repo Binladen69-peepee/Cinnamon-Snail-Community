@@ -2,32 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Compass, MessageSquare, Plus, Search, Users } from "lucide-react";
+import { MOBILE_TABS, isNavActive } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
-type Tab = {
-  href: string;
-  label: string;
-  icon: typeof Compass;
-  /** The raised centre action rather than a destination. */
-  primary?: boolean;
-};
-
-const TABS: Tab[] = [
-  { href: "/home", label: "Explorer", icon: Compass },
-  { href: "/search", label: "Search", icon: Search },
-  { href: "/compose", label: "Create", icon: Plus, primary: true },
-  { href: "/spaces", label: "Spaces", icon: Users },
-  { href: "/messages", label: "Messages", icon: MessageSquare },
-];
-
 /**
- * The phone tab bar.
+ * The phone tab bar: Kitchen Table, Classes, Create, Live, Messages.
  *
  * Create sits in the middle as a raised action rather than a fifth
  * destination — it is the thing people reach for most and the easiest target
  * under a thumb. A flat band rather than a floating pill: the app's chrome
  * should not appear to hover over its content.
+ *
+ * Five tabs share 320px, so a long name shows its short form ("Kitchen",
+ * "Live") and keeps the full one as the link's accessible name. Search, which
+ * used to hold a tab, is the search button in the header on phones.
  */
 export function MobileTabs() {
   const pathname = usePathname();
@@ -38,11 +26,8 @@ export function MobileTabs() {
       className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
     >
       <ul className="grid grid-cols-5">
-        {TABS.map((tab) => {
-          const active =
-            tab.href === "/home"
-              ? pathname === "/home"
-              : pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+        {MOBILE_TABS.map((tab) => {
+          const active = isNavActive(pathname, tab);
           const Icon = tab.icon;
 
           if (tab.primary) {
@@ -60,17 +45,18 @@ export function MobileTabs() {
           }
 
           return (
-            <li key={tab.href}>
+            <li key={tab.href} className="min-w-0">
               <Link
                 href={tab.href}
                 aria-current={active ? "page" : undefined}
+                aria-label={tab.shortLabel ? tab.label : undefined}
                 className={cn(
-                  "flex min-h-13 flex-col items-center justify-center gap-1 text-[10.5px] font-medium no-underline transition",
+                  "flex min-h-13 flex-col items-center justify-center gap-1 px-0.5 text-micro font-medium no-underline transition",
                   active ? "font-semibold text-brand" : "text-foreground-muted hover:text-foreground",
                 )}
               >
                 <Icon className="size-5" strokeWidth={active ? 2.25 : 2} aria-hidden />
-                {tab.label}
+                <span className="max-w-full truncate">{tab.shortLabel ?? tab.label}</span>
               </Link>
             </li>
           );

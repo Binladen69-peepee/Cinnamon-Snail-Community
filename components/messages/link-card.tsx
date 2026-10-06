@@ -35,7 +35,7 @@ const ICONS: Record<LinkPreview["kind"], typeof BookOpen> = {
 const LABELS: Record<LinkPreview["kind"], string> = {
   lesson: "Lesson",
   class: "Class",
-  event: "Event",
+  event: "Live class",
   post: "Post",
   member: "Member",
   space: "Room",

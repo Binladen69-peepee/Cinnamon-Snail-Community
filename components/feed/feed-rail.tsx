@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CalendarDays, ChevronRight, Leaf, Plus, Radio } from "lucide-react";
+import { CalendarDays, ExternalLink, MessageSquare, PenLine, Radio } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { ButtonLink, Card, CardHeader } from "@/components/app/ui";
 import { cn } from "@/lib/utils";
@@ -21,11 +21,18 @@ export type RailPerson = {
   reason: string;
 };
 
-export type RailTrend = {
-  name: string;
-  slug: string;
-  posts: number;
-  unread: number;
+export type RailPopular = {
+  id: string;
+  label: string;
+  authorName: string;
+  comments: number;
+};
+
+export type RailResource = {
+  id: string;
+  label: string;
+  url: string;
+  description: string | null;
 };
 
 /** One row of a rail card: full width, so its hover fill meets the edges. */
@@ -33,28 +40,50 @@ const ROW =
   "flex items-center gap-3 px-4 py-3 no-underline transition hover:bg-surface-muted";
 
 /**
- * Right discovery column for Home.
- * See PROJECT.md — the member shell and feed layout.
+ * The column beside the Kitchen Table.
+ *
+ * What the member is working on comes first (their roadmap topic, DEC-080),
+ * then a way to post that stays in reach while scrolling, the next live class,
+ * people worth meeting, what everyone is talking about this week, and the
+ * table's own links. Every card is real data and disappears when it has
+ * nothing to say; nothing here is decoration.
  */
 export function FeedRail({
+  focus,
   events,
   suggestions,
-  trending,
+  popular = [],
+  resources = [],
 }: {
+  /** The roadmap focus card (C5). Renders nothing for a member without a roadmap. */
+  focus?: React.ReactNode;
   events: RailEvent[];
   suggestions: RailPerson[];
-  trending: RailTrend[];
+  popular?: RailPopular[];
+  resources?: RailResource[];
 }) {
   return (
     <div className="flex flex-col gap-4">
+      {focus}
+
       <ButtonLink href="/compose" variant="primary" className="w-full">
-        <Plus className="size-4" aria-hidden />
-        Create Post
+        <PenLine className="size-4" aria-hidden />
+        Write a post
       </ButtonLink>
 
       {events.length > 0 ? (
         <Card padding="none" className="overflow-hidden">
-          <CardHeader title="Next live class" />
+          <CardHeader
+            title="Next live class"
+            action={
+              <Link
+                href="/live-classes"
+                className="rounded-chip text-caption font-medium text-link no-underline hover:underline"
+              >
+                All classes
+              </Link>
+            }
+          />
           <ul className="divide-y divide-separator">
             {events.map((event) => (
               <li key={event.id}>
@@ -62,11 +91,7 @@ export function FeedRail({
                   {event.coverUrl ? (
                     <span className="relative size-12 shrink-0 overflow-hidden rounded-ctl bg-surface-muted">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img
-                        src={event.coverUrl}
-                        alt=""
-                        className="size-full object-cover"
-                      />
+                      <img src={event.coverUrl} alt="" className="size-full object-cover" />
                     </span>
                   ) : (
                     <span className="grid size-12 shrink-0 place-items-center rounded-ctl bg-brand-wash text-center text-on-brand-wash">
@@ -142,9 +167,7 @@ export function FeedRail({
                   >
                     {person.displayName}
                   </Link>
-                  <p className="truncate text-caption text-foreground-muted">
-                    {person.reason}
-                  </p>
+                  <p className="truncate text-caption text-foreground-muted">{person.reason}</p>
                 </div>
                 <ButtonLink href={`/members/${person.handle}`} size="sm">
                   Follow
@@ -155,26 +178,27 @@ export function FeedRail({
         </Card>
       ) : null}
 
-      {trending.length > 0 ? (
+      {popular.length > 0 ? (
         <Card padding="none" className="overflow-hidden">
-          <CardHeader title="Trending in community" />
+          <CardHeader title="Most discussed this week" />
           <ul className="divide-y divide-separator">
-            {trending.map((item) => (
-              <li key={item.slug}>
-                <Link href={`/spaces/${item.slug}`} className={cn(ROW, "py-2.5")}>
+            {popular.map((item) => (
+              <li key={item.id}>
+                <Link href={`/posts/${item.id}`} className={cn(ROW, "py-2.5")}>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-label font-medium text-foreground">
-                      {item.name}
+                    <span className="line-clamp-2 text-label font-medium leading-snug text-foreground">
+                      {item.label}
                     </span>
-                    <span className="block text-caption text-foreground-muted">
-                      {item.posts} {item.posts === 1 ? "post" : "posts"}
-                      {item.unread > 0 ? ` · ${item.unread} new` : ""}
+                    <span className="mt-0.5 flex items-center gap-1.5 text-caption text-foreground-muted">
+                      <span className="truncate">{item.authorName}</span>
+                      <span aria-hidden>·</span>
+                      <span className="inline-flex shrink-0 items-center gap-1 tabular-nums">
+                        <MessageSquare className="size-3" aria-hidden />
+                        {item.comments}
+                        <span className="sr-only">{item.comments === 1 ? "reply" : "replies"}</span>
+                      </span>
                     </span>
                   </span>
-                  <ChevronRight
-                    className="size-4 shrink-0 text-foreground-muted"
-                    aria-hidden
-                  />
                 </Link>
               </li>
             ))}
@@ -182,10 +206,45 @@ export function FeedRail({
         </Card>
       ) : null}
 
-      <p className="flex items-center justify-center gap-1.5 px-3 py-2 text-caption text-foreground-muted">
-        <Leaf className="size-3.5 text-brand" aria-hidden />
-        Good food brings people together.
-      </p>
+      {resources.length > 0 ? (
+        <Card padding="none" className="overflow-hidden">
+          <CardHeader title="Kitchen Table links" />
+          <ResourceList resources={resources} />
+        </Card>
+      ) : null}
     </div>
+  );
+}
+
+/** The Kitchen Table's links (the room's resources), as rows. */
+export function ResourceList({ resources }: { resources: RailResource[] }) {
+  return (
+    <ul className="divide-y divide-separator">
+      {resources.map((resource) => {
+        const external = /^https?:\/\//.test(resource.url);
+        return (
+          <li key={resource.id}>
+            <a
+              href={resource.url}
+              target={external ? "_blank" : undefined}
+              rel={external ? "noopener noreferrer" : undefined}
+              className="flex items-start gap-2.5 px-4 py-2.5 no-underline transition hover:bg-surface-muted"
+            >
+              <ExternalLink className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
+              <span className="min-w-0">
+                <span className="block truncate text-label font-medium text-foreground">
+                  {resource.label}
+                </span>
+                {resource.description ? (
+                  <span className="block truncate text-caption text-foreground-muted">
+                    {resource.description}
+                  </span>
+                ) : null}
+              </span>
+            </a>
+          </li>
+        );
+      })}
+    </ul>
   );
 }

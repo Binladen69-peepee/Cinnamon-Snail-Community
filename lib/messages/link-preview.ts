@@ -1,5 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
+import { LIVE_CLASSES_PATH, liveClassHref } from "@/lib/events/paths";
 import { linksIn } from "@/lib/messages/format";
 
 /**
@@ -21,7 +22,26 @@ import { linksIn } from "@/lib/messages/format";
  *
  * External links are still linked, just not unfurled. That is stated in the
  * UI rather than left to look like a bug.
+ *
+ * A preview is shown to everyone in the thread, not just to whoever pasted
+ * the link, so it only ever describes something any member could open: a
+ * post or a live class in a private or product-locked room gets no card (the
+ * link itself still works for whoever may follow it). Live classes live at
+ * `/live-classes/<slug>` (DEC-079); links written before the rename, to
+ * `/calendar/<slug>`, are still recognised and point at the new address.
  */
+
+/**
+ * Rooms whose contents any member may read: the same open doors the space
+ * preview below already required, and not sold separately.
+ */
+const OPEN_ROOM = {
+  visibility: { in: ["PUBLIC" as const, "MEMBERS" as const] },
+  productId: null,
+};
+
+/** The first path segment of a live class's page, now and before the rename. */
+const LIVE_CLASS_SEGMENTS = new Set([LIVE_CLASSES_PATH.slice(1), "calendar"]);
 
 export type LinkPreview = {
   url: string;
@@ -72,7 +92,7 @@ export function parseInternalLink(raw: string, origin: string): Parsed | null {
   if (parts[0] === "learn" && parts.length === 3) {
     return { kind: "lesson", courseSlug: parts[1]!, lessonSlug: parts[2]! };
   }
-  if (parts[0] === "calendar" && parts.length === 2) {
+  if (LIVE_CLASS_SEGMENTS.has(parts[0]!) && parts.length === 2) {
     return { kind: "event", slug: parts[1]! };
   }
   if (parts[0] === "posts" && parts.length === 2) {
@@ -152,13 +172,18 @@ export async function previewInternalLinks(input: {
       : [],
     eventSlugs.length
       ? prisma.event.findMany({
-          where: { slug: { in: eventSlugs }, status: "PUBLISHED" },
+          where: {
+            slug: { in: eventSlugs },
+            status: "PUBLISHED",
+            // Every class from Zoom has no room; one in a room inherits its door.
+            OR: [{ spaceId: null }, { space: OPEN_ROOM }],
+          },
           select: { slug: true, title: true, startsAt: true, coverUrl: true },
         })
       : [],
     postIds.length
       ? prisma.post.findMany({
-          where: { id: { in: postIds }, status: "PUBLISHED" },
+          where: { id: { in: postIds }, status: "PUBLISHED", space: OPEN_ROOM },
           select: {
             id: true,
             title: true,
@@ -232,7 +257,7 @@ export async function previewInternalLinks(input: {
             month: "short",
             timeZone: "UTC",
           }).format(row.startsAt),
-          href: `/calendar/${row.slug}`,
+          href: liveClassHref(row.slug),
           imageUrl: row.coverUrl,
         });
       }

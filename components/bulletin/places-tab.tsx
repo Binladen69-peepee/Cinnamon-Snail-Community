@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { ChevronDown, ExternalLink, MapPin, MessageCircle, Plus, Search, Store } from "lucide-react";
 import { PLACE_CATEGORIES, VEGAN_STATUS, type PlaceView } from "@/lib/bulletin";
+import { bulletinAnchor } from "@/lib/bulletin/card";
 import { PendingButton } from "@/components/ui/pending-button";
+import { RichText } from "@/components/content/rich-text";
+import { BulletinThreadBar, KitchenTableLink, type BulletinViewer } from "@/components/bulletin/thread";
 import {
   Button,
   Card,
@@ -19,7 +22,9 @@ import { submitPlaceAction, testimonialAction } from "@/app/(member)/bulletin/ac
  *
  * A list grouped by city rather than a drawn map: BUILD.md §19 names a places
  * provider "if approved", and none is. Every entry is member-submitted and
- * staff-reviewed, so nothing here is scraped or invented.
+ * staff-reviewed, so nothing here is scraped or invented. A listed place is
+ * also a Kitchen Table post (it names the city, not the street), and its
+ * reactions and comments show under it here.
  */
 export function PlacesTab({
   places,
@@ -27,12 +32,14 @@ export function PlacesTab({
   q,
   category,
   defaults,
+  viewer,
 }: {
   places: PlaceView[];
   pending: { id: string; name: string; city: string; status: string }[];
   q: string;
   category: string | null;
   defaults: { city: string; region: string; country: string };
+  viewer: BulletinViewer;
 }) {
   const byCity = new Map<string, PlaceView[]>();
   for (const place of places) {
@@ -64,7 +71,8 @@ export function PlacesTab({
           className="grid grid-cols-1 gap-4 border-t border-separator p-4 sm:grid-cols-2 sm:p-5"
         >
           <p className="text-label text-foreground-muted sm:col-span-2">
-            Businesses only, never someone’s home. Staff check each one before it is listed.
+            Businesses only, never someone’s home. Staff check each one before it is listed, and
+            then it is posted in the Kitchen Table too.
           </p>
           <Field label="Name" htmlFor="p-name" className="sm:col-span-2">
             <Input id="p-name" name="name" required minLength={2} maxLength={120} />
@@ -165,7 +173,7 @@ export function PlacesTab({
               <ul className="flex flex-col gap-3">
                 {list.map((place) => (
                   <li key={place.id}>
-                    <PlaceCard place={place} />
+                    <PlaceCard place={place} viewer={viewer} />
                   </li>
                 ))}
               </ul>
@@ -177,12 +185,20 @@ export function PlacesTab({
   );
 }
 
-function PlaceCard({ place }: { place: PlaceView }) {
+function PlaceCard({ place, viewer }: { place: PlaceView; viewer: BulletinViewer }) {
+  const anchor = bulletinAnchor("place", place.id);
   return (
-    <Card as="article">
+    <Card
+      as="article"
+      id={anchor}
+      aria-labelledby={`${anchor}-title`}
+      className="scroll-mt-24 target:border-brand target:shadow-e2"
+    >
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
-          <h3 className="text-title font-semibold text-foreground text-pretty">{place.name}</h3>
+          <h3 id={`${anchor}-title`} className="text-title font-semibold text-foreground text-pretty">
+            {place.name}
+          </h3>
           <p className="mt-0.5 text-label text-foreground-muted">
             {PLACE_CATEGORIES[place.category]}
             {place.address ? ` · ${place.address}` : ""}
@@ -190,18 +206,23 @@ function PlaceCard({ place }: { place: PlaceView }) {
         </div>
         <Pill tone={place.veganStatus === "fully-vegan" ? "brand" : "neutral"}>{VEGAN_STATUS[place.veganStatus]}</Pill>
       </div>
-      {place.website ? (
-        <a href={place.website} target="_blank" rel="noopener noreferrer nofollow" className={`${linkBtn} mt-2.5`}>
-          <ExternalLink aria-hidden />
-          Website
-        </a>
+      {place.website || place.thread ? (
+        <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-1.5">
+          {place.website ? (
+            <a href={place.website} target="_blank" rel="noopener noreferrer nofollow" className={linkBtn}>
+              <ExternalLink aria-hidden />
+              Website
+            </a>
+          ) : null}
+          {place.thread ? <KitchenTableLink postId={place.thread.postId} title={place.name} /> : null}
+        </div>
       ) : null}
 
       {place.testimonials.length > 0 ? (
         <ul className="mt-4 flex flex-col gap-3 border-t border-separator pt-3">
           {place.testimonials.map((t) => (
-            <li key={t.id} className="text-body">
-              <p className="text-foreground">“{t.body}”</p>
+            <li key={t.id} className="border-l-2 border-separator pl-3">
+              <RichText body={t.body} className="text-body text-foreground" />
               <Link
                 href={`/members/${t.person.handle}`}
                 className="mt-0.5 inline-block text-caption font-medium text-foreground-muted no-underline transition hover:text-foreground hover:underline"
@@ -232,6 +253,8 @@ function PlaceCard({ place }: { place: PlaceView }) {
           <PendingButton className={buttonClass({ size: "sm", className: "self-start" })}>Share</PendingButton>
         </form>
       </details>
+
+      <BulletinThreadBar thread={place.thread} viewer={viewer} />
     </Card>
   );
 }

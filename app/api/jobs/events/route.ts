@@ -3,11 +3,13 @@ import { jobRequestAuthorized } from "@/lib/jobs/auth";
 import { materialiseRecurringEvents, sendEventReminders } from "@/lib/events/jobs";
 
 /**
- * The calendar's timer.
+ * Live Classes' timer (DEC-079).
  *
  * Two jobs in one call, because they belong to the same cadence and the Hobby
- * plan allows one cron run a day: reminders for events that are nearly here,
- * and more occurrences for series that are running out of them.
+ * plan allows one cron run a day: reminders for live classes that are nearly
+ * here (in each member's own time zone, linking to the class page, never
+ * carrying the Zoom link itself), and more occurrences for series that are
+ * running out of them. Zoom's own classes arrive through /api/jobs/zoom-sync.
  *
  * Both are safe to call at any frequency and safe to call twice at once.
  * Reminders claim an `EventReminder` row before sending, so a duplicate run

@@ -1,18 +1,21 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import { ensureWeeklyMatch } from "@/lib/social/suggestions";
-import { cohortsForUser } from "@/lib/social/cohorts";
 import { recentRecognition } from "@/lib/social/badges";
 import { getMemberVisibility } from "@/lib/community/member-visibility";
-import { weekStart } from "@/lib/social/scoring";
+import { matchOpener, weekStart } from "@/lib/social/scoring";
+import { canMessage } from "@/lib/messages/conversations";
+import { conversationMemberKey } from "@/lib/messages/permissions";
+import { loadViewerCrews, type ViewerCrews } from "@/lib/crews/views";
+import { groupBadgeCatalog, type Recognition } from "@/lib/social/recognition";
 
 /**
  * Everything `/connect` shows, in one call.
  *
- * BUILD.md §12 has four parts. "People you should meet" already lives on Home,
- * Explorer and the directory, so this page carries the other three, which had
- * no surface at all: the weekly match (§12.1), cohorts (§12.3) and recognition
- * (§12.4).
+ * BUILD.md §12 has four parts. "People you should meet" already lives on the
+ * Kitchen Table and the directory, so this page carries the other three: the
+ * weekly match (§12.1), crews (§12.3, which replaced cohorts in DEC-078) and
+ * recognition (§12.4).
  *
  * The weekly match is generated lazily on first view of the week. That is what
  * `ensureWeeklyMatch` was written for: it is idempotent per week, so a reload
@@ -21,6 +24,9 @@ import { weekStart } from "@/lib/social/scoring";
  * Anyone the viewer may not see is filtered out after the fact too. A match is
  * stored for the week, and the person in it can hide themselves or block the
  * viewer on Tuesday; the same goes for a name in the recognition list.
+ *
+ * The badge catalogue comes grouped by ladder (`lib/social/recognition.ts`),
+ * and a retired badge is listed only for a member who holds it.
  */
 
 export type MatchingState =
@@ -33,26 +39,25 @@ export type WeeklyMatch = {
   id: string;
   status: "SUGGESTED" | "SAVED" | "PASSED" | "CONNECTED";
   reason: string;
-  starter: string;
+  /** The message "Message <name>" pre-fills: editable, never sent for them. */
+  opener: string;
   handle: string;
   displayName: string;
   avatarUrl: string | null;
   city: string | null;
+  /** Whether a direct message would be accepted right now, and if not, why. */
+  messaging: { allowed: true } | { allowed: false; reason: string };
+  /** Their existing one-to-one thread, when the viewer is in it. */
+  conversationId: string | null;
 };
 
 export type ConnectData = {
   matching: MatchingState;
   match: WeeklyMatch | null;
   nextMatchAt: Date;
-  cohorts: Awaited<ReturnType<typeof cohortsForUser>>;
-  badges: {
-    slug: string;
-    name: string;
-    description: string;
-    icon: string | null;
-    criteria: string | null;
-    earned: { awardedAt: Date; reason: string | null } | null;
-  }[];
+  crews: ViewerCrews;
+  /** The badge catalogue, grouped by ladder, with what the viewer holds. */
+  badges: Recognition;
   recognition: {
     id: string;
     awardedAt: Date;
@@ -79,13 +84,23 @@ export async function loadConnect(viewerId: string, now = new Date()): Promise<C
         ? { kind: "paused", until: profile.matchingPausedUntil }
         : { kind: "on" };
 
-  const [rawMatch, cohorts, catalog, held, recent, visibility] = await Promise.all([
+  const [rawMatch, crews, catalog, held, recent, visibility] = await Promise.all([
     matching.kind === "on" ? ensureWeeklyMatch(viewerId, now) : null,
-    cohortsForUser(viewerId),
-    prisma.badge.findMany({ orderBy: { sortOrder: "asc" } }),
+    loadViewerCrews(viewerId),
+    prisma.badge.findMany({
+      orderBy: { sortOrder: "asc" },
+      select: {
+        slug: true,
+        name: true,
+        description: true,
+        icon: true,
+        criteria: true,
+        sortOrder: true,
+      },
+    }),
     prisma.memberBadge.findMany({
       where: { userId: viewerId },
-      select: { badgeId: true, awardedAt: true, reason: true },
+      select: { awardedAt: true, reason: true, badge: { select: { slug: true } } },
     }),
     recentRecognition(12),
     getMemberVisibility(viewerId),
@@ -93,29 +108,36 @@ export async function loadConnect(viewerId: string, now = new Date()): Promise<C
 
   let match: WeeklyMatch | null = null;
   if (rawMatch && !visibility.hiddenIds.has(rawMatch.matchedUserId)) {
+    const displayName = rawMatch.matchedUser.profile?.displayName ?? rawMatch.matchedUser.handle;
+    const [decision, thread] = await Promise.all([
+      canMessage(viewerId, rawMatch.matchedUserId),
+      prisma.conversation.findUnique({
+        where: { memberKey: conversationMemberKey([viewerId, rawMatch.matchedUserId]) },
+        select: { id: true, members: { where: { userId: viewerId }, select: { leftAt: true } } },
+      }),
+    ]);
     match = {
       id: rawMatch.id,
       status: rawMatch.status,
       reason: rawMatch.reason,
-      starter: rawMatch.starter,
+      opener: matchOpener(rawMatch.starter, displayName),
       handle: rawMatch.matchedUser.handle,
-      displayName: rawMatch.matchedUser.profile?.displayName ?? rawMatch.matchedUser.handle,
+      displayName,
       avatarUrl: rawMatch.matchedUser.profile?.avatarUrl ?? null,
       city: rawMatch.matchedUser.profile?.city ?? null,
+      messaging: decision.allowed ? { allowed: true } : { allowed: false, reason: decision.reason },
+      conversationId:
+        thread && thread.members[0] && !thread.members[0].leftAt ? thread.id : null,
     };
   }
 
-  const heldById = new Map(held.map((row) => [row.badgeId, row]));
-  const badges = catalog.map((badge) => {
-    const row = heldById.get(badge.id);
-    return {
-      slug: badge.slug,
-      name: badge.name,
-      description: badge.description,
-      icon: badge.icon,
-      criteria: badge.criteria,
-      earned: row ? { awardedAt: row.awardedAt, reason: row.reason } : null,
-    };
+  const badges = groupBadgeCatalog({
+    catalog,
+    held: held.map((row) => ({
+      slug: row.badge.slug,
+      awardedAt: row.awardedAt,
+      reason: row.reason,
+    })),
   });
 
   const recognition = recent
@@ -136,7 +158,7 @@ export async function loadConnect(viewerId: string, now = new Date()): Promise<C
     matching,
     match,
     nextMatchAt: new Date(weekStart(now).getTime() + 7 * 86_400_000),
-    cohorts,
+    crews,
     badges,
     recognition,
   };

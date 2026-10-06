@@ -15,23 +15,31 @@ import { createPostAction } from "@/app/(member)/community-actions";
 import { RichEditor } from "@/components/feed/rich-editor";
 import { useIsMobile } from "@/components/hooks/use-media-query";
 import { Avatar } from "@/components/ui/avatar";
-import { Button, cardClass, chipClass, fieldClass } from "@/components/app/ui";
+import { Button, Callout, fieldClass } from "@/components/app/ui";
 import { UploadTray } from "@/components/feed/upload-tray";
 import { useUploads } from "@/components/feed/use-uploads";
+import { POST_BODY_MAX, POST_TITLE_MAX } from "@/lib/community/post-types";
 import { IMAGE_ACCEPT, VIDEO_ACCEPT } from "@/lib/uploads/policy";
 import { cn } from "@/lib/utils";
 
 export type ComposerSpace = { id: string; name: string; slug: string };
 
-const MAX = 5000;
+const MAX = POST_BODY_MAX;
+
+type Notice = { text: string; href: string; link: string };
 
 /**
  * The composer.
  *
  * Collapsed it is one line, so it never pushes the first post below the fold.
- * Focused it grows and shows where the post will land plus the attachment
- * controls. Posting does not navigate: the box clears and the list revalidates
- * underneath, so you keep your place.
+ * Focused it grows and shows the attachment controls. Posting does not
+ * navigate: the box clears and the Kitchen Table re-renders underneath, so the
+ * new post appears and you keep your place.
+ *
+ * Every post goes to the Kitchen Table (DEC-078), so there is no room picker,
+ * and drafts are no longer started here (the client removed Drafts). A post
+ * that does not go live straight away — held for a host, or scheduled — says
+ * where it went instead of silently disappearing.
  *
  * A title field appears only once there is something to title. Reddit makes the
  * title mandatory and the body optional; here it is the reverse, because most
@@ -40,25 +48,24 @@ const MAX = 5000;
 export function Composer({
   name,
   avatar,
-  spaces,
-  defaultSpaceId,
   uploadsEnabled = false,
 }: {
   name: string;
   avatar: string | null;
-  spaces: ComposerSpace[];
+  /** Retired: every post goes to the Kitchen Table. Accepted so callers compile. */
+  spaces?: ComposerSpace[];
+  /** Retired, as `spaces`. */
   defaultSpaceId?: string;
   uploadsEnabled?: boolean;
 }) {
   const [body, setBody] = useState("");
   const [title, setTitle] = useState("");
-  const [spaceId, setSpaceId] = useState(defaultSpaceId ?? spaces[0]?.id ?? "");
   const [open, setOpen] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<Notice | null>(null);
   const [scheduledAt, setScheduledAt] = useState("");
   const [scheduling, setScheduling] = useState(false);
   const [pending, startTransition] = useTransition();
-  const boxRef = useRef<HTMLTextAreaElement>(null);
   const photoRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
   const uploads = useUploads();
@@ -72,20 +79,28 @@ export function Composer({
   const text = body.trim();
   const heading = title.trim();
   const hasContent = text.length > 0 || heading.length > 0 || uploads.attachments.length > 0;
-  const canPost =
-    hasContent && text.length <= MAX && Boolean(spaceId) && !pending && !uploads.busy;
+  const canPost = hasContent && text.length <= MAX && !pending && !uploads.busy;
 
   /**
-   * One submit for three outcomes.
-   *
-   * Posting, saving a draft and scheduling differ only in the intent sent with
-   * them; the server decides what actually happens, including holding the post
-   * for a host when the space asks for that. Duplicating this into three
-   * handlers is how they drift apart.
+   * Files from the editor (a GIF from the GIF panel's upload button, a photo
+   * pasted or dropped into the text) attach through the same upload tray as
+   * the photo button, and play in the post like any other upload.
    */
-  function submit(intent: "PUBLISH" | "DRAFT" | "SCHEDULE" = "PUBLISH") {
-    if (intent !== "DRAFT" && !canPost) return;
-    if (intent === "DRAFT" && (!hasContent || !spaceId || pending)) return;
+  function attach(files: File[]) {
+    if (!files.length) return;
+    setOpen(true);
+    uploads.add(files);
+  }
+
+  /**
+   * One submit for two outcomes.
+   *
+   * Posting and scheduling differ only in the intent sent with them; the
+   * server decides what actually happens, including holding the post for a
+   * host when the Kitchen Table asks for that.
+   */
+  function submit(intent: "PUBLISH" | "SCHEDULE" = "PUBLISH") {
+    if (!canPost) return;
     if (intent === "SCHEDULE" && !scheduledAt) {
       setError("Pick a time to post it.");
       return;
@@ -94,9 +109,12 @@ export function Composer({
     const data = new FormData();
     data.set("body", text);
     data.set("title", heading);
-    data.set("spaceId", spaceId);
     data.set("intent", intent);
-    if (intent === "SCHEDULE") data.set("scheduledAt", scheduledAt);
+    if (intent === "SCHEDULE") {
+      // Sent as an instant, so the server reads the member's own clock time.
+      const at = new Date(scheduledAt);
+      data.set("scheduledAt", Number.isNaN(at.getTime()) ? scheduledAt : at.toISOString());
+    }
     if (uploads.attachments.length > 0) {
       data.set("attachments", JSON.stringify(uploads.attachments));
     }
@@ -111,29 +129,31 @@ export function Composer({
         setScheduling(false);
         setScheduledAt("");
         uploads.reset();
-        if (boxRef.current) boxRef.current.style.height = "auto";
+        setNotice(
+          result.status === "PENDING"
+            ? {
+                text: "Sent to a host. It appears in the Kitchen Table once they let it through.",
+                href: "/drafts?tab=PENDING",
+                link: "See posts in review",
+              }
+            : result.status === "SCHEDULED"
+              ? {
+                  text: `Scheduled for ${new Date(result.scheduledAt ?? Date.now()).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}.`,
+                  href: "/drafts?tab=SCHEDULED",
+                  link: "See scheduled posts",
+                }
+              : null,
+        );
       } else {
+        setNotice(null);
         setError(result.error);
       }
     });
   }
 
-  function grow(el: HTMLTextAreaElement) {
-    el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, 320)}px`;
-  }
-
-  if (spaces.length === 0) {
-    return (
-      <div className={cardClass({ className: "text-body text-foreground-muted" })}>
-        You need a space membership before you can post. Ask a host to seat you
-        at a table.
-      </div>
-    );
-  }
-
   return (
     <section
+      aria-label="New post"
       className={cn(
         "rounded-card border bg-surface transition-[border-color,box-shadow]",
         open ? "border-hairline-firm shadow-e2" : "border-border shadow-e1",
@@ -149,41 +169,32 @@ export function Composer({
               onChange={(event) => setTitle(event.currentTarget.value)}
               placeholder="Title (optional)"
               aria-label="Post title"
-              maxLength={300}
+              maxLength={POST_TITLE_MAX}
               className="mb-2 w-full border-0 bg-transparent p-0 pt-1.5 text-title font-semibold text-foreground outline-none placeholder:font-medium placeholder:text-field-placeholder"
             />
           ) : null}
 
           {/* Collapsed it is one line and nothing more, so the composer never
-              pushes the first post below the fold. The full editor appears the
-              moment there is something to write. */}
-          {open ? (
-            <RichEditor
-              name="body"
-              value={body}
-              onChange={setBody}
-              rows={4}
-              maxLength={MAX}
-              disabled={pending}
-              placeholder={placeholder}
-            />
-          ) : (
-            <textarea
-              ref={boxRef}
-              value={body}
-              rows={1}
-              disabled={pending}
-              aria-label="Write a post"
-              placeholder={placeholder}
-              onFocus={() => setOpen(true)}
-              onChange={(event) => {
-                setBody(event.currentTarget.value);
-                setOpen(true);
-                grow(event.currentTarget);
-              }}
-              className="w-full resize-none border-0 bg-transparent p-0 pt-1.5 text-reading leading-normal text-foreground outline-none placeholder:text-field-placeholder disabled:opacity-60"
-            />
-          )}
+              pushes the first post below the fold. It is the same editing
+              surface either way: focusing it opens the toolbar around it, and
+              the caret stays where it was put. */}
+          <RichEditor
+            name="body"
+            value={body}
+            onChange={setBody}
+            collapsed={!open}
+            onFocus={() => {
+              setOpen(true);
+              setNotice(null);
+            }}
+            label="Write a post"
+            rows={4}
+            maxLength={MAX}
+            disabled={pending}
+            placeholder={placeholder}
+            onGifFiles={uploadsEnabled ? attach : undefined}
+            onFiles={uploadsEnabled ? attach : undefined}
+          />
 
           {open && scheduling ? (
             <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-ctl bg-surface-muted px-3 py-2.5">
@@ -221,23 +232,13 @@ export function Composer({
             </p>
           ) : null}
 
-          {open && spaces.length > 1 ? (
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-micro font-semibold uppercase tracking-[0.08em] text-foreground-muted">
-                Post to
-              </span>
-              {spaces.map((space) => (
-                <button
-                  key={space.id}
-                  type="button"
-                  onClick={() => setSpaceId(space.id)}
-                  aria-pressed={spaceId === space.id}
-                  className={chipClass(spaceId === space.id, "h-7 px-2.5")}
-                >
-                  {space.name}
-                </button>
-              ))}
-            </div>
+          {notice && !open ? (
+            <Callout tone="info" className="mt-3 text-label" role="status">
+              {notice.text}{" "}
+              <Link href={notice.href} className="font-medium text-link underline">
+                {notice.link}
+              </Link>
+            </Callout>
           ) : null}
 
           <div className="mt-3 flex flex-wrap items-center gap-0.5 border-t border-separator pt-2.5">
@@ -313,19 +314,6 @@ export function Composer({
               >
                 {MAX - text.length}
               </span>
-            ) : null}
-
-            {open ? (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => submit("DRAFT")}
-                disabled={!hasContent || pending}
-                title="Keep this without posting it"
-                className="mr-0.5"
-              >
-                Save draft
-              </Button>
             ) : null}
 
             {open ? (

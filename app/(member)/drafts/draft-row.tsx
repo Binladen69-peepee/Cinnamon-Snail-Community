@@ -1,6 +1,6 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import { Loader2, Send, Trash2 } from "lucide-react";
 import {
   deletePostAction,
@@ -14,7 +14,7 @@ import { Button } from "@/components/app/ui";
  *
  * A post waiting on a host shows no publish button, because pressing it would
  * be refused — the author cannot approve their own post, which is the whole
- * point of review.
+ * point of review. A published or deleted post leaves the list at once.
  */
 export function DraftRow({
   post,
@@ -23,8 +23,10 @@ export function DraftRow({
   post: {
     id: string;
     title: string | null;
-    plainText: string;
-    spaceName: string;
+    /** Plain text, no markup. */
+    excerpt: string;
+    /** "Poll", "Question"… or null for a plain post. */
+    typeLabel: string | null;
     scheduledAt: string | null;
     updatedAt: string;
     attachments: number;
@@ -32,6 +34,7 @@ export function DraftRow({
   canPublish: boolean;
 }) {
   const [pending, startTransition] = useTransition();
+  const [done, setDone] = useState(false);
 
   function run(
     action: (data: FormData) => Promise<{ ok: true } | { ok: false; error: string }>,
@@ -41,27 +44,35 @@ export function DraftRow({
     data.set("postId", post.id);
     startTransition(async () => {
       const result = await action(data);
-      if (result.ok) toast.success(success);
-      else toast.danger(result.error);
+      if (result.ok) {
+        toast.success(success);
+        setDone(true);
+      } else {
+        toast.danger(result.error);
+      }
     });
   }
+
+  if (done) return null;
 
   const when = post.scheduledAt ? new Date(post.scheduledAt) : null;
 
   return (
-    // A row of the drafts card: the page sets the list in one surface with
+    // A row of the list card: the page sets the list in one surface with
     // dividers, so a row has no edge of its own.
     <li className="px-4 py-4 sm:px-5">
-      <p className="text-micro font-semibold uppercase tracking-[0.08em] text-foreground-muted">
-        {post.spaceName}
-      </p>
+      {post.typeLabel ? (
+        <p className="text-micro font-semibold uppercase tracking-[0.08em] text-foreground-muted">
+          {post.typeLabel}
+        </p>
+      ) : null}
       {post.title ? (
-        <h2 className="mt-1.5 text-title font-semibold leading-snug text-foreground">
+        <h2 className="mt-1.5 text-title font-semibold leading-snug text-foreground first:mt-0">
           {post.title}
         </h2>
       ) : null}
-      <p className="mt-1 line-clamp-3 text-body leading-relaxed text-foreground-muted">
-        {post.plainText || "No text yet."}
+      <p className="mt-1 line-clamp-3 text-body leading-relaxed text-foreground-muted first:mt-0">
+        {post.excerpt || "No text yet."}
       </p>
 
       <p className="mt-2 text-caption text-foreground-muted">
@@ -84,7 +95,7 @@ export function DraftRow({
             variant="primary"
             size="sm"
             disabled={pending}
-            onClick={() => run(publishPostAction, "Published.")}
+            onClick={() => run(publishPostAction, "Published to the Kitchen Table.")}
           >
             {pending ? (
               <Loader2 className="size-4 animate-spin" aria-hidden />

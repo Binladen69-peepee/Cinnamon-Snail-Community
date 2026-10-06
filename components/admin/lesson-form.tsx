@@ -9,6 +9,7 @@ import {
   updateLessonAction,
 } from "@/app/admin/courses/curriculum-actions";
 import { MediaField } from "@/components/admin/media-field";
+import { BunnyVideoField } from "@/components/admin/bunny-video-field";
 import {
   Button,
   Callout,
@@ -45,6 +46,9 @@ export type LessonDraft = {
   body: string | null;
   durationMin: number | null;
   videoUid: string | null;
+  bunnyVideoId?: string | null;
+  bunnyVideoStatus?: number | null;
+  bunnyVideoLength?: number | null;
   audioUid: string | null;
   downloadUid: string | null;
   liveUrl: string | null;
@@ -94,12 +98,15 @@ export function LessonForm({
   sectionId,
   lesson,
   uploadsEnabled,
+  bunny = { configured: false, signed: false },
   onClose,
 }: {
   sectionId: string;
   /** Null when adding. */
   lesson: LessonDraft | null;
   uploadsEnabled: boolean;
+  /** Bunny Stream status for this deployment (DEC-081). */
+  bunny?: { configured: boolean; signed: boolean };
   onClose: () => void;
 }) {
   const router = useRouter();
@@ -217,7 +224,10 @@ export function LessonForm({
               rather than dropped: switching a lesson to Text to fix a typo and
               back again should not lose the video that was already attached. */}
           {kind !== "VIDEO" ? (
-            <input type="hidden" name="videoUid" value={lesson?.videoUid ?? ""} />
+            <>
+              <input type="hidden" name="videoUid" value={lesson?.videoUid ?? ""} />
+              <input type="hidden" name="bunnyVideoId" value={lesson?.bunnyVideoId ?? ""} />
+            </>
           ) : null}
           {kind !== "AUDIO" ? (
             <input type="hidden" name="audioUid" value={lesson?.audioUid ?? ""} />
@@ -241,9 +251,31 @@ export function LessonForm({
           ) : null}
 
           {kind === "VIDEO" ? (
+            <div className="flex flex-col gap-1.5">
+              <p className="text-label font-medium text-foreground">Video on Bunny Stream</p>
+              <BunnyVideoField
+                name="bunnyVideoId"
+                initial={{
+                  id: lesson?.bunnyVideoId ?? null,
+                  status: lesson?.bunnyVideoStatus ?? null,
+                  length: lesson?.bunnyVideoLength ?? null,
+                }}
+                lessonTitle={lesson?.title ?? ""}
+                configured={bunny.configured}
+                signed={bunny.signed}
+              />
+              <p className="text-caption text-foreground-muted">
+                When a Bunny video is set it is what members watch, through a link signed for
+                them that expires. The older source below is kept, and plays only while there is
+                no Bunny video or Bunny playback is not signed yet.
+              </p>
+            </div>
+          ) : null}
+
+          {kind === "VIDEO" ? (
             <MediaField
               name="videoUid"
-              label="Video"
+              label="Other video source (older lessons)"
               value={lesson?.videoUid ?? null}
               accept={VIDEO_ACCEPT}
               maxBytes={VIDEO_MAX_BYTES}

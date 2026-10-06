@@ -5,7 +5,10 @@ import { useState, useTransition } from "react";
 import { Loader2, Lock } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button, fieldClass } from "@/components/app/ui";
+import { REPLY_BOX_ID } from "@/lib/community/comment-anchor";
 import { cn } from "@/lib/utils";
+
+const MAX = 5000;
 
 /**
  * The top-level reply box on a post page.
@@ -14,17 +17,20 @@ import { cn } from "@/lib/utils";
  * then refreshes — so a new reply lands in the correct place for the current
  * sort rather than being appended wherever it was typed.
  *
- * It grows on focus like the post composer does. Someone who is not in the room
- * gets told so instead of being given a box that will refuse them.
+ * Anyone who can open a published post can reply to it; there is no room to
+ * join first any more (DEC-078). A post that is not live yet (a draft, one
+ * waiting for a host) says so instead of offering a box that would refuse.
  */
 export function CommentComposer({
   postId,
   viewer,
-  joined,
+  canReply = true,
 }: {
   postId: string;
   viewer: { name: string; avatar: string | null };
-  joined: boolean;
+  canReply?: boolean;
+  /** Retired: replying never needed a room membership. Accepted so callers compile. */
+  joined?: boolean;
 }) {
   const [body, setBody] = useState("");
   const [open, setOpen] = useState(false);
@@ -36,46 +42,52 @@ export function CommentComposer({
 
   // No surface of its own: the post page sets the reply box, the sort and the
   // thread in one card.
-  if (!joined) {
+  if (!canReply) {
     return (
       <p className="flex items-center gap-2 text-body text-foreground-muted">
         <Lock className="size-4 shrink-0" aria-hidden />
-        Join this room to reply.
+        Replies open once this post is published.
       </p>
     );
   }
 
   function submit() {
-    if (!text || pending) return;
+    if (!text || pending || text.length > MAX) return;
     start(async () => {
-      const response = await fetch(`/api/community/posts/${postId}/comments`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ body: text }),
-      });
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as
-          | { error?: string }
-          | null;
-        setError(payload?.error ?? "That reply did not post.");
-        return;
+      try {
+        const response = await fetch(`/api/community/posts/${postId}/comments`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ body: text }),
+        });
+        if (!response.ok) {
+          const payload = (await response.json().catch(() => null)) as
+            | { error?: string }
+            | null;
+          setError(payload?.error ?? "That reply did not post.");
+          return;
+        }
+        setBody("");
+        setError(null);
+        setOpen(false);
+        router.refresh();
+      } catch {
+        setError("That reply did not post. Check your connection and try again.");
       }
-      setBody("");
-      setError(null);
-      setOpen(false);
-      router.refresh();
     });
   }
 
   return (
-    <section>
+    <section aria-label="Reply to this post">
       <div className="flex gap-3">
         <Avatar name={viewer.name} src={viewer.avatar} size="sm" />
         <div className="min-w-0 flex-1">
           <textarea
+            id={REPLY_BOX_ID}
             value={body}
             rows={open ? 3 : 1}
             disabled={pending}
+            maxLength={MAX}
             aria-label="Write a reply"
             aria-invalid={error ? true : undefined}
             placeholder="Add your reply…"

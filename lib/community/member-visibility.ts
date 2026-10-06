@@ -80,6 +80,29 @@ export const getMemberVisibility = cache(async function getMemberVisibility(
 });
 
 /**
+ * Everyone in a block with the viewer, in either direction.
+ *
+ * Narrower than `hiddenIds`: hiding from the directory is about being found,
+ * blocking is about never meeting. Discovery lists filter the directory flag
+ * in SQL and need only this; similarities and activity use it to drop a
+ * thread or a shared crew mate the viewer must not be shown.
+ */
+export const getBlockedUserIds = cache(async function getBlockedUserIds(
+  viewerId: string,
+): Promise<Set<string>> {
+  const rows = await prisma.userBlock.findMany({
+    where: { OR: [{ blockerId: viewerId }, { blockedId: viewerId }] },
+    select: { blockerId: true, blockedId: true },
+  });
+  const ids = new Set<string>();
+  for (const row of rows) {
+    if (row.blockerId !== viewerId) ids.add(row.blockerId);
+    if (row.blockedId !== viewerId) ids.add(row.blockedId);
+  }
+  return ids;
+});
+
+/**
  * Drop member rows the viewer may not see.
  *
  * Written against the search index's shape, where a member row is keyed by

@@ -1,20 +1,22 @@
 import Link from "next/link";
 import { ChefHat } from "lucide-react";
-import type { AdminCourse } from "@/lib/admin/courses";
+import type { AdminClassCard } from "@/lib/learn/categories";
 import { Badge, cardClass } from "@/components/app/ui";
 
 /**
  * A course in the admin grid, to the supplied design.
  *
- * Cover with the category as a chip over it, a two-line title, then a footer of
- * three labelled cells divided by hairlines: Creation date, Sales, Status.
+ * Cover with its library category as a chip over it (the first shelf it sits
+ * on, and how many others), a two-line title, then a footer of three labelled
+ * cells divided by hairlines: Creation date, Sales, Status.
  *
  * The Sales cell keeps its place and shows an em dash. The design puts a figure
  * there; this schema has none to give, because money is tracked per membership
  * subscription in SamCart and never per course. An em dash says "nothing to
  * report" — a number would have been invented.
  */
-export function CourseCard({ course }: { course: AdminCourse }) {
+export function CourseCard({ course }: { course: AdminClassCard }) {
+  const [home, ...others] = course.categories;
   return (
     <article
       className={cardClass({
@@ -44,12 +46,20 @@ export function CourseCard({ course }: { course: AdminCourse }) {
             </span>
           )}
 
-          {course.category ? (
+          {home ? (
             <Badge
               tone="outline"
               className="absolute left-2.5 top-2.5 max-w-[calc(100%-1.25rem)] truncate border-transparent bg-surface/90 text-foreground shadow-e1 backdrop-blur"
             >
-              {course.category}
+              <span className="truncate">{home.name}</span>
+              {others.length > 0 ? (
+                <span
+                  className="shrink-0 text-foreground-muted"
+                  title={others.map((category) => category.name).join(", ")}
+                >
+                  +{others.length}
+                </span>
+              ) : null}
             </Badge>
           ) : null}
         </span>

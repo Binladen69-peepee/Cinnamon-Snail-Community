@@ -1,11 +1,12 @@
 import { AppShell } from "@/components/app/app-shell";
-import { PageHeaderSkeleton } from "@/components/app/skeletons";
+import { ListSkeleton, PageHeaderSkeleton } from "@/components/app/skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 
 /**
- * Connect's shape while the match and badges load: the header, the match
- * card, one card of cohorts and the badge grid, inside the same frame as the
- * page so the column is the same width before and after.
+ * Connect's shape while the match, crews and badges load: the header, the
+ * match card with its suggested message, a card of crew rows and the badge
+ * grid, inside the same frame as the page so the column is the same width
+ * before and after.
  */
 export default function ConnectLoading() {
   return (
@@ -25,25 +26,18 @@ export default function ConnectLoading() {
               </div>
             </div>
             <Skeleton className="mt-4 h-4 w-full rounded-chip" />
-            <Skeleton className="mt-2 h-10 w-full rounded-ctl" />
+            <Skeleton className="mt-4 h-3 w-28 rounded-chip" />
+            <Skeleton className="mt-2 h-14 w-full rounded-ctl" />
             <div className="mt-4 flex gap-2">
-              <Skeleton className="h-9 w-28 rounded-ctl" />
               <Skeleton className="h-9 w-32 rounded-ctl" />
+              <Skeleton className="h-8 w-24 rounded-ctl" />
             </div>
           </div>
         </div>
 
         <div className="flex flex-col gap-3">
           <Skeleton className="h-5 w-32 rounded-chip" />
-          <div className="rounded-card border border-border bg-surface p-4 shadow-e1 sm:p-5">
-            <Skeleton className="h-4 w-40 rounded-chip" />
-            <Skeleton className="mt-2 h-3 w-28 rounded-chip" />
-            <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3">
-              {Array.from({ length: 3 }, (_, index) => (
-                <Skeleton key={index} className="h-14 rounded-ctl" />
-              ))}
-            </div>
-          </div>
+          <ListSkeleton rows={3} />
         </div>
 
         <div className="flex flex-col gap-3">

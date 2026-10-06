@@ -1,16 +1,20 @@
 import {
+  Clapperboard,
   Bot,
   BookOpen,
-  CalendarDays,
   ClipboardList,
   FileClock,
   Flag,
+  FolderTree,
   LayoutDashboard,
+  Lightbulb,
   Mail,
   Map,
   Receipt,
   Shuffle,
   Users,
+  UsersRound,
+  Video,
   Webhook,
   Workflow,
   type LucideIcon,
@@ -22,6 +26,10 @@ import {
  * The sidebar, the mobile sheet and the command-less "jump to" all read this,
  * so a new section is added once. Every href here resolves — nothing is listed
  * before the page behind it exists.
+ *
+ * Staff see the members' words: "Live classes" for what the database still
+ * calls events (the address stays `/admin/events`), and "Crews" for the
+ * groups that replaced cohorts.
  */
 
 export type AdminNavItem = {
@@ -48,7 +56,9 @@ export const ADMIN_NAV: AdminNavGroup[] = [
       { href: "/admin/members", label: "Members", icon: Users },
       { href: "/admin/moderation", label: "Moderation", icon: Flag, badgeKey: "openReports" },
       { href: "/admin/spaces", label: "Spaces", icon: BookOpen },
-      { href: "/admin/events", label: "Events", icon: CalendarDays },
+      { href: "/admin/events", label: "Live classes", icon: Video },
+      { href: "/admin/ideas", label: "Ideas", icon: Lightbulb },
+      { href: "/admin/crews", label: "Crews", icon: UsersRound },
       { href: "/admin/bulletin", label: "Bulletin review", icon: ClipboardList },
       { href: "/admin/variations", label: "Recipe variations", icon: Shuffle },
     ],
@@ -57,6 +67,8 @@ export const ADMIN_NAV: AdminNavGroup[] = [
     label: "Products",
     items: [
       { href: "/admin/courses", label: "Courses", icon: BookOpen },
+      { href: "/admin/courses/categories", label: "Class categories", icon: FolderTree },
+      { href: "/admin/videos", label: "Video library", icon: Clapperboard },
       { href: "/admin/roadmap", label: "Roadmap", icon: Map },
       { href: "/admin/challenges", label: "Challenges", icon: Flag },
     ],
@@ -86,7 +98,8 @@ export const ADMIN_NAV_ITEMS = ADMIN_NAV.flatMap((group) => group.items);
  *
  * `/admin` would otherwise light up everywhere, and `/admin/billing` would stay
  * lit on its own sub-pages while Reconciliation is the one actually open — so
- * the longest matching href wins rather than the first.
+ * the longest matching href wins rather than the first. The same rule keeps
+ * Class categories, not Courses, lit on `/admin/courses/categories`.
  */
 export function activeAdminHref(pathname: string): string | null {
   const matches = ADMIN_NAV_ITEMS.filter(

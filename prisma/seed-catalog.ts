@@ -1,4 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
+import { slugifyCategory } from "../lib/learn/shelves";
 
 /**
  * Seeds the real, current class catalog from the client brief.
@@ -247,6 +248,18 @@ export async function seedCourseCatalog(prisma: PrismaClient) {
   let updated = 0;
 
   for (const [categoryIndex, group] of CATALOG.entries()) {
+    // The library shelf this group is (DEC-078). Created if missing and never
+    // renamed or reordered here: once it exists, it belongs to the admins.
+    const shelf = await prisma.courseCategory.upsert({
+      where: { slug: slugifyCategory(group.category) },
+      update: {},
+      create: {
+        slug: slugifyCategory(group.category),
+        name: group.category,
+        sortOrder: categoryIndex,
+      },
+      select: { id: true },
+    });
     for (const [classIndex, entry] of group.classes.entries()) {
       const slug = slugify(entry.title);
       const existing = await prisma.course.findUnique({ where: { slug } });
@@ -261,7 +274,9 @@ export async function seedCourseCatalog(prisma: PrismaClient) {
         catalogOrder: classIndex,
         instructorName: "Adam Sobel",
       };
+      let courseId: string;
       if (existing) {
+        courseId = existing.id;
         // Media fills, never overwrites. Adam's sheet is applied by
         // scripts/import-class-media.ts and can be ahead of this file; a
         // re-seed that reset coverUrl would silently undo his photos.
@@ -275,11 +290,19 @@ export async function seedCourseCatalog(prisma: PrismaClient) {
         });
         updated += 1;
       } else {
-        await prisma.course.create({
+        const course = await prisma.course.create({
           data: { slug, ...data, coverUrl: cover, teaserVideoUrl: teaser },
+          select: { id: true },
         });
+        courseId = course.id;
         created += 1;
       }
+      // On its shelf, at its catalogue position, unless already placed.
+      await prisma.courseCategoryLink.upsert({
+        where: { courseId_categoryId: { courseId, categoryId: shelf.id } },
+        update: {},
+        create: { courseId, categoryId: shelf.id, sortOrder: classIndex },
+      });
     }
   }
 

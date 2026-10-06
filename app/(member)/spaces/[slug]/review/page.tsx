@@ -3,22 +3,29 @@ import { Paperclip, ShieldCheck } from "lucide-react";
 import { auth } from "@/auth";
 import { listPendingPosts } from "@/lib/community/posts";
 import { getSpaceForMember } from "@/lib/spaces";
-import { canModerateSpace } from "@/lib/permissions";
+import { canModerateSpace, isStaff } from "@/lib/permissions";
 import { getUserAuth } from "@/lib/community/viewer";
+import { kitchenTableReviewSpaces } from "@/lib/community/kitchen-table";
+import { KITCHEN_TABLE_PATH, KITCHEN_TABLE_SLUG } from "@/lib/community/system-spaces";
 import { AppShell } from "@/components/app/app-shell";
 import { Avatar } from "@/components/ui/avatar";
-import { ButtonLink, Card, EmptyState, PageHeader } from "@/components/app/ui";
+import { RichText } from "@/components/content/rich-text";
+import { ButtonLink, Card, EmptyState, Overline, PageHeader } from "@/components/app/ui";
 import { ReviewDecision } from "@/app/(member)/spaces/[slug]/review/review-decision";
 import { formatShortTime } from "@/lib/community/format-count";
 
 export const metadata = { title: "Posts to review" };
 
 /**
- * The queue a space with approval turned on produces.
+ * The queue a room with approval turned on produces.
  *
  * Without this page the setting is a trap: posts go into PENDING and nobody
  * can ever see them again. Moderators as well as hosts can answer it, because
  * a queue only one person can clear is a queue that stops being cleared.
+ *
+ * The Kitchen Table's queue is every general room this person moderates
+ * (DEC-078): the retired rooms have no page of their own any more, and a post
+ * held in one of them must not be stranded.
  */
 export default async function SpaceReviewPage({
   params,
@@ -27,18 +34,40 @@ export default async function SpaceReviewPage({
 }) {
   const session = await auth();
   if (!session?.user.id) redirect("/login");
+  const userId = session.user.id;
 
   const { slug } = await params;
-  const result = await getSpaceForMember(session.user.id, slug);
-  if (!result) notFound();
+  const [result, viewer] = await Promise.all([
+    getSpaceForMember(userId, slug),
+    getUserAuth(userId),
+  ]);
+  if (!result || !viewer) notFound();
 
-  const viewer = await getUserAuth(session.user.id);
-  if (!viewer || !canModerateSpace(viewer, result.membership)) notFound();
+  const isTable = slug === KITCHEN_TABLE_SLUG;
+  const rooms = isTable
+    ? await kitchenTableReviewSpaces(userId)
+    : canModerateSpace(viewer, result.membership)
+      ? [{ id: result.space.id, slug: result.space.slug, name: result.space.name }]
+      : [];
+  // Someone who cannot answer the queue gets a 404: that it exists is itself
+  // information about the room.
+  if (rooms.length === 0) notFound();
 
-  const pending = await listPendingPosts({
-    userId: session.user.id,
-    spaceId: result.space.id,
-  });
+  const lists = await Promise.all(
+    rooms.map(async (room) => {
+      const posts = await listPendingPosts({ userId, spaceId: room.id }).catch(() => []);
+      return posts.map((post) => ({ ...post, roomName: room.name }));
+    }),
+  );
+  const pending = lists
+    .flat()
+    .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
+  const severalRooms = rooms.length > 1;
+
+  const back =
+    isTable || !isStaff(viewer)
+      ? { href: KITCHEN_TABLE_PATH, label: "Kitchen Table" }
+      : { href: "/admin/spaces", label: "Spaces" };
 
   return (
     <AppShell>
@@ -46,23 +75,22 @@ export default async function SpaceReviewPage({
         <PageHeader
           title="Posts to review"
           description="Nobody else can see these until you let them through."
-          back={{ href: `/spaces/${slug}`, label: result.space.name }}
+          back={back}
         />
 
         {pending.length === 0 ? (
           <EmptyState
             icon={<ShieldCheck />}
             title="Nothing waiting"
-            description="New posts in this space will appear here before they go live."
-            action={
-              <ButtonLink href={`/spaces/${slug}`}>Back to {result.space.name}</ButtonLink>
-            }
+            description="Posts held for review appear here before they go live."
+            action={<ButtonLink href={back.href}>Back to {back.label}</ButtonLink>}
           />
         ) : (
           <Card padding="none">
             <ul className="divide-y divide-separator">
               {pending.map((post) => (
                 <li key={post.id} className="px-4 py-4 sm:px-5 sm:py-5">
+                  {severalRooms ? <Overline className="mb-2">{post.roomName}</Overline> : null}
                   <div className="flex items-center gap-3">
                     <Avatar
                       name={post.author.profile?.displayName ?? post.author.handle}
@@ -80,13 +108,14 @@ export default async function SpaceReviewPage({
                   </div>
 
                   {post.title ? (
-                    <h2 className="mt-3 text-title font-semibold text-foreground">
-                      {post.title}
-                    </h2>
+                    <h2 className="mt-3 text-title font-semibold text-foreground">{post.title}</h2>
                   ) : null}
-                  <p className="mt-1.5 whitespace-pre-wrap text-reading text-foreground">
-                    {post.plainText.slice(0, 900)}
-                  </p>
+                  {post.body.trim() ? (
+                    <RichText
+                      body={post.body}
+                      className="mt-1.5 text-reading leading-relaxed text-foreground [&_p]:mb-2 [&_p:last-child]:mb-0"
+                    />
+                  ) : null}
 
                   {post.attachments.length > 0 ? (
                     <p className="mt-2 inline-flex items-center gap-1 text-caption text-foreground-muted">

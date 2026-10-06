@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Clock, Loader2, Users, X } from "lucide-react";
 import type { RsvpStatus } from "@prisma/client";
-import { rsvpAction } from "@/app/(member)/calendar/actions";
+import { rsvpAction } from "@/app/(member)/live-classes/actions";
 import { Button } from "@/components/app/ui";
 
 /**
@@ -34,6 +34,7 @@ export function RsvpButton({
   disabled,
   disabledReason,
   size = "md",
+  quiet = false,
 }: {
   eventId: string;
   status: RsvpStatus | null;
@@ -43,6 +44,11 @@ export function RsvpButton({
   disabled?: boolean;
   disabledReason?: string;
   size?: "sm" | "md";
+  /**
+   * Never the primary button: for when "Join on Zoom" is on screen beside it,
+   * and joining is the thing to do.
+   */
+  quiet?: boolean;
 }) {
   const router = useRouter();
   const [state, setState] = useState({ status, waitlistPosition, goingCount });
@@ -104,7 +110,7 @@ export function RsvpButton({
         ) : (
           <Button
             size={buttonSize}
-            variant={full ? "secondary" : "primary"}
+            variant={full || quiet ? "secondary" : "primary"}
             onClick={() => answer("GOING")}
             disabled={pending}
           >

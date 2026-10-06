@@ -1,14 +1,7 @@
 "use client";
 
-import { useOptimistic, useRef, useState, useTransition } from "react";
-import {
-  Bookmark,
-  MessageSquare,
-  Send,
-  ThumbsUp,
-} from "lucide-react";
-import { reactAction, saveAction } from "@/app/(member)/community-actions";
-import { runAction } from "@/components/feed/run-action";
+import { useRef, useState } from "react";
+import { MessageSquare, Pin, ThumbsUp } from "lucide-react";
 import {
   DEFAULT_REACTION,
   FEED_REACTIONS,
@@ -16,26 +9,28 @@ import {
   topReactions,
 } from "@/lib/community/reactions";
 import { ReactionBadge, ReactionIcon } from "@/components/feed/reaction-icon";
+import { usePin, useReaction } from "@/components/feed/use-engagement";
 import { formatCount } from "@/lib/community/format-count";
 import { menuClass } from "@/components/app/ui";
 import { cn } from "@/lib/utils";
 
-type State = {
-  myReaction: string | null;
-  counts: Record<string, number>;
-  saved: boolean;
-};
-
 /**
- * LinkedIn-style engagement: reaction summary row + four equal actions
- * (Like · Comment · Saved · Send). Like opens a coloured reaction picker on hover.
+ * Engagement under a post: the reaction summary, then three actions —
+ * Like · Comment · Pin.
+ *
+ * "Pin this post" replaced the old save button (DEC-078): the same row, so
+ * every earlier save is a pin, and a pinned post leads the member's own
+ * Kitchen Table.
+ * Sharing is gone. The reader's pin and reaction come from the shared
+ * engagement store, so the card, its lightbox and its reel always agree, and a
+ * press survives the feed re-rendering underneath it.
  */
 export function PostActions({
   postId,
   commentCount,
   myReaction,
   counts,
-  saved,
+  pinned: initialPinned,
   commentsOpen,
   onToggleComments,
   compact = false,
@@ -44,62 +39,18 @@ export function PostActions({
   commentCount: number;
   myReaction: string | null;
   counts: Record<string, number>;
-  saved: boolean;
+  /** Whether the reader had pinned it when the post was loaded. */
+  pinned: boolean;
   commentsOpen?: boolean;
   onToggleComments?: () => void;
   compact?: boolean;
 }) {
-  const [, startTransition] = useTransition();
-  const [state, apply] = useOptimistic<State, Partial<State>>(
-    { myReaction, counts, saved },
-    (current, patch) => ({ ...current, ...patch }),
-  );
-  const [copied, setCopied] = useState(false);
+  const reaction = useReaction(postId, myReaction, counts);
+  const pin = usePin(postId, initialPinned);
 
-  function react(emoji: string) {
-    const clearing = state.myReaction === emoji;
-    const next = { ...state.counts };
-    if (state.myReaction) {
-      next[state.myReaction] = Math.max(0, (next[state.myReaction] ?? 1) - 1);
-    }
-    if (!clearing) next[emoji] = (next[emoji] ?? 0) + 1;
-
-    const data = new FormData();
-    data.set("postId", postId);
-    data.set("emoji", emoji);
-    startTransition(async () => {
-      apply({ myReaction: clearing ? null : emoji, counts: next });
-      await runAction(reactAction, data);
-    });
-  }
-
-  function save() {
-    const data = new FormData();
-    data.set("postId", postId);
-    startTransition(async () => {
-      apply({ saved: !state.saved });
-      await runAction(saveAction, data);
-    });
-  }
-
-  async function share() {
-    const url = new URL(`/posts/${postId}`, window.location.origin).toString();
-    if (navigator.share) {
-      await navigator.share({ url, title: "Vegan University" }).catch(() => undefined);
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      // Clipboard can be refused.
-    }
-  }
-
-  const mine = reactionFor(state.myReaction);
-  const total = Object.values(state.counts).reduce((sum, n) => sum + n, 0);
-  const tops = topReactions(state.counts, 3);
+  const mine = reactionFor(reaction.mine);
+  const tops = topReactions(reaction.counts, 3);
+  const pinLabel = pin.pinned ? "Unpin this post" : "Pin this post";
 
   /* ---------------------------------------------------------------- compact */
   // A slim strip: icon and count, no labels, no summary row. The picker is
@@ -112,45 +63,45 @@ export function PostActions({
       <div className="-ml-2 mt-1.5 flex items-center gap-0.5">
         <button
           type="button"
-          onClick={() => react(mine ? mine.emoji : DEFAULT_REACTION)}
+          onClick={() => reaction.setReaction(mine ? null : DEFAULT_REACTION)}
           aria-pressed={Boolean(mine)}
-          aria-label={`${mine ? mine.label : "Like"}${total > 0 ? `, ${formatCount(total)}` : ""}`}
-          className={cn(strip, mine ? "font-semibold text-brand" : "text-foreground-muted hover:text-foreground")}
+          aria-label={`${mine ? mine.label : "Like"}${reaction.total > 0 ? `, ${formatCount(reaction.total)}` : ""}`}
+          className={cn(
+            strip,
+            mine ? "font-semibold text-brand" : "text-foreground-muted hover:text-foreground",
+          )}
         >
           {mine ? (
             <ReactionIcon name={mine.icon} className="size-4" filled />
           ) : (
             <ThumbsUp className="size-4" aria-hidden />
           )}
-          {total > 0 ? formatCount(total) : null}
+          {reaction.total > 0 ? formatCount(reaction.total) : null}
         </button>
         <button
           type="button"
           onClick={onToggleComments}
           aria-pressed={commentsOpen}
           aria-label={`Comments${commentCount > 0 ? `, ${formatCount(commentCount)}` : ""}`}
-          className={cn(strip, commentsOpen ? "font-semibold text-brand" : "text-foreground-muted hover:text-foreground")}
+          className={cn(
+            strip,
+            commentsOpen ? "font-semibold text-brand" : "text-foreground-muted hover:text-foreground",
+          )}
         >
           <MessageSquare className="size-4" aria-hidden />
           {commentCount > 0 ? formatCount(commentCount) : null}
         </button>
         <button
           type="button"
-          onClick={save}
-          aria-pressed={state.saved}
-          aria-label={state.saved ? "Remove from saved" : "Save"}
-          className={cn(strip, state.saved ? "font-semibold text-brand" : "text-foreground-muted hover:text-foreground")}
+          onClick={pin.toggle}
+          aria-label={pinLabel}
+          title={pinLabel}
+          className={cn(
+            strip,
+            pin.pinned ? "font-semibold text-brand" : "text-foreground-muted hover:text-foreground",
+          )}
         >
-          <Bookmark className="size-4" fill={state.saved ? "currentColor" : "none"} aria-hidden />
-        </button>
-        <button
-          type="button"
-          onClick={share}
-          aria-label={copied ? "Link copied" : "Send"}
-          className={cn(strip, "text-foreground-muted hover:text-foreground")}
-        >
-          <Send className="size-4" aria-hidden />
-          {copied ? "Copied" : null}
+          <Pin className="size-4" fill={pin.pinned ? "currentColor" : "none"} aria-hidden />
         </button>
       </div>
     );
@@ -159,7 +110,7 @@ export function PostActions({
   return (
     <div>
       {/* Metrics: stacked reactions + counts */}
-      {(total > 0 || commentCount > 0 || state.saved) && (
+      {reaction.total > 0 || commentCount > 0 || pin.pinned ? (
         <div className="flex items-center justify-between gap-3 px-2 pb-2.5">
           <div className="flex min-w-0 items-center gap-1.5">
             {tops.length > 0 ? (
@@ -169,36 +120,38 @@ export function PostActions({
                 ))}
               </div>
             ) : null}
-            {total > 0 ? (
+            {reaction.total > 0 ? (
               <span className="text-caption tabular-nums text-foreground-muted">
-                {formatCount(total)}
+                {formatCount(reaction.total)}
               </span>
             ) : null}
           </div>
-          <p className="shrink-0 text-caption text-foreground-muted">
+          <p className="flex shrink-0 items-center gap-1.5 text-caption text-foreground-muted">
             {commentCount > 0 ? (
               <button
                 type="button"
                 onClick={onToggleComments}
                 className="rounded-chip transition hover:text-foreground hover:underline"
               >
-                {formatCount(commentCount)}{" "}
-                {commentCount === 1 ? "comment" : "comments"}
+                {formatCount(commentCount)} {commentCount === 1 ? "comment" : "comments"}
               </button>
             ) : null}
-            {commentCount > 0 && state.saved ? (
-              <span aria-hidden> · </span>
+            {commentCount > 0 && pin.pinned ? <span aria-hidden>·</span> : null}
+            {pin.pinned ? (
+              <span className="inline-flex items-center gap-1">
+                <Pin className="size-3" aria-hidden />
+                Pinned
+              </span>
             ) : null}
-            {state.saved ? <span>Saved</span> : null}
           </p>
         </div>
-      )}
+      ) : null}
 
-      <div className="grid grid-cols-4 gap-1 border-t border-separator pt-1.5">
+      <div className="grid grid-cols-3 gap-1 border-t border-separator pt-1.5">
         <LikeAction
           mine={mine}
-          onLike={() => react(mine ? mine.emoji : DEFAULT_REACTION)}
-          onPick={react}
+          onLike={() => reaction.setReaction(mine ? null : DEFAULT_REACTION)}
+          onPick={reaction.press}
         />
         <ActionButton
           label="Comment"
@@ -207,21 +160,18 @@ export function PostActions({
           icon={<MessageSquare className="size-4.5" aria-hidden />}
         />
         <ActionButton
-          label="Saved"
-          active={state.saved}
-          onClick={save}
+          label={pin.pinned ? "Pinned" : "Pin"}
+          ariaLabel={pinLabel}
+          active={pin.pinned}
+          toggle={false}
+          onClick={pin.toggle}
           icon={
-            <Bookmark
+            <Pin
               className="size-4.5"
-              fill={state.saved ? "currentColor" : "none"}
+              fill={pin.pinned ? "currentColor" : "none"}
               aria-hidden
             />
           }
-        />
-        <ActionButton
-          label={copied ? "Copied" : "Send"}
-          onClick={share}
-          icon={<Send className="size-4.5" aria-hidden />}
         />
       </div>
     </div>
@@ -230,8 +180,8 @@ export function PostActions({
 
 /**
  * One cell of the action bar: a ghost button, icon and label side by side.
- * Four labels do not fit across a 320px card, so on a phone the label is
- * spoken rather than shown and the icon carries the row.
+ * Three labels fit across a 320px card only as icons, so on a phone the label
+ * is spoken rather than shown and the icon carries the row.
  */
 const ACTION =
   "flex h-9 w-full min-w-0 items-center justify-center gap-2 rounded-ctl px-1 text-label font-medium transition hover:bg-surface-muted";
@@ -239,24 +189,30 @@ const ACTION =
 function ActionButton({
   icon,
   label,
+  ariaLabel,
   active,
+  toggle = true,
   onClick,
 }: {
   icon: React.ReactNode;
   label: string;
+  /** Spoken instead of the label, when the label alone would be ambiguous. */
+  ariaLabel?: string;
   active?: boolean;
+  /** A toggle announces its state; an action whose label changes does not. */
+  toggle?: boolean;
   onClick?: () => void;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      aria-pressed={active}
+      aria-pressed={toggle ? active : undefined}
+      aria-label={ariaLabel}
+      title={ariaLabel}
       className={cn(
         ACTION,
-        active
-          ? "font-semibold text-brand"
-          : "text-foreground-muted hover:text-foreground",
+        active ? "font-semibold text-brand" : "text-foreground-muted hover:text-foreground",
       )}
     >
       {icon}
@@ -301,9 +257,7 @@ function LikeAction({
         aria-label={mine ? mine.label : "Like"}
         className={cn(
           ACTION,
-          mine
-            ? "font-semibold text-brand"
-            : "text-foreground-muted hover:text-foreground",
+          mine ? "font-semibold text-brand" : "text-foreground-muted hover:text-foreground",
         )}
       >
         {mine ? (
@@ -317,6 +271,7 @@ function LikeAction({
       {open ? (
         <div
           role="menu"
+          aria-label="Reactions"
           onMouseEnter={hold}
           onMouseLeave={close}
           className={cn(

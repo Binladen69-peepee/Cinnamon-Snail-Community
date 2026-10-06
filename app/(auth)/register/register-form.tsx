@@ -17,6 +17,7 @@ import {
   passwordProblems,
   passwordStrength,
 } from "@/lib/auth/password-policy";
+import { MEMBER_HOME_PATH } from "@/lib/auth/redirects";
 
 /**
  * Create an account.
@@ -33,7 +34,9 @@ export function RegisterForm({
   social: { google: boolean; facebook: boolean };
 }) {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/home";
+  // Passed through as given; the server action reduces it to a path on this
+  // site before anything is redirected to it.
+  const callbackUrl = searchParams.get("callbackUrl") || MEMBER_HOME_PATH;
 
   const [state, action, pending] = useActionState(registerAction, {});
   const [name, setName] = useState("");

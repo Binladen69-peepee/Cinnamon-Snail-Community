@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { consumeRateLimit } from "@/lib/auth/rate-limit";
+import { MEMBER_HOME_PATH } from "@/lib/auth/redirects";
 import { writeAuditLog } from "@/lib/audit";
 import {
   approveDraft,
@@ -28,7 +29,7 @@ import { runGeneration } from "@/lib/ai/schedule";
 async function requireStaff(): Promise<string> {
   const session = await auth();
   const staff = session?.user.roles.some((role) => role === "ADMIN" || role === "SUPER_ADMIN");
-  if (!session?.user.id || !staff) redirect("/home");
+  if (!session?.user.id || !staff) redirect(MEMBER_HOME_PATH);
   return session.user.id;
 }
 

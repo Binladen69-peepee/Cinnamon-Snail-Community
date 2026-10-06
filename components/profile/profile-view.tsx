@@ -1,10 +1,9 @@
 "use client";
 
-import { useOptimistic, useState, useTransition } from "react";
+import { useOptimistic, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import {
   ArrowRight,
-  Award,
   BookOpen,
   CalendarDays,
   CheckCircle2,
@@ -20,7 +19,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { Composer } from "@/components/feed/composer";
 import { PostGalleryModal } from "@/components/feed/post-gallery-modal";
-import type { FeedPost } from "@/components/feed/post-card";
+import { useIsMobile } from "@/components/hooks/use-media-query";
 import {
   Button,
   ButtonLink,
@@ -32,20 +31,13 @@ import {
   chipClass,
   tabClass,
 } from "@/components/app/ui";
-import { formatCount, formatShortTime } from "@/lib/community/format-count";
-import type { ProfileActivity } from "@/lib/community/profile";
+import { ActivityList } from "@/components/profile/activity-list";
+import { BadgeShowcaseView, BadgeStrip } from "@/components/profile/badge-showcase";
+import { PROFILE_TABS, type ProfileTab } from "@/components/profile/profile-tabs";
+import { formatCount } from "@/lib/community/format-count";
+import type { MemberProfile, ProfilePost } from "@/lib/community/profile";
 import { toggleFollowAction } from "@/app/(member)/follow-actions";
 import { cn } from "@/lib/utils";
-
-type Tab = "posts" | "classes" | "about" | "badges" | "activity";
-
-const TABS = [
-  ["posts", "Posts"],
-  ["classes", "Classes"],
-  ["about", "About"],
-  ["badges", "Badges"],
-  ["activity", "Activity"],
-] as const;
 
 const SKILL_WORDS = {
   BEGINNER: "Beginner — still finding my feet",
@@ -67,84 +59,97 @@ const TERM = "text-micro font-semibold uppercase tracking-[0.08em] text-foregrou
 /** "View all" in a card header: a quiet button that keeps the strip's height. */
 const HEADER_ACTION = buttonClass({ variant: "ghost", size: "sm", className: "-my-1.5 -mr-2" });
 
-type BadgeItem = {
-  id: string;
-  name: string;
-  description: string;
-  icon: string | null;
-  awardedAt: Date | string;
-};
+/** In UTC, so the server's render and the browser's agree. */
+const JOINED = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
 
-type SpaceOption = { id: string; name: string; slug: string };
+const MEDIA_KINDS = ["image", "gif", "video"];
 
+/**
+ * A member's profile.
+ *
+ * Everything on it points somewhere: every activity row opens the exact post,
+ * comment, lesson, class or live class; a badge opens on the Badges tab; a
+ * post tile opens the post. The tab is in the URL (`?tab=`), so a link can
+ * open the profile on Activity or Badges and the back button stays honest.
+ *
+ * "Show similarities" is a server-rendered slot under the header, offered on
+ * other members' profiles only.
+ */
 export function ProfileView({
   profile,
   viewer,
   uploadsEnabled,
+  initialTab,
+  similarities,
 }: {
-  profile: {
-    isOwner: boolean;
-    isHost: boolean;
-    handle: string;
-    displayName: string;
-    avatarUrl: string | null;
-    bio: string | null;
-    headline: string | null;
-    location: string | null;
-    joinedAt: Date | string;
-    cookingLately: string | null;
-    skill: "BEGINNER" | "CONFIDENT" | "ADVANCED" | null;
-    interests: { slug: string; label: string; kind: string }[];
-    links: string[];
-    stats: {
-      classesTaken: number;
-      courses: number;
-      posts: number;
-      badges: number;
-      followers: number;
-      following: number;
-    };
-    viewerIsFollowing: boolean;
-    badges: BadgeItem[];
-    activity: ProfileActivity[];
-    posts: FeedPost[];
-    mySpaces: SpaceOption[];
-  };
+  profile: MemberProfile;
   viewer: { name: string; avatar: string | null };
   uploadsEnabled: boolean;
+  initialTab: ProfileTab;
+  /** The "Show similarities" panel, streamed from the server. */
+  similarities?: ReactNode;
 }) {
-  const [tab, setTab] = useState<Tab>("posts");
-  const [galleryPost, setGalleryPost] = useState<FeedPost | null>(null);
+  const [tab, setTab] = useState<ProfileTab>(initialTab);
+  // A link to the same profile with another `?tab=` (an activity row's badge,
+  // say) arrives as a new prop; follow it.
+  const [seenInitial, setSeenInitial] = useState<ProfileTab>(initialTab);
+  if (initialTab !== seenInitial) {
+    setSeenInitial(initialTab);
+    setTab(initialTab);
+  }
+
+  const isMobile = useIsMobile();
+  const [galleryPost, setGalleryPost] = useState<ProfilePost | null>(null);
   const [, startFollow] = useTransition();
-  const [followState, applyFollow] = useOptimistic(
+  // The action revalidates this page, so the real count arrives as new props
+  // as soon as it settles; until then the optimistic one stands in.
+  const [follow, applyFollow] = useOptimistic(
     {
       following: profile.viewerIsFollowing,
       followers: profile.stats.followers,
     },
-    (
-      current,
-      next: { following: boolean },
-    ) => ({
+    (current, next: { following: boolean }) => ({
       following: next.following,
-      followers: Math.max(
-        0,
-        current.followers + (next.following ? 1 : -1),
-      ),
+      followers: Math.max(0, current.followers + (next.following ? 1 : -1)),
     }),
   );
-
   const joined = new Date(profile.joinedAt);
-  const lessons = profile.activity.filter((item) => item.kind === "lesson");
+  const handlePath = `/members/${encodeURIComponent(profile.handle)}`;
+
+  function selectTab(next: ProfileTab) {
+    setTab(next);
+    const search = new URLSearchParams(window.location.search);
+    if (next === "posts") search.delete("tab");
+    else search.set("tab", next);
+    const query = search.toString();
+    // Shallow: the URL follows the tab without a round trip.
+    window.history.replaceState(null, "", query ? `?${query}` : window.location.pathname);
+  }
+
+  function openBadge(slug: string) {
+    selectTab("badges");
+    window.requestAnimationFrame(() => {
+      document.getElementById(`badge-${slug}`)?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  }
 
   function onFollow() {
-    const next = !followState.following;
+    const next = !follow.following;
     const data = new FormData();
     data.set("handle", profile.handle);
+    // The state wanted, not "toggle": a stale button cannot flip the wrong way.
+    data.set("intent", next ? "follow" : "unfollow");
     startFollow(async () => {
       applyFollow({ following: next });
       await toggleFollowAction(data);
     });
   }
+
+  const activityHref = `${handlePath}?tab=activity`;
 
   return (
     <div className="pb-8">
@@ -200,35 +205,46 @@ export function ProfileView({
               ) : (
                 <>
                   <Button
-                    variant={followState.following ? "secondary" : "primary"}
+                    variant={follow.following ? "secondary" : "primary"}
                     onClick={onFollow}
+                    aria-pressed={follow.following}
                   >
                     <UserPlus className="size-4" aria-hidden />
-                    {followState.following ? "Following" : "Follow"}
+                    {follow.following ? "Following" : "Follow"}
                   </Button>
-                  <ButtonLink href={`/messages?to=${profile.handle}`}>
-                    <MessageSquare className="size-4" aria-hidden />
-                    Message
-                  </ButtonLink>
+                  {profile.canMessage ? (
+                    <ButtonLink href={`/messages/new?to=${encodeURIComponent(profile.handle)}`}>
+                      <MessageSquare className="size-4" aria-hidden />
+                      Message
+                    </ButtonLink>
+                  ) : null}
                 </>
               )}
             </div>
           </div>
 
           {/* One quiet row of numbers: the social ones, then the learning
-              ones. Followers used to appear here and again in a strip below. */}
+              ones. */}
           <div className="flex flex-wrap items-center gap-x-5 gap-y-1.5">
             <CountStat
               value={profile.stats.posts}
               label="Posts"
-              onClick={() => setTab("posts")}
+              onClick={() => selectTab("posts")}
             />
-            <CountStat value={followState.followers} label="Followers" />
+            <CountStat value={follow.followers} label="Followers" />
             <CountStat value={profile.stats.following} label="Following" />
             <span className="hidden h-3.5 w-px bg-border sm:block" aria-hidden />
-            <CountStat value={profile.stats.classesTaken} label="Classes" />
-            <CountStat value={profile.stats.courses} label="Courses" />
-            <CountStat value={profile.stats.badges} label="Badges" />
+            <CountStat
+              value={profile.stats.classes}
+              label="Classes"
+              onClick={() => selectTab("classes")}
+            />
+            <CountStat value={profile.stats.lessons} label="Lessons" />
+            <CountStat
+              value={profile.stats.badges}
+              label="Badges"
+              onClick={() => selectTab("badges")}
+            />
           </div>
 
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-label text-foreground-muted">
@@ -240,16 +256,12 @@ export function ProfileView({
             ) : null}
             <span className="inline-flex items-center gap-1.5">
               <CalendarDays className="size-4" aria-hidden />
-              Joined{" "}
-              {joined.toLocaleDateString(undefined, {
-                month: "short",
-                year: "numeric",
-              })}
+              Joined <time dateTime={joined.toISOString()}>{JOINED.format(joined)}</time>
             </span>
           </div>
 
           {profile.bio ? (
-            <p className="max-w-2xl text-reading text-foreground text-pretty">
+            <p className="max-w-2xl whitespace-pre-line text-reading text-foreground text-pretty">
               {profile.bio}
             </p>
           ) : null}
@@ -262,7 +274,7 @@ export function ProfileView({
               {profile.interests.slice(0, 8).map((tag) => (
                 <Link
                   key={tag.slug}
-                  href={`/members?interest=${tag.slug}`}
+                  href={`/members?interest=${encodeURIComponent(tag.slug)}`}
                   title={`Find other members who picked ${tag.label}`}
                   className={chipClass(false)}
                 >
@@ -271,14 +283,16 @@ export function ProfileView({
               ))}
             </div>
           )}
+
+          {similarities ? <div className="mt-1">{similarities}</div> : null}
         </header>
 
         <TabBar label="Profile sections" className="mt-8">
-          {TABS.map(([id, label]) => (
+          {PROFILE_TABS.map(([id, label]) => (
             <button
               key={id}
               type="button"
-              onClick={() => setTab(id)}
+              onClick={() => selectTab(id)}
               aria-current={tab === id ? "true" : undefined}
               className={tabClass(tab === id)}
             >
@@ -291,12 +305,10 @@ export function ProfileView({
           <div className="flex min-w-0 flex-col gap-4">
             {tab === "posts" ? (
               <>
-                {profile.isOwner && profile.mySpaces.length > 0 ? (
+                {profile.isOwner ? (
                   <Composer
                     name={viewer.name}
                     avatar={viewer.avatar}
-                    spaces={profile.mySpaces}
-                    defaultSpaceId={profile.mySpaces[0]?.id}
                     uploadsEnabled={uploadsEnabled}
                   />
                 ) : null}
@@ -311,46 +323,94 @@ export function ProfileView({
                     }
                   />
                 ) : (
-                  <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+                  <ul className="grid grid-cols-3 gap-1.5 sm:gap-2" aria-label="Posts">
                     {profile.posts.map((post) => (
-                      <PostTile
-                        key={post.id}
-                        post={post}
-                        onOpen={() => setGalleryPost(post)}
-                      />
+                      <li key={post.id}>
+                        <PostTile
+                          post={post}
+                          // Phones show media in place on the post's page; the
+                          // lightbox is for screens with room for one.
+                          onOpen={isMobile ? undefined : () => setGalleryPost(post)}
+                        />
+                      </li>
                     ))}
-                  </div>
+                  </ul>
                 )}
               </>
             ) : null}
 
-            {tab === "classes" ? (
+            {tab === "activity" ? (
               <Card padding="none">
                 <CardHeader
-                  title="Classes completed"
-                  action={
-                    <Link href="/learn" className={HEADER_ACTION}>
-                      Browse classes
-                      <ArrowRight className="size-4" aria-hidden />
-                    </Link>
-                  }
+                  title="Activity"
+                  description="Posts, replies, classes, live classes and badges. Each one opens where it happened."
                 />
-                {lessons.length === 0 ? (
+                {profile.activity.length === 0 ? (
                   <EmptyState
                     size="sm"
                     bordered={false}
-                    icon={<BookOpen />}
-                    title="No classes completed"
-                    description="Finished lessons will show up here."
+                    icon={<CalendarDays />}
+                    title="Quiet so far"
+                    description={
+                      profile.isOwner
+                        ? "Your posts, replies, classes and badges will appear here."
+                        : `${profile.displayName}’s posts, replies, classes and badges will appear here.`
+                    }
                   />
                 ) : (
-                  <ul className="divide-y divide-separator">
-                    {lessons.map((item) => (
-                      <ActivityRow key={item.id} item={item} />
-                    ))}
-                  </ul>
+                  <ActivityList items={profile.activity} />
                 )}
               </Card>
+            ) : null}
+
+            {tab === "badges" ? (
+              <BadgeShowcaseView
+                showcase={profile.badges}
+                isOwner={profile.isOwner}
+                displayName={profile.displayName}
+              />
+            ) : null}
+
+            {tab === "classes" ? (
+              <>
+                <Card padding="none">
+                  <CardHeader
+                    title="Classes finished"
+                    icon={<GraduationCap />}
+                    action={
+                      <Link href="/learn" className={HEADER_ACTION}>
+                        Class library
+                        <ArrowRight className="size-4" aria-hidden />
+                      </Link>
+                    }
+                  />
+                  {profile.classesCompleted.length === 0 ? (
+                    <EmptyState
+                      size="sm"
+                      bordered={false}
+                      icon={<GraduationCap />}
+                      title="No classes finished yet"
+                      description="A class shows up here once every lesson in it is done."
+                    />
+                  ) : (
+                    <ActivityList items={profile.classesCompleted} />
+                  )}
+                </Card>
+                <Card padding="none">
+                  <CardHeader title="Lessons completed" icon={<BookOpen />} />
+                  {profile.lessonsCompleted.length === 0 ? (
+                    <EmptyState
+                      size="sm"
+                      bordered={false}
+                      icon={<BookOpen />}
+                      title="No lessons completed"
+                      description="Finished lessons will show up here."
+                    />
+                  ) : (
+                    <ActivityList items={profile.lessonsCompleted} />
+                  )}
+                </Card>
+              </>
             ) : null}
 
             {tab === "about" ? (
@@ -358,7 +418,9 @@ export function ProfileView({
                 <CardHeader title="About" />
                 <dl className="divide-y divide-separator">
                   <AboutItem term="Bio">
-                    <span className="text-reading">{profile.bio || "No bio yet."}</span>
+                    <span className="whitespace-pre-line text-reading">
+                      {profile.bio || "No bio yet."}
+                    </span>
                   </AboutItem>
                   {profile.cookingLately ? (
                     <AboutItem term="Cooking lately">{profile.cookingLately}</AboutItem>
@@ -375,10 +437,8 @@ export function ProfileView({
                     <AboutItem term="Skill level">{SKILL_WORDS[profile.skill]}</AboutItem>
                   ) : null}
                   {/* Grouped by kind, because "Japanese" and "Gluten free"
-                      answer different questions and a single run of chips
-                      reads as one undifferentiated list. Each is a link into
-                      the directory filtered to that tag — which is the whole
-                      reason the tags are rows. */}
+                      answer different questions. Each is a link into the
+                      directory filtered to that tag. */}
                   {INTEREST_GROUPS.map((group) => {
                     const tags = profile.interests.filter(
                       (tag) => tag.kind === group.kind,
@@ -390,7 +450,7 @@ export function ProfileView({
                           {tags.map((tag) => (
                             <Link
                               key={tag.slug}
-                              href={`/members?interest=${tag.slug}`}
+                              href={`/members?interest=${encodeURIComponent(tag.slug)}`}
                               className={chipClass(false)}
                             >
                               {tag.label}
@@ -403,138 +463,70 @@ export function ProfileView({
                 </dl>
               </Card>
             ) : null}
-
-            {tab === "badges" ? (
-              <Card padding="none">
-                <CardHeader title="Badges" />
-                {profile.badges.length === 0 ? (
-                  <EmptyState
-                    size="sm"
-                    bordered={false}
-                    icon={<Award />}
-                    title="No badges yet"
-                    description="Keep cooking and showing up — badges land here."
-                  />
-                ) : (
-                  <div className="grid grid-cols-1 gap-2 p-4 sm:grid-cols-2 sm:p-5">
-                    {profile.badges.map((badge) => (
-                      <div
-                        key={badge.id}
-                        className="flex items-start gap-3 rounded-ctl bg-surface-muted p-3"
-                      >
-                        <span className="grid size-10 shrink-0 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
-                          <Award className="size-5" aria-hidden />
-                        </span>
-                        <div className="min-w-0">
-                          <p className="text-body font-semibold text-foreground">
-                            {badge.name}
-                          </p>
-                          <p className="mt-0.5 text-label text-foreground-muted">
-                            {badge.description}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </Card>
-            ) : null}
-
-            {tab === "activity" ? (
-              <Card padding="none">
-                <CardHeader title="Activity" />
-                {profile.activity.length === 0 ? (
-                  <EmptyState
-                    size="sm"
-                    bordered={false}
-                    icon={<CalendarDays />}
-                    title="Quiet so far"
-                    description="Recent classes, badges, and posts will appear here."
-                  />
-                ) : (
-                  <ul className="divide-y divide-separator">
-                    {profile.activity.map((item) => (
-                      <ActivityRow key={item.id} item={item} />
-                    ))}
-                  </ul>
-                )}
-              </Card>
-            ) : null}
           </div>
 
-          <aside className="flex flex-col gap-4">
+          <aside className="flex flex-col gap-4" aria-label="Profile highlights">
             <Card padding="none">
               <CardHeader
                 title="Recent activity"
                 action={
-                  <button
-                    type="button"
-                    onClick={() => setTab("activity")}
+                  <Link
+                    href={activityHref}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      selectTab("activity");
+                    }}
                     className={HEADER_ACTION}
                   >
                     View all
-                  </button>
+                  </Link>
                 }
               />
               {profile.activity.length === 0 ? (
                 <p className="px-4 py-4 text-label text-foreground-muted">Nothing yet.</p>
               ) : (
-                <ul className="flex flex-col gap-3 px-4 py-4">
-                  {profile.activity.slice(0, 5).map((item) => (
-                    <ActivityRow key={item.id} item={item} compact />
-                  ))}
-                </ul>
+                <ActivityList items={profile.activity.slice(0, 5)} compact />
               )}
             </Card>
 
             <Card padding="none">
               <CardHeader
                 title="Badges"
+                count={profile.badges.earned.length}
                 action={
                   <button
                     type="button"
-                    onClick={() => setTab("badges")}
+                    onClick={() => selectTab("badges")}
                     className={HEADER_ACTION}
                   >
                     View all
                   </button>
                 }
               />
-              {profile.badges.length === 0 ? (
-                <p className="px-4 py-4 text-label text-foreground-muted">No badges yet.</p>
+              {profile.badges.earned.length === 0 ? (
+                <p className="px-4 py-4 text-label text-foreground-muted">
+                  {profile.isOwner
+                    ? "None yet. Your progress is on the Badges tab."
+                    : "No badges yet."}
+                </p>
               ) : (
-                <div className="flex flex-wrap gap-3 px-4 py-4">
-                  {profile.badges.slice(0, 4).map((badge) => (
-                    <div
-                      key={badge.id}
-                      className="flex w-17 flex-col items-center gap-1.5 text-center"
-                      title={badge.name}
-                    >
-                      <span className="grid size-11 place-items-center rounded-full bg-brand-wash text-on-brand-wash">
-                        <Award className="size-4" aria-hidden />
-                      </span>
-                      <span className="line-clamp-2 text-micro text-foreground-muted">
-                        {badge.name}
-                      </span>
-                    </div>
-                  ))}
-                </div>
+                <BadgeStrip earned={profile.badges.earned} onOpen={openBadge} />
               )}
             </Card>
 
             <Card padding="none">
               <CardHeader title="Quick actions" />
               <div className="divide-y divide-separator">
-                <QuickLink href="/learn" label="View classes" />
-                <QuickLink href="/learn" label="View courses" />
+                <QuickLink href="/learn" label="Browse the class library" />
                 {profile.isOwner ? (
                   <QuickLink href="/settings" label="Edit profile" />
-                ) : (
+                ) : profile.canMessage ? (
                   <QuickLink
-                    href={`/messages?to=${profile.handle}`}
+                    href={`/messages/new?to=${encodeURIComponent(profile.handle)}`}
                     label="Send a message"
                   />
-                )}
+                ) : null}
+                <QuickLink href="/members" label="Find more members" />
               </div>
             </Card>
           </aside>
@@ -548,6 +540,7 @@ export function ProfileView({
           post={{
             id: galleryPost.id,
             title: galleryPost.title,
+            body: galleryPost.body,
             bodyHtml: galleryPost.bodyHtml,
             plainText: galleryPost.plainText,
             score: galleryPost.score,
@@ -558,59 +551,64 @@ export function ProfileView({
             publishedAt: galleryPost.publishedAt,
             createdAt: galleryPost.createdAt,
             author: galleryPost.author,
-            space: {
-              name: galleryPost.space.name,
-              slug: galleryPost.space.slug,
-            },
+            space: galleryPost.space,
             pinnedAt: galleryPost.pinnedAt,
-            _count: { comments: galleryPost._count.comments },
+            _count: { comments: galleryPost.commentCount },
           }}
-          media={galleryPost.attachments.filter((file) =>
-            ["image", "gif", "video"].includes(file.kind),
-          )}
+          media={galleryPost.attachments.filter((file) => MEDIA_KINDS.includes(file.kind))}
           viewer={viewer}
+          canPin
         />
       ) : null}
     </div>
   );
 }
 
+/**
+ * One post on the grid. Always a link to the post itself (an idea's link goes
+ * to the Ideas board); on a wide screen a post with media opens the lightbox
+ * instead, and the link still works with a modifier key or a middle click.
+ */
 function PostTile({
   post,
   onOpen,
 }: {
-  post: FeedPost;
-  onOpen: () => void;
+  post: ProfilePost;
+  onOpen?: () => void;
 }) {
-  const media = post.attachments.filter((file) =>
-    ["image", "gif", "video"].includes(file.kind),
-  );
+  const media = post.attachments.filter((file) => MEDIA_KINDS.includes(file.kind));
   const first = media[0];
   const multi = media.length > 1;
+  const label = post.title?.trim() || post.excerpt || "Open post";
 
   if (!first) {
     return (
       <Link
-        href={`/posts/${post.id}`}
-        className="relative aspect-square overflow-hidden rounded-ctl border border-border bg-surface p-3 no-underline transition hover:border-hairline-firm hover:bg-surface-muted"
+        href={post.href}
+        className="relative block aspect-square overflow-hidden rounded-ctl border border-border bg-surface p-3 no-underline transition hover:border-hairline-firm hover:bg-surface-muted"
       >
-        <p className="line-clamp-5 text-caption text-foreground">
-          {post.title || post.plainText || "Post"}
-        </p>
+        <span className="line-clamp-5 text-caption text-foreground">
+          {post.title?.trim() || post.excerpt || "Post"}
+        </span>
       </Link>
     );
   }
 
   return (
-    <button
-      type="button"
-      onClick={onOpen}
-      aria-label={post.title || "View post"}
-      className="group relative aspect-square overflow-hidden rounded-ctl bg-surface-muted"
+    <Link
+      href={post.href}
+      aria-label={label}
+      onClick={(event) => {
+        if (!onOpen || event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+        event.preventDefault();
+        onOpen();
+      }}
+      className="group relative block aspect-square overflow-hidden rounded-ctl bg-surface-muted"
     >
       {first.kind === "video" ? (
         <video
           src={first.url}
+          poster={first.thumbnailUrl ?? undefined}
           muted
           playsInline
           preload="metadata"
@@ -621,11 +619,11 @@ function PostTile({
         <img
           src={first.url}
           alt={first.alt ?? ""}
+          loading="lazy"
           className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
         />
       )}
-      {/* Media markers share one corner, side by side, so a video that leads
-          a set of several no longer has the two drawn over each other. */}
+      {/* Media markers share one corner, side by side. */}
       {first.kind === "video" || multi ? (
         <span className="absolute right-1.5 top-1.5 flex items-center gap-1">
           {multi ? (
@@ -640,7 +638,7 @@ function PostTile({
           ) : null}
         </span>
       ) : null}
-    </button>
+    </Link>
   );
 }
 
@@ -687,47 +685,6 @@ function AboutItem({ term, children }: { term: string; children: React.ReactNode
   );
 }
 
-function ActivityRow({
-  item,
-  compact = false,
-}: {
-  item: ProfileActivity;
-  compact?: boolean;
-}) {
-  const Icon =
-    item.kind === "badge"
-      ? Award
-      : item.kind === "course"
-        ? GraduationCap
-        : item.kind === "post"
-          ? MessageSquare
-          : BookOpen;
-
-  return (
-    <li className={cn("flex gap-3", !compact && "px-4 py-3 sm:px-5")}>
-      <span
-        className={cn(
-          "grid shrink-0 place-items-center rounded-full bg-brand-wash text-on-brand-wash",
-          compact ? "size-7" : "mt-0.5 size-8",
-        )}
-      >
-        <Icon className={compact ? "size-3.5" : "size-4"} aria-hidden />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className={cn("text-foreground", compact ? "text-label" : "text-body")}>
-          {item.label}
-        </p>
-        {item.detail && !compact ? (
-          <p className="mt-0.5 text-label text-foreground-muted">{item.detail}</p>
-        ) : null}
-        <p className="mt-0.5 text-caption text-foreground-muted">
-          {formatShortTime(new Date(item.at))}
-        </p>
-      </div>
-    </li>
-  );
-}
-
 function QuickLink({ href, label }: { href: string; label: string }) {
   return (
     <Link
@@ -746,7 +703,7 @@ function SocialLink({ href }: { href: string }) {
     <a
       href={href}
       target="_blank"
-      rel="noreferrer"
+      rel="noopener noreferrer nofollow ugc"
       title={href}
       className={buttonClass({ size: "sm", iconOnly: true })}
     >

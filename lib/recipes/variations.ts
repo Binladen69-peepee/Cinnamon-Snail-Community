@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { afterResponse } from "@/lib/after-response";
 import { writeAuditLog } from "@/lib/audit";
+import { MEMBER_HOME_PATH } from "@/lib/auth/redirects";
 import { awardBadges } from "@/lib/social/badges";
 import { dispatchNotification } from "@/lib/notifications/dispatch";
 import { checkVegan, parseIngredients, type VeganFlag } from "@/lib/recipes/vegan-check";
@@ -222,7 +223,7 @@ export async function reviewVariation(input: {
       body: input.approve
         ? `It is now on ${variation.recipe.title}.`
         : (input.reason ?? "A moderator did not publish it."),
-      href: variation.recipe.posts[0] ? `/posts/${variation.recipe.posts[0].id}` : "/home",
+      href: variation.recipe.posts[0] ? `/posts/${variation.recipe.posts[0].id}` : MEMBER_HOME_PATH,
       dedupeKey: `variation-review:${variation.id}:${input.approve ? "ok" : "no"}`,
     }).catch(() => undefined);
 

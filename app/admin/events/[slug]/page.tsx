@@ -1,11 +1,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ExternalLink, Hourglass, Users } from "lucide-react";
+import { ExternalLink, Hourglass, Users, Video } from "lucide-react";
 import { prisma } from "@/lib/db";
 import { EventForm } from "@/components/admin/event-form";
 import { EventRecording } from "@/components/admin/event-recording";
 import { DeleteEventButton } from "@/components/admin/delete-event-button";
 import { Badge, Card, CardHeader, EmptyState, PageHeader } from "@/components/app/ui";
+import { liveClassHref } from "@/lib/events/paths";
 import { formatEventTime, safeTimeZone } from "@/lib/events/timezone";
 
 export async function generateMetadata({
@@ -18,17 +19,22 @@ export async function generateMetadata({
     where: { slug },
     select: { title: true },
   });
-  return { title: event ? `${event.title} · Events` : "Event" };
+  return { title: event ? `${event.title} · Live classes` : "Live class" };
 }
 
 /**
- * One event, editable.
+ * One live class, editable.
+ *
+ * A class that came from Zoom says so at the top, and its form locks what Zoom
+ * owns (title, time, length, time zone, joining link): those change in Zoom
+ * and arrive with the next sync. Everything else is staff's and stays
+ * editable here.
  *
  * The attendee list is here rather than on the member-facing page in this
  * detail: a host needs to know who is on the waitlist and in what order,
  * which is operational information rather than something the room needs.
  */
-export default async function AdminEventPage({
+export default async function AdminLiveClassPage({
   params,
 }: {
   params: Promise<{ slug: string }>;
@@ -60,6 +66,12 @@ export default async function AdminEventPage({
         recordingLessonId: true,
         recordingPostId: true,
         seriesId: true,
+        source: true,
+        zoomMeetingId: true,
+        zoomOccurrenceId: true,
+        zoomSyncedAt: true,
+        zoomLastSeenAt: true,
+        hostName: true,
         _count: { select: { occurrences: true } },
         rsvps: {
           orderBy: [{ status: "asc" }, { waitlistPosition: "asc" }, { createdAt: "asc" }],
@@ -79,12 +91,15 @@ export default async function AdminEventPage({
       take: 100,
     }),
     prisma.user.findMany({
-      where: { status: "ACTIVE", roles: { some: { role: { name: { in: ["ADMIN", "SUPER_ADMIN", "HOST"] } } } } },
+      where: {
+        status: "ACTIVE",
+        roles: { some: { role: { name: { in: ["ADMIN", "SUPER_ADMIN", "HOST"] } } } },
+      },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, handle: true },
       take: 50,
     }),
-    ]);
+  ]);
   if (!event) notFound();
 
   const courses = await prisma.course.findMany({
@@ -103,11 +118,12 @@ export default async function AdminEventPage({
   const zone = safeTimeZone(event.timezone);
   const going = event.rsvps.filter((rsvp) => rsvp.status === "GOING");
   const waiting = event.rsvps.filter((rsvp) => rsvp.status === "WAITLIST");
+  const fromZoom = event.source === "ZOOM";
 
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        back={{ href: "/admin/events", label: "Events" }}
+        back={{ href: "/admin/events", label: "Live classes" }}
         title={event.title}
         description={
           <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
@@ -126,6 +142,13 @@ export default async function AdminEventPage({
                   ? "Draft"
                   : "Canceled"}
             </Badge>
+            {fromZoom ? (
+              <Badge tone="brand" icon={<Video aria-hidden />}>
+                From Zoom
+              </Badge>
+            ) : (
+              <Badge tone="outline">Manual</Badge>
+            )}
             <span className="tabular-nums">
               {formatEventTime(event.startsAt, zone)} {zone}
             </span>
@@ -134,7 +157,7 @@ export default async function AdminEventPage({
               <span>{event._count.occurrences} more dates generated</span>
             ) : null}
             <Link
-              href={`/calendar/${event.slug}`}
+              href={liveClassHref(event.slug)}
               className="inline-flex items-center gap-1 font-medium text-link no-underline hover:underline"
             >
               View as a member
@@ -148,6 +171,7 @@ export default async function AdminEventPage({
             title={event.title}
             rsvpCount={going.length + waiting.length}
             occurrences={event._count.occurrences}
+            fromZoom={fromZoom && event.status !== "CANCELED"}
           />
         }
       />
@@ -155,12 +179,40 @@ export default async function AdminEventPage({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="flex min-w-0 flex-col gap-6">
           <EventForm
-            event={event}
+            event={{
+              id: event.id,
+              title: event.title,
+              description: event.description,
+              startsAt: event.startsAt,
+              endsAt: event.endsAt,
+              timezone: event.timezone,
+              location: event.location,
+              zoomUrl: event.zoomUrl,
+              coverUrl: event.coverUrl,
+              capacity: event.capacity,
+              status: event.status,
+              hostId: event.hostId,
+              spaceId: event.spaceId,
+              recurrence: event.recurrence,
+              recurrenceEvery: event.recurrenceEvery,
+              recurrenceUntil: event.recurrenceUntil,
+            }}
             spaces={spaces}
             hosts={hosts.map((host) => ({
               id: host.id,
               name: host.name ?? host.handle,
             }))}
+            zoom={
+              fromZoom
+                ? {
+                    meetingId: event.zoomMeetingId,
+                    occurrenceId: event.zoomOccurrenceId,
+                    syncedAt: event.zoomSyncedAt?.toISOString() ?? null,
+                    lastSeenAt: event.zoomLastSeenAt?.toISOString() ?? null,
+                    hostName: event.hostName,
+                  }
+                : null
+            }
           />
 
           <EventRecording

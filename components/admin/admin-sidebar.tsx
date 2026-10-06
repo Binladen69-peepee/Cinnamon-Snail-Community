@@ -7,6 +7,7 @@ import { BrandLogo } from "@/components/brand/brand-mark";
 import { Avatar } from "@/components/ui/avatar";
 import { CountBadge } from "@/components/app/ui";
 import { ADMIN_NAV, activeAdminHref } from "@/lib/admin/nav";
+import { MEMBER_HOME_HREF } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
 /**
@@ -87,7 +88,7 @@ export function AdminSidebar({
 
       <div className="mt-auto flex flex-col gap-1 border-t border-sidebar-border p-3">
         <Link
-          href="/home"
+          href={MEMBER_HOME_HREF}
           className="flex h-9 items-center gap-2.5 rounded-ctl px-2.5 text-label font-medium text-foreground-muted no-underline transition hover:bg-surface-muted hover:text-foreground"
         >
           <ArrowUpRight className="size-4" aria-hidden />

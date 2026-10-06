@@ -1,6 +1,6 @@
 "use client";
 
-import { useOptimistic, useTransition } from "react";
+import { useOptimistic, useState, useTransition } from "react";
 import { ArrowBigDown, ArrowBigUp } from "lucide-react";
 import { voteAction } from "@/app/(member)/community-actions";
 import { runAction } from "@/components/feed/run-action";
@@ -12,14 +12,15 @@ type State = { score: number; myVote: number };
 /**
  * The vote rail: two arrows with the net score between them.
  *
- * Old-Reddit's placement, down the left edge of a post, rather than new
- * Reddit's action-row pill. Kept deliberately — it is the arrangement that
- * makes a post's standing readable before you have read the post.
+ * It writes through a server action but never waits for it: the score moves
+ * on press, and a refusal puts it back.
  *
- * It writes through a server action but never waits for it: `useOptimistic`
- * moves the score on press and React rolls it back if the write fails. A vote
- * that takes a round trip to appear is the single thing that makes a feed feel
- * broken.
+ * The confirmed value lives here, not only in the props. The comment panel and
+ * the lightbox keep their threads in client state, so their props do not
+ * change after a vote; an optimistic value over those props alone dropped
+ * back to the old score the moment the transition ended — the same bug that
+ * made saved posts look unsaved. Fresh props from a server render still win:
+ * when they change, the confirmed value follows them.
  */
 export function VoteRail({
   postId,
@@ -37,23 +38,28 @@ export function VoteRail({
   layout?: "column" | "row";
 }) {
   const [, startTransition] = useTransition();
-  const [state, apply] = useOptimistic<State, State>(
-    { score, myVote },
-    (_current, next) => next,
-  );
+  const [confirmed, setConfirmed] = useState<State>({ score, myVote });
+  const [seen, setSeen] = useState<State>({ score, myVote });
+  if (seen.score !== score || seen.myVote !== myVote) {
+    setSeen({ score, myVote });
+    setConfirmed({ score, myVote });
+  }
+  const [state, apply] = useOptimistic<State, State>(confirmed, (_current, next) => next);
 
   function vote(value: 1 | -1) {
     // Pressing the arrow you already chose clears the vote, matching the
-    // server's toggle.
+    // server's rule in `voteDelta`.
     const next = state.myVote === value ? 0 : value;
+    const target = { score: state.score - state.myVote + next, myVote: next };
     const data = new FormData();
     if (postId) data.set("postId", postId);
     if (commentId) data.set("commentId", commentId);
     if (returnToPostId) data.set("returnToPostId", returnToPostId);
     data.set("value", String(value));
     startTransition(async () => {
-      apply({ score: state.score - state.myVote + next, myVote: next });
-      await runAction(voteAction, data);
+      apply(target);
+      const ok = await runAction(voteAction, data);
+      if (ok) setConfirmed(target);
     });
   }
 
@@ -78,6 +84,7 @@ export function VoteRail({
               : "text-foreground",
         )}
         aria-live="polite"
+        aria-label={`Score ${state.score}`}
       >
         {formatCount(state.score)}
       </span>
@@ -105,7 +112,7 @@ function Arrow({
       aria-pressed={active}
       className={cn(
         "grid size-7 place-items-center rounded-ctl transition hover:bg-surface-muted active:scale-90",
-        // Downvote takes the terracotta ink rather than the danger red: a
+        // Downvote takes the highlight ink rather than the danger red: a
         // disagreement is not an error.
         active
           ? dir === "up"
@@ -116,7 +123,7 @@ function Arrow({
             : "text-foreground-muted hover:text-highlight-ink",
       )}
     >
-      <Icon className="size-4.5" fill={active ? "currentColor" : "none"} />
+      <Icon className="size-4.5" fill={active ? "currentColor" : "none"} aria-hidden />
     </button>
   );
 }

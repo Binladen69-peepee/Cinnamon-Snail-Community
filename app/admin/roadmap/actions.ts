@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { MEMBER_HOME_PATH } from "@/lib/auth/redirects";
 import {
   TrackError,
   bumpVersion,
@@ -37,7 +38,8 @@ async function requireStaff() {
   const staff = session?.user.roles.some(
     (role) => role === "ADMIN" || role === "SUPER_ADMIN",
   );
-  if (!session?.user.id || !staff) redirect("/home");
+  // The member front door; `/home` only redirects there now (DEC-078).
+  if (!session?.user.id || !staff) redirect(MEMBER_HOME_PATH);
   return session.user.id;
 }
 

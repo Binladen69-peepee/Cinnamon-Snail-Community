@@ -1,19 +1,21 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  ArrowRight,
   Award,
-  Bookmark,
   CalendarClock,
+  Lock,
   MapPin,
   MessageSquare,
   PauseCircle,
   Sparkles,
   Users,
-  X,
   type LucideIcon,
 } from "lucide-react";
 import { auth } from "@/auth";
 import { loadConnect, type ConnectData, type WeeklyMatch } from "@/lib/social/connect";
+import { profileTabHref } from "@/lib/social/activity";
+import type { RecognitionBadge, RecognitionGroup } from "@/lib/social/recognition";
 import { AppShell } from "@/components/app/app-shell";
 import { Avatar } from "@/components/ui/avatar";
 import { PendingButton } from "@/components/ui/pending-button";
@@ -24,11 +26,14 @@ import {
   Card,
   EmptyState,
   ErrorState,
+  Overline,
   PageHeader,
   buttonClass,
   cardClass,
 } from "@/components/app/ui";
-import { respondToMatchAction, setMatchingAction } from "./actions";
+import { CrewList } from "@/components/crews/crew-list";
+import { crewMessage } from "@/components/crews/crew-messages";
+import { messageMatchAction, respondToMatchAction, setMatchingAction } from "./actions";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Connect" };
@@ -38,6 +43,7 @@ const ERRORS: Record<string, string> = {
   matching: "That setting could not be changed. Try again.",
   profile: "Set up your profile first, then matching can find people for you.",
   busy: "That was a lot of clicks at once. Give it a moment and try again.",
+  dm: "That member isn’t taking direct messages right now, so no conversation was started.",
 };
 
 /**
@@ -45,15 +51,14 @@ const ERRORS: Record<string, string> = {
  * flight), so they take the app's button construction as a class string.
  */
 const primaryBtn = buttonClass({ variant: "primary" });
-const secondaryBtn = buttonClass({ variant: "secondary" });
 const quietBtn = buttonClass({ variant: "ghost", size: "sm" });
 
 /**
- * Connect — BUILD.md §12.
+ * Connect — BUILD.md §12, with Crews in place of cohorts (DEC-078).
  *
- * The weekly match, the cohorts you were placed in, and recognition. People
- * suggestions already sit on Explorer and the directory, so this page
- * points there instead of repeating them.
+ * The weekly match, the crews the member is in or can join, and recognition.
+ * People suggestions already sit on the Kitchen Table and the directory, so
+ * this page points there instead of repeating them.
  *
  * What is deliberately absent, per §12.4: points, a leaderboard, anything
  * that ranks one member above another. Recognition names a thing someone did.
@@ -61,13 +66,15 @@ const quietBtn = buttonClass({ variant: "ghost", size: "sm" });
 export default async function ConnectPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; joined?: string; left?: string }>;
 }) {
   const session = await auth();
   if (!session?.user.id) redirect("/login?callbackUrl=/connect");
 
   const params = await searchParams;
+  // Crew actions redirect here with their own codes; the match's codes win.
   const error = params.error ? (ERRORS[params.error] ?? null) : null;
+  const crewNotice = error ? null : crewMessage(params);
 
   let data: ConnectData | null = null;
   try {
@@ -82,7 +89,7 @@ export default async function ConnectPage({
         <div className="flex flex-col gap-6">
           <PageHeader
             title="Connect"
-            description="A weekly match, the people you started with, and what members have done."
+            description="A weekly match, your crews, and what members have done."
             actions={
               <ButtonLink href="/members">
                 <Users className="size-4" aria-hidden />
@@ -94,6 +101,13 @@ export default async function ConnectPage({
           {error ? (
             <Callout tone="danger" role="alert">
               {error}
+            </Callout>
+          ) : crewNotice ? (
+            <Callout
+              tone={crewNotice.tone}
+              role={crewNotice.tone === "danger" ? "alert" : "status"}
+            >
+              {crewNotice.text}
             </Callout>
           ) : null}
         </div>
@@ -110,12 +124,30 @@ export default async function ConnectPage({
               <MatchPanel data={data} />
             </Section>
 
-            <Section id="cohorts" icon={Users} title="Your cohorts">
-              <Cohorts cohorts={data.cohorts} />
+            <Section
+              id="crews"
+              // Cohorts became crews (DEC-078); links to the old anchor still land here.
+              alias="cohorts"
+              icon={Users}
+              title="Your crews"
+              action={
+                <Link
+                  href="/crews"
+                  className="inline-flex items-center gap-1 rounded-chip text-label font-medium text-link no-underline hover:underline"
+                >
+                  All crews
+                  <ArrowRight className="size-3.5" aria-hidden />
+                </Link>
+              }
+            >
+              <Crews crews={data.crews} />
             </Section>
 
             <Section id="recognition" icon={Award} title="Recognition">
-              <Recognition data={data} />
+              <Recognition
+                data={data}
+                progressHref={profileTabHref(session.user.handle, "badges")}
+              />
             </Section>
           </>
         )}
@@ -131,24 +163,39 @@ export default async function ConnectPage({
  */
 function Section({
   id,
+  alias,
   icon: Icon,
   title,
+  action,
   children,
 }: {
   id: string;
+  /** A retired anchor for the same section, kept so old links still land. */
+  alias?: string;
   icon: LucideIcon;
   title: string;
+  action?: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
-    <section id={id} aria-labelledby={`${id}-title`} className="flex scroll-mt-20 flex-col gap-3">
-      <h2
-        id={`${id}-title`}
-        className="flex items-center gap-2 text-title font-semibold text-foreground"
-      >
-        <Icon className="size-4 text-foreground-muted" aria-hidden />
-        {title}
-      </h2>
+    <section
+      id={id}
+      aria-labelledby={`${id}-title`}
+      className="relative flex scroll-mt-20 flex-col gap-3"
+    >
+      {alias ? (
+        <span id={alias} aria-hidden className="pointer-events-none absolute top-0 scroll-mt-20" />
+      ) : null}
+      <div className="flex items-center justify-between gap-3">
+        <h2
+          id={`${id}-title`}
+          className="flex items-center gap-2 text-title font-semibold text-foreground"
+        >
+          <Icon className="size-4 text-foreground-muted" aria-hidden />
+          {title}
+        </h2>
+        {action}
+      </div>
       {children}
     </section>
   );
@@ -156,6 +203,10 @@ function Section({
 
 function formatDay(date: Date) {
   return date.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
+}
+
+function firstName(name: string) {
+  return name.trim().split(/\s+/)[0] || name;
 }
 
 function MatchPanel({ data }: { data: ConnectData }) {
@@ -182,7 +233,7 @@ function MatchPanel({ data }: { data: ConnectData }) {
         <p className="text-body font-semibold text-foreground">Weekly matching is off.</p>
         <p className="mt-1 text-body text-foreground-muted text-pretty">
           Turn it on and each Monday you get one member to meet, with the reason you were paired
-          and a line to open with. Only members who also opted in are matched.
+          and a message ready to send. Only members who also opted in are matched.
         </p>
         <form action={setMatchingAction} className="mt-4">
           <input type="hidden" name="mode" value="on" />
@@ -241,8 +292,23 @@ function MatchPanel({ data }: { data: ConnectData }) {
   );
 }
 
+const STATUS_LABEL: Record<WeeklyMatch["status"], string | null> = {
+  SUGGESTED: null,
+  SAVED: "Saved",
+  PASSED: "Passed",
+  CONNECTED: "Messaged",
+};
+
+/**
+ * The match, and one thing to do about it: message them. The button opens the
+ * conversation with the suggested message already in the box — edited or sent
+ * as it is, by the member, never by us.
+ */
 function MatchCard({ match }: { match: WeeklyMatch }) {
   const passed = match.status === "PASSED";
+  const name = firstName(match.displayName);
+  const status = STATUS_LABEL[match.status];
+
   return (
     <Card className={cn(passed && "opacity-75")}>
       <div className="flex items-start gap-3">
@@ -266,124 +332,128 @@ function MatchCard({ match }: { match: WeeklyMatch }) {
             ) : null}
           </p>
         </div>
-        {match.status !== "SUGGESTED" ? (
+        {status ? (
           <Badge tone="brand" className="shrink-0">
-            {match.status === "SAVED" ? "Saved" : match.status === "PASSED" ? "Passed" : "Messaged"}
+            {status}
           </Badge>
         ) : null}
       </div>
 
       <p className="mt-4 text-body text-foreground text-pretty">{match.reason}</p>
-      <p className="mt-2 rounded-ctl bg-surface-muted px-3 py-2.5 text-body italic text-foreground-muted">
-        “{match.starter}”
-      </p>
 
       {passed ? (
         <p className="mt-4 text-label text-foreground-muted">
           You passed on this one. A new match arrives next week.
         </p>
+      ) : !match.messaging.allowed ? (
+        <Callout tone="neutral" icon={<Lock />} className="mt-4" title={`${name} isn’t taking messages right now.`}>
+          {match.messaging.reason} You can still say hello on their posts.
+        </Callout>
       ) : (
-        <div className="mt-4 flex flex-wrap gap-2">
-          <form action={respondToMatchAction}>
-            <input type="hidden" name="matchId" value={match.id} />
-            <input type="hidden" name="status" value="CONNECTED" />
-            <PendingButton className={primaryBtn}>
-              <MessageSquare className="size-4" aria-hidden />
-              Say hello
-            </PendingButton>
-          </form>
-          {match.status === "SUGGESTED" ? (
-            <form action={respondToMatchAction}>
-              <input type="hidden" name="matchId" value={match.id} />
-              <input type="hidden" name="status" value="SAVED" />
-              <PendingButton className={secondaryBtn}>
-                <Bookmark className="size-4" aria-hidden />
-                Save for later
-              </PendingButton>
-            </form>
-          ) : null}
-          {match.status !== "CONNECTED" ? (
-            <form action={respondToMatchAction}>
-              <input type="hidden" name="matchId" value={match.id} />
-              <input type="hidden" name="status" value="PASSED" />
-              <PendingButton className={secondaryBtn}>
-                <X className="size-4" aria-hidden />
-                Pass
-              </PendingButton>
-            </form>
-          ) : null}
-        </div>
+        <>
+          <div className="mt-4">
+            <Overline>Suggested message</Overline>
+            <p className="mt-1.5 rounded-ctl bg-surface-muted px-3 py-2.5 text-body text-foreground text-pretty">
+              {match.opener}
+            </p>
+            <p className="mt-1.5 text-caption text-foreground-muted">
+              It opens in your messages, ready to edit. Nothing is sent until you send it.
+            </p>
+          </div>
+
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            {match.status === "CONNECTED" && match.conversationId ? (
+              <ButtonLink href={`/messages/${match.conversationId}`} variant="primary">
+                <MessageSquare className="size-4" aria-hidden />
+                Open conversation
+              </ButtonLink>
+            ) : (
+              <form action={messageMatchAction}>
+                <input type="hidden" name="matchId" value={match.id} />
+                <PendingButton className={primaryBtn}>
+                  <MessageSquare className="size-4" aria-hidden />
+                  Message {name}
+                </PendingButton>
+              </form>
+            )}
+            {match.status !== "CONNECTED" ? (
+              <form action={respondToMatchAction}>
+                <input type="hidden" name="matchId" value={match.id} />
+                <input type="hidden" name="status" value="PASSED" />
+                <PendingButton className={quietBtn}>Not this week</PendingButton>
+              </form>
+            ) : null}
+          </div>
+        </>
       )}
     </Card>
   );
 }
 
-function Cohorts({ cohorts }: { cohorts: ConnectData["cohorts"] }) {
-  if (cohorts.length === 0) {
-    return (
-      <EmptyState
-        icon={<Users />}
-        title="You are not in a cohort yet"
-        description="Cohorts form around the week you joined or the week you start a course, each with its own small private room."
-        action={<ButtonLink href="/learn">Browse courses</ButtonLink>}
-      />
-    );
-  }
-
-  // One card, a row per cohort: a list of the same kind of thing.
+function Crews({ crews }: { crews: ConnectData["crews"] }) {
   return (
-    <Card padding="none">
-      <ul className="divide-y divide-separator">
-        {cohorts.map(({ cohort }) => (
-          <li key={cohort.id} className="px-4 py-4 sm:px-5">
-            <div className="flex flex-wrap items-start justify-between gap-3">
-              <div className="min-w-0">
-                <p className="text-body font-semibold text-foreground">{cohort.name}</p>
-                <p className="text-label text-foreground-muted">
-                  {cohort._count.members} {cohort._count.members === 1 ? "member" : "members"}
-                  {cohort.course ? ` · ${cohort.course.title}` : ""}
-                </p>
-              </div>
-              {cohort.space ? (
-                <ButtonLink href={`/spaces/${cohort.space.slug}`} size="sm">
-                  Open the room
-                </ButtonLink>
-              ) : null}
-            </div>
-            <dl className="mt-3 grid grid-cols-1 gap-2 text-body sm:grid-cols-3">
-              {[
-                ["Say hello", cohort.introPrompt],
-                ["First cook", cohort.firstCook],
-                ["Goal", cohort.goal],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-ctl bg-surface-muted px-3 py-2.5">
-                  <dt className="text-micro font-semibold uppercase tracking-[0.08em] text-foreground-muted">
-                    {label}
-                  </dt>
-                  <dd className="mt-1 text-label text-foreground">{value}</dd>
-                </div>
-              ))}
-            </dl>
-          </li>
-        ))}
-      </ul>
-    </Card>
+    <div className="flex flex-col gap-4">
+      {crews.mine.length === 0 ? (
+        <EmptyState
+          icon={<Users />}
+          title="You’re not in a crew yet"
+          description="You join your start-season crew, your roadmap crew and any survey crews automatically, and crews are updated once a day. Join one of the crews below in the meantime."
+        />
+      ) : (
+        <CrewList crews={crews.mine} variant="mine" returnTo="/connect" showDescription={false} />
+      )}
+
+      {crews.joinable.length > 0 ? (
+        <div className="flex flex-col gap-2">
+          <h3 className="text-body font-semibold text-foreground">Crews you can join</h3>
+          <CrewList crews={crews.joinable} variant="joinable" returnTo="/connect" />
+          <p className="text-caption text-foreground-muted">
+            Open to every member. Other members can see who is in them.
+          </p>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
-function Recognition({ data }: { data: ConnectData }) {
-  const earned = data.badges.filter((badge) => badge.earned);
-  const toEarn = data.badges.filter((badge) => !badge.earned);
+/** Dates in UTC, as the profile's badges tab writes them. */
+const EARNED_ON = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+/**
+ * The badge catalogue, one card per ladder (DEC-078's recognition, grouped as
+ * `badge-rules.ts` defines the ladders), then any special badges, then legacy
+ * awards the member holds. Progress toward the next rung is the member's own
+ * and lives on their profile's badges tab, which this links to.
+ */
+function Recognition({ data, progressHref }: { data: ConnectData; progressHref: string }) {
+  const { groups, earned, available } = data.badges;
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex flex-col gap-3">
-        <p className="text-label font-medium text-foreground-muted">
-          {earned.length === 0
-            ? "Your badges will appear here."
-            : `You have earned ${earned.length} of ${data.badges.length}.`}
-        </p>
-        {data.badges.length === 0 ? (
+        <div className="flex flex-col gap-1">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+            <h3 className="text-body font-semibold text-foreground">Your badges</h3>
+            <Link
+              href={progressHref}
+              className="inline-flex items-center gap-1 rounded-chip text-label font-medium text-link no-underline hover:underline"
+            >
+              See your progress
+              <ArrowRight className="size-3.5" aria-hidden />
+            </Link>
+          </div>
+          <p className="text-label text-foreground-muted text-pretty">
+            {earned === 0
+              ? "No badges yet. Share something you cooked or finish a class to earn your first."
+              : `You have earned ${earned} of ${available}.`}
+          </p>
+        </div>
+        {groups.length === 0 ? (
           <EmptyState
             icon={<Award />}
             title="No badges are set up yet"
@@ -391,46 +461,8 @@ function Recognition({ data }: { data: ConnectData }) {
           />
         ) : (
           <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            {[...earned, ...toEarn].map((badge) => (
-              <li
-                key={badge.slug}
-                className={
-                  badge.earned
-                    ? cardClass({ padding: "sm", className: "flex h-full items-start gap-3" })
-                    : "flex h-full items-start gap-3 rounded-card border border-dashed border-hairline-firm p-3"
-                }
-              >
-                <span
-                  className={cn(
-                    "grid size-10 shrink-0 place-items-center rounded-full text-heading leading-none",
-                    badge.earned ? "bg-brand-wash" : "bg-surface-muted opacity-50 grayscale",
-                  )}
-                  aria-hidden
-                >
-                  {badge.icon ?? "★"}
-                </span>
-                <div className="min-w-0">
-                  <p className="text-body font-semibold text-foreground">
-                    {badge.name}
-                    <span className="sr-only">{badge.earned ? ", earned" : ", not yet earned"}</span>
-                  </p>
-                  <p className="text-label text-foreground-muted">
-                    {badge.earned
-                      ? (badge.earned.reason ?? badge.description)
-                      : (badge.criteria ?? badge.description)}
-                  </p>
-                  {badge.earned ? (
-                    <p className="mt-1 text-caption font-medium text-brand-strong">
-                      Earned{" "}
-                      {badge.earned.awardedAt.toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  ) : null}
-                </div>
-              </li>
+            {groups.map((group) => (
+              <BadgeGroupCard key={group.key} group={group} />
             ))}
           </ul>
         )}
@@ -471,5 +503,72 @@ function Recognition({ data }: { data: ConnectData }) {
         )}
       </div>
     </div>
+  );
+}
+
+/**
+ * One ladder as a card: its name and why it exists, how many rungs the member
+ * holds, and the rungs in order, each earned (with the date and the reason in
+ * their own numbers) or not yet (with what it takes).
+ */
+function BadgeGroupCard({ group }: { group: RecognitionGroup }) {
+  const legacy = group.kind === "legacy";
+  const total = group.badges.length;
+  const complete = group.earned === total;
+
+  return (
+    <li className={cardClass({ padding: "none", className: "flex h-full flex-col" })}>
+      <div className="flex items-start justify-between gap-3 border-b border-separator px-4 py-3">
+        <div className="min-w-0">
+          <h4 className="text-body font-semibold text-foreground">{group.label}</h4>
+          <p className="mt-0.5 text-caption text-foreground-muted text-pretty">{group.purpose}</p>
+        </div>
+        {legacy ? null : (
+          <Badge tone={complete ? "brand" : "neutral"} className="mt-0.5 shrink-0 tabular-nums">
+            {group.earned} of {total}
+            <span className="sr-only"> earned</span>
+          </Badge>
+        )}
+      </div>
+      <ul className="divide-y divide-separator">
+        {group.badges.map((badge) => (
+          <BadgeRow key={badge.slug} badge={badge} legacy={legacy} />
+        ))}
+      </ul>
+    </li>
+  );
+}
+
+function BadgeRow({ badge, legacy }: { badge: RecognitionBadge; legacy: boolean }) {
+  const earnedAt = badge.earned ? new Date(badge.earned.awardedAt) : null;
+  return (
+    <li className="flex items-start gap-3 px-4 py-3">
+      <span
+        className={cn(
+          "grid size-10 shrink-0 place-items-center rounded-full text-heading leading-none",
+          earnedAt ? "bg-brand-wash" : "bg-default opacity-60 grayscale",
+        )}
+        aria-hidden
+      >
+        {badge.icon}
+      </span>
+      <div className="min-w-0">
+        <p className="flex flex-wrap items-center gap-x-1.5 text-body font-semibold text-foreground">
+          {badge.name}
+          <span className="sr-only">{earnedAt ? ", earned" : ", not yet earned"}</span>
+          {legacy ? <Badge tone="neutral">Legacy award</Badge> : null}
+        </p>
+        <p className="text-label text-foreground-muted text-pretty">
+          {badge.earned
+            ? (badge.earned.reason ?? badge.description)
+            : (badge.criteria ?? badge.description)}
+        </p>
+        {earnedAt ? (
+          <p className="mt-1 text-caption font-medium text-brand-strong">
+            Earned <time dateTime={earnedAt.toISOString()}>{EARNED_ON.format(earnedAt)}</time>
+          </p>
+        ) : null}
+      </div>
+    </li>
   );
 }

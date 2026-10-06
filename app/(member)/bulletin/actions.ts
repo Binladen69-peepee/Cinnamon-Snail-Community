@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { consumeRateLimit } from "@/lib/auth/rate-limit";
 import { fromLocalInputValue, safeTimeZone } from "@/lib/events/timezone";
 import { awardBadges } from "@/lib/social/badges";
+import { KITCHEN_TABLE_PATH } from "@/lib/community/system-spaces";
 import {
   BulletinError,
   cancelHappening,
@@ -22,7 +23,7 @@ import {
 } from "@/lib/bulletin";
 
 /**
- * Bulletin board form actions. Plain forms, so each works before hydration.
+ * Bulletin Board form actions. Plain forms, so each works before hydration.
  *
  * Every one re-reads the session: a server action is a public endpoint, and
  * the page being behind a login proves nothing about who is posting to it.
@@ -60,6 +61,8 @@ async function run(
     }
   }
   revalidatePath("/bulletin");
+  // Board items are Kitchen Table posts, so the feed changes with them.
+  revalidatePath(KITCHEN_TABLE_PATH);
   redirect(code ? `${base}${join}error=${code}` : notice ? `${base}${join}notice=${notice}` : base);
 }
 
@@ -67,6 +70,8 @@ async function run(
 
 export async function hostHappeningAction(formData: FormData) {
   await run("happenings", async (userId) => {
+    // Hosting also writes a Kitchen Table post, so createHappening holds its
+    // own hourly cap on top of this board-wide one.
     const zone = safeTimeZone(String(formData.get("timezone") ?? "UTC"));
     await createHappening(userId, {
       kind: formData.get("kind"),
@@ -132,6 +137,7 @@ export async function saveCardAction(formData: FormData) {
 export async function deleteCardAction() {
   await run("services", async (userId) => {
     await deleteServiceCard(userId);
+    return "removed";
   });
 }
 

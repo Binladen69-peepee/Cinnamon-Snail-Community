@@ -50,7 +50,7 @@ export async function openNotificationAction(formData: FormData) {
 
   revalidatePath("/notifications");
   // The header carries the unread count, so it has to forget too.
-  revalidatePath("/home");
+  revalidatePath("/kitchen-table");
 
   redirect(notification.href ?? "/notifications");
 }
@@ -67,5 +67,5 @@ export async function markAllReadAction(): Promise<void> {
   await markNotificationsRead(session.user.id);
 
   revalidatePath("/notifications");
-  revalidatePath("/home");
+  revalidatePath("/kitchen-table");
 }

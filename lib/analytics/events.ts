@@ -13,6 +13,8 @@ export type ProductEvents = {
   comment_created: { is_reply: boolean };
   message_sent: { has_image: boolean };
   roadmap_track_started: { cadence: string };
+  /** The member chose a pace (DEC-080): 1 to 4 weeks per topic, nothing else. */
+  roadmap_pace_changed: { weeks_per_topic: number };
   roadmap_milestone_completed: { track_complete: boolean };
   roadmap_milestone_skipped: Record<string, never>;
 };

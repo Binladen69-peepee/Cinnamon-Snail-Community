@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Clapperboard, LayoutList } from "lucide-react";
 import { Segmented, segmentClass } from "@/components/app/ui";
+import { kitchenTableHref, type KitchenTableView } from "@/lib/community/kitchen-table-links";
 
-export type FeedMode = "feed" | "reels";
+export type FeedMode = KitchenTableView;
 
 export function parseFeedMode(value: string | string[] | undefined): FeedMode {
   const first = Array.isArray(value) ? value[0] : value;
@@ -10,30 +11,21 @@ export function parseFeedMode(value: string | string[] | undefined): FeedMode {
 }
 
 /**
- * Feed or Reels, at the top of Explorer.
+ * Posts or Reels, at the top of the Kitchen Table.
  *
- * Two links rather than a client toggle: the mode lives in the URL, so a reel
+ * Two links rather than a client toggle: the view lives in the URL, so a reel
  * someone sends you opens as a reel, the back button returns you to the feed
  * you left, and the control works before any JavaScript arrives. The sort is
  * carried across so switching views does not silently reset it.
- *
- * A segmented control rather than a bar of its own: it is a view switch, and
- * the composer below is the one surface Explorer opens with.
  */
-export function FeedModeToggle({
-  mode,
-  sort,
-}: {
-  mode: FeedMode;
-  sort: string;
-}) {
+export function FeedModeToggle({ mode, sort }: { mode: FeedMode; sort: string }) {
   const items: { value: FeedMode; label: string; icon: typeof LayoutList }[] = [
-    { value: "feed", label: "Feed", icon: LayoutList },
+    { value: "feed", label: "Posts", icon: LayoutList },
     { value: "reels", label: "Reels", icon: Clapperboard },
   ];
 
   return (
-    <nav aria-label="Explorer view">
+    <nav aria-label="Kitchen Table view">
       <Segmented>
         {items.map((item) => {
           const active = item.value === mode;
@@ -41,7 +33,7 @@ export function FeedModeToggle({
           return (
             <Link
               key={item.value}
-              href={item.value === "feed" ? `/home?sort=${sort}` : `/home?view=reels&sort=${sort}`}
+              href={kitchenTableHref({ view: item.value, sort })}
               aria-current={active ? "page" : undefined}
               className={segmentClass(active, "min-w-22")}
             >

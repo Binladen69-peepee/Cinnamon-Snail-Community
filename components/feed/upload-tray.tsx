@@ -16,6 +16,10 @@ import { cn } from "@/lib/utils";
  *
  * Videos may take an optional thumbnail image so the feed can show a still
  * before play instead of a blank first frame.
+ *
+ * A GIF (or any image that moves) carries a "GIF" mark from the moment it is
+ * picked: it is uploaded exactly as it is, never shrunk, so the member can see
+ * it was recognised as something that will play.
  */
 export function UploadTray({
   items,
@@ -92,10 +96,23 @@ function UploadTile({
           />
         )
       ) : (
-        // A local object URL, not a remote host.
+        // A local object URL, not a remote host. A plain <img> also keeps a
+        // GIF moving, which the image optimizer would not.
         // eslint-disable-next-line @next/next/no-img-element
         <img src={item.preview} alt="" className="size-full object-cover" />
       )}
+
+      {item.animated && item.kind === "image" && item.status !== "error" ? (
+        <span
+          className={cn(
+            "pointer-events-none absolute left-1.5 rounded-chip bg-black/70 px-1.5 py-0.5 text-micro font-semibold uppercase tracking-[0.06em] text-white",
+            item.status === "done" ? "bottom-8" : "bottom-1.5",
+          )}
+        >
+          GIF
+          <span className="sr-only"> — will play in your post</span>
+        </span>
+      ) : null}
 
       {pending ? (
         <div className="absolute inset-0 grid place-items-center bg-black/55">

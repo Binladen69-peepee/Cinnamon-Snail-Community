@@ -93,7 +93,7 @@ export default async function SearchPage({
       <div className="flex flex-col gap-6">
         <PageHeader
           title="Search"
-          description="Members, posts, classes, lessons and events, in one place."
+          description="Members, posts, classes, lessons and live classes, in one place."
         >
           <div className="flex flex-col gap-3">
             <UrlSearchField placeholder="Search Vegan University" label="Search everything" />
@@ -128,7 +128,7 @@ export default async function SearchPage({
             description={
               type
                 ? "Nothing of this kind matches. Other kinds might."
-                : "Try a shorter word or a different spelling. Private rooms you are not in are never searched."
+                : "Try a shorter word or a different spelling. Posts you cannot open are never searched."
             }
             action={
               type ? (

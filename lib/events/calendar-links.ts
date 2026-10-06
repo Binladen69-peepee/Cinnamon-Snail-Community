@@ -1,4 +1,5 @@
 import { offsetMinutes, safeTimeZone, zonedParts } from "@/lib/events/timezone";
+import { liveClassHref } from "@/lib/events/paths";
 
 /**
  * Getting an event into somebody's own calendar.
@@ -125,7 +126,7 @@ function vtimezone(event: IcsEvent): string[] {
 export function eventIcs(event: IcsEvent, options: { baseUrl?: string } = {}): string {
   const zone = safeTimeZone(event.timezone);
   const base = options.baseUrl ?? "https://veganuniversity.com";
-  const url = `${base}/calendar/${event.slug}`;
+  const url = `${base}${liveClassHref(event.slug)}`;
   const end = endOf(event);
 
   const descriptionParts = [
@@ -190,7 +191,7 @@ export function googleCalendarUrl(
   const details = [
     event.description?.trim() || "",
     event.zoomUrl ? `Join: ${event.zoomUrl}` : "",
-    `${base}/calendar/${event.slug}`,
+    `${base}${liveClassHref(event.slug)}`,
   ]
     .filter(Boolean)
     .join("\n\n");

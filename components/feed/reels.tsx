@@ -1,31 +1,30 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import {
   ArrowLeft,
   ArrowUpRight,
-  Bookmark,
   Clapperboard,
   Heart,
   Loader2,
   MessageCircle,
   Pause,
+  Pin,
   Play,
-  Send,
   Volume2,
   VolumeX,
   X,
 } from "lucide-react";
-import { reactAction, saveAction } from "@/app/(member)/community-actions";
-import { runAction } from "@/components/feed/run-action";
 import { PostFollowButton } from "@/components/feed/post-follow-button";
 import { CommentPanel } from "@/components/feed/comment-panel";
+import { usePin, useReaction } from "@/components/feed/use-engagement";
 import { Avatar } from "@/components/ui/avatar";
 import { ButtonLink, EmptyState } from "@/components/app/ui";
 import { DEFAULT_REACTION } from "@/lib/community/reactions";
 import { formatCount } from "@/lib/community/format-count";
 import { videoEmbedSrc, videoPosterUrl } from "@/lib/community/media";
+import { kitchenTableHref } from "@/lib/community/kitchen-table-links";
 import { youTubeId } from "@/lib/marketing/teasers";
 import {
   reviveFeedCard,
@@ -56,8 +55,6 @@ import { cn } from "@/lib/utils";
  * embed autoplays muted; sound on those is the player's own control, since an
  * iframe cannot be unmuted from outside without its vendor API.
  */
-
-const LIKE = DEFAULT_REACTION;
 
 export function Reels({
   initialPosts,
@@ -139,9 +136,9 @@ export function Reels({
         <EmptyState
           icon={<Clapperboard />}
           title="No reels yet"
-          description="Reels are the videos people post. When someone shares one, it plays here."
+          description="Reels are the videos people post to the Kitchen Table. When someone posts one, it plays here."
           action={
-            <ButtonLink href="/compose?type=VIDEO" variant="primary">
+            <ButtonLink href="/compose" variant="primary">
               Post a video
             </ButtonLink>
           }
@@ -210,8 +207,8 @@ export function Reels({
       </div>
 
       <Link
-        href={`/home?sort=${sort}`}
-        aria-label="Back to the feed"
+        href={kitchenTableHref({ sort })}
+        aria-label="Back to the Kitchen Table"
         className="absolute left-3 top-3 z-20 grid size-10 place-items-center rounded-full bg-black/45 text-white no-underline backdrop-blur-sm transition hover:bg-black/60 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white md:hidden"
       >
         <ArrowLeft className="size-5" aria-hidden />
@@ -267,7 +264,9 @@ function Reel({
   const poster = videoPosterUrl(clip.url, clip.thumbnailUrl);
   const name = post.author.profile?.displayName ?? post.author.handle;
   const isOwn = viewer.handle === post.author.handle;
-  const caption = (post.title || post.plainText || "").trim();
+  // Plain text: a caption over video has no room for formatting, and must
+  // never show markdown markers.
+  const caption = [post.title, post.excerpt].filter(Boolean).join(" — ").trim();
 
   // Active while most of it is on screen; gives the slot up as soon as it is
   // not. Leaving also clears a manual pause, so the reel autoplays again when
@@ -414,16 +413,6 @@ function Reel({
             {caption}
           </button>
         ) : null}
-
-        <Link
-          href={`/spaces/${post.space.slug}`}
-          className="mt-2 inline-flex max-w-full items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-caption font-semibold text-white no-underline backdrop-blur-sm focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-        >
-          <Clapperboard className="size-3.5 shrink-0" aria-hidden />
-          <span className="truncate">
-            {post.space.name.startsWith("#") ? post.space.name : `# ${post.space.name}`}
-          </span>
-        </Link>
       </div>
 
       {/* Comments slide up over the reel, the way they do on Instagram, rather
@@ -510,18 +499,13 @@ function autoplaySrc(embed: string, url: string) {
 
 /* -------------------------------------------------------------------------- */
 
-type ReelState = {
-  myReaction: string | null;
-  counts: Record<string, number>;
-  saved: boolean;
-};
-
 /**
- * The column down the right edge: like, comment, send, save, more.
+ * The column down the right edge: like, comment, pin, open.
  *
- * Like is the feed's default reaction under a heart, so a reel liked here
- * shows as the same reaction on the post everywhere else — the two views are
- * one post, not two.
+ * Like is the feed's default reaction under a heart, and the pin is the same
+ * "Pin this post" as on the card: both come from the shared engagement store,
+ * so a reel liked or pinned here shows the same way on the post everywhere
+ * else — the two views are one post, not two.
  */
 function ReelActions({
   post,
@@ -534,63 +518,13 @@ function ReelActions({
   commentsOpen: boolean;
   onOpenComments: () => void;
 }) {
-  const [, startTransition] = useTransition();
-  const [state, setState] = useState<ReelState>({
-    myReaction: post.myReaction ?? null,
-    counts: post.reactionCounts ?? {},
-    saved: post.myBookmark ?? false,
-  });
-  const [copied, setCopied] = useState(false);
-
-  const total = useMemo(
-    () => Object.values(state.counts).reduce((sum, n) => sum + n, 0),
-    [state.counts],
-  );
-  const liked = state.myReaction !== null;
+  const reaction = useReaction(post.id, post.myReaction ?? null, post.reactionCounts ?? {});
+  const pin = usePin(post.id, post.myBookmark ?? false);
+  const total = reaction.total;
+  const liked = reaction.mine !== null;
 
   function like() {
-    const clearing = liked;
-    const next = { ...state.counts };
-    if (state.myReaction) {
-      next[state.myReaction] = Math.max(0, (next[state.myReaction] ?? 1) - 1);
-    }
-    if (!clearing) next[LIKE] = (next[LIKE] ?? 0) + 1;
-    const before = state;
-    setState({ ...state, myReaction: clearing ? null : LIKE, counts: next });
-
-    const data = new FormData();
-    data.set("postId", post.id);
-    data.set("emoji", LIKE);
-    startTransition(async () => {
-      const ok = await runAction(reactAction, data);
-      if (!ok) setState(before);
-    });
-  }
-
-  function save() {
-    const before = state;
-    setState({ ...state, saved: !state.saved });
-    const data = new FormData();
-    data.set("postId", post.id);
-    startTransition(async () => {
-      const ok = await runAction(saveAction, data);
-      if (!ok) setState(before);
-    });
-  }
-
-  async function share() {
-    const url = new URL(`/posts/${post.id}`, window.location.origin).toString();
-    if (navigator.share) {
-      await navigator.share({ url, title: "Vegan University" }).catch(() => undefined);
-      return;
-    }
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      // Clipboard can be refused.
-    }
+    reaction.setReaction(liked ? null : DEFAULT_REACTION);
   }
 
   // The theme's focus ring is ink-coloured — invisible on this black surface —
@@ -629,24 +563,18 @@ function ReelActions({
         {commentCount > 0 ? <span className={count}>{formatCount(commentCount)}</span> : null}
       </button>
 
-      <button type="button" onClick={share} aria-label="Send" className={button}>
-        <Send className="size-6 md:size-7" aria-hidden />
-        <span className={count}>{copied ? "Copied" : "Send"}</span>
-      </button>
-
       <button
         type="button"
-        onClick={save}
-        aria-pressed={state.saved}
-        aria-label={state.saved ? "Remove from saved" : "Save"}
+        onClick={pin.toggle}
+        aria-label={pin.pinned ? "Unpin this post" : "Pin this post"}
         className={button}
       >
-        <Bookmark
+        <Pin
           className="size-6 md:size-7"
-          fill={state.saved ? "currentColor" : "none"}
+          fill={pin.pinned ? "currentColor" : "none"}
           aria-hidden
         />
-        <span className={count}>{state.saved ? "Saved" : "Save"}</span>
+        <span className={count}>{pin.pinned ? "Pinned" : "Pin"}</span>
       </button>
 
       <Link

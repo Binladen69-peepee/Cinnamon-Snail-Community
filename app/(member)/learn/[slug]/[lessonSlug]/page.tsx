@@ -6,7 +6,6 @@ import {
   ChevronLeft,
   FileClock,
   Lock,
-  MessageSquare,
   PenLine,
 } from "lucide-react";
 import { auth } from "@/auth";
@@ -300,6 +299,9 @@ export default async function LessonPage({
               )}
             </nav>
 
+            {/* The lesson's own questions, and only for someone who can open
+                the lesson. There is deliberately no way out to a course room:
+                classes are a library, not a forum (DEC-078). */}
             {gate.state === "open" ? (
               <LessonDiscussion
                 lessonId={lesson.id}
@@ -308,15 +310,7 @@ export default async function LessonPage({
                   name: session.user.name ?? "You",
                   avatar: session.user.image ?? null,
                 }}
-                spaceHref={course.discussHref}
               />
-            ) : course.discussHref ? (
-              <div>
-                <ButtonLink href={course.discussHref}>
-                  <MessageSquare className="size-4" aria-hidden />
-                  Ask about this class
-                </ButtonLink>
-              </div>
             ) : null}
           </div>
         </div>

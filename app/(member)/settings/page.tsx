@@ -1,4 +1,5 @@
 import { PASSWORD_MIN_LENGTH } from "@/lib/auth/password-policy";
+import { MEMBER_HOME_PATH } from "@/lib/auth/redirects";
 import { signOutEverywhereAction } from "@/app/(auth)/sign-out-action";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
@@ -62,7 +63,7 @@ export default async function SettingsPage({
     }),
     prisma.pushSubscription.count({ where: { userId: session.user.id } }),
   ]);
-  if (!user?.profile) redirect("/home");
+  if (!user?.profile) redirect(MEMBER_HOME_PATH);
   const saved = (await searchParams).saved === "1";
   const privacy = readPrivacy(user.profile.privacy);
   // What each switch shows is the effective value: the member's own choice, or

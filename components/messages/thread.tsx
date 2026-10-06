@@ -3,6 +3,7 @@
 import {
   useCallback,
   useEffect,
+  useMemo,
   useOptimistic,
   useRef,
   useState,
@@ -10,7 +11,7 @@ import {
 } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowDown, MessageSquare, Users } from "lucide-react";
+import { Archive, ArrowDown, MessageSquare, Users } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Button, EmptyState } from "@/components/app/ui";
 import { PaneBackLink, PaneHeader } from "@/components/messages/pane-header";
@@ -34,6 +35,20 @@ export type ThreadOther = {
   lastReadAt: string | null;
   blockedByViewer: boolean;
 };
+
+export type ThreadKind = "direct" | "group" | "crew";
+
+/** A crew's group chat: the crew it belongs to (DEC-078). */
+export type ThreadCrew = {
+  slug: string;
+  name: string;
+  /** "Survey crew", "Opt-in crew"… */
+  label: string;
+  archived: boolean;
+};
+
+/** A stable empty list, so a default prop does not change on every render. */
+const NO_ONE: string[] = [];
 
 /** Below this many pixels from the bottom, we follow new messages down. */
 const STICK_PX = 120;
@@ -59,11 +74,23 @@ function newClientId(): string {
  * bottom while you are at the bottom, and never yank someone who has scrolled
  * up to read. When a message arrives while they are up there, they get a button
  * instead of a jump.
+ *
+ * Three kinds of thread share it. A one-to-one thread shows the other person.
+ * A small group shows how many are in it and who, in the menu. A crew chat
+ * (DEC-078) is the crew's own room: its header names the crew and links to
+ * its page, read receipts are left out (at crew size "read by everyone" never
+ * happens), and messages from anyone on either side of a block with the
+ * viewer are not shown to them.
  */
 export function Thread({
   conversationId,
   title,
+  kind = "direct",
   isGroup,
+  memberCount,
+  crew = null,
+  hiddenAuthorIds = NO_ONE,
+  draft = null,
   others,
   initialMessages,
   initialPreviews,
@@ -72,7 +99,18 @@ export function Thread({
 }: {
   conversationId: string;
   title: string;
+  kind?: ThreadKind;
   isGroup: boolean;
+  /** Everyone still in the thread, the viewer included. */
+  memberCount?: number;
+  crew?: ThreadCrew | null;
+  /** Authors whose messages this viewer is not shown (crew chats only). */
+  hiddenAuthorIds?: string[];
+  /**
+   * A suggested message to start the composer with — the weekly match's
+   * opener. Editable, and only ever sent by the member.
+   */
+  draft?: { key: string; body: string } | null;
   others: ThreadOther[];
   initialMessages: ThreadMessage[];
   initialPreviews: LinkPreview[];
@@ -80,6 +118,11 @@ export function Thread({
   hasMore: boolean;
   uploadsEnabled: boolean;
 }) {
+  const hidden = useMemo(() => new Set(hiddenAuthorIds), [hiddenAuthorIds]);
+  const showReceipts = kind !== "crew";
+  // Sent along with the first message while the suggested opener is in play,
+  // so the match can show as messaged. Cleared once it has gone.
+  const [draftKey, setDraftKey] = useState<string | null>(draft?.key ?? null);
   const [messages, setMessages] = useState<ThreadMessage[]>(initialMessages);
   const [previews, setPreviews] = useState<Map<string, LinkPreview>>(
     () => new Map(initialPreviews.map((preview) => [preview.url, preview])),
@@ -208,7 +251,7 @@ export function Thread({
         previews?: LinkPreview[];
       };
       setTyping(data.typing);
-      setReceipts(data.readReceipts);
+      if (showReceipts) setReceipts(data.readReceipts);
       const fresh = data.previews;
       if (fresh?.length) {
         setPreviews((current) => {
@@ -218,10 +261,14 @@ export function Thread({
         });
       }
       if (data.messages.length > 0) {
+        // The cursor moves past everything that arrived, shown or not.
         cursorRef.current = data.messages.at(-1)?.createdAt ?? since;
+        const arrived = hidden.size
+          ? data.messages.filter((message) => !hidden.has(message.authorId))
+          : data.messages;
         setMessages((current) => {
           const known = new Set(current.map((message) => message.id));
-          const fresh = data.messages.filter((message) => !known.has(message.id));
+          const fresh = arrived.filter((message) => !known.has(message.id));
           return fresh.length > 0 ? [...current, ...fresh] : current;
         });
         if (stuckRef.current) {
@@ -246,7 +293,7 @@ export function Thread({
       // stream is what decides when to say so.
       return false;
     }
-  }, [conversationId, scrollToBottom, router]);
+  }, [conversationId, scrollToBottom, router, hidden, showReceipts]);
 
   const { state: streamState, refresh, markActive } = useMessageStream({ poll });
 
@@ -275,6 +322,8 @@ export function Thread({
     data.set("body", body);
     data.set("clientId", clientId);
     if (imageUrl) data.set("imageUrl", imageUrl);
+    const sentDraft = draftKey;
+    if (sentDraft) data.set("draftKey", sentDraft);
 
     startTransition(async () => {
       addPending(optimistic);
@@ -288,6 +337,12 @@ export function Thread({
         setRestore({ token: Date.now(), body, imageUrl });
         return;
       }
+      if (sentDraft) {
+        // The suggestion has done its job. Off the URL too, so a reload or a
+        // shared link does not put it back in the box.
+        setDraftKey(null);
+        window.history.replaceState(null, "", window.location.pathname);
+      }
       await refresh();
     });
   }
@@ -295,23 +350,31 @@ export function Thread({
   const all = [...messages, ...pending];
   const groups = groupByDay(all);
   // The furthest point every other member has read to. One tick until then.
-  const readThrough = receipts.reduce<number>((earliest, receipt) => {
-    const at = receipt.lastReadAt ? new Date(receipt.lastReadAt).getTime() : 0;
-    return Math.min(earliest, at);
-  }, Number.POSITIVE_INFINITY);
+  const readThrough = showReceipts
+    ? receipts.reduce<number>((earliest, receipt) => {
+        const at = receipt.lastReadAt ? new Date(receipt.lastReadAt).getTime() : 0;
+        return Math.min(earliest, at);
+      }, Number.POSITIVE_INFINITY)
+    : 0;
 
-  const blockedOther = others.find((other) => other.blockedByViewer);
+  // In a crew a block does not close the room, so only threads between a few
+  // people swap the composer for the notice.
+  const blockedOther = kind === "crew" ? undefined : others.find((other) => other.blockedByViewer);
+  const groupNames = others
+    .slice(0, 3)
+    .map((other) => other.name.split(" ")[0])
+    .join(", ");
 
   return (
     <section className="flex h-full min-h-0 flex-col bg-surface">
       <PaneHeader>
         <PaneBackLink />
 
-        {others.length === 1 ? (
+        {kind !== "crew" && others.length === 1 ? (
           <Link href={`/members/${others[0].handle}`} className="shrink-0 no-underline">
             <Avatar name={others[0].name} src={others[0].avatarUrl} size="sm" />
           </Link>
-        ) : isGroup ? (
+        ) : isGroup || kind === "crew" ? (
           <span
             className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-wash text-on-brand-wash"
             aria-hidden
@@ -321,19 +384,33 @@ export function Thread({
         ) : null}
 
         <div className="min-w-0 flex-1">
-          <h1 className="truncate text-title font-semibold text-foreground">{title}</h1>
+          <h1 className="truncate text-title font-semibold text-foreground">
+            {crew ? (
+              <Link
+                href={`/crews/${crew.slug}`}
+                className="text-foreground no-underline hover:underline"
+              >
+                {title}
+              </Link>
+            ) : (
+              title
+            )}
+          </h1>
           <p className="truncate text-caption text-foreground-muted" aria-live="polite">
             {typing.length > 0
               ? `${typing.join(", ")} ${typing.length === 1 ? "is" : "are"} typing…`
-              : isGroup
-                ? `${others.length + 1} people`
-                : `@${others[0]?.handle ?? ""}`}
+              : crew
+                ? `${crew.label} · ${memberCount ?? 0} ${memberCount === 1 ? "member" : "members"}`
+                : isGroup
+                  ? `${memberCount ?? others.length + 1} people${groupNames ? ` · You, ${groupNames}${others.length > 3 ? "…" : ""}` : ""}`
+                  : `@${others[0]?.handle ?? ""}`}
           </p>
         </div>
 
         <ThreadMenu
           conversationId={conversationId}
           isGroup={isGroup}
+          crew={crew}
           others={others}
         />
       </PaneHeader>
@@ -364,14 +441,25 @@ export function Thread({
         ) : null}
 
         {all.length === 0 ? (
-          <EmptyState
-            size="sm"
-            bordered={false}
-            icon={<MessageSquare />}
-            title="No messages yet."
-            description="Say hello — a first message is usually about what you are cooking this week."
-            className="mt-6"
-          />
+          crew ? (
+            <EmptyState
+              size="sm"
+              bordered={false}
+              icon={<Users />}
+              title={`This is the ${crew.name} chat.`}
+              description="Everyone in the crew is here. Start it off: what are you cooking this week?"
+              className="mt-6"
+            />
+          ) : (
+            <EmptyState
+              size="sm"
+              bordered={false}
+              icon={<MessageSquare />}
+              title="No messages yet."
+              description="Say hello — a first message is usually about what you are cooking this week."
+              className="mt-6"
+            />
+          )
         ) : null}
 
         {groups.map((group) => (
@@ -390,8 +478,9 @@ export function Thread({
                     key={message.id}
                     message={message}
                     showAvatar={newSpeaker}
-                    showName={isGroup && newSpeaker}
+                    showName={(isGroup || kind === "crew") && newSpeaker}
                     readByAll={
+                      showReceipts &&
                       message.mine &&
                       message.state === undefined &&
                       new Date(message.createdAt).getTime() <= readThrough
@@ -427,7 +516,12 @@ export function Thread({
         </div>
       ) : null}
 
-      {blockedOther ? (
+      {crew?.archived ? (
+        <p className="flex shrink-0 items-center justify-center gap-2 border-t border-border bg-surface px-4 py-3 text-center text-label text-foreground-muted">
+          <Archive className="size-4 shrink-0" aria-hidden />
+          This crew has been archived, so its chat is read-only.
+        </p>
+      ) : blockedOther ? (
         <p className="shrink-0 border-t border-border bg-surface px-4 py-3 text-center text-label text-foreground-muted">
           You blocked {blockedOther.name}. Unblock them from the menu above to
           write again.
@@ -439,6 +533,13 @@ export function Thread({
           error={error}
           restore={restore}
           onSend={submit}
+          initialBody={draft?.body ?? null}
+          hint={
+            draftKey
+              ? "Suggested by your weekly match. Edit it, or send it as it is."
+              : null
+          }
+          placeholder={crew ? `Message ${crew.name}` : undefined}
         />
       )}
     </section>

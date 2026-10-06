@@ -8,6 +8,7 @@ import { signPlaybackToken } from "@/lib/learn/playback";
 import { resolveMediaSource } from "@/lib/learn/media";
 import { consumeRateLimit } from "@/lib/auth/rate-limit";
 import { lessonChapters } from "@/lib/learn/chapters";
+import { signedEmbedUrl } from "@/lib/bunny/stream";
 
 /**
  * Everything the player needs to start, and nothing it does not.
@@ -52,6 +53,7 @@ export async function GET(
       published: true,
       isPreview: true,
       videoUid: true,
+      bunnyVideoId: true,
       audioUid: true,
       downloadUid: true,
       liveUrl: true,
@@ -97,6 +99,41 @@ export async function GET(
     );
   }
 
+  const progress = await prisma.lessonProgress.findUnique({
+    where: { lessonId_userId: { lessonId: lesson.id, userId: session.user.id } },
+    select: { positionSeconds: true, completedAt: true },
+  });
+
+  // Bunny Stream first (DEC-081): a video lesson with a Bunny video plays only
+  // through an embed URL signed for a few hours, minted here, after the gate
+  // above. No file address exists to leak. Without the token key (and outside
+  // the explicit local-testing flag) no Bunny URL is minted at all; a lesson
+  // that still has its older source keeps playing that, so attaching Bunny
+  // videos ahead of the key never takes a class away from members.
+  const embed =
+    lesson.kind === "VIDEO" && lesson.bunnyVideoId ? signedEmbedUrl(lesson.bunnyVideoId) : null;
+  if (lesson.kind === "VIDEO" && lesson.bunnyVideoId && !embed && !lesson.videoUid) {
+    return NextResponse.json({ ok: false, error: "no-media" }, { status: 404 });
+  }
+  if (embed) {
+    return NextResponse.json(
+      {
+        ok: true,
+        kind: lesson.kind,
+        src: embed.url,
+        embed: true,
+        provider: "bunny",
+        captionsUrl: null,
+        chapters: lessonChapters(lesson.chapters),
+        resumeAt: progress?.positionSeconds ?? 0,
+        completed: Boolean(progress?.completedAt),
+        liveUrl: null,
+        liveAt: null,
+      },
+      { headers: { "cache-control": "private, no-store" } },
+    );
+  }
+
   const assetUid =
     lesson.kind === "AUDIO"
       ? lesson.audioUid
@@ -111,11 +148,6 @@ export async function GET(
     return NextResponse.json({ ok: false, error: "no-media" }, { status: 404 });
   }
 
-  const progress = await prisma.lessonProgress.findUnique({
-    where: { lessonId_userId: { lessonId: lesson.id, userId: session.user.id } },
-    select: { positionSeconds: true, completedAt: true },
-  });
-
   return NextResponse.json(
     {
       ok: true,
@@ -124,6 +156,7 @@ export async function GET(
       src: source.kind === "proxy" ? `/api/learn/media/${token}` : source.url,
       // A Stream player is an iframe rather than a media element.
       embed: source.kind === "stream",
+      provider: source.kind === "stream" ? "cloudflare" : null,
       captionsUrl: lesson.resources[0]?.url ?? null,
       chapters: lessonChapters(lesson.chapters),
       resumeAt: progress?.positionSeconds ?? 0,

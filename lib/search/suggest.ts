@@ -11,44 +11,69 @@ export type SearchSuggestion = {
  * Destinations the search field can offer before (and while) the index
  * answers. Live classes are filled in from the catalog at request time;
  * these are the standing sections of the product.
+ *
+ * The member sections follow the structure the client set (DEC-078): the
+ * Kitchen Table is the community, there is no Explorer, no list of spaces and
+ * no drafts, and events are Live Classes. The public pages at the end are for
+ * the same palette on the marketing site.
  */
 export const NAV_SECTION_SUGGESTIONS: SearchSuggestion[] = [
   {
-    label: "Live cook-alongs",
-    href: "/calendar",
+    label: "Live classes",
+    href: "/live-classes",
     group: "Live classes",
-    detail: "Page · /calendar",
-    snippet: "Upcoming classes on the calendar",
+    detail: "Page · /live-classes",
+    snippet: "Upcoming live classes, with recordings of the ones you missed",
   },
   {
-    label: "Course library",
-    href: "/learn",
+    label: "Kitchen Table",
+    href: "/kitchen-table",
     group: "Sections",
-    detail: "Section · /learn",
+    detail: "Community · /kitchen-table",
+    snippet: "The community feed",
   },
   {
-    label: "Explorer",
-    href: "/home",
+    label: "Bulletin Board",
+    href: "/bulletin",
     group: "Sections",
-    detail: "Section · /home",
+    detail: "Community · /bulletin",
   },
   {
     label: "Members",
     href: "/members",
     group: "Sections",
-    detail: "Section · /members",
+    detail: "Community · /members",
   },
   {
-    label: "Spaces",
-    href: "/spaces",
+    label: "Connect",
+    href: "/connect",
     group: "Sections",
-    detail: "Section · /spaces",
+    detail: "Community · /connect",
   },
   {
-    label: "Events",
-    href: "/calendar",
+    label: "Messages",
+    href: "/messages",
     group: "Sections",
-    detail: "Section · /calendar",
+    detail: "Community · /messages",
+  },
+  {
+    label: "Ideas & Requests",
+    href: "/ideas",
+    group: "Sections",
+    detail: "Section · /ideas",
+    snippet: "Ask for the classes, recipes and features you want next",
+  },
+  {
+    label: "Crews",
+    href: "/crews",
+    group: "Sections",
+    detail: "Section · /crews",
+  },
+  {
+    label: "Class library",
+    href: "/learn",
+    group: "Sections",
+    detail: "Section · /learn",
   },
   {
     label: "Roadmap",
@@ -57,40 +82,34 @@ export const NAV_SECTION_SUGGESTIONS: SearchSuggestion[] = [
     detail: "Section · /roadmap",
   },
   {
-    label: "Bulletin Board",
-    href: "/bulletin",
+    label: "Settings",
+    href: "/settings",
     group: "Sections",
-    detail: "Section · /bulletin",
+    detail: "Section · /settings",
   },
   {
     label: "Membership",
     href: "/membership",
-    group: "Sections",
+    group: "Pages",
     detail: "Page · /membership",
   },
   {
     label: "Courses",
     href: "/courses",
-    group: "Sections",
+    group: "Pages",
     detail: "Page · /courses",
   },
   {
     label: "Community",
     href: "/community",
-    group: "Sections",
+    group: "Pages",
     detail: "Page · /community",
   },
   {
     label: "About",
     href: "/about",
-    group: "Sections",
+    group: "Pages",
     detail: "Page · /about",
-  },
-  {
-    label: "Settings",
-    href: "/settings",
-    group: "Sections",
-    detail: "Section · /settings",
   },
 ];
 

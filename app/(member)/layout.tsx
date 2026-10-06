@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
+import { after } from "next/server";
 import { auth } from "@/auth";
-import { listNavSpaces } from "@/lib/spaces";
+import { refreshViewerCrews } from "@/lib/crews/visit";
 import { totalUnreadForUser } from "@/lib/messages/conversations";
 import { AppHeader } from "@/components/app/app-header";
 import { SideRail } from "@/components/app/side-rail";
@@ -21,12 +22,12 @@ export const metadata = {
  * put the header, the rail and the mobile tabs inside the *page's* subtree.
  * Two things followed from that, and both were visible.
  *
- * The rail remounted on every navigation, re-running `listNavSpaces` and the
- * unread count each time. Worse, four routes have a `loading.tsx`, and a
- * loading file replaces the whole page subtree — so navigating to
- * Courses, Members or a thread made the sidebar and the header *disappear*
- * until the data arrived, then snap back. The chrome was being treated as page
- * content, so it flickered like page content.
+ * The rail remounted on every navigation, re-running its queries each time.
+ * Worse, four routes have a `loading.tsx`, and a loading file replaces the
+ * whole page subtree — so navigating to Courses, Members or a thread made the
+ * sidebar and the header *disappear* until the data arrived, then snap back.
+ * The chrome was being treated as page content, so it flickered like page
+ * content.
  *
  * A layout is the thing React keeps mounted across navigations within its
  * segment. Moving the frame here makes the rail persistent by construction:
@@ -34,6 +35,11 @@ export const metadata = {
  * as a content wrapper — it still owns the max-width and the optional right
  * rail, which genuinely do differ per page, so every call site keeps the props
  * it already passed.
+ *
+ * The rail no longer lists spaces (DEC-078), so the only count it needs is
+ * unread messages, loaded once here and handed to the header as well. The
+ * per-space unread total that used to sit on "Spaces" is gone with it: it was
+ * cleared by visiting a room, and members no longer visit rooms.
  *
  * The trade this makes: the header's notification count no longer refreshes on
  * every navigation, because the layout is no longer re-rendered on every
@@ -48,21 +54,27 @@ export default async function MemberLayout({
   const session = await auth();
   if (!session?.sessionId) redirect("/login");
 
-  const [nav, unreadMessages] = await Promise.all([
-    listNavSpaces(session.user.id),
-    totalUnreadForUser(session.user.id).catch(() => 0),
-  ]);
-
-  const rail = (
-    <SideRail
-      favorites={nav.favorites}
-      groups={nav.groups}
-      unread={{
-        "/messages": unreadMessages,
-        "/spaces": nav.totalUnread,
-      }}
-    />
+  const unreadMessages = await totalUnreadForUser(session.user.id).catch(() => 0);
+  const staff = session.user.roles.some(
+    (role) => role === "ADMIN" || role === "SUPER_ADMIN",
   );
+
+  // The layout renders when a member arrives, not on every navigation: the
+  // moment to read their survey answers if Kit has not been asked yet, so
+  // their crews are there by the next page (lib/crews/visit.ts).
+  const userId = session.user.id;
+  after(() =>
+    refreshViewerCrews(userId).then(
+      () => undefined,
+      (error: unknown) =>
+        console.error(
+          "[crews] visit refresh failed:",
+          error instanceof Error ? error.message.slice(0, 200) : "unknown error",
+        ),
+    ),
+  );
+
+  const rail = <SideRail unread={{ "/messages": unreadMessages }} staff={staff} />;
 
   return (
     <div data-app-shell className="min-h-screen bg-background text-foreground">
@@ -79,7 +91,7 @@ export default async function MemberLayout({
 
       <div className="lg:pl-60">
         {/* Below `lg` the same rail opens as a drawer from the bar. */}
-        <AppHeader menu={<NavDrawer>{rail}</NavDrawer>} />
+        <AppHeader menu={<NavDrawer>{rail}</NavDrawer>} unreadMessages={unreadMessages} />
         {children}
       </div>
 

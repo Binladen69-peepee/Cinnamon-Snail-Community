@@ -1,11 +1,15 @@
 import Link from "next/link";
 import { ChevronDown, Handshake, MapPin, MessageSquare, Search } from "lucide-react";
 import { SERVICE_CATEGORIES, type OwnCard, type ServiceView } from "@/lib/bulletin";
+import { bulletinAnchor } from "@/lib/bulletin/card";
 import { Avatar } from "@/components/ui/avatar";
 import { PendingButton } from "@/components/ui/pending-button";
+import { RichText } from "@/components/content/rich-text";
+import { BulletinThreadBar, KitchenTableLink, type BulletinViewer } from "@/components/bulletin/thread";
 import {
   Button,
   ButtonLink,
+  Card,
   Input,
   Select,
   Textarea,
@@ -16,15 +20,26 @@ import { Blank, Field, Pill, primaryBtn, summaryCls } from "@/components/bulleti
 import { deleteCardAction, saveCardAction } from "@/app/(member)/bulletin/actions";
 
 const STATUS_COPY: Record<OwnCard["status"], string> = {
-  pending: "Waiting for review. It appears on the board once staff approve it.",
-  approved: "Live on the board.",
+  pending: "Waiting for review. It appears on the board, and in the Kitchen Table, once staff approve it.",
+  approved: "Live on the board, and posted in the Kitchen Table.",
   rejected: "Not listed. Edit it and it goes back for review.",
 };
+
+const REMOVED_COPY =
+  "A moderator took this card’s Kitchen Table post down, so it is not listed. Edit it and it goes back for review.";
+
+function ownPill(own: OwnCard): { label: string; tone: "brand" | "neutral" } {
+  if (own.removed) return { label: "Taken down", tone: "neutral" };
+  if (own.status === "approved") return { label: "Live", tone: "brand" };
+  if (own.status === "pending") return { label: "In review", tone: "neutral" };
+  return { label: "Needs changes", tone: "neutral" };
+}
 
 /**
  * Member services: one card per member, reviewed before it is listed. The
  * viewer's own card sits at the top whatever its state, so they always know
- * where it stands.
+ * where it stands. A listed card is also a Kitchen Table post, and its
+ * reactions and comments show under it here.
  */
 export function ServicesTab({
   cards,
@@ -32,18 +47,21 @@ export function ServicesTab({
   q,
   category,
   defaultCity,
+  viewer,
 }: {
   cards: ServiceView[];
   own: OwnCard | null;
   q: string;
   category: string | null;
   defaultCity: string;
+  viewer: BulletinViewer;
 }) {
+  const pill = own ? ownPill(own) : null;
   return (
     <div className="flex flex-col gap-5">
       <details
         className={cardClass({ padding: "none", className: "group" })}
-        open={own?.status === "rejected" || undefined}
+        open={own?.status === "rejected" || own?.removed || undefined}
       >
         <summary className={summaryCls}>
           <span className="inline-flex min-w-0 items-center gap-2.5">
@@ -56,7 +74,7 @@ export function ServicesTab({
             {own ? "Your service card" : "Offer a service"}
           </span>
           <span className="inline-flex shrink-0 items-center gap-2">
-            {own ? <Pill tone={own.status === "approved" ? "brand" : "neutral"}>{own.status === "pending" ? "In review" : own.status === "approved" ? "Live" : "Needs changes"}</Pill> : null}
+            {pill ? <Pill tone={pill.tone}>{pill.label}</Pill> : null}
             <ChevronDown
               className="size-4 text-foreground-muted transition-transform group-open:rotate-180"
               aria-hidden
@@ -67,7 +85,21 @@ export function ServicesTab({
           action={saveCardAction}
           className="grid grid-cols-1 gap-4 border-t border-separator p-4 sm:grid-cols-2 sm:p-5"
         >
-          {own ? <p className="text-label text-foreground-muted sm:col-span-2">{STATUS_COPY[own.status]}</p> : null}
+          {own ? (
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:col-span-2">
+              <p className="text-label text-foreground-muted">
+                {own.removed ? REMOVED_COPY : STATUS_COPY[own.status]}
+              </p>
+              {own.postId && own.status === "approved" && !own.removed ? (
+                <KitchenTableLink postId={own.postId} title={own.title} />
+              ) : null}
+            </div>
+          ) : (
+            <p className="text-label text-foreground-muted sm:col-span-2">
+              Staff check each card first. Once it is approved it is listed here and posted in the
+              Kitchen Table.
+            </p>
+          )}
           <Field label="What you offer" htmlFor="s-title" className="sm:col-span-2">
             <Input id="s-title" name="title" required minLength={3} maxLength={120} defaultValue={own?.title} placeholder="Plant-based meal prep for busy weeks" />
           </Field>
@@ -137,41 +169,61 @@ export function ServicesTab({
           action={q || category ? { href: "/bulletin?tab=services", label: "Show all services" } : undefined}
         />
       ) : (
-        <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <ul className="flex flex-col gap-3">
           {cards.map((card) => (
-            <li key={card.id} className={cardClass({ className: "flex flex-col" })}>
-              <div className="flex items-center gap-2.5">
-                <Avatar name={card.person.displayName} src={card.person.avatarUrl} size="sm" />
-                <div className="min-w-0">
-                  <Link href={`/members/${card.person.handle}`} className="block truncate text-label font-semibold text-foreground no-underline hover:underline">
-                    {card.person.displayName}
-                  </Link>
-                  <p className="flex min-w-0 items-center gap-1 text-caption text-foreground-muted">
-                    {card.category ? SERVICE_CATEGORIES[card.category] : "Service"}
-                    {card.city ? (
-                      <>
-                        {" · "}
-                        <MapPin className="size-3 shrink-0" aria-hidden />
-                        <span className="truncate">{card.city}</span>
-                      </>
-                    ) : null}
-                  </p>
-                </div>
-              </div>
-              <h3 className="mt-3 text-title font-semibold text-foreground text-pretty">{card.title}</h3>
-              <p className="mt-1 line-clamp-5 flex-1 whitespace-pre-line text-body text-foreground-muted">{card.body}</p>
-              <ButtonLink
-                href={`/messages/new?to=${encodeURIComponent(card.person.handle)}`}
-                size="sm"
-                className="mt-4 self-start"
-              >
-                <MessageSquare className="size-4" aria-hidden />
-                Message
-              </ButtonLink>
+            <li key={card.id}>
+              <ServiceCard card={card} viewer={viewer} />
             </li>
           ))}
         </ul>
       )}
     </div>
+  );
+}
+
+function ServiceCard({ card, viewer }: { card: ServiceView; viewer: BulletinViewer }) {
+  const anchor = bulletinAnchor("service", card.id);
+  return (
+    <Card
+      as="article"
+      id={anchor}
+      aria-labelledby={`${anchor}-title`}
+      className="scroll-mt-24 target:border-brand target:shadow-e2"
+    >
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-2">
+        <div className="flex min-w-0 grow basis-48 items-center gap-2.5">
+          <Avatar name={card.person.displayName} src={card.person.avatarUrl} size="sm" />
+          <div className="min-w-0">
+            <Link
+              href={`/members/${card.person.handle}`}
+              className="block truncate text-label font-semibold text-foreground no-underline hover:underline"
+            >
+              {card.person.displayName}
+            </Link>
+            <p className="flex min-w-0 items-center gap-1 text-caption text-foreground-muted">
+              <span className="shrink-0">{card.category ? SERVICE_CATEGORIES[card.category] : "Service"}</span>
+              <span aria-hidden>·</span>
+              <MapPin className="size-3 shrink-0" aria-hidden />
+              <span className="truncate">{card.city ?? "Online"}</span>
+            </p>
+          </div>
+        </div>
+        {card.thread ? <KitchenTableLink postId={card.thread.postId} title={card.title} /> : null}
+      </div>
+      <h3 id={`${anchor}-title`} className="mt-3 text-title font-semibold text-foreground text-pretty">
+        {card.title}
+      </h3>
+      <RichText body={card.body} className="mt-1 text-body text-foreground-muted" />
+      <ButtonLink
+        href={`/messages/new?to=${encodeURIComponent(card.person.handle)}`}
+        size="sm"
+        className="mt-4"
+      >
+        <MessageSquare className="size-4" aria-hidden />
+        Message
+      </ButtonLink>
+
+      <BulletinThreadBar thread={card.thread} viewer={viewer} />
+    </Card>
   );
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { signIn } from "@/auth";
 import { inspectMagicToken } from "@/lib/auth/magic-link";
+import { MEMBER_HOME_PATH } from "@/lib/auth/redirects";
 import { isRedirectAuthError } from "@/lib/auth/tokens";
 import { normalizeEmail } from "@/lib/community/format";
 
@@ -22,7 +23,7 @@ export async function GET(request: Request) {
     await signIn("credentials", {
       email: normalizeEmail(email),
       magicToken: token,
-      redirectTo: "/home",
+      redirectTo: MEMBER_HOME_PATH,
     });
   } catch (error) {
     if (isRedirectAuthError(error)) {
@@ -34,5 +35,5 @@ export async function GET(request: Request) {
     );
   }
 
-  return NextResponse.redirect(new URL("/home", url.origin));
+  return NextResponse.redirect(new URL(MEMBER_HOME_PATH, url.origin));
 }

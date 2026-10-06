@@ -11,6 +11,7 @@ import {
 import { SocialButtons } from "@/app/(auth)/login/social-buttons";
 import { AuthShell, Field, Submit } from "@/app/(auth)/form-controls";
 import { toast } from "@/components/ui/toast";
+import { MEMBER_HOME_PATH } from "@/lib/auth/redirects";
 import { cn } from "@/lib/utils";
 
 /**
@@ -36,7 +37,9 @@ export function LoginForm({
   social: { google: boolean; facebook: boolean };
 }) {
   const searchParams = useSearchParams();
-  const callbackUrl = searchParams.get("callbackUrl") ?? "/home";
+  // Passed through as given; the server action reduces it to a path on this
+  // site before anything is redirected to it.
+  const callbackUrl = searchParams.get("callbackUrl") || MEMBER_HOME_PATH;
   const urlError = searchParams.get("error");
 
   const [mode, setMode] = useState<Mode>("link");

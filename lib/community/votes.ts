@@ -54,6 +54,13 @@ export async function toggleVote(input: {
     )?.postId;
   if (!postId) throw new PermissionError("That comment is gone.");
   await requirePostAccess(input.userId, postId);
+  // An idea is voted on only through the Ideas board (lib/ideas), which keeps
+  // it upvote-only and recounts the score; a generic post vote would let a
+  // crafted request push a -1 onto it (DEC-078). Comments on ideas are fine.
+  if (input.postId) {
+    const target = await prisma.post.findUnique({ where: { id: input.postId }, select: { type: true } });
+    if (target?.type === "IDEA") throw new PermissionError("Vote on ideas from the Ideas board.");
+  }
   await guardCommunityAction("vote", input.userId);
 
   return prisma.$transaction(async (tx) => {

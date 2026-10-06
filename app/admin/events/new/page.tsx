@@ -2,7 +2,7 @@ import { prisma } from "@/lib/db";
 import { EventForm } from "@/components/admin/event-form";
 import { PageHeader } from "@/components/app/ui";
 
-export const metadata = { title: "New event" };
+export const metadata = { title: "New live class" };
 
 export default async function NewEventPage() {
   const [spaces, hosts] = await Promise.all([
@@ -25,8 +25,9 @@ export default async function NewEventPage() {
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
-        back={{ href: "/admin/events", label: "Events" }}
-        title="Schedule an event"
+        back={{ href: "/admin/events", label: "Live classes" }}
+        title="Schedule a live class"
+        description="For a class that is not a Zoom meeting, or before Zoom is connected. Zoom meetings whose topic says LIVE CLASS appear on their own."
       />
 
       <div className="w-full max-w-3xl">

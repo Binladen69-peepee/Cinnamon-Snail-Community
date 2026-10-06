@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState } from "react";
-import { ImagePlus, Loader2, SendHorizonal, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { ImagePlus, Lightbulb, Loader2, SendHorizonal, X } from "lucide-react";
 import { requestUploadAction } from "@/app/(member)/upload-actions";
 import { prepareForUpload, putWithProgress } from "@/lib/uploads/client";
 import { IMAGE_ACCEPT, validateUpload } from "@/lib/uploads/policy";
@@ -28,6 +28,9 @@ export function ThreadComposer({
   error,
   restore,
   onSend,
+  initialBody = null,
+  hint = null,
+  placeholder = "Write a message",
 }: {
   conversationId: string;
   uploadsEnabled: boolean;
@@ -35,14 +38,35 @@ export function ThreadComposer({
   /** A draft the server refused, handed back so nobody retypes it. */
   restore: { token: number; body: string; imageUrl: string | null } | null;
   onSend: (body: string, imageUrl: string | null) => void;
+  /**
+   * Text to start with — the weekly match's suggested opener. It is only
+   * ever put in the box; sending is still the member's tap.
+   */
+  initialBody?: string | null;
+  /** One line above the box saying where that text came from. */
+  hint?: string | null;
+  placeholder?: string;
 }) {
-  const [body, setBody] = useState("");
+  const [body, setBody] = useState(initialBody ?? "");
   const [image, setImage] = useState<{ url: string; preview: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const lastPingRef = useRef(0);
+
+  // A pre-filled message arrives ready to edit: the box sized to it and the
+  // caret at its end, so the member can change it or just press send.
+  const startedWithText = useRef(Boolean(initialBody));
+  useEffect(() => {
+    if (!startedWithText.current) return;
+    const node = textareaRef.current;
+    if (!node) return;
+    node.style.height = "auto";
+    node.style.height = `${Math.min(node.scrollHeight, 140)}px`;
+    node.focus({ preventScroll: true });
+    node.setSelectionRange(node.value.length, node.value.length);
+  }, []);
 
   // Adjusted during render rather than in an effect, so the refused text is
   // already in the box on the frame the error appears.
@@ -136,6 +160,13 @@ export function ThreadComposer({
         </Callout>
       ) : null}
 
+      {hint && !problem ? (
+        <p id={`${conversationId}-composer-hint`} className="mb-2 flex items-center gap-1.5 text-caption text-foreground-muted">
+          <Lightbulb className="size-3.5 shrink-0 text-brand" aria-hidden />
+          {hint}
+        </p>
+      ) : null}
+
       {image ? (
         <div className="relative mb-2.5 inline-block">
           {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -203,8 +234,9 @@ export function ThreadComposer({
               send();
             }
           }}
-          placeholder="Write a message"
-          aria-label="Write a message"
+          placeholder={placeholder}
+          aria-label={placeholder}
+          aria-describedby={hint && !problem ? `${conversationId}-composer-hint` : undefined}
           aria-invalid={tooLong || undefined}
           className={fieldClass({
             multiline: true,

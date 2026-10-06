@@ -2,7 +2,6 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { ImagePlus, Loader2, Plus, Video, X } from "lucide-react";
 import { createPostAction } from "@/app/(member)/community-actions";
 import { UploadTray } from "@/components/feed/upload-tray";
@@ -12,11 +11,14 @@ import {
   describeIncomplete,
   MAX_POLL_OPTIONS,
   MIN_POLL_OPTIONS,
+  POST_BODY_MAX,
   typeHasField,
   type ComposerType,
 } from "@/lib/community/post-types";
+import { KITCHEN_TABLE_HREF } from "@/lib/community/kitchen-table-links";
 import { ACCEPT, IMAGE_ACCEPT, VIDEO_ACCEPT } from "@/lib/uploads/policy";
 import { RichEditor } from "@/components/feed/rich-editor";
+import { toast } from "@/components/ui/toast";
 import {
   Button,
   ButtonLink,
@@ -27,26 +29,30 @@ import {
 } from "@/components/app/ui";
 import { cn } from "@/lib/utils";
 
-const MAX_BODY = 5000;
+const MAX_BODY = POST_BODY_MAX;
+
+/** A `datetime-local` value as an instant, read in the member's own time zone. */
+function toInstant(local: string): string {
+  const at = new Date(local);
+  return Number.isNaN(at.getTime()) ? local : at.toISOString();
+}
 
 /**
  * The full composer.
  *
- * The inline box on Home is for a quick note; this is where the post types that
- * need their own fields live, which is why the inline one has always linked
- * here with `?type=LINK` and `?type=POLL`. Those links worked — the page they
- * pointed at did not exist.
+ * The inline box on the Kitchen Table is for a quick note; this is where the
+ * post types that need their own fields live, which is why the inline one
+ * links here with `?type=LINK` and `?type=POLL`.
  *
- * Which fields exist is read from the type table rather than written out per
- * type, so a type and its inputs cannot drift apart. The submit button states
- * what is missing instead of sitting greyed out with no explanation, using the
- * same rules the server enforces, so the page never refuses something the
- * server would have taken or vice versa.
+ * Every post goes to the Kitchen Table (DEC-078), so there is no "post it in"
+ * step. Which fields exist is read from the type table rather than written out
+ * per type, so a type and its inputs cannot drift apart. The submit button
+ * states what is missing instead of sitting greyed out with no explanation,
+ * using the same rules the server enforces.
  */
 export function ComposeForm({
   type: initialType,
-  spaces,
-  defaultSpaceId,
+  types,
   uploadsEnabled,
 }: {
   /**
@@ -54,19 +60,24 @@ export function ComposeForm({
    *
    * It cannot arrive as the entry itself: each one carries a Lucide icon,
    * which is a function, and React refuses to serialise a function across the
-   * server-to-client boundary. Passing the object made this page a 500 for
-   * every signed-in member.
+   * server-to-client boundary.
    */
   type: ComposerType["value"];
-  spaces: { id: string; name: string }[];
-  defaultSpaceId: string | null;
+  /** The types this member may pick; staff-only ones are left out for members. */
+  types?: ComposerType["value"][];
   uploadsEnabled: boolean;
+  /** Retired: every post goes to the Kitchen Table. Accepted so callers compile. */
+  spaces?: { id: string; name: string }[];
+  /** Retired, as `spaces`. */
+  defaultSpaceId?: string | null;
 }) {
   const router = useRouter();
+  const offered = types
+    ? COMPOSER_TYPES.filter((entry) => types.includes(entry.value))
+    : COMPOSER_TYPES;
   const [type, setType] = useState<ComposerType>(
-    () => COMPOSER_TYPES.find((entry) => entry.value === initialType) ?? COMPOSER_TYPES[0]!,
+    () => offered.find((entry) => entry.value === initialType) ?? offered[0] ?? COMPOSER_TYPES[0]!,
   );
-  const [spaceId, setSpaceId] = useState(defaultSpaceId ?? spaces[0]?.id ?? "");
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [link, setLink] = useState("");
@@ -93,11 +104,13 @@ export function ComposeForm({
     link,
     pollOptions,
     attachments: uploads.attachments.length,
-    spaceId,
   });
   const tooLong = body.length > MAX_BODY;
   const blocked = missing ?? (tooLong ? "That post is too long." : null);
   const canPost = !blocked && !pending && !uploads.busy;
+  // Where this type takes photos, a GIF uploaded from the editor's GIF panel
+  // (or a photo pasted into the text) joins them in the upload tray below.
+  const takesMedia = typeHasField(type, "media") && uploadsEnabled;
 
   function submit() {
     if (!canPost) return;
@@ -105,13 +118,14 @@ export function ComposeForm({
 
     const data = new FormData();
     data.set("type", type.value);
-    data.set("spaceId", spaceId);
     data.set("body", body);
     if (title.trim()) data.set("title", title.trim());
     if (typeHasField(type, "link")) data.set("linkUrl", link.trim());
     if (typeHasField(type, "event")) {
-      data.set("startsAt", startsAt);
-      if (endsAt) data.set("endsAt", endsAt);
+      // Converted here, where the member's time zone is known; the server
+      // would otherwise read "18:00" in its own zone.
+      data.set("startsAt", toInstant(startsAt));
+      if (endsAt) data.set("endsAt", toInstant(endsAt));
       if (location.trim()) data.set("location", location.trim());
       if (zoomUrl.trim()) data.set("zoomUrl", zoomUrl.trim());
       if (capacity.trim()) data.set("capacity", capacity.trim());
@@ -133,7 +147,12 @@ export function ComposeForm({
         return;
       }
       uploads.reset();
-      router.push("/home");
+      if (result.status === "PENDING") {
+        toast.success("Sent to a host. It appears once they let it through.");
+      } else if (result.status === "PUBLISHED") {
+        toast.success("Posted to the Kitchen Table.");
+      }
+      router.push(KITCHEN_TABLE_HREF);
       router.refresh();
     });
   }
@@ -154,7 +173,7 @@ export function ComposeForm({
           What are you posting?
         </p>
         <ul className="flex flex-wrap gap-2">
-          {COMPOSER_TYPES.map((option) => {
+          {offered.map((option) => {
             const Icon = option.icon;
             const current = option.value === type.value;
             return (
@@ -215,6 +234,7 @@ export function ComposeForm({
 
       <div>
         <label
+          id="compose-body-label"
           htmlFor="compose-body"
           className="mb-1.5 block text-label font-medium text-foreground"
         >
@@ -222,12 +242,17 @@ export function ComposeForm({
         </label>
         <RichEditor
           id="compose-body"
+          labelledBy="compose-body-label"
           name="body"
           value={body}
           onChange={setBody}
           rows={type.value === "ARTICLE" ? 14 : 7}
           maxLength={MAX_BODY}
+          disabled={pending}
+          invalid={tooLong}
           placeholder={type.bodyPlaceholder}
+          onGifFiles={takesMedia ? uploads.add : undefined}
+          onFiles={takesMedia ? uploads.add : undefined}
         />
         <p
           className={cn(
@@ -302,7 +327,8 @@ export function ComposeForm({
               </Field>
             </div>
             <p className="text-caption text-foreground-muted">
-              It joins this space&rsquo;s calendar as well as the feed.
+              Times are in your device&rsquo;s time zone. The class is listed
+              under Live Classes as well as in the Kitchen Table.
             </p>
           </div>
         </fieldset>
@@ -377,7 +403,7 @@ export function ComposeForm({
         </div>
       ) : null}
 
-      {typeHasField(type, "media") && uploadsEnabled ? (
+      {takesMedia ? (
         <div>
           <p className="mb-1.5 text-label font-medium text-foreground">
             Photos and video
@@ -426,35 +452,6 @@ export function ComposeForm({
         </div>
       ) : null}
 
-      <div>
-        <p className="mb-2 text-label font-medium text-foreground">
-          Post it in
-        </p>
-        {spaces.length === 0 ? (
-          <p className="rounded-ctl border border-dashed border-hairline-firm px-3.5 py-3 text-label text-foreground-muted">
-            You have not joined a room yet, so there is nowhere to post.{" "}
-            <Link href="/spaces" className="font-medium text-link underline">
-              Find one
-            </Link>
-          </p>
-        ) : (
-          <ul className="flex flex-wrap gap-2">
-            {spaces.map((space) => (
-              <li key={space.id}>
-                <button
-                  type="button"
-                  onClick={() => setSpaceId(space.id)}
-                  aria-pressed={spaceId === space.id}
-                  className={chipClass(spaceId === space.id)}
-                >
-                  {space.name}
-                </button>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
-
       {error ? <Callout tone="danger">{error}</Callout> : null}
 
       <div className="flex flex-col gap-3 border-t border-separator pt-5 sm:flex-row sm:items-center sm:justify-between">
@@ -462,7 +459,7 @@ export function ComposeForm({
           {blocked ?? "Ready to post."}
         </p>
         <div className="flex items-center justify-end gap-2">
-          <ButtonLink href="/home" size="lg">
+          <ButtonLink href={KITCHEN_TABLE_HREF} size="lg">
             Cancel
           </ButtonLink>
           <Button

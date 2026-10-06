@@ -1,6 +1,6 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
-import { objectKey, validateUpload } from "@/lib/uploads/policy";
+import { MEDIA_ROUTE, objectKey, validateUpload } from "@/lib/uploads/policy";
 
 const BUCKET = process.env.SUPABASE_UPLOAD_BUCKET ?? "community-uploads";
 
@@ -52,8 +52,11 @@ export type SignedUpload = {
  * straight to the browser, so we pay for a redirect per image rather than for
  * the image itself. Storing our own path also means the record never contains
  * an expiring URL.
+ *
+ * The constant lives in the shared policy module (the browser needs it to
+ * recognise our own images); it is re-exported here for existing callers.
  */
-export const MEDIA_ROUTE = "/api/media";
+export { MEDIA_ROUTE };
 
 /**
  * Mint a one-object upload URL for this member.

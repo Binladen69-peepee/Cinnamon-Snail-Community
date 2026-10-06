@@ -1,6 +1,8 @@
 import "server-only";
 import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { MEMBER_HOME_PATH } from "@/lib/auth/redirects";
+import { KITCHEN_TABLE_PATH } from "@/lib/community/system-spaces";
 import type { Action, Condition, TriggerKind } from "@/lib/automation/types";
 
 /**
@@ -25,7 +27,8 @@ export type RuleSeed = {
   actions: Action[];
 };
 
-const nudge = (title: string, body: string, href = "/home"): Action => ({
+/** In-app nudges land on the member's front door unless they say otherwise. */
+const nudge = (title: string, body: string, href: string = MEMBER_HOME_PATH): Action => ({
   type: "notification",
   category: "HOST_ANNOUNCEMENTS",
   title,
@@ -89,7 +92,7 @@ export const INITIAL_RULES: RuleSeed[] = [
     trigger: "join_date",
     params: { days: 0 },
     actions: [
-      nudge("Welcome in", "Answer four questions and we will build your roadmap.", "/roadmap"),
+      nudge("Welcome in", "Your roadmap is one click away, and you set the pace.", "/roadmap"),
       { type: "kit_tag", tag: "Joined VU", mode: "add" },
     ],
   },
@@ -100,7 +103,7 @@ export const INITIAL_RULES: RuleSeed[] = [
     trigger: "never_posted",
     params: { days: 7 },
     actions: [
-      nudge("Say hello in the Kitchen Table", "Tell us one thing you cooked this week. That is a whole post.", "/spaces/kitchen-table"),
+      nudge("Say hello in the Kitchen Table", "Tell us one thing you cooked this week. That is a whole post.", KITCHEN_TABLE_PATH),
     ],
   },
   {
@@ -110,7 +113,7 @@ export const INITIAL_RULES: RuleSeed[] = [
     trigger: "first_post",
     params: { withinDays: 2 },
     actions: [
-      nudge("That is your first post", "Thank you for starting. The table is better with you in it.", "/home"),
+      nudge("That is your first post", "Thank you for starting. The table is better with you in it.", KITCHEN_TABLE_PATH),
     ],
   },
   {
@@ -166,7 +169,7 @@ export const INITIAL_RULES: RuleSeed[] = [
   {
     slug: "roadmap-milestone-due",
     name: "Roadmap milestone due",
-    description: "Their next step has come up on the cadence they chose.",
+    description: "The weeks they gave their current topic are up, at the pace they chose.",
     trigger: "roadmap_milestone_due",
     actions: [
       nudge(
@@ -193,13 +196,13 @@ export const INITIAL_RULES: RuleSeed[] = [
   {
     slug: "roadmap-stalled",
     name: "Roadmap stalled",
-    description: "Three weeks without touching the roadmap. Offer a slower cadence rather than guilt.",
+    description: "Three weeks without touching the roadmap. Offer a slower pace rather than guilt.",
     trigger: "roadmap_stalled",
     params: { days: 21 },
     actions: [
       nudge(
         "Your roadmap, at your pace",
-        "Nothing for {{daysIdle}} days. You can slow the cadence or pause it entirely.",
+        "Nothing for {{daysIdle}} days. You can slow your pace or pause it entirely.",
         "/roadmap",
       ),
       { type: "kit_tag", tag: "VU Roadmap Stalled", mode: "add" },

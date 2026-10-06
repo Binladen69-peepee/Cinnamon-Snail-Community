@@ -42,14 +42,6 @@ export default function ComposeLoading() {
             <Skeleton className="h-44 w-full rounded-ctl" />
           </div>
 
-          <div className="flex flex-col gap-2">
-            <Skeleton className="h-3.5 w-20 rounded-chip" />
-            <div className="flex gap-2">
-              <Skeleton className="h-8 w-28 rounded-full" />
-              <Skeleton className="h-8 w-24 rounded-full" />
-            </div>
-          </div>
-
           <div className="flex flex-col gap-3 border-t border-separator pt-5 sm:flex-row sm:items-center sm:justify-between">
             <Skeleton className="h-3.5 w-40 rounded-chip" />
             <div className="flex justify-end gap-2">

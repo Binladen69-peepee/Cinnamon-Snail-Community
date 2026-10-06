@@ -121,6 +121,56 @@ enum PostType {
   IMAGE
   VIDEO
   RECIPE
+  /// A request on the Ideas board (DEC-078). Lives in the `ideas` space, is
+  /// upvoted through `Vote`, and carries its category and status on
+  /// `IdeaDetails`. Never shown in the Kitchen Table feed.
+  IDEA
+  /// The Kitchen Table face of a Bulletin Board item (DEC-078). The item
+  /// (MemberCard, Happening or Place) points at this post, so reactions and
+  /// comments live once, on the post, and both views show the same thread.
+  BULLETIN
+}
+
+/// What an idea asks for.
+enum IdeaCategory {
+  CLASS
+  RECIPE
+  FEATURE
+  OTHER
+}
+
+/// Where an idea is. Staff move it; members only vote and discuss.
+enum IdeaStatus {
+  OPEN
+  UNDER_REVIEW
+  PLANNED
+  DONE
+  DECLINED
+}
+
+/// How a crew gets its members (DEC-078). The first three are computed and
+/// recomputed by a job; OPTIONAL crews are only ever joined by the member.
+enum CrewKind {
+  /// "Fall 2025 cohort": the season of the member's original SamCart start.
+  COHORT
+  /// Everyone on the same roadmap track.
+  ROADMAP
+  /// A survey answer stored in Kit (RightMessage): GF, Advanced, New.
+  TRAIT
+  /// Opt-in only. Never joined automatically.
+  OPTIONAL
+}
+
+enum CrewMemberSource {
+  AUTO
+  OPT_IN
+}
+
+/// Where a live class came from. ZOOM rows are created and kept in step by the
+/// Zoom sync; MANUAL rows are written by staff and never touched by it.
+enum EventSource {
+  MANUAL
+  ZOOM
 }
 
 enum PostStatus {
@@ -284,6 +334,7 @@ model User {
   followsReceived      Follow[]                @relation("FollowsReceived")
   reportsAbout         Report[]                @relation("ReportSubject")
   cohortMemberships    CohortMember[]
+  crewMemberships      CrewMember[]
   matchesOwned         MemberMatch[]           @relation("MatchOwner")
   matchesToward        MemberMatch[]           @relation("MatchTarget")
   memberCard           MemberCard?
@@ -401,6 +452,11 @@ model Profile {
   suckiestThing       String?
   glutenFree          Boolean?
   primaryBenefit      String?
+  /// The RightMessage survey answers as Kit last reported them, keyed by the
+  /// Kit custom field name. Read by the crews job (GF / Advanced / New);
+  /// never written from the app, only from the Kit sync.
+  surveyTraits        Json?
+  surveySyncedAt      DateTime?
   createdAt           DateTime          @default(now())
   updatedAt           DateTime          @updatedAt
   user                User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -570,6 +626,12 @@ model Post {
   bookmarks        Bookmark[]
   reports          Report[]
   pollOptions      PollOption[]
+  /// Set on an IDEA post.
+  idea             IdeaDetails?
+  /// Set on a BULLETIN post: the Bulletin Board item it speaks for.
+  memberCard       MemberCard?
+  happening        Happening?
+  place            Place?
 
   @@index([spaceId, publishedAt])
   @@index([authorId])
@@ -583,6 +645,28 @@ model Post {
   /// Someone's own drafts and scheduled posts.
   @@index([authorId, status, updatedAt])
   @@index([sharedFromPostId])
+  /// The Ideas board's "Top" order.
+  @@index([spaceId, status, score])
+}
+
+/// An idea's category and where staff have put it. One row per IDEA post.
+model IdeaDetails {
+  postId          String       @id
+  category        IdeaCategory @default(OTHER)
+  status          IdeaStatus   @default(OPEN)
+  /// Shown under the status: "Filming in November", "Already covered in…".
+  statusNote      String?
+  statusUpdatedAt DateTime?
+  statusUpdatedBy String?
+  /// When staff fold a duplicate into an existing idea. The duplicate stays
+  /// readable and points at the one that carries the votes.
+  mergedIntoId    String?
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  post            Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([status, category])
+  @@index([mergedIntoId])
 }
 
 /// One row per emoji per post, holding how many people picked it.
@@ -725,6 +809,10 @@ model Vote {
   @@index([commentId])
 }
 
+/// A member's pin: "Pin this post" puts it at the top of their own Kitchen
+/// Table (DEC-078). The table keeps its old name because it is the same row a
+/// save used to write, so every earlier save is now a pin and nothing was
+/// migrated or lost. `createdAt` is when it was pinned.
 model Bookmark {
   id        String   @id @default(cuid())
   userId    String
@@ -734,6 +822,8 @@ model Bookmark {
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@unique([userId, postId])
+  /// "My pins, newest first", read on every Kitchen Table load.
+  @@index([userId, createdAt])
 }
 
 model Report {
@@ -847,29 +937,61 @@ model SearchIndex {
 }
 
 model Course {
-  id             String           @id @default(cuid())
-  slug           String           @unique
+  id             String               @id @default(cuid())
+  slug           String               @unique
   title          String
   description    String?
   coverUrl       String?
-  published      Boolean          @default(false)
+  published      Boolean              @default(false)
   spaceId        String?
   instructorName String?
   category       String?
-  categoryOrder  Int              @default(0)
-  catalogOrder   Int              @default(0)
+  categoryOrder  Int                  @default(0)
+  catalogOrder   Int                  @default(0)
   teaserVideoUrl String?
   liveAt         DateTime?
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @updatedAt
-  space          Space?           @relation(fields: [spaceId], references: [id])
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  space          Space?               @relation(fields: [spaceId], references: [id])
   sections       CourseSection[]
   progress       CourseProgress[]
   resources      Resource[]
   cohorts        Cohort[]
+  /// Every library category this class sits in (DEC-078). `category` above is
+  /// the single value it had before; it was backfilled into these links and
+  /// is kept, unread, so that backfill is reversible.
+  categories     CourseCategoryLink[]
 
   @@index([published, category, catalogOrder])
   @@index([published, updatedAt])
+}
+
+/// A shelf in the class library: Fundamentals, Holidays, Cuisines from Around
+/// the World. A class can sit on several.
+model CourseCategory {
+  id          String               @id @default(cuid())
+  slug        String               @unique
+  name        String
+  description String?
+  sortOrder   Int                  @default(0)
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+  courses     CourseCategoryLink[]
+
+  @@index([sortOrder])
+}
+
+model CourseCategoryLink {
+  courseId   String
+  categoryId String
+  /// The class's place on that shelf.
+  sortOrder  Int            @default(0)
+  createdAt  DateTime       @default(now())
+  course     Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  category   CourseCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([courseId, categoryId])
+  @@index([categoryId, sortOrder])
 }
 
 model CourseSection {
@@ -907,6 +1029,17 @@ model Lesson {
   /// Where a LIVE lesson happens, and when.
   liveUrl          String?
   liveAt           DateTime?
+  /// The lesson's video on Bunny Stream (DEC-081): a Bunny video GUID. When
+  /// set it is the video, ahead of `videoUid`, which stays as it was so a
+  /// lesson can be moved to Bunny one at a time and moved back. Played only
+  /// through a signed embed minted per member by the playback route.
+  bunnyVideoId     String?
+  /// Bunny's status as last seen (4 = ready to watch), its length in seconds,
+  /// and when it was last asked. A cache for staff screens; the player never
+  /// waits on it.
+  bunnyVideoStatus Int?
+  bunnyVideoLength Int?
+  bunnySyncedAt    DateTime?
   /// Chapter markers: [{ "atSeconds": 0, "title": "Mise en place" }].
   chapters         Json?
   /// A lesson anyone signed in may open, membership or not. The teaser.
@@ -932,6 +1065,7 @@ model Lesson {
   @@unique([sectionId, slug])
   @@index([sectionId, sortOrder])
   @@index([published, kind])
+  @@index([bunnyVideoId])
 }
 
 /// What a member wrote in answer to a QUIZ lesson's prompt.
@@ -1048,6 +1182,24 @@ model Event {
   /// The series stops after this instant. Null means "keep generating".
   recurrenceUntil   DateTime?
   seriesId          String?
+  /// MANUAL rows are staff-written. ZOOM rows are owned by the Zoom sync
+  /// (DEC-079): it writes title, time, duration, join link and agenda, and
+  /// cancels — never deletes — a class whose meeting is gone.
+  source            EventSource      @default(MANUAL)
+  zoomMeetingId     String?
+  /// Set for one occurrence of a recurring Zoom meeting.
+  zoomOccurrenceId  String?
+  /// `meetingId` or `meetingId:occurrenceId`. The sync's idempotency key: one
+  /// row per Zoom meeting occurrence, however many times the sync runs.
+  zoomKey           String?          @unique
+  /// Host as Zoom reports it, for a host who is not a member here.
+  hostName          String?
+  zoomHostEmail     String?
+  /// Last time the sync saw this meeting in Zoom's list, and last time it
+  /// wrote to the row. A meeting missing from the list is only canceled after
+  /// Zoom confirms it is gone.
+  zoomLastSeenAt    DateTime?
+  zoomSyncedAt      DateTime?
   createdAt         DateTime         @default(now())
   updatedAt         DateTime         @updatedAt
   space             Space?           @relation(fields: [spaceId], references: [id])
@@ -1065,6 +1217,24 @@ model Event {
   @@index([spaceId, startsAt])
   @@index([seriesId, startsAt])
   @@index([hostId, startsAt])
+  @@index([source, startsAt])
+}
+
+/// One run of the Zoom sync, so staff can see when Zoom was last read and what
+/// changed, and so a failing sync is visible rather than silent.
+model ZoomSyncRun {
+  id         String    @id @default(cuid())
+  /// "cron" | "webhook" | "manual"
+  trigger    String
+  startedAt  DateTime  @default(now())
+  finishedAt DateTime?
+  scanned    Int       @default(0)
+  created    Int       @default(0)
+  updated    Int       @default(0)
+  canceled   Int       @default(0)
+  error      String?
+
+  @@index([startedAt])
 }
 
 /// One reminder, sent once.
@@ -1116,6 +1286,8 @@ model Conversation {
   lastMessageAt DateTime?
   members       ConversationMember[]
   messages      Message[]
+  /// Set when this is a crew's group chat.
+  crew          Crew?
 
   @@index([lastMessageAt])
 }
@@ -1294,6 +1466,13 @@ model Subscription {
   periodEnd             DateTime?
   cancelAt              DateTime?
   canceledAt            DateTime?
+  /// When the member originally subscribed, as SamCart reports it — not when
+  /// this row was written, which for migrated members is the migration date.
+  /// The member's cohort crew is the season of the earliest of these
+  /// (DEC-078). Null until SamCart has told us.
+  startedAt             DateTime?
+  /// "samcart_api" | "webhook": which source set `startedAt`.
+  startedAtSource       String?
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
   user                  User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -1645,15 +1824,24 @@ model RoadmapMilestone {
 }
 
 model MemberRoadmap {
-  id         String                    @id @default(cuid())
-  userId     String
-  trackId    String
-  cadence    String                    @default("weekly")
-  pausedAt   DateTime?
-  createdAt  DateTime                  @default(now())
-  user       User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  track      RoadmapTrack              @relation(fields: [trackId], references: [id])
-  milestones MemberMilestoneProgress[]
+  id              String                    @id @default(cuid())
+  userId          String
+  trackId         String
+  cadence         String                    @default("weekly")
+  pausedAt        DateTime?
+  /// The member's pace: how many weeks they give each topic, 1 to 4
+  /// (DEC-080). Changing it never resets progress; it only moves the date the
+  /// current topic is planned to wrap up. It is also what will later pick the
+  /// cadence of roadmap emails (see `lib/roadmap/pacing.ts`).
+  weeksPerTopic   Int                       @default(1)
+  /// When the current topic became current. Reset when the member finishes or
+  /// skips a topic; left alone when they change pace.
+  topicStartedAt  DateTime?
+  pacingUpdatedAt DateTime?
+  createdAt       DateTime                  @default(now())
+  user            User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  track           RoadmapTrack              @relation(fields: [trackId], references: [id])
+  milestones      MemberMilestoneProgress[]
 
   @@unique([userId, trackId])
 }
@@ -1884,9 +2072,13 @@ model MemberCard {
   category   String?
   city       String?
   reviewedAt DateTime?
+  /// The Kitchen Table post that carries this card's reactions and comments
+  /// (DEC-078). Written when the card is approved.
+  postId     String?   @unique
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @default(now()) @updatedAt
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post       Post?     @relation(fields: [postId], references: [id], onDelete: SetNull)
 
   @@index([status, updatedAt])
 }
@@ -1910,8 +2102,12 @@ model Happening {
   approvalRequired Boolean         @default(true)
   capacity         Int?
   canceledAt       DateTime?
+  /// The Kitchen Table post that carries this happening's reactions and
+  /// comments (DEC-078). Only ever shows the city, never the address.
+  postId           String?         @unique
   createdAt        DateTime        @default(now())
   host             User            @relation("HappeningHost", fields: [hostUserId], references: [id], onDelete: Cascade)
+  post             Post?           @relation(fields: [postId], references: [id], onDelete: SetNull)
   rsvps            HappeningRsvp[]
 
   @@index([startsAt])
@@ -1950,8 +2146,12 @@ model Place {
   status          String             @default("pending")
   submittedById   String?
   providerPlaceId String?
+  /// The Kitchen Table post that carries this place's reactions and comments
+  /// (DEC-078). Written when the place is approved.
+  postId          String?            @unique
   createdAt       DateTime           @default(now())
   submittedBy     User?              @relation("PlaceSubmitter", fields: [submittedById], references: [id], onDelete: SetNull)
+  post            Post?              @relation(fields: [postId], references: [id], onDelete: SetNull)
   testimonials    PlaceTestimonial[]
 
   @@index([status, city])
@@ -2010,6 +2210,46 @@ model CohortMember {
   user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([cohortId, userId])
+  @@index([userId])
+}
+
+/// A crew (DEC-078): the members who share something, and their group chat.
+/// Supersedes `Cohort`, whose rows are kept but no longer shown.
+model Crew {
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  name           String
+  description    String?
+  kind           CrewKind
+  /// What puts a member in an automatic crew: "cohort:2025-fall",
+  /// "roadmap:<track slug>", "trait:gf". Null for OPTIONAL crews.
+  ruleKey        String?       @unique
+  /// The crew's group chat, created on first use.
+  conversationId String?       @unique
+  sortOrder      Int           @default(0)
+  /// An automatic crew whose rule no longer applies (a retired track) is
+  /// archived rather than deleted, so its chat history survives.
+  archivedAt     DateTime?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  conversation   Conversation? @relation(fields: [conversationId], references: [id], onDelete: SetNull)
+  members        CrewMember[]
+
+  @@index([kind, sortOrder])
+}
+
+model CrewMember {
+  id       String           @id @default(cuid())
+  crewId   String
+  userId   String
+  /// AUTO rows are owned by the recompute job, which adds and removes them.
+  /// OPT_IN rows are the member's own and the job never touches them.
+  source   CrewMemberSource
+  joinedAt DateTime         @default(now())
+  crew     Crew             @relation(fields: [crewId], references: [id], onDelete: Cascade)
+  user     User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([crewId, userId])
   @@index([userId])
 }
 

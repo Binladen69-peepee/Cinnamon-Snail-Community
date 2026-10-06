@@ -1,10 +1,13 @@
 import Link from "next/link";
 import { CalendarDays, Check, ChevronDown, Lock, MapPin, Plus, Users, X } from "lucide-react";
 import { HAPPENING_KINDS, type HappeningView } from "@/lib/bulletin";
+import { bulletinAnchor } from "@/lib/bulletin/card";
 import { Avatar } from "@/components/ui/avatar";
 import { PendingButton } from "@/components/ui/pending-button";
 import { EventTime } from "@/components/events/event-time";
+import { RichText } from "@/components/content/rich-text";
 import { ZoneInput } from "@/components/bulletin/zone-input";
+import { BulletinThreadBar, KitchenTableLink, type BulletinViewer } from "@/components/bulletin/thread";
 import {
   Badge,
   Card,
@@ -28,18 +31,21 @@ import {
 
 /**
  * Happenings: gatherings members host. Only the city is ever shown to
- * everyone; the address appears for the host and approved guests.
+ * everyone; the address appears for the host and approved guests. Each one is
+ * also a Kitchen Table post, and its reactions and comments show here.
  */
 export function HappeningsTab({
   happenings,
   kind,
   viewerZone,
   defaults,
+  viewer,
 }: {
   happenings: HappeningView[];
   kind: string | null;
   viewerZone: string;
   defaults: { city: string; region: string; country: string };
+  viewer: BulletinViewer;
 }) {
   return (
     <div className="flex flex-col gap-5">
@@ -68,13 +74,13 @@ export function HappeningsTab({
         <Blank
           icon={CalendarDays}
           title={kind ? "Nothing of this kind coming up" : "Nothing on the board yet"}
-          body="Potlucks, tea, a market stall, a class in your kitchen. Host the first one and it shows up here for members nearby."
+          body="Potlucks, tea, a market stall, a class in your kitchen. Host the first one and it shows up here and in the Kitchen Table."
         />
       ) : (
         <ul className="flex flex-col gap-3">
           {happenings.map((happening) => (
             <li key={happening.id}>
-              <HappeningCard happening={happening} viewerZone={viewerZone} />
+              <HappeningCard happening={happening} viewerZone={viewerZone} viewer={viewer} />
             </li>
           ))}
         </ul>
@@ -112,6 +118,10 @@ function HostForm({
         className="grid grid-cols-1 gap-4 border-t border-separator p-4 sm:grid-cols-2 sm:p-5"
       >
         <ZoneInput fallback={viewerZone} />
+        <p className="text-label text-foreground-muted sm:col-span-2">
+          It goes on the board and into the Kitchen Table as a post, showing your city and never
+          the address.
+        </p>
         <Field label="What is it?" htmlFor="h-kind">
           <Select id="h-kind" name="kind" required defaultValue="potluck">
             {Object.entries(HAPPENING_KINDS).map(([value, label]) => (
@@ -165,20 +175,41 @@ function HostForm({
   );
 }
 
-function HappeningCard({ happening, viewerZone }: { happening: HappeningView; viewerZone: string }) {
+function HappeningCard({
+  happening,
+  viewerZone,
+  viewer,
+}: {
+  happening: HappeningView;
+  viewerZone: string;
+  viewer: BulletinViewer;
+}) {
   const full = happening.capacity !== null && happening.going >= happening.capacity;
   const requests = happening.requests.filter((r) => r.status === "requested");
   const guests = happening.requests.filter((r) => r.status === "approved");
 
   return (
-    <Card as="article">
+    <Card
+      as="article"
+      id={bulletinAnchor("happening", happening.id)}
+      aria-labelledby={`${bulletinAnchor("happening", happening.id)}-title`}
+      className="scroll-mt-24 target:border-brand target:shadow-e2"
+    >
       <div className="flex flex-wrap items-center gap-1.5">
         <Pill tone="brand">{HAPPENING_KINDS[happening.kind]}</Pill>
         {happening.isHost ? <Pill>You’re hosting</Pill> : null}
         {happening.viewerRsvp === "approved" ? <Pill>You’re going</Pill> : null}
         {happening.viewerRsvp === "requested" ? <Pill>Asked to join</Pill> : null}
+        {happening.thread ? (
+          <KitchenTableLink postId={happening.thread.postId} title={happening.title} className="ml-auto" />
+        ) : null}
       </div>
-      <h3 className="mt-2.5 text-title font-semibold text-foreground text-pretty">{happening.title}</h3>
+      <h3
+        id={`${bulletinAnchor("happening", happening.id)}-title`}
+        className="mt-2.5 text-title font-semibold text-foreground text-pretty"
+      >
+        {happening.title}
+      </h3>
       <p className="mt-1.5 flex flex-wrap items-center gap-x-4 gap-y-1 text-label text-foreground-muted">
         <span className="inline-flex items-center gap-1.5">
           <CalendarDays className="size-4 shrink-0" aria-hidden />
@@ -199,7 +230,7 @@ function HappeningCard({ happening, viewerZone }: { happening: HappeningView; vi
         </span>
       </p>
       {happening.description ? (
-        <p className="mt-3 whitespace-pre-line text-body text-foreground">{happening.description}</p>
+        <RichText body={happening.description} className="mt-3 text-body text-foreground" />
       ) : null}
 
       {happening.address ? (
@@ -296,6 +327,8 @@ function HappeningCard({ happening, viewerZone }: { happening: HappeningView; vi
           </ul>
         </div>
       ) : null}
+
+      <BulletinThreadBar thread={happening.thread} viewer={viewer} />
     </Card>
   );
 }

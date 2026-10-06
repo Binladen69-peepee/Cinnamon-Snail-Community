@@ -53,8 +53,10 @@ export function canSendDirectMessage(
   if (recipient.dmPreference === "CONNECTIONS" && !isConnection(relationship)) {
     return {
       allowed: false,
+      // Members no longer see spaces (DEC-078), so the reason names what
+      // they can see: people they have already talked with.
       reason:
-        "This member only accepts messages from connections. Join a space together or reply in the community first.",
+        "This member only accepts messages from people they already talk with here.",
     };
   }
   return { allowed: true };

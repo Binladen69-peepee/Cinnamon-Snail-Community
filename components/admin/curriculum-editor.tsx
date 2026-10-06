@@ -71,10 +71,13 @@ export function CurriculumEditor({
   slug,
   sections,
   uploadsEnabled,
+  bunny,
 }: {
   slug: string;
   sections: EditSection[];
   uploadsEnabled: boolean;
+  /** Bunny Stream status for the lesson video field (DEC-081). */
+  bunny?: { configured: boolean; signed: boolean };
 }) {
   const router = useRouter();
   const [addingSection, setAddingSection] = useState(false);
@@ -412,6 +415,7 @@ export function CurriculumEditor({
           sectionId={form.sectionId}
           lesson={form.lesson}
           uploadsEnabled={uploadsEnabled}
+          bunny={bunny}
           onClose={() => setForm(null)}
         />
       ) : null}

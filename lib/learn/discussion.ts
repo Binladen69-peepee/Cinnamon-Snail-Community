@@ -1,6 +1,6 @@
 import "server-only";
 import { prisma } from "@/lib/db";
-import { renderMarkdown, toPlainText } from "@/lib/markdown";
+import { analyzeRichText } from "@/lib/content/rich-text";
 
 /**
  * A lesson's discussion thread.
@@ -20,32 +20,60 @@ import { renderMarkdown, toPlainText } from "@/lib/markdown";
  * It is authored by the platform's own staff rather than by whoever happens to
  * open it first: the opener would otherwise own the post, and be able to edit
  * or delete a thread other members were using.
+ *
+ * Courses are a library, not a forum (DEC-078). The thread is the lesson's own
+ * comments, shown on the lesson page and nowhere else, so the space it lives
+ * in is only a container: always a COURSE room, which the Kitchen Table never
+ * reads. A class pointed at a community room in the past does not drag its
+ * lesson threads into the community feed; threads that already exist stay
+ * where they are and keep working.
  */
 
 export type LessonDiscussion = {
   postId: string;
-  spaceSlug: string;
 };
 
-/** The space a lesson's discussion belongs in, or null when there is none. */
+/** The general course room's defaults, for a database that has none. */
+const COURSE_ROOM = {
+  slug: "course-hall",
+  name: "Course Hall",
+  description: "Questions about lessons. Each lesson's thread is read on the lesson itself.",
+  kind: "COURSE" as const,
+  visibility: "MEMBERS" as const,
+  postingPermission: "HOSTS_ONLY" as const,
+  sortOrder: 2,
+};
+
+/**
+ * The room a lesson's thread is kept in.
+ *
+ * The class's own room when it has one and that room is a course room;
+ * otherwise the general course room. A database with no course room at all
+ * gets one, as the seed would have made it, so a lesson's questions work in a
+ * fresh environment too; an existing row is never changed.
+ */
 async function discussionSpace(courseId: string) {
   const course = await prisma.course.findUnique({
     where: { id: courseId },
-    select: { spaceId: true },
+    select: { space: { select: { id: true, kind: true } } },
   });
-  if (course?.spaceId) {
-    const named = await prisma.space.findUnique({
-      where: { id: course.spaceId },
-      select: { id: true, slug: true },
-    });
-    if (named) return named;
-  }
-  // Never a guessed slug: the general course room, or nothing.
-  return prisma.space.findFirst({
+  if (course?.space?.kind === "COURSE") return { id: course.space.id };
+
+  const general = await prisma.space.findFirst({
     where: { kind: "COURSE", visibility: { in: ["PUBLIC", "MEMBERS"] } },
     orderBy: { sortOrder: "asc" },
-    select: { id: true, slug: true },
+    select: { id: true },
   });
+  if (general) return general;
+
+  const created = await prisma.space.upsert({
+    where: { slug: COURSE_ROOM.slug },
+    update: {},
+    create: COURSE_ROOM,
+    select: { id: true, kind: true },
+  });
+  // A room already holding that slug for some other purpose is not borrowed.
+  return created.kind === "COURSE" ? { id: created.id } : null;
 }
 
 /** Whoever posts on the platform's behalf. The oldest admin. */
@@ -67,23 +95,19 @@ export async function findLessonDiscussion(
 ): Promise<LessonDiscussion | null> {
   const lesson = await prisma.lesson.findUnique({
     where: { id: lessonId },
-    select: {
-      discussion: {
-        select: { id: true, status: true, space: { select: { slug: true } } },
-      },
-    },
+    select: { discussion: { select: { id: true, status: true } } },
   });
   const post = lesson?.discussion;
   if (!post || post.status !== "PUBLISHED") return null;
-  return { postId: post.id, spaceSlug: post.space.slug };
+  return { postId: post.id };
 }
 
 /**
  * The lesson's thread, creating it if this is the first time anyone spoke.
  *
- * Returns null when there is nowhere to put it — no course room and no general
- * course space — rather than inventing one. The page then shows the link to
- * the community instead of a comment box, which is the honest fallback.
+ * Returns null when there is nowhere to put it (no admin to author the thread,
+ * or the course-room slug taken by something that is not a course room), and
+ * the lesson page says so rather than pretending to have posted.
  */
 export async function ensureLessonDiscussion(
   lessonId: string,
@@ -126,6 +150,11 @@ export async function ensureLessonDiscussion(
   ]
     .filter(Boolean)
     .join("\n\n");
+  // One parse through the member-text pipeline (C2), like every other post.
+  // The body is assembled from the lesson's own fields rather than written
+  // by a member, so nobody is notified from it: an @handle in a summary is
+  // linked like anywhere else, and that is all.
+  const content = analyzeRichText(body);
 
   const post = await prisma.post.create({
     data: {
@@ -135,8 +164,8 @@ export async function ensureLessonDiscussion(
       status: "PUBLISHED",
       title: lesson.title,
       body,
-      bodyHtml: renderMarkdown(body),
-      plainText: toPlainText(body),
+      bodyHtml: content.html,
+      plainText: content.plain,
       publishedAt: new Date(),
       lastActivityAt: new Date(),
     },
@@ -155,5 +184,5 @@ export async function ensureLessonDiscussion(
     return findLessonDiscussion(lessonId);
   }
 
-  return { postId: post.id, spaceSlug: space.slug };
+  return { postId: post.id };
 }

@@ -58,14 +58,14 @@ describe("the hero", () => {
     expect(page).not.toMatch(/min-h-\[calc\(100svh\+/);
   });
 
-  it("keeps the testimonial chip off the phone hero", () => {
-    // `.vu-hero-proof` sets its own display later in the stylesheet, so a
-    // `hidden` utility on the same element loses at equal specificity. The
-    // breakpoint goes on a wrapper instead.
+  it("keeps the testimonials off the phone hero", () => {
+    // The widget sets its own display, so a `hidden` utility on the same
+    // element would lose at equal specificity. The breakpoint goes on a
+    // wrapper instead.
     // Scoped to a class attribute: the prose above it in the source explains
     // the trap and names both strings.
     expect(page).not.toMatch(/className="[^"]*vu-hero-proof[^"]*hidden/);
-    expect(page).toMatch(/hidden self-center sm:block[\s\S]{0,200}vu-hero-proof/);
+    expect(page).toMatch(/hidden self-center sm:block[\s\S]{0,200}<SenjaEmbed/);
   });
 
   it("keeps the signed-off copy verbatim", () => {
@@ -107,9 +107,15 @@ describe("both themes read", () => {
     expect(page).not.toMatch(/vu-panel-dark[\s\S]{0,1500}text-paper/);
   });
 
-  it("keeps the testimonial chip white in both", () => {
-    // The widget draws dark type we do not control.
-    expect(css).toMatch(/\.vu-hero-proof\s*\{[^}]*background:\s*#ffffff/);
+  it("puts the testimonials on the photograph with no white chip, in both", () => {
+    // The client asked for the white container to go (2026-10-06). The hero
+    // photograph is dark in both themes, so the widget's type is turned white
+    // in both, with a faint glow behind it rather than a box.
+    expect(page).not.toContain("vu-hero-proof");
+    expect(page).toMatch(/<SenjaEmbed[\s\S]{0,160}onPhoto/);
+    const senja = read("components/marketing/senja-embed.tsx");
+    expect(senja).toContain("--clr-text: #ffffff !important");
+    expect(senja).toMatch(/radial-gradient\(closest-side, rgb\(255 255 255 \/ 0\.1\d\)/);
   });
 
   it("lets the featured plan's button be seen", () => {

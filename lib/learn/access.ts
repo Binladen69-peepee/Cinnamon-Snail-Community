@@ -54,6 +54,8 @@ export type GateableLesson = {
   isPreview: boolean;
   kind: string;
   videoUid: string | null;
+  /** A Bunny Stream video (DEC-081). Counts as the video when set. */
+  bunnyVideoId?: string | null;
   audioUid: string | null;
   downloadUid: string | null;
   liveUrl: string | null;
@@ -64,7 +66,7 @@ export type GateableLesson = {
 export function lessonHasMedia(lesson: GateableLesson): boolean {
   switch (lesson.kind) {
     case "VIDEO":
-      return Boolean(lesson.videoUid);
+      return Boolean(lesson.videoUid || lesson.bunnyVideoId);
     case "AUDIO":
       return Boolean(lesson.audioUid);
     case "DOWNLOAD":

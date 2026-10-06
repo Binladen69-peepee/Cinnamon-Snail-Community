@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { CheckCircle2, ChefHat, Star } from "lucide-react";
 import { toast } from "@/components/ui/toast";
 import { Avatar } from "@/components/ui/avatar";
 import { Badge, Button, Card, EmptyState, fieldClass } from "@/components/app/ui";
+import { variationAnchorId, variationIdFromHash } from "@/components/feed/variation-anchor";
 import {
   submitVariationAction,
   toggleTestedAction,
@@ -12,6 +13,42 @@ import {
   type VariationResult,
 } from "@/app/(member)/posts/[id]/variation-actions";
 import type { VariationView } from "@/lib/recipes/variations";
+
+/** How long a linked variation stays highlighted, as a linked comment does. */
+const HIGHLIGHT_MS = 2600;
+
+/**
+ * Brings the variation a link points at (`#variation-<id>`, from a profile's
+ * activity) into view and marks it for a moment. Runs after paint, so the
+ * rows are in the document, and again whenever the fragment changes.
+ */
+function useLinkedVariation() {
+  useEffect(() => {
+    let timer: number | undefined;
+    function run() {
+      const id = variationIdFromHash(window.location.hash);
+      if (!id) return;
+      const element = document.getElementById(variationAnchorId(id));
+      if (!element) return;
+      const still = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+      element.scrollIntoView({ block: "center", behavior: still ? "auto" : "smooth" });
+      element.tabIndex = -1;
+      element.focus({ preventScroll: true });
+      element.dataset.focused = "true";
+      window.clearTimeout(timer);
+      timer = window.setTimeout(() => {
+        delete element.dataset.focused;
+      }, HIGHLIGHT_MS);
+    }
+    const frame = window.requestAnimationFrame(run);
+    window.addEventListener("hashchange", run);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.clearTimeout(timer);
+      window.removeEventListener("hashchange", run);
+    };
+  }, []);
+}
 
 /**
  * Variations under a recipe — BUILD.md §18.
@@ -21,7 +58,8 @@ import type { VariationView } from "@/lib/recipes/variations";
  * like shouting into a void.
  *
  * One card: the heading and its action, the form when it is open, then the
- * variations as rows.
+ * variations as rows. Each row carries `id="variation-<id>"`, so activity on a
+ * member's profile can link straight to it.
  */
 export function RecipeVariations({
   recipeId,
@@ -34,6 +72,7 @@ export function RecipeVariations({
 }) {
   const [pending, start] = useTransition();
   const [open, setOpen] = useState(false);
+  useLinkedVariation();
 
   const run = (action: (f: FormData) => Promise<VariationResult>, form: FormData, good: string) =>
     start(async () => {
@@ -130,7 +169,11 @@ export function RecipeVariations({
       ) : (
         <ul className="divide-y divide-separator">
           {variations.map((variation) => (
-            <li key={variation.id} className="flex flex-col gap-2 px-4 py-4 sm:px-5">
+            <li
+              key={variation.id}
+              id={variationAnchorId(variation.id)}
+              className="flex scroll-mt-24 flex-col gap-2 px-4 py-4 outline-none transition-colors last:rounded-b-card data-[focused=true]:bg-brand-wash/60 sm:px-5"
+            >
               <div className="flex flex-wrap items-center gap-2">
                 <Avatar name={variation.author.name ?? variation.author.handle} src={variation.author.avatarUrl} size="sm" />
                 <span className="text-label font-semibold text-foreground">

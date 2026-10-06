@@ -14,7 +14,7 @@ export {
 } from "@/lib/community/report-reasons";
 
 /**
- * Reacting, voting, saving, reporting and voting in polls.
+ * Reacting, voting, pinning, reporting and voting in polls.
  *
  * Two rules run through all of it.
  *
@@ -40,6 +40,8 @@ type PostGate = {
   spaceId: string;
   authorId: string;
   status: string;
+  /** IDEA and BULLETIN posts are owned by lib/ideas and lib/bulletin. */
+  type: string;
   space: {
     visibility: "PUBLIC" | "MEMBERS" | "PRIVATE";
     postingPermission: "ALL_MEMBERS" | "HOSTS_ONLY" | "APPROVAL_REQUIRED";
@@ -73,6 +75,7 @@ export async function requirePostAccess(
       spaceId: true,
       authorId: true,
       status: true,
+      type: true,
       space: {
         select: {
           visibility: true,
@@ -117,19 +120,35 @@ function isUniqueViolation(error: unknown): boolean {
 }
 
 /**
+ * What a press of a reaction control asks for.
+ *
+ * `toggle` is the original behaviour: the same emoji again clears it. The feed
+ * now sends `set` or `clear` instead, because a toggle is only correct when
+ * the client's idea of the current state is correct, and a client showing a
+ * stale state would invert the member's reaction rather than apply it.
+ */
+export type ReactionMode = "toggle" | "set" | "clear";
+
+export function parseReactionMode(value: unknown): ReactionMode {
+  return value === "set" || value === "clear" ? value : "toggle";
+}
+
+/**
  * Sets, changes or clears this member's reaction to a post.
  *
  * One reaction per person per post: picking a second replaces the first, and
- * picking the same one again clears it. The per-emoji tally and the total move
- * with it inside one transaction, so the numbers on the card are the numbers
- * in the table.
+ * picking the same one again clears it (in `toggle` mode). The per-emoji tally
+ * and the total move with it inside one transaction, so the numbers on the
+ * card are the numbers in the table.
  */
 export async function setPostReaction(input: {
   userId: string;
   postId: string;
   emoji: string;
+  mode?: ReactionMode;
 }): Promise<{ myReaction: string | null }> {
-  if (!isReaction(input.emoji)) {
+  const mode = input.mode ?? "toggle";
+  if (mode !== "clear" && !isReaction(input.emoji)) {
     throw new PermissionError("That reaction is not available.");
   }
   await requirePostAccess(input.userId, input.postId);
@@ -141,6 +160,14 @@ export async function setPostReaction(input: {
         where: { userId: input.userId, postId: input.postId },
         select: { emoji: true },
       });
+
+      // Already in the state asked for: nothing to write, and nothing to count.
+      if (mode === "set" && existing.length === 1 && existing[0]!.emoji === input.emoji) {
+        return { myReaction: input.emoji };
+      }
+      if (mode === "clear" && existing.length === 0) {
+        return { myReaction: null };
+      }
 
       if (existing.length > 0) {
         await tx.reaction.deleteMany({
@@ -158,7 +185,9 @@ export async function setPostReaction(input: {
         });
       }
 
-      const clearing = existing.some((row) => row.emoji === input.emoji);
+      const clearing =
+        mode === "clear" ||
+        (mode === "toggle" && existing.some((row) => row.emoji === input.emoji));
       if (clearing) return { myReaction: null };
 
       await tx.reaction.create({
@@ -225,11 +254,15 @@ export async function toggleCommentReaction(input: {
 }
 
 /**
- * Saving a post.
+ * Flipping a pin (a `Bookmark` row; DEC-078).
  *
- * The unique index on (userId, postId) is what makes this idempotent, so a
- * double submission cannot produce two saves; the code only decides which way
- * the toggle went.
+ * Kept for callers that genuinely want a flip. The interface does not use it:
+ * a toggle is only right when the client knows the current state, and the
+ * feed did not, which is how saves appeared not to stick. `setPin` in
+ * `lib/community/pins.ts` takes the member's intent instead.
+ *
+ * The unique index on (userId, postId) is what makes this safe against a
+ * double submission; the code only decides which way the flip went.
  */
 export async function toggleBookmark(
   userId: string,

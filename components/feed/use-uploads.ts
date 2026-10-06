@@ -3,7 +3,7 @@
 import { useCallback, useRef, useState } from "react";
 import { requestUploadAction } from "@/app/(member)/upload-actions";
 import { prepareForUpload, putWithProgress } from "@/lib/uploads/client";
-import { kindOf, validateUpload } from "@/lib/uploads/policy";
+import { kindOf, validateSource, validateUpload } from "@/lib/uploads/policy";
 
 export type UploadItem = {
   id: string;
@@ -19,6 +19,8 @@ export type UploadItem = {
   width?: number | null;
   height?: number | null;
   mimeType?: string;
+  /** A GIF or other moving image: stored exactly as picked, and plays in the post. */
+  animated?: boolean;
   alt?: string;
   /** Optional poster image for a video (object URL while uploading / settling). */
   thumbnailPreview?: string;
@@ -70,6 +72,19 @@ export function useUploads() {
       try {
         patch(id, { status: "preparing", progress: 0, error: undefined });
         const prepared = await prepareForUpload(file);
+        patch(id, { animated: prepared.animated, mimeType: prepared.mimeType });
+
+        // What was picked may have been larger than the limit and shrunk to
+        // fit; what is sent must fit. Checked here so the member reads the
+        // reason without a round trip.
+        const check = validateUpload({
+          mimeType: prepared.mimeType,
+          size: prepared.blob.size,
+        });
+        if (!check.ok) {
+          patch(id, { status: "error", error: check.error });
+          return;
+        }
 
         const ticket = await requestUploadAction({
           mimeType: prepared.mimeType,
@@ -96,6 +111,7 @@ export function useUploads() {
           width: prepared.width,
           height: prepared.height,
           mimeType: prepared.mimeType,
+          animated: prepared.animated,
         });
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError") return;
@@ -114,9 +130,12 @@ export function useUploads() {
     (picked: FileList | File[]) => {
       for (const file of Array.from(picked)) {
         const kind = kindOf(file.type);
-        const check = validateUpload({ mimeType: file.type, size: file.size });
+        // A still photo is shrunk before it is sent, so it is held to the
+        // limit for what it will become, not for what was picked.
+        const check = validateSource({ mimeType: file.type, size: file.size });
         const id = nextId();
         const preview = URL.createObjectURL(file);
+        const animated = file.type === "image/gif";
 
         if (!kind || !check.ok) {
           setItems((current) => [
@@ -128,6 +147,7 @@ export function useUploads() {
               preview,
               status: "error",
               progress: 0,
+              animated,
               error: check.ok ? "That file type is not supported." : check.error,
             },
           ]);
@@ -137,7 +157,7 @@ export function useUploads() {
         files.current.set(id, file);
         setItems((current) => [
           ...current,
-          { id, name: file.name, kind, preview, status: "preparing", progress: 0 },
+          { id, name: file.name, kind, preview, status: "preparing", progress: 0, animated },
         ]);
         void run(id, file);
       }
@@ -148,7 +168,7 @@ export function useUploads() {
   const setVideoThumbnail = useCallback(
     async (videoId: string, file: File) => {
       const kind = kindOf(file.type);
-      const check = validateUpload({ mimeType: file.type, size: file.size });
+      const check = validateSource({ mimeType: file.type, size: file.size });
       if (kind !== "image" || !check.ok) {
         patch(videoId, {
           thumbnailStatus: "error",
@@ -169,6 +189,14 @@ export function useUploads() {
       aborts.current.set(`${videoId}:thumb`, controller);
       try {
         const prepared = await prepareForUpload(file);
+        const fits = validateUpload({
+          mimeType: prepared.mimeType,
+          size: prepared.blob.size,
+        });
+        if (!fits.ok) {
+          patch(videoId, { thumbnailStatus: "error", error: fits.error });
+          return;
+        }
         const ticket = await requestUploadAction({
           mimeType: prepared.mimeType,
           size: prepared.blob.size,

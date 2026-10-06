@@ -110,6 +110,7 @@ export async function saveLessonResponseAction(
       published: true,
       isPreview: true,
       videoUid: true,
+      bunnyVideoId: true,
       audioUid: true,
       downloadUid: true,
       liveUrl: true,
@@ -159,10 +160,14 @@ export async function saveLessonResponseAction(
  * open the lesson first: a locked lesson's thread would leak the lesson's
  * existence into a space, and give somebody who cannot watch it somewhere to
  * discuss it.
+ *
+ * The thread is the lesson's comments, read on the lesson page. It is kept in
+ * a course room that no feed reads, so asking a question about a lesson never
+ * turns a class into a forum (DEC-078).
  */
 export async function startLessonDiscussionAction(
   lessonId: string,
-): Promise<{ ok: true; postId: string; spaceSlug: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; postId: string } | { ok: false; error: string }> {
   const session = await auth();
   if (!session?.user.id) return { ok: false, error: "Sign in first." };
 
@@ -180,6 +185,7 @@ export async function startLessonDiscussionAction(
       published: true,
       isPreview: true,
       videoUid: true,
+      bunnyVideoId: true,
       audioUid: true,
       downloadUid: true,
       liveUrl: true,
@@ -203,8 +209,8 @@ export async function startLessonDiscussionAction(
   if (!discussion) {
     return {
       ok: false,
-      error: "There is no room for this class to be discussed in yet.",
+      error: "Questions cannot be opened on this lesson just yet. Try again later.",
     };
   }
-  return { ok: true, ...discussion };
+  return { ok: true, postId: discussion.postId };
 }

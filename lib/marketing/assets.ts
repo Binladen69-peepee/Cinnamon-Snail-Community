@@ -149,6 +149,10 @@ export function pendingAssets(page?: AssetSlot["page"]): AssetSlot[] {
 /**
  * "Featured in" credits. Every one of these is verifiable from Adam's own
  * about page — no invented placements.
+ *
+ * The cookbook credit ("Street Vegan · Clarkson Potter") was taken out of the
+ * ticker at the client's request on 2026-10-06. It is still true; it is just
+ * not one of the names this strip shows.
  */
 export const PRESS_CREDITS = [
   "New York Times",
@@ -157,7 +161,6 @@ export const PRESS_CREDITS = [
   "VegNews",
   "James Beard House",
   "Vendy Cup winner",
-  "Street Vegan · Clarkson Potter",
 ] as const;
 
 /**

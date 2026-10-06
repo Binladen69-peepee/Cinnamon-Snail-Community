@@ -68,9 +68,10 @@ export function MemberFilters({
     }
     const nextSort = next.sort ?? sort;
     if (nextSort !== "suggested") search.set("sort", nextSort);
-    // Any change to the filters invalidates the page number.
+    // Any change to the filters invalidates the page number. A bare
+    // "/members" is Discover, so the unfiltered directory says so.
     const query = search.toString();
-    return query ? `/members?${query}` : "/members";
+    return query ? `/members?${query}` : "/members?view=all";
   }
 
   const interestGroups = groupInterestFacets(facets.interests);
@@ -98,6 +99,9 @@ export function MemberFilters({
       values: facets.skills,
       current: active.skill,
     },
+    // Rooms are retired from the interface (DEC-078). The row only appears
+    // when an old link arrives filtered by one, so the filter can be seen and
+    // cleared.
     {
       key: "space",
       label: "In room",
@@ -112,7 +116,9 @@ export function MemberFilters({
       values: facets.cohorts,
       current: active.cohort,
     },
-  ] satisfies Group[]).filter((group) => group.values.length > 1 || group.current);
+  ] satisfies Group[]).filter((group) =>
+    group.key === "space" ? Boolean(group.current) : group.values.length > 1 || group.current,
+  );
 
   const hasFilters = Boolean(
     active.location || active.interest || active.skill || active.cohort || active.space,

@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { gateLesson, membershipState } from "@/lib/learn/access";
 import { isStaff } from "@/lib/permissions";
 import { getUserAuth } from "@/lib/community/viewer";
+import { awardBadgesAfterResponse } from "@/lib/social/badge-triggers";
 
 /**
  * Where everyone is up to.
@@ -25,6 +26,10 @@ import { getUserAuth } from "@/lib/community/viewer";
  * moved, and only when the caller says the lesson ended or the member got
  * near enough to the end to count. Nothing marks a lesson complete because it
  * was opened.
+ *
+ * The write that first sets `completedAt` is also when the member's badges
+ * are re-checked (the class ladder moves on a class's last lesson), after the
+ * response so the player's heartbeat never waits for it.
  */
 
 /** How close to the end counts as finished. The last few seconds are credits. */
@@ -76,6 +81,7 @@ export async function saveLessonProgress(
       published: true,
       isPreview: true,
       videoUid: true,
+      bunnyVideoId: true,
       audioUid: true,
       downloadUid: true,
       liveUrl: true,
@@ -116,9 +122,22 @@ export async function saveLessonProgress(
 
   const courseId = lesson.section.courseId;
 
+  // `prior` is the row as it stood before this statement, so `wasOpen` says
+  // whether this write is the one that completes the lesson. Two devices
+  // finishing at once can both see it open; the badge check they then both
+  // run is idempotent.
   const [row] = await prisma.$queryRaw<
-    { positionSeconds: number; furthestSeconds: number; completedAt: Date | null }[]
+    {
+      positionSeconds: number;
+      furthestSeconds: number;
+      completedAt: Date | null;
+      wasOpen: boolean;
+    }[]
   >`
+    WITH "prior" AS (
+      SELECT "completedAt" FROM "LessonProgress"
+      WHERE "lessonId" = ${lesson.id} AND "userId" = ${input.userId}
+    )
     INSERT INTO "LessonProgress" (
       "id", "lessonId", "userId", "positionSeconds", "furthestSeconds",
       "completedAt", "createdAt", "updatedAt"
@@ -135,7 +154,8 @@ export async function saveLessonProgress(
       -- Completion is a fact about the past: set it once, never move it.
       "completedAt" = COALESCE("LessonProgress"."completedAt", EXCLUDED."completedAt"),
       "updatedAt" = now()
-    RETURNING "positionSeconds", "furthestSeconds", "completedAt"
+    RETURNING "positionSeconds", "furthestSeconds", "completedAt",
+      NOT EXISTS (SELECT 1 FROM "prior" WHERE "completedAt" IS NOT NULL) AS "wasOpen"
   `;
 
   const percent = await recomputeCourseProgress({
@@ -143,6 +163,10 @@ export async function saveLessonProgress(
     courseId,
     lastLessonId: lesson.id,
   });
+
+  if (completedByThisWrite(row)) {
+    await awardBadgesAfterResponse(input.userId, "lesson-complete");
+  }
 
   return {
     courseId,
@@ -152,6 +176,17 @@ export async function saveLessonProgress(
     completed: Boolean(row?.completedAt),
     percent,
   };
+}
+
+/**
+ * Whether this write is the one that completed the lesson: it is complete
+ * now, and it was not before. A later save of a finished lesson (the player's
+ * heartbeat, a rewatch) is not a completion.
+ */
+export function completedByThisWrite(
+  row: { completedAt: Date | null; wasOpen: boolean } | undefined,
+): boolean {
+  return Boolean(row?.completedAt) && Boolean(row?.wasOpen);
 }
 
 /**
@@ -211,11 +246,17 @@ export function coursePercent(completed: number, total: number): number {
  *
  * Ordered by when the member last touched the course, not by how far through
  * it they are: the thing you were doing yesterday is the thing you want back,
- * even if another course is closer to finished.
+ * even if another course is closer to finished. A class that has since been
+ * unpublished is not offered: there is no page for it to land on.
  */
 export async function continueLearning(userId: string, take = 3) {
   const rows = await prisma.courseProgress.findMany({
-    where: { userId, completedAt: null, percent: { lt: 100 } },
+    where: {
+      userId,
+      completedAt: null,
+      percent: { lt: 100 },
+      course: { published: true },
+    },
     orderBy: { updatedAt: "desc" },
     take,
     select: {

@@ -6,19 +6,34 @@ import type { EventRecurrence, EventStatus } from "@prisma/client";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
-import { upsertSearchIndex } from "@/lib/search";
+import { consumeRateLimit } from "@/lib/auth/rate-limit";
+import { analyzeRichText } from "@/lib/content/rich-text";
+import { getKitchenTableSpaceId } from "@/lib/community/system-spaces";
 import { fromLocalInputValue, safeTimeZone } from "@/lib/events/timezone";
 import { uniqueEventSlug } from "@/lib/events/slug";
+import { indexEvent, unindexEvent } from "@/lib/events/search";
+import {
+  announceEventCanceled,
+  announceEventMoved,
+  notifyEventAttendees,
+  resetEventReminders,
+} from "@/lib/events/notify";
+import { liveClassHref } from "@/lib/events/paths";
+import { revalidateLiveClasses } from "@/lib/events/revalidate";
 import { objectPathFromUrl, verifyUploaded } from "@/lib/uploads/storage";
-import { renderMarkdown, toPlainText } from "@/lib/markdown";
+import { zoomConfigured } from "@/lib/zoom/config";
+import { runZoomSync } from "@/lib/zoom/sync";
 
 /**
- * Scheduling a class.
+ * Scheduling live classes, by hand and from Zoom (DEC-079).
  *
- * Until now an event could only come into being through the feed composer, as
- * a side effect of writing a post — which meant no capacity, no host, no
- * recurrence, no cover and no way to edit one afterwards. This is the
- * authoring path.
+ * Staff schedule a class here, or Zoom does: any meeting whose topic says
+ * LIVE CLASS arrives on its own. For a class that came from Zoom, Zoom owns
+ * its title, time, length, time zone and joining link, so the update action
+ * ignores those fields whatever the form sends (a disabled input is a
+ * courtesy, not a control) and takes them from the row instead. Everything
+ * staff own (description, cover, capacity, host, room, status, recording)
+ * stays editable, and the sync never overwrites it.
  *
  * Every action re-checks the session's roles. The admin layout redirects a
  * non-admin, but a server action is a public endpoint: the layout guards the
@@ -37,51 +52,68 @@ async function requireStaff() {
 }
 
 function revalidateEvent(slug?: string) {
+  revalidateLiveClasses(slug ? [slug] : []);
   revalidatePath("/admin/events");
-  revalidatePath("/calendar");
-  revalidatePath("/events");
-  if (slug) {
-    revalidatePath(`/admin/events/${slug}`);
-    revalidatePath(`/calendar/${slug}`);
-  }
+  if (slug) revalidatePath(`/admin/events/${slug}`);
 }
 
+/** What Zoom owns on a synced class, read from the row rather than the form. */
+type ZoomOwned = {
+  title: string;
+  startsAt: Date;
+  endsAt: Date | null;
+  timezone: string;
+  zoomUrl: string | null;
+};
+
 /** The fields shared by create and update, validated once. */
-async function readFields(userId: string, formData: FormData) {
-  const title = String(formData.get("title") ?? "").trim();
+async function readFields(
+  userId: string,
+  formData: FormData,
+  zoom: ZoomOwned | null = null,
+) {
+  const title = zoom ? zoom.title : String(formData.get("title") ?? "").trim();
   if (title.length < 2 || title.length > 200) {
     return { ok: false as const, error: "A title needs between 2 and 200 characters." };
   }
 
-  const timezone = safeTimeZone(String(formData.get("timezone") ?? "UTC"));
-  const startsAt = fromLocalInputValue(
-    String(formData.get("startsAt") ?? ""),
-    timezone,
-  );
+  const timezone = zoom
+    ? zoom.timezone
+    : safeTimeZone(String(formData.get("timezone") ?? "UTC"));
+  const startsAt = zoom
+    ? zoom.startsAt
+    : fromLocalInputValue(String(formData.get("startsAt") ?? ""), timezone);
   if (!startsAt) {
-    return { ok: false as const, error: "Give the event a start date and time." };
+    return { ok: false as const, error: "Give the class a start date and time." };
   }
 
-  const rawEnd = String(formData.get("endsAt") ?? "").trim();
-  const endsAt = rawEnd ? fromLocalInputValue(rawEnd, timezone) : null;
-  if (rawEnd && !endsAt) {
-    return { ok: false as const, error: "That end time is not one we can read." };
-  }
-  if (endsAt && endsAt <= startsAt) {
-    return { ok: false as const, error: "The end has to come after the start." };
+  let endsAt: Date | null;
+  if (zoom) {
+    endsAt = zoom.endsAt;
+  } else {
+    const rawEnd = String(formData.get("endsAt") ?? "").trim();
+    endsAt = rawEnd ? fromLocalInputValue(rawEnd, timezone) : null;
+    if (rawEnd && !endsAt) {
+      return { ok: false as const, error: "That end time is not one we can read." };
+    }
+    if (endsAt && endsAt <= startsAt) {
+      return { ok: false as const, error: "The end has to come after the start." };
+    }
   }
 
-  let zoomUrl: string | null = null;
-  const rawZoom = String(formData.get("zoomUrl") ?? "").trim();
-  if (rawZoom) {
-    try {
-      const parsed = new URL(rawZoom);
-      if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
-        return { ok: false as const, error: "A joining link has to be http or https." };
+  let zoomUrl: string | null = zoom ? zoom.zoomUrl : null;
+  if (!zoom) {
+    const rawZoom = String(formData.get("zoomUrl") ?? "").trim();
+    if (rawZoom) {
+      try {
+        const parsed = new URL(rawZoom);
+        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+          return { ok: false as const, error: "A joining link has to be http or https." };
+        }
+        zoomUrl = parsed.toString();
+      } catch {
+        return { ok: false as const, error: "That joining link is not a valid URL." };
       }
-      zoomUrl = parsed.toString();
-    } catch {
-      return { ok: false as const, error: "That joining link is not a valid URL." };
     }
   }
 
@@ -98,7 +130,11 @@ async function readFields(userId: string, formData: FormData) {
       coverUrl = rawCover;
     } else {
       try {
-        coverUrl = new URL(rawCover).toString();
+        const parsed = new URL(rawCover);
+        if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
+          return { ok: false as const, error: "A cover link has to be http or https." };
+        }
+        coverUrl = parsed.toString();
       } catch {
         return { ok: false as const, error: "That cover link is not a valid URL." };
       }
@@ -107,18 +143,19 @@ async function readFields(userId: string, formData: FormData) {
 
   const rawCapacity = String(formData.get("capacity") ?? "").trim();
   const capacity = rawCapacity ? Number(rawCapacity) : null;
-  if (capacity !== null && (!Number.isFinite(capacity) || capacity < 1)) {
+  if (capacity !== null && (!Number.isFinite(capacity) || capacity < 1 || capacity > 100_000)) {
     return { ok: false as const, error: "A capacity has to be a whole number above zero." };
   }
 
-  const recurrenceRaw = String(formData.get("recurrence") ?? "");
+  // A Zoom class's schedule is Zoom's: it never repeats here.
+  const recurrenceRaw = zoom ? "" : String(formData.get("recurrence") ?? "");
   const recurrence: EventRecurrence | null =
     recurrenceRaw === "DAILY" || recurrenceRaw === "WEEKLY" || recurrenceRaw === "MONTHLY"
       ? recurrenceRaw
       : null;
   const everyRaw = Number(formData.get("recurrenceEvery"));
   const recurrenceEvery = recurrence
-    ? Math.max(1, Number.isFinite(everyRaw) ? Math.trunc(everyRaw) : 1)
+    ? Math.min(12, Math.max(1, Number.isFinite(everyRaw) ? Math.trunc(everyRaw) : 1))
     : null;
   const untilRaw = String(formData.get("recurrenceUntil") ?? "").trim();
   const recurrenceUntil =
@@ -133,16 +170,21 @@ async function readFields(userId: string, formData: FormData) {
 
   const hostId = String(formData.get("hostId") ?? "").trim() || null;
   const spaceId = String(formData.get("spaceId") ?? "").trim() || null;
+  const description = String(formData.get("description") ?? "").trim() || null;
+  if (description && description.length > 10_000) {
+    return { ok: false as const, error: "A description can be up to 10,000 characters." };
+  }
+  const location = String(formData.get("location") ?? "").trim().slice(0, 200) || null;
 
   return {
     ok: true as const,
     data: {
       title,
-      description: String(formData.get("description") ?? "").trim() || null,
+      description,
       startsAt,
       endsAt,
       timezone,
-      location: String(formData.get("location") ?? "").trim() || null,
+      location,
       zoomUrl,
       coverUrl,
       capacity: capacity === null ? null : Math.trunc(capacity),
@@ -168,7 +210,7 @@ export async function createEventAction(formData: FormData): Promise<Result> {
     fields.data.recurrence ? fields.data.startsAt : null,
   );
   const event = await prisma.event.create({
-    data: { ...fields.data, slug },
+    data: { ...fields.data, slug, source: "MANUAL" },
     select: { id: true, slug: true },
   });
 
@@ -192,11 +234,34 @@ export async function updateEventAction(formData: FormData): Promise<Result> {
   const id = String(formData.get("eventId") ?? "");
   const existing = await prisma.event.findUnique({
     where: { id },
-    select: { id: true, slug: true, startsAt: true, title: true, status: true },
+    select: {
+      id: true,
+      slug: true,
+      source: true,
+      title: true,
+      startsAt: true,
+      endsAt: true,
+      timezone: true,
+      zoomUrl: true,
+      status: true,
+    },
   });
-  if (!existing) return { ok: false, error: "That event no longer exists." };
+  if (!existing) return { ok: false, error: "That class no longer exists." };
 
-  const fields = await readFields(session.user.id, formData);
+  const fromZoom = existing.source === "ZOOM";
+  const fields = await readFields(
+    session.user.id,
+    formData,
+    fromZoom
+      ? {
+          title: existing.title,
+          startsAt: existing.startsAt,
+          endsAt: existing.endsAt,
+          timezone: existing.timezone,
+          zoomUrl: existing.zoomUrl,
+        }
+      : null,
+  );
   if (!fields.ok) return fields;
 
   await prisma.event.update({ where: { id }, data: fields.data });
@@ -205,15 +270,20 @@ export async function updateEventAction(formData: FormData): Promise<Result> {
   // Telling people is the whole point of a change to a time or a cancellation.
   const moved = existing.startsAt.getTime() !== fields.data.startsAt.getTime();
   const canceled = existing.status !== "CANCELED" && fields.data.status === "CANCELED";
-  if (moved || canceled) {
-    await notifyAttendees(id, {
-      title: canceled
-        ? `Canceled: ${fields.data.title}`
-        : `Moved: ${fields.data.title}`,
-      body: canceled
-        ? "This one is off. Nothing will happen at the time it was scheduled."
-        : "The time has changed. Open the event to see the new one and update your own calendar.",
-      href: `/calendar/${existing.slug}`,
+  if (canceled) {
+    await announceEventCanceled({
+      id,
+      slug: existing.slug,
+      title: fields.data.title,
+    }).catch(() => undefined);
+  } else if (moved) {
+    await resetEventReminders(id).catch(() => undefined);
+    await announceEventMoved({
+      id,
+      slug: existing.slug,
+      title: fields.data.title,
+      startsAt: fields.data.startsAt,
+      timezone: fields.data.timezone,
     }).catch(() => undefined);
   }
 
@@ -222,7 +292,7 @@ export async function updateEventAction(formData: FormData): Promise<Result> {
     action: canceled ? "event.canceled" : "event.updated",
     targetType: "Event",
     targetId: id,
-    metadata: { slug: existing.slug, moved },
+    metadata: { slug: existing.slug, moved, source: existing.source },
   }).catch(() => undefined);
 
   revalidateEvent(existing.slug);
@@ -236,21 +306,19 @@ export async function deleteEventAction(formData: FormData): Promise<Result> {
   const id = String(formData.get("eventId") ?? "");
   const event = await prisma.event.findUnique({
     where: { id },
-    select: { id: true, slug: true, _count: { select: { rsvps: true } } },
+    select: { id: true, slug: true, source: true, _count: { select: { rsvps: true } } },
   });
-  if (!event) return { ok: false, error: "That event no longer exists." };
+  if (!event) return { ok: false, error: "That class no longer exists." };
 
   await prisma.event.delete({ where: { id } });
-  await prisma.searchIndex
-    .delete({ where: { entityType_entityId: { entityType: "event", entityId: event.slug } } })
-    .catch(() => undefined);
+  await unindexEvent(event.slug);
 
   await writeAuditLog({
     actorId: session.user.id,
     action: "event.deleted",
     targetType: "Event",
     targetId: id,
-    metadata: { slug: event.slug, rsvps: event._count.rsvps },
+    metadata: { slug: event.slug, rsvps: event._count.rsvps, source: event.source },
   }).catch(() => undefined);
 
   revalidateEvent(event.slug);
@@ -260,10 +328,11 @@ export async function deleteEventAction(formData: FormData): Promise<Result> {
 /**
  * Attach the recording, and optionally publish it somewhere it will be found.
  *
- * A recording sitting on a past event is already useful; a recording that
- * becomes a lesson in the course it belongs to, or a post in the room that
- * watched it live, is where people actually go looking. Both write through
- * the systems that already own those things rather than growing a second one.
+ * A recording sitting on a past class is already useful; a recording that
+ * becomes a lesson in the class library, or a post the community can see, is
+ * where people actually go looking. Both write through the systems that
+ * already own those things rather than growing a second one. A class with no
+ * room of its own (every class from Zoom) posts to the Kitchen Table.
  */
 export async function attachRecordingAction(formData: FormData): Promise<Result> {
   const session = await requireStaff();
@@ -283,7 +352,7 @@ export async function attachRecordingAction(formData: FormData): Promise<Result>
       recordingPostId: true,
     },
   });
-  if (!event) return { ok: false, error: "That event no longer exists." };
+  if (!event) return { ok: false, error: "That class no longer exists." };
 
   const raw = String(formData.get("recordingUrl") ?? "").trim();
   if (!raw) {
@@ -347,9 +416,7 @@ export async function attachRecordingAction(formData: FormData): Promise<Result>
   }
 
   if (publishTo === "space" && !event.recordingPostId) {
-    if (!event.spaceId) {
-      return { ok: false, error: "This event has no room to post it in." };
-    }
+    const spaceId = event.spaceId ?? (await getKitchenTableSpaceId());
     const body = [
       `The recording of **${event.title}** is up.`,
       event.description,
@@ -357,17 +424,18 @@ export async function attachRecordingAction(formData: FormData): Promise<Result>
     ]
       .filter(Boolean)
       .join("\n\n");
+    const content = analyzeRichText(body);
 
     const post = await prisma.post.create({
       data: {
-        spaceId: event.spaceId,
+        spaceId,
         authorId: session.user.id,
         type: "SIMPLE",
         status: "PUBLISHED",
-        title: `Recording: ${event.title}`,
+        title: `Recording: ${event.title}`.slice(0, 200),
         body,
-        bodyHtml: renderMarkdown(body),
-        plainText: toPlainText(body),
+        bodyHtml: content.html,
+        plainText: content.plain,
         publishedAt: new Date(),
         lastActivityAt: new Date(),
       },
@@ -379,10 +447,11 @@ export async function attachRecordingAction(formData: FormData): Promise<Result>
   await prisma.event.update({ where: { id }, data });
 
   // The people who came are the people who want the recording.
-  await notifyAttendees(id, {
+  await notifyEventAttendees(id, {
     title: `The recording is up: ${event.title}`,
     body: "Watch it back whenever suits you.",
-    href: `/calendar/${event.slug}`,
+    href: liveClassHref(event.slug),
+    dedupeKey: `event-recording:${event.id}`,
   }).catch(() => undefined);
 
   await writeAuditLog({
@@ -397,55 +466,61 @@ export async function attachRecordingAction(formData: FormData): Promise<Result>
   return { ok: true };
 }
 
-/** Tell everyone who said they were coming. One query, then one batched write. */
-async function notifyAttendees(
-  eventId: string,
-  message: { title: string; body: string; href: string },
-): Promise<void> {
-  const { dispatchNotifications } = await import("@/lib/notifications/dispatch");
-  const attendees = await prisma.eventRsvp.findMany({
-    where: { eventId, status: { in: ["GOING", "WAITLIST"] } },
-    select: { userId: true },
-    take: 500,
-  });
-  await dispatchNotifications(
-    attendees.map((attendee) => ({
-      userId: attendee.userId,
-      category: "EVENTS" as const,
-      ...message,
-    })),
-  ).catch(() => undefined);
-}
+export type ZoomSyncActionResult =
+  | { ok: true; created: number; updated: number; canceled: number; warnings: string[] }
+  | { ok: false; error: string };
 
-async function indexEvent(id: string): Promise<void> {
-  const event = await prisma.event.findUnique({
-    where: { id },
-    select: {
-      slug: true,
-      title: true,
-      description: true,
-      status: true,
-      spaceId: true,
-    },
-  });
-  if (!event) return;
+/**
+ * "Sync from Zoom now": the scheduled sync, run by hand, so staff do not wait
+ * for the next run after setting up a class in Zoom. Rate-limited because each
+ * run reads Zoom, and Zoom's own limits are shared with the scheduled job.
+ */
+export async function syncZoomNowAction(): Promise<ZoomSyncActionResult> {
+  const session = await requireStaff();
+  if (!session) return { ok: false, error: "Admins only." };
 
-  if (event.status !== "PUBLISHED") {
-    await prisma.searchIndex
-      .delete({
-        where: { entityType_entityId: { entityType: "event", entityId: event.slug } },
-      })
-      .catch(() => undefined);
-    return;
+  if (!zoomConfigured()) {
+    return {
+      ok: false,
+      error: "Zoom is not configured, so there is nothing to sync. Live classes can still be added by hand.",
+    };
   }
 
-  await upsertSearchIndex({
-    entityType: "event",
-    entityId: event.slug,
-    title: event.title,
-    body: (event.description ?? "").slice(0, 2000),
-    spaceId: event.spaceId,
-  });
+  const limit = await consumeRateLimit(`zoom-sync:${session.user.id}`, 6, 10 * 60 * 1000);
+  if (!limit.ok) {
+    return { ok: false, error: "Zoom was just read. Try again in a few minutes." };
+  }
+
+  const result = await runZoomSync({ trigger: "manual" });
+  revalidateLiveClasses(result.changed);
+  revalidatePath("/admin/events");
+
+  await writeAuditLog({
+    actorId: session.user.id,
+    action: "event.zoom_sync",
+    targetType: "ZoomSyncRun",
+    targetId: result.runId ?? undefined,
+    metadata: {
+      created: result.created,
+      updated: result.updated,
+      canceled: result.canceled,
+      errors: result.errors.length,
+    },
+  }).catch(() => undefined);
+
+  if (!result.configured) {
+    return { ok: false, error: "Zoom is not configured." };
+  }
+  if (!result.ok && result.created + result.updated + result.canceled === 0) {
+    return { ok: false, error: result.errors[0] ?? "Zoom could not be read." };
+  }
+  return {
+    ok: true,
+    created: result.created,
+    updated: result.updated,
+    canceled: result.canceled,
+    warnings: result.errors,
+  };
 }
 
 /** Local copy of the curriculum editor's rule, so a recording lands cleanly. */

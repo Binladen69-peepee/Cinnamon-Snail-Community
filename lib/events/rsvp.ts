@@ -1,7 +1,9 @@
 import { Prisma, type RsvpStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notifications/create";
-import { formatEventTime, safeTimeZone } from "@/lib/events/timezone";
+import { describeClassTime, memberTimeZones } from "@/lib/events/notify";
+import { liveClassHref } from "@/lib/events/paths";
+import { awardBadgesAfterResponse } from "@/lib/social/badge-triggers";
 
 /**
  * Saying you are coming, and the seat that goes with it.
@@ -69,15 +71,15 @@ export async function setRsvp(input: {
       SELECT "id", "title", "slug", "startsAt", "timezone", "capacity", "status"::text
       FROM "Event" WHERE "id" = ${input.eventId} FOR UPDATE
     `;
-    if (!event) throw new RsvpError("That event is gone.");
+    if (!event) throw new RsvpError("That class is gone.");
     if (event.status === "DRAFT") {
-      throw new RsvpError("That event is not open yet.");
+      throw new RsvpError("That class is not open yet.");
     }
     if (event.status === "CANCELED") {
-      throw new RsvpError("That event was canceled.");
+      throw new RsvpError("That class was canceled.");
     }
     if (event.startsAt.getTime() < Date.now()) {
-      throw new RsvpError("That event has already happened.");
+      throw new RsvpError("That class has already started.");
     }
 
     const existing = await tx.eventRsvp.findUnique({
@@ -133,6 +135,7 @@ export async function setRsvp(input: {
     return {
       event,
       promoted,
+      wasGoing: existing?.status === "GOING",
       result: {
         status: row.status,
         waitlistPosition: row.waitlistPosition,
@@ -152,6 +155,18 @@ export async function setRsvp(input: {
   );
   for (const userId of outcome.promoted) {
     await announcePromotion(outcome.event, userId).catch(() => undefined);
+  }
+
+  // Everyone whose RSVP just became "going": this member, and anyone a freed
+  // seat promoted. The live-class badges count classes that have taken place,
+  // so this catches up on the ones they already went to; it never fails the
+  // RSVP and never holds the response.
+  const nowGoing = [
+    ...(outcome.result.status === "GOING" && !outcome.wasGoing ? [input.userId] : []),
+    ...outcome.promoted,
+  ];
+  if (nowGoing.length > 0) {
+    await awardBadgesAfterResponse(nowGoing, "live-class-rsvp");
   }
 
   return outcome.result;
@@ -210,13 +225,19 @@ async function promoteFromWaitlist(
   return queue.map((row) => row.userId);
 }
 
+/** The class's time in this member's own zone, with the zone named. */
+async function whenFor(event: EventRow, userId: string): Promise<string> {
+  const zones = await memberTimeZones([userId]).catch(() => new Map<string, string>());
+  return describeClassTime(event.startsAt, zones.get(userId) ?? event.timezone);
+}
+
 async function announce(
   event: EventRow,
   userId: string,
   status: RsvpStatus,
 ): Promise<void> {
   if (status === "NOT_GOING") return;
-  const when = formatEventTime(event.startsAt, safeTimeZone(event.timezone));
+  const when = await whenFor(event, userId);
   await createNotification({
     userId,
     category: "EVENTS",
@@ -226,9 +247,9 @@ async function announce(
         : `You're on the waitlist: ${event.title}`,
     body:
       status === "GOING"
-        ? `${when}. Add it to your own calendar from the event page.`
+        ? `${when}. Add it to your own calendar from the class page.`
         : `${when}. We'll tell you the moment a place opens up.`,
-    href: `/calendar/${event.slug}`,
+    href: liveClassHref(event.slug),
     // Toggling going/not going/going must not say "You're going" twice.
     dedupeKey: `rsvp:${event.id}:${status}`,
   });
@@ -238,13 +259,13 @@ async function announcePromotion(
   event: EventRow,
   userId: string,
 ): Promise<void> {
-  const when = formatEventTime(event.startsAt, safeTimeZone(event.timezone));
+  const when = await whenFor(event, userId);
   await createNotification({
     userId,
     category: "EVENTS",
     title: `A place opened up: ${event.title}`,
     body: `You're off the waitlist and going. ${when}.`,
-    href: `/calendar/${event.slug}`,
+    href: liveClassHref(event.slug),
     dedupeKey: `rsvp-promoted:${event.id}`,
   });
 }

@@ -1,8 +1,15 @@
 import { afterResponse } from "@/lib/after-response";
 import { PostStatus, PostType, Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { parseMentions } from "@/lib/community/format";
-import { renderMarkdown, toPlainText } from "@/lib/markdown";
+import {
+  analyzeRichText,
+  hasVisibleContent,
+  richTextMentions,
+  type RichTextAnalysis,
+} from "@/lib/content/rich-text";
+import { excerptText } from "@/lib/content/excerpt";
+import { POST_BODY_MAX, POST_TITLE_MAX } from "@/lib/community/post-types";
+import { kindOf } from "@/lib/uploads/policy";
 import { upsertSearchIndex } from "@/lib/search";
 import {
   canEnterSpace,
@@ -37,6 +44,57 @@ const COMMENT_PAGE = 20;
 const COMMENT_PAGE_MAX = 50;
 /** Replies drawn under each root before "show more" takes over. */
 const REPLIES_PER_ROOT = 20;
+/**
+ * The longest comment, held here as well as in the actions so every path
+ * that writes one — the server actions and the JSON route — is bounded.
+ */
+export const COMMENT_BODY_MAX = POST_BODY_MAX;
+
+/**
+ * A body as the write paths store it (DEC-078, contract C2).
+ *
+ * One parse gives the three things that must agree: the sanitized HTML
+ * (`bodyHtml`), the plain text with no markup (`plainText`, which feeds card
+ * excerpts, notifications, emails and search), and the handles mentioned.
+ * Lengths are checked on the server whatever the composer already checked: a
+ * client limit is a courtesy, not a control.
+ */
+function processBody(
+  body: string,
+  options: { max: number; noun: "post" | "comment" },
+): RichTextAnalysis {
+  if (body.length > options.max) {
+    const label = options.noun === "post" ? "Posts" : "Comments";
+    throw new Error(`${label} can be up to ${options.max.toLocaleString("en-US")} characters.`);
+  }
+  return analyzeRichText(body);
+}
+
+/** A title, checked on the server like the body. */
+function checkTitle(title: string | null | undefined) {
+  if (title && title.length > POST_TITLE_MAX) {
+    throw new Error(`Titles can be up to ${POST_TITLE_MAX.toLocaleString("en-US")} characters.`);
+  }
+}
+
+/**
+ * What a notification or a search result calls a post with no title: its
+ * opening words, cut on a word and never through an emoji.
+ */
+function postLabel(title: string | null | undefined, plainText: string, fallback: string) {
+  return title || excerptText(plainText, 90) || fallback;
+}
+
+/**
+ * An attachment row's kind and type, from the type the storage layer
+ * confirmed. The type decides the kind, so a GIF is an image (it plays as an
+ * `<img>`) even if a caller labelled it otherwise.
+ */
+function attachmentKind(file: { kind?: string; mimeType?: string }) {
+  const mimeType = file.mimeType?.trim().toLowerCase() || undefined;
+  const kind = (mimeType ? kindOf(mimeType) : null) ?? file.kind ?? "image";
+  return { kind, mimeType };
+}
 
 const SPACE_GATE_SELECT = {
   id: true,
@@ -120,6 +178,10 @@ export async function createPost(input: CreatePostInput) {
   if (!canPostInSpace(auth, space, membership)) {
     throw new PermissionError("You do not have permission to post in this space.");
   }
+  // Checked before anything is written: an event or a recipe row is created
+  // ahead of the post below, and must not be left behind by a refusal.
+  checkTitle(input.title);
+  const content = processBody(input.body, { max: POST_BODY_MAX, noun: "post" });
   await guardCommunityAction("post", input.userId);
 
   const intent = input.intent ?? "PUBLISH";
@@ -173,9 +235,9 @@ export async function createPost(input: CreatePostInput) {
     recipeId = recipe.id;
   }
 
-  const bodyHtml = renderMarkdown(input.body);
-  const plainText = toPlainText(input.body);
-  const handles = parseMentions(input.body);
+  const bodyHtml = content.html;
+  const plainText = content.plain;
+  const handles = [...content.mentions];
 
   const post = await prisma.post.create({
     data: {
@@ -199,8 +261,7 @@ export async function createPost(input: CreatePostInput) {
             create: input.attachmentUrls.map((file, index) => ({
               url: file.url,
               alt: file.alt,
-              kind: file.kind ?? "image",
-              mimeType: file.mimeType,
+              ...attachmentKind(file),
               width: file.width ?? null,
               height: file.height ?? null,
               thumbnailUrl: file.thumbnailUrl ?? null,
@@ -232,7 +293,7 @@ export async function createPost(input: CreatePostInput) {
         spaceName: space.name,
         authorId: input.userId,
         actorName,
-        title: post.title || plainText.slice(0, 90) || "a new post",
+        title: postLabel(post.title, plainText, "a new post"),
         plainText,
         handles,
       });
@@ -323,6 +384,24 @@ async function publishSideEffects(input: {
 }
 
 /**
+ * Post kinds another module owns end to end, and where they are managed.
+ *
+ * An idea carries other members' votes and may be planned, done or merged; a
+ * Bulletin Board post is written from an item staff approved and is rewritten
+ * whenever that item changes. Editing or deleting either through the generic
+ * post paths would skip those rules (an idea rewritten after people voted for
+ * it, a service card retitled without review), so they are refused here and
+ * done where they live.
+ */
+const MANAGED_POST_HOMES: Record<string, string> = {
+  IDEA: "Ideas & Requests",
+  BULLETIN: "the Bulletin Board",
+};
+
+/** Statuses a moderator put a post into. Only a moderator takes it out. */
+const MODERATED_STATUSES = new Set(["REMOVED", "HIDDEN"]);
+
+/**
  * Editing a post.
  *
  * The body, title and link only. Moving a post between spaces would change who
@@ -344,9 +423,17 @@ export async function updatePost(input: {
   if (!canEditPost(auth, post.authorId, membership)) {
     throw new PermissionError("You cannot edit this post.");
   }
+  const home = MANAGED_POST_HOMES[post.type];
+  if (home) throw new PermissionError(`This post is edited from ${home}.`);
+  if (MODERATED_STATUSES.has(post.status) && !canModerateSpace(auth, membership)) {
+    throw new PermissionError("This post was taken down by a host.");
+  }
 
-  const bodyHtml = renderMarkdown(input.body);
-  const plainText = toPlainText(input.body);
+  checkTitle(input.title);
+  const content = processBody(input.body, { max: POST_BODY_MAX, noun: "post" });
+  const bodyHtml = content.html;
+  const plainText = content.plain;
+  const handles = [...content.mentions];
   const updated = await prisma.post.update({
     where: { id: input.postId },
     data: {
@@ -356,6 +443,11 @@ export async function updatePost(input: {
       plainText,
       linkUrl: input.linkUrl ?? null,
       editedAt: new Date(),
+      // The mention rows follow the text: a name taken out is no longer listed.
+      mentions: {
+        deleteMany: {},
+        create: handles.map((handle) => ({ handle })),
+      },
     },
     select: { id: true, status: true, title: true, spaceId: true },
   });
@@ -365,10 +457,28 @@ export async function updatePost(input: {
       await upsertSearchIndex({
         entityType: "post",
         entityId: updated.id,
-        title: updated.title || plainText.slice(0, 90) || "a post",
+        title: postLabel(updated.title, plainText, "a post"),
         body: plainText,
         spaceId: updated.spaceId,
       }).catch(() => undefined);
+      // Someone named for the first time in an edit hears about it; anyone
+      // already told is not told again (the notification is keyed per post).
+      if (handles.length > 0) {
+        const actor = await prisma.user
+          .findUnique({
+            where: { id: input.userId },
+            select: { name: true, profile: { select: { displayName: true } } },
+          })
+          .catch(() => null);
+        await notifyMentions({
+          handles,
+          actorId: input.userId,
+          actorName: actor?.profile?.displayName ?? actor?.name ?? "A member",
+          spaceName: post.space.name,
+          href: `/posts/${updated.id}`,
+          source: `post:${updated.id}`,
+        }).catch(() => undefined);
+      }
     }
     await writeAuditLog({
       actorId: input.userId,
@@ -387,6 +497,13 @@ export async function updatePost(input: {
  * else's marks it REMOVED instead of destroying it, because moderation needs a
  * record of what was taken down and why, and because reversing a mistake
  * should be possible.
+ *
+ * Two exceptions keep moderation standing. A post a host already took down is
+ * not the author's to destroy: deleting it would erase the record, and for a
+ * Bulletin Board post it would put the item back on the board. And ideas and
+ * Bulletin Board posts are removed where they live (MANAGED_POST_HOMES); a
+ * moderator may still take a Bulletin Board post down, which marks it REMOVED
+ * and takes the item off the board.
  */
 export async function deletePost(input: { userId: string; postId: string }) {
   const { post, membership, auth } = await requirePostAccess(
@@ -395,11 +512,25 @@ export async function deletePost(input: { userId: string; postId: string }) {
     { allowUnpublished: true },
   );
   const isAuthor = post.authorId === input.userId;
-  if (!isAuthor && !canModerateSpace(auth, membership)) {
+  const moderator = canModerateSpace(auth, membership);
+  if (!isAuthor && !moderator) {
     throw new PermissionError("You cannot remove this post.");
   }
+  if (post.type === "IDEA") {
+    throw new PermissionError(`This post is removed from ${MANAGED_POST_HOMES.IDEA}.`);
+  }
+  if (post.type === "BULLETIN" && !moderator) {
+    throw new PermissionError(`This post is removed from ${MANAGED_POST_HOMES.BULLETIN}.`);
+  }
+  if (MODERATED_STATUSES.has(post.status) && !moderator) {
+    // Already down. Nothing changes, and the record stays.
+    return { removed: true };
+  }
 
-  if (isAuthor) {
+  // A Bulletin Board post is only ever marked REMOVED: destroying it would
+  // unlink the item, and an unlinked item is listed (and re-posted) again.
+  const destroy = isAuthor && post.type !== "BULLETIN";
+  if (destroy) {
     await prisma.post.delete({ where: { id: input.postId } });
   } else {
     await prisma.post.update({
@@ -411,7 +542,7 @@ export async function deletePost(input: { userId: string; postId: string }) {
   await afterResponse(async () => {
     await writeAuditLog({
       actorId: input.userId,
-      action: isAuthor ? "post.deleted" : "post.removed",
+      action: destroy ? "post.deleted" : "post.removed",
       targetType: "post",
       targetId: input.postId,
       metadata: { spaceId: post.spaceId, authorId: post.authorId },
@@ -431,6 +562,13 @@ export async function publishPost(input: { userId: string; postId: string }) {
     throw new PermissionError("You cannot publish this post.");
   }
   if (post.status === "PUBLISHED") return { published: true };
+  // Only unsent work goes live from here. A post waiting on a host is theirs
+  // to decide (decideOnPendingPost), and a post a host hid or removed stays
+  // down: publishing it again would undo the moderation and put it back at
+  // the top of the feed.
+  if (post.status !== "DRAFT" && post.status !== "SCHEDULED") {
+    throw new PermissionError("This post cannot be published.");
+  }
 
   const space = await prisma.space.findUniqueOrThrow({
     where: { id: post.spaceId },
@@ -462,9 +600,9 @@ export async function publishPost(input: { userId: string; postId: string }) {
         authorId: updated.authorId,
         actorName:
           updated.author.profile?.displayName ?? updated.author.name ?? "A member",
-        title: updated.title || updated.plainText.slice(0, 90) || "a new post",
+        title: postLabel(updated.title, updated.plainText, "a new post"),
         plainText: updated.plainText,
-        handles: parseMentions(updated.body),
+        handles: richTextMentions(updated.body),
       });
     });
   }
@@ -514,9 +652,9 @@ export async function decideOnPendingPost(input: {
         authorId: updated.authorId,
         actorName:
           updated.author.profile?.displayName ?? updated.author.name ?? "A member",
-        title: updated.title || updated.plainText.slice(0, 90) || "a new post",
+        title: postLabel(updated.title, updated.plainText, "a new post"),
         plainText: updated.plainText,
-        handles: parseMentions(updated.body),
+        handles: richTextMentions(updated.body),
       });
     }
     await notifyApprovalDecision({
@@ -654,6 +792,11 @@ export async function addComment(input: {
   }
   const body = input.body.trim();
   if (!body) throw new PermissionError("Write something first.");
+  const content = processBody(body, { max: COMMENT_BODY_MAX, noun: "comment" });
+  // Markup that renders to nothing (a link to nowhere, an empty image) is not
+  // a comment either.
+  if (!hasVisibleContent(content)) throw new PermissionError("Write something first.");
+  const handles = [...content.mentions];
   await guardCommunityAction("comment", input.userId);
 
   let parentId: string | null = null;
@@ -681,10 +824,10 @@ export async function addComment(input: {
         parentId,
         depth: parentId ? 1 : 0,
         body,
-        bodyHtml: renderMarkdown(body),
-        plainText: toPlainText(body),
+        bodyHtml: content.html,
+        plainText: content.plain,
         mentions: {
-          create: parseMentions(body).map((handle) => ({ handle })),
+          create: handles.map((handle) => ({ handle })),
         },
       },
       include: { author: { include: { profile: true } } },
@@ -698,6 +841,8 @@ export async function addComment(input: {
 
   const actorName =
     comment.author.profile?.displayName ?? comment.author.name ?? "A member";
+  // Straight to the comment, not the top of the post (contract C4's anchor).
+  const commentHref = `/posts/${input.postId}#comment-${comment.id}`;
 
   await afterResponse(async () => {
     await upsertSearchIndex({
@@ -713,15 +858,15 @@ export async function addComment(input: {
       postAuthorId: post.authorId,
       parentAuthorId,
       postTitle: "a post",
-      href: `/posts/${input.postId}`,
+      href: commentHref,
       commentId: comment.id,
     }).catch(() => undefined);
     await notifyMentions({
-      handles: parseMentions(body),
+      handles,
       actorId: input.userId,
       actorName,
       spaceName: post.space.name,
-      href: `/posts/${input.postId}`,
+      href: commentHref,
       source: `comment:${comment.id}`,
     }).catch(() => undefined);
   });
@@ -897,9 +1042,9 @@ export async function publishDuePosts(limit = 50) {
       spaceName: post.space.name,
       authorId: post.authorId,
       actorName: post.author.profile?.displayName ?? post.author.name ?? "A member",
-      title: post.title || post.plainText.slice(0, 90) || "a new post",
+      title: postLabel(post.title, post.plainText, "a new post"),
       plainText: post.plainText,
-      handles: parseMentions(post.body),
+      handles: richTextMentions(post.body),
     }).catch(() => undefined);
   }
   return { published, considered: due.length };

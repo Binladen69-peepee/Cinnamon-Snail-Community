@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Loader2, RotateCw } from "lucide-react";
 import { Button } from "@/components/app/ui";
 import { PostCard } from "@/components/feed/post-card";
@@ -15,69 +15,98 @@ import {
  * The feed, and the rest of the feed.
  *
  * The first page arrives with the document, server-rendered, so the feed is
- * readable and shareable before any JavaScript runs. This component only adds
- * what comes after: it watches a sentinel below the last post and asks for the
- * next page when it approaches.
+ * readable before any JavaScript runs. This component adds what comes after:
+ * it watches a sentinel below the last post and asks for the next page when it
+ * approaches, with a real button underneath for when the observer cannot fire.
  *
- * Three things keep that honest.
- *
- * A request in flight blocks another, so a fast scroll cannot fire six
- * overlapping fetches for the same cursor. Ids already on screen are skipped,
- * so a post that moved between pages is not rendered twice. And there is a
- * real button underneath, because an observer that never fires — no
- * JavaScript, a browser that does not support it, a reader using the keyboard
- * — must not be the only way to reach the second page.
+ * The first page always comes from the props. It used to be copied into state
+ * once, so when the server re-rendered — after the member posted, say — the
+ * new page was ignored: the post they had just written did not appear, and
+ * every card kept the data it had on arrival. Pages loaded by scrolling are
+ * kept separately and appended, and anything already on screen (including
+ * the pinned section above, via `alsoShown`) is never drawn twice.
  *
  * Changing the sort is a different feed rather than more of this one, so the
- * caller gives this component a key that includes the sort. Remounting resets
- * the accumulated pages; synchronising them back to the props in an effect
- * would render the old feed once before correcting itself.
+ * caller gives this component a key that includes the sort.
  */
 export function FeedStream({
   initialPosts,
   initialCursor,
   sort,
   spaceSlug,
+  kind,
   viewer,
   density,
   canPin,
   emptyState,
+  alsoShown,
 }: {
   initialPosts: FeedCardPost[];
   initialCursor: string | null;
   sort: string;
+  /** Only for a single room's feed; the Kitchen Table sends none. */
   spaceSlug?: string;
+  kind?: "video";
   viewer: { name: string; avatar: string | null; handle: string };
   density: Density;
   canPin: boolean;
   emptyState: React.ReactNode;
+  /** Ids already on the page above this stream (pins, announcements). */
+  alsoShown?: string[];
 }) {
-  const [posts, setPosts] = useState<RevivedFeedCard[]>(() =>
-    initialPosts.map(reviveFeedCard),
-  );
-  const [cursor, setCursor] = useState(initialCursor);
+  const first = useMemo(() => initialPosts.map(reviveFeedCard), [initialPosts]);
+  const [extra, setExtra] = useState<RevivedFeedCard[]>([]);
+  const [cursor, setCursor] = useState<string | null>(initialCursor);
+  const [paged, setPaged] = useState(false);
   const [loading, setLoading] = useState(false);
   const [failed, setFailed] = useState(false);
-  const seen = useRef(new Set(initialPosts.map((post) => post.id)));
   const sentinel = useRef<HTMLDivElement>(null);
 
+  // When the server sends a new first page after the reader has scrolled, a
+  // post that slid off the end of it would otherwise fall between the new
+  // first page and the pages already loaded. Keep it, after the new page.
+  const [retained, setRetained] = useState<RevivedFeedCard[]>([]);
+  const [lastFirst, setLastFirst] = useState(first);
+  if (lastFirst !== first) {
+    const nowFirst = new Set(first.map((post) => post.id));
+    const dropped = lastFirst.filter((post) => !nowFirst.has(post.id));
+    setRetained((current) => [
+      ...dropped,
+      ...current.filter((post) => !nowFirst.has(post.id) && !dropped.some((d) => d.id === post.id)),
+    ]);
+    setLastFirst(first);
+  }
+
+  const posts = useMemo(() => {
+    const seen = new Set(alsoShown ?? []);
+    const out: RevivedFeedCard[] = [];
+    for (const post of [...first, ...(paged ? retained : []), ...extra]) {
+      if (seen.has(post.id)) continue;
+      seen.add(post.id);
+      out.push(post);
+    }
+    return out;
+  }, [first, retained, extra, paged, alsoShown]);
+
+  const nextCursor = paged ? cursor : initialCursor;
+
   const loadMore = useCallback(async () => {
-    if (loading || !cursor) return;
+    if (loading || !nextCursor) return;
     setLoading(true);
     setFailed(false);
     try {
-      const params = new URLSearchParams({ sort, cursor });
+      const params = new URLSearchParams({ sort, cursor: nextCursor });
       if (spaceSlug) params.set("space", spaceSlug);
+      if (kind) params.set("kind", kind);
       const response = await fetch(`/api/community/feed?${params}`);
       if (!response.ok) throw new Error(String(response.status));
       const data = (await response.json()) as {
         posts: FeedCardPost[];
         nextCursor: string | null;
       };
-      const fresh = data.posts.filter((post) => !seen.current.has(post.id));
-      for (const post of fresh) seen.current.add(post.id);
-      setPosts((current) => [...current, ...fresh.map(reviveFeedCard)]);
+      setExtra((current) => [...current, ...data.posts.map(reviveFeedCard)]);
       setCursor(data.nextCursor);
+      setPaged(true);
     } catch {
       // Keep the cursor: the reader can press the button to try the same page
       // again rather than losing their place in the feed.
@@ -85,11 +114,11 @@ export function FeedStream({
     } finally {
       setLoading(false);
     }
-  }, [cursor, loading, sort, spaceSlug]);
+  }, [kind, loading, nextCursor, sort, spaceSlug]);
 
   useEffect(() => {
     const node = sentinel.current;
-    if (!node || !cursor) return;
+    if (!node || !nextCursor || failed) return;
     const observer = new IntersectionObserver(
       (entries) => {
         if (entries.some((entry) => entry.isIntersecting)) void loadMore();
@@ -100,9 +129,9 @@ export function FeedStream({
     );
     observer.observe(node);
     return () => observer.disconnect();
-  }, [cursor, loadMore]);
+  }, [failed, loadMore, nextCursor]);
 
-  if (posts.length === 0) return <>{emptyState}</>;
+  if (posts.length === 0 && !nextCursor) return <>{emptyState}</>;
 
   return (
     <div className="space-y-3">
@@ -134,15 +163,13 @@ export function FeedStream({
               Try again
             </Button>
           </div>
-        ) : cursor ? (
+        ) : nextCursor ? (
           <Button size="sm" onClick={() => void loadMore()}>
             Load more posts
           </Button>
-        ) : (
-          <p className="text-caption text-foreground-muted">
-            That is everything for now.
-          </p>
-        )}
+        ) : posts.length > 0 ? (
+          <p className="text-caption text-foreground-muted">That is everything for now.</p>
+        ) : null}
       </div>
     </div>
   );

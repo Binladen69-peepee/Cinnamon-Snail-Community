@@ -17,7 +17,7 @@ import { HappeningsTab } from "@/components/bulletin/happenings-tab";
 import { ServicesTab } from "@/components/bulletin/services-tab";
 import { PlacesTab } from "@/components/bulletin/places-tab";
 
-export const metadata = { title: "Bulletin board" };
+export const metadata = { title: "Bulletin Board" };
 
 const TABS: { tab: BulletinTab; label: string; icon: LucideIcon }[] = [
   { tab: "happenings", label: "Happenings", icon: CalendarDays },
@@ -26,21 +26,26 @@ const TABS: { tab: BulletinTab; label: string; icon: LucideIcon }[] = [
 ];
 
 const NOTICES: Record<string, string> = {
-  hosted: "Your gathering is on the board.",
+  hosted: "Your gathering is on the board, and posted in the Kitchen Table.",
   going: "You’re on the guest list.",
   requested: "Request sent. The host will let you know.",
-  canceled: "Called off. Guests have been told.",
+  canceled: "Called off. Guests have been told, and its Kitchen Table post now says so.",
   card: "Sent for review. It appears once staff approve it.",
+  removed: "Your card is off the board.",
   place: "Thanks. It is added once staff have checked it.",
   testimonial: "Thanks for sharing.",
 };
 
 /**
- * The local bulletin board — BUILD.md §19.
+ * The Bulletin Board — BUILD.md §19, under Community.
  *
  * Three tabs as links, because the tab is server state: it decides which
  * query runs, survives a reload, and can be sent to someone. Each tab's rules
  * live in `lib/bulletin`; each tab's markup in `components/bulletin`.
+ *
+ * Every live item is also a post in the Kitchen Table (DEC-078). The board
+ * shows that post's reactions and comments under the item, and each item
+ * links to its post, as the post links back here.
  */
 export default async function BulletinPage({
   searchParams,
@@ -57,6 +62,10 @@ export default async function BulletinPage({
   const session = await auth();
   if (!session?.user.id) redirect("/login?callbackUrl=/bulletin");
   const viewerId = session.user.id;
+  const viewer = {
+    name: session.user.name || session.user.handle,
+    avatar: session.user.image ?? null,
+  };
 
   const params = await searchParams;
   const tab = parseTab(params.tab);
@@ -100,10 +109,10 @@ export default async function BulletinPage({
     <AppShell>
       <div className="flex flex-col gap-6">
         <PageHeader
-          title="Bulletin board"
-          description="Gatherings, skills and vegan places from members near you. Only your city is ever shown."
+          title="Bulletin Board"
+          description="Gatherings, skills and vegan places from members near you. Only your city is ever shown, and each one is also a Kitchen Table post with the same comments."
         >
-          <TabBar label="Bulletin sections">
+          <TabBar label="Bulletin Board sections">
             {TABS.map(({ tab: value, label, icon: Icon }) => (
               <TabLink
                 key={value}
@@ -140,7 +149,13 @@ export default async function BulletinPage({
             }
           />
         ) : loaded.tab === "happenings" ? (
-          <HappeningsTab happenings={loaded.data} kind={kind} viewerZone={viewerZone} defaults={defaults} />
+          <HappeningsTab
+            happenings={loaded.data}
+            kind={kind}
+            viewerZone={viewerZone}
+            defaults={defaults}
+            viewer={viewer}
+          />
         ) : loaded.tab === "services" ? (
           <ServicesTab
             cards={loaded.data.cards}
@@ -148,6 +163,7 @@ export default async function BulletinPage({
             q={q}
             category={category}
             defaultCity={defaults.city}
+            viewer={viewer}
           />
         ) : (
           <PlacesTab
@@ -156,6 +172,7 @@ export default async function BulletinPage({
             q={q}
             category={category}
             defaults={defaults}
+            viewer={viewer}
           />
         )}
       </div>

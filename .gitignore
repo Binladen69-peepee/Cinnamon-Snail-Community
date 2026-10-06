@@ -58,3 +58,4 @@ next-env.d.ts
 
 # Local QA scripts and screenshots.
 .scratch/
+scripts/.bunny-migration.json

@@ -1,8 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ExternalLink, Lightbulb } from "lucide-react";
-import { courseCategories, getAdminCourse } from "@/lib/admin/courses";
+import { getAdminCourse } from "@/lib/admin/courses";
+import {
+  courseShelfPlaces,
+  listCategoriesForAdmin,
+} from "@/lib/learn/categories";
 import { CourseDetailsForm } from "@/components/admin/course-details-form";
+import { CourseCategoriesField } from "@/app/admin/courses/_components/course-categories-field";
 import { CourseThumbnail } from "@/components/admin/course-thumbnail";
 import { CurriculumEditor } from "@/components/admin/curriculum-editor";
 import { PublishButtons } from "@/components/admin/publish-button";
@@ -17,6 +22,7 @@ import {
 } from "@/components/app/ui";
 import { IMAGE_MAX_BYTES } from "@/lib/uploads/policy";
 import { uploadsConfigured } from "@/lib/uploads/storage";
+import { bunnyConfig, unsignedEmbedsAllowed } from "@/lib/bunny/stream";
 import { classHref } from "@/lib/learn/classes";
 
 export async function generateMetadata({
@@ -32,14 +38,16 @@ export async function generateMetadata({
 /**
  * The course editor.
  *
- * Two columns: the course's own fields, its curriculum, its shared files and
- * its pricing on the left; the thumbnail and help in the rail. The rail joins
- * at xl rather than lg, because beside it at lg the curriculum rows would have
- * no room for their titles.
+ * Two columns: the course's own fields, the library categories it sits on, its
+ * curriculum, its shared files and its pricing on the left; the thumbnail and
+ * help in the rail. The rail joins at xl rather than lg, because beside it at
+ * lg the curriculum rows would have no room for their titles.
  *
- * Pricing is the one panel that still describes rather than edits. Money is
- * SamCart's — DEC-001 makes it the source of truth — so the panel points there
- * instead of offering to create a plan this app could not honour.
+ * Categories are links to library shelves (DEC-078), several per class; the
+ * old single `Course.category` is not read here. Pricing is the one panel that
+ * still describes rather than edits. Money is SamCart's — DEC-001 makes it the
+ * source of truth — so the panel points there instead of offering to create a
+ * plan this app could not honour.
  */
 export default async function EditCoursePage({
   params,
@@ -49,11 +57,22 @@ export default async function EditCoursePage({
   const { slug } = await params;
   const [course, categories] = await Promise.all([
     getAdminCourse(slug),
-    courseCategories(),
+    listCategoriesForAdmin(),
   ]);
   if (!course) notFound();
 
+  const places = await courseShelfPlaces(course.id);
+  const onShelves = categories.filter((category) =>
+    places.some((place) => place.categoryId === category.id),
+  );
   const uploadsEnabled = uploadsConfigured();
+  // What the lesson video field can do here (DEC-081). Only booleans cross to
+  // the browser; the keys stay on the server.
+  const bunnySettings = bunnyConfig();
+  const bunny = {
+    configured: Boolean(bunnySettings),
+    signed: Boolean(bunnySettings?.tokenKey) || unsignedEmbedsAllowed(),
+  };
 
   return (
     <div className="flex flex-col gap-6">
@@ -64,7 +83,11 @@ export default async function EditCoursePage({
         description={
           <span className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
             <StatusBadge published={course.published} />
-            {course.category ? <span>{course.category}</span> : null}
+            {onShelves.length > 0 ? (
+              <span>{onShelves.map((category) => category.name).join(" · ")}</span>
+            ) : (
+              <span>On no shelf yet</span>
+            )}
             {course.published ? (
               <Link
                 href={classHref(course.slug)}
@@ -87,17 +110,33 @@ export default async function EditCoursePage({
 
       <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex min-w-0 flex-col gap-6">
+          {/* Only the four fields the form edits cross to the browser. */}
           <CourseDetailsForm
             slug={course.slug}
-            course={course}
-            categories={categories}
-            spaces={course.spaces}
+            course={{
+              title: course.title,
+              description: course.description,
+              instructorName: course.instructorName,
+              teaserVideoUrl: course.teaserVideoUrl,
+            }}
+          />
+
+          <CourseCategoriesField
+            slug={course.slug}
+            options={categories.map(({ id, slug: categorySlug, name, classCount }) => ({
+              id,
+              slug: categorySlug,
+              name,
+              classCount,
+            }))}
+            places={places}
           />
 
           <CurriculumEditor
             slug={course.slug}
             sections={course.sections}
             uploadsEnabled={uploadsEnabled}
+            bunny={bunny}
           />
 
           <Card padding="none">
@@ -156,7 +195,7 @@ export default async function EditCoursePage({
           <Card padding="none" className="divide-y divide-separator self-start">
             <HelpBlock
               title="How members find this class"
-              body="Published courses appear in the class library and in search, filtered by their category."
+              body="A published class appears on every category shelf it sits on in the class library, and in search."
               href="/learn"
               cta="See the library"
             />

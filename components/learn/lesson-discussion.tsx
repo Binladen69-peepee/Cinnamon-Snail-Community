@@ -1,26 +1,23 @@
 "use client";
 
-import Link from "next/link";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import {
-  ExternalLink,
-  Loader2,
-  MessageSquare,
-  MessagesSquare,
-} from "lucide-react";
+import { Loader2, MessageSquare, MessagesSquare } from "lucide-react";
 import { CommentPanel } from "@/components/feed/comment-panel";
 import { startLessonDiscussionAction } from "@/app/(member)/learn/lesson-actions";
 import { Button, Card, EmptyState, SectionHeader } from "@/components/app/ui";
 
 /**
- * Talking about a lesson.
+ * Questions about a lesson, on the lesson.
  *
- * The thread is a real post in a real space, so this is the feed's own comment
- * panel pointed at it — the same composer, the same sorting, the same
- * moderation and the same notifications. Nothing about commenting is
- * reimplemented here; what is here is the first click, which is what brings
- * the thread into existence.
+ * The thread is a real post, so this is the feed's own comment panel pointed at
+ * it — the same composer, the same sorting, the same moderation and the same
+ * notifications. Nothing about commenting is reimplemented here; what is here
+ * is the first click, which is what brings the thread into existence.
+ *
+ * It is the lesson's comments and nothing more: there is no link out to a
+ * course room or feed. Classes are a library, not a forum (DEC-078), so the
+ * conversation about a lesson is read where the lesson is.
  *
  * The panel draws a rule above itself, for when it sits under a post. Here it
  * is the first thing in its card, so that rule is taken off from outside.
@@ -29,18 +26,14 @@ export function LessonDiscussion({
   lessonId,
   discussion,
   viewer,
-  spaceHref,
 }: {
   lessonId: string;
   /** Null until somebody starts it. */
-  discussion: { postId: string; spaceSlug: string } | null;
+  discussion: { postId: string } | null;
   viewer: { name: string; avatar: string | null };
-  /** Where the wider conversation lives, when there is one. */
-  spaceHref: string | null;
 }) {
   const router = useRouter();
   const [postId, setPostId] = useState(discussion?.postId ?? null);
-  const [spaceSlug, setSpaceSlug] = useState(discussion?.spaceSlug ?? null);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -50,7 +43,6 @@ export function LessonDiscussion({
       const result = await startLessonDiscussionAction(lessonId);
       if (result.ok) {
         setPostId(result.postId);
-        setSpaceSlug(result.spaceSlug);
         router.refresh();
       } else {
         setError(result.error);
@@ -59,20 +51,9 @@ export function LessonDiscussion({
   }
 
   return (
-    <section className="flex flex-col gap-3">
+    <section className="flex flex-col gap-3" aria-labelledby={`lesson-questions-${lessonId}`}>
       <SectionHeader
-        title="Questions about this lesson"
-        action={
-          spaceSlug ? (
-            <Link
-              href={`/spaces/${spaceSlug}`}
-              className="inline-flex items-center gap-1 text-label font-medium text-brand-strong no-underline hover:underline"
-            >
-              See the whole room
-              <ExternalLink className="size-3.5" aria-hidden />
-            </Link>
-          ) : undefined
-        }
+        title={<span id={`lesson-questions-${lessonId}`}>Questions about this lesson</span>}
       />
 
       {postId ? (
@@ -91,39 +72,27 @@ export function LessonDiscussion({
             icon={<MessagesSquare />}
             title="Nobody has asked anything here yet."
             description={
-              spaceHref || error ? (
-                <>
-                  {spaceHref ? (
-                    <>
-                      It will appear in{" "}
-                      <Link
-                        href={spaceHref}
-                        className="font-semibold text-link underline"
-                      >
-                        the course room
-                      </Link>{" "}
-                      too, so the people who can answer see it.
-                    </>
-                  ) : null}
-                  {error ? (
-                    <span
-                      role="alert"
-                      className="mt-1.5 block font-medium text-danger"
-                    >
-                      {error}
-                    </span>
-                  ) : null}
-                </>
-              ) : undefined
+              <>
+                Stuck on a step, or swapped an ingredient? Ask here and the
+                answer stays with this lesson for the next person.
+                {error ? (
+                  <span
+                    role="alert"
+                    className="mt-1.5 block font-medium text-danger"
+                  >
+                    {error}
+                  </span>
+                ) : null}
+              </>
             }
             action={
-              <Button variant="primary" onClick={start} disabled={pending}>
+              <Button variant="primary" onClick={start} disabled={pending} aria-busy={pending || undefined}>
                 {pending ? (
                   <Loader2 className="size-4 animate-spin" aria-hidden />
                 ) : (
                   <MessageSquare className="size-4" aria-hidden />
                 )}
-                Start the discussion
+                Ask a question
               </Button>
             }
           />

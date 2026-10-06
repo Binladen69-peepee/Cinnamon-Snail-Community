@@ -9,44 +9,34 @@ import {
   CardHeader,
   Field,
   Input,
-  Select,
   Textarea,
   cardClass,
 } from "@/components/app/ui";
 
 /**
- * The course's own fields.
+ * The course's own fields: what it is called, what it is, who teaches it and
+ * its public teaser.
  *
- * Every column here already existed on `Course` and no screen could set any of
- * them, so a course created in the app had no description, no category and no
- * instructor — which put it under no heading in the library and gave its card
- * nothing to say. The slug is deliberately absent: it is the course's address,
- * and quietly changing it breaks every link anyone has saved.
+ * Where it sits in the library is not here any more. A class can be on several
+ * shelves now (DEC-078), so its categories are their own card below this one,
+ * and its order on each shelf is that shelf's page. The old single category,
+ * the two position numbers and the "discussion room" picker went with that:
+ * a class is a library item, and its lessons carry their own questions.
  *
- * It is a card with its title across the top rather than a two-column
- * `FormSection`: beside the editor's rail, a label column would leave the
- * fields a third of the width they need.
+ * The slug is deliberately absent: it is the course's address, and quietly
+ * changing it breaks every link anyone has saved.
  */
 export function CourseDetailsForm({
   slug,
   course,
-  categories,
-  spaces,
 }: {
   slug: string;
   course: {
     title: string;
     description: string | null;
-    category: string | null;
     instructorName: string | null;
     teaserVideoUrl: string | null;
-    catalogOrder: number;
-    categoryOrder: number;
-    spaceId: string | null;
   };
-  /** Categories already in use, so the catalog does not grow near-duplicates. */
-  categories: string[];
-  spaces: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -100,26 +90,6 @@ export function CourseDetailsForm({
         </Field>
 
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4">
-          <Field
-            label="Category"
-            htmlFor="course-category"
-            hint="The shelf it sits on in the library."
-            className="min-w-0"
-          >
-            <Input
-              id="course-category"
-              name="category"
-              list="course-categories"
-              defaultValue={course.category ?? ""}
-              maxLength={80}
-            />
-            <datalist id="course-categories">
-              {categories.map((category) => (
-                <option key={category} value={category} />
-              ))}
-            </datalist>
-          </Field>
-
           <Field label="Instructor" htmlFor="course-instructor" className="min-w-0">
             <Input
               id="course-instructor"
@@ -128,69 +98,19 @@ export function CourseDetailsForm({
               maxLength={120}
             />
           </Field>
-        </div>
 
-        <Field
-          label="Teaser video"
-          htmlFor="course-teaser"
-          hint="A public trailer, shown before anyone joins. YouTube links become a privacy-preserving embed."
-        >
-          <Input
-            id="course-teaser"
-            name="teaserVideoUrl"
-            type="url"
-            defaultValue={course.teaserVideoUrl ?? ""}
-            placeholder="https://youtube.com/watch?v=…"
-          />
-        </Field>
-
-        <Field
-          label="Discussion room"
-          htmlFor="course-space"
-          hint="Where this class is talked about. Left unset, members land in the general course room."
-        >
-          <Select
-            id="course-space"
-            name="spaceId"
-            defaultValue={course.spaceId ?? ""}
-          >
-            <option value="">No room of its own</option>
-            {spaces.map((space) => (
-              <option key={space.id} value={space.id}>
-                {space.name}
-              </option>
-            ))}
-          </Select>
-        </Field>
-
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 sm:gap-4">
           <Field
-            label="Shelf position"
-            htmlFor="course-catalog-order"
-            hint="Lower sorts first within its category."
+            label="Teaser video"
+            htmlFor="course-teaser"
+            hint="A public trailer. YouTube links become a privacy-preserving embed."
             className="min-w-0"
           >
             <Input
-              id="course-catalog-order"
-              name="catalogOrder"
-              type="number"
-              defaultValue={course.catalogOrder}
-              className="max-w-36 tabular-nums"
-            />
-          </Field>
-
-          <Field
-            label="Category position"
-            htmlFor="course-category-order"
-            hint="Lower puts the whole shelf higher up the library."
-            className="min-w-0"
-          >
-            <Input
-              id="course-category-order"
-              name="categoryOrder"
-              type="number"
-              defaultValue={course.categoryOrder}
-              className="max-w-36 tabular-nums"
+              id="course-teaser"
+              name="teaserVideoUrl"
+              type="url"
+              defaultValue={course.teaserVideoUrl ?? ""}
+              placeholder="https://youtube.com/watch?v=…"
             />
           </Field>
         </div>

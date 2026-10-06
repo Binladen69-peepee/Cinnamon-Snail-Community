@@ -157,10 +157,38 @@ describe("route protection", () => {
   it("sends a signed-in visitor away from them anyway", () => {
     for (const page of [
       "app/(auth)/register/page.tsx",
+      "app/(auth)/login/page.tsx",
       "app/(auth)/forgot-password/page.tsx",
       "app/(auth)/reset-password/page.tsx",
     ]) {
       expect(read(page), page).toContain("redirect(");
+    }
+  });
+
+  it("sends them only to a page on this site, the Kitchen Table by default", () => {
+    // A bare `startsWith("/")` let `//elsewhere.example` through as a
+    // destination. tests/auth-redirects.test.ts exercises the rule itself.
+    for (const file of [
+      "app/(auth)/register/page.tsx",
+      "app/(auth)/register/actions.ts",
+      "app/(auth)/login/page.tsx",
+      "app/(auth)/login/actions.ts",
+    ]) {
+      const source = read(file);
+      expect(source, file).toContain("safeCallbackUrl(");
+      expect(source, file).not.toMatch(/startsWith\("\/"\)/);
+    }
+    for (const file of [
+      "app/(auth)/register/page.tsx",
+      "app/(auth)/register/actions.ts",
+      "app/(auth)/register/register-form.tsx",
+      "app/(auth)/login/page.tsx",
+      "app/(auth)/login/actions.ts",
+      "app/(auth)/login/login-form.tsx",
+      "app/(auth)/reset-password/actions.ts",
+      "app/api/auth/magic/route.ts",
+    ]) {
+      expect(read(file), file).not.toContain('"/home"');
     }
   });
 });

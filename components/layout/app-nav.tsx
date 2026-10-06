@@ -33,7 +33,7 @@ const signedOutLinks = [
 export async function AppNav() {
   const session = await auth().catch(() => null);
   const signedIn = Boolean(session?.sessionId);
-  const homeHref = signedIn ? "/home" : "/";
+  const homeHref = signedIn ? "/kitchen-table" : "/";
 
   let unread = 0;
   if (signedIn && session?.user.id && process.env.DATABASE_URL) {

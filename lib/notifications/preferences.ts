@@ -43,14 +43,19 @@ export const PREF_ROWS: {
   },
   { category: "DMS", label: "Messages", hint: "A direct message arrives" },
   {
+    // The enum keeps its old name; members no longer see spaces (DEC-078).
+    // What it carries now: crew chat activity, community posts from rooms the
+    // member follows, new followers and badges earned.
     category: "SPACE_ACTIVITY",
-    label: "Space activity",
-    hint: "New posts in the spaces you have joined",
+    label: "Group activity",
+    hint: "Your crew chats, new community posts, new followers and badges",
   },
   {
+    // Live classes (DEC-079), and the Bulletin Board gatherings that share
+    // the category, so switching it off is never a surprise.
     category: "EVENTS",
-    label: "Event reminders",
-    hint: "A cook-along you said you would attend is starting",
+    label: "Live class reminders",
+    hint: "Live classes you’re going to, and Bulletin Board gatherings you host or join",
   },
   {
     category: "HOST_ANNOUNCEMENTS",

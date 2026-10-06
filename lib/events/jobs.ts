@@ -2,9 +2,11 @@ import "server-only";
 import type { EventReminderKind } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { createNotification } from "@/lib/notifications/create";
-import { formatEventTime, safeTimeZone } from "@/lib/events/timezone";
+import { safeTimeZone } from "@/lib/events/timezone";
 import { MAX_OCCURRENCES, occurrencesAfter } from "@/lib/events/recurrence";
 import { uniqueEventSlug } from "@/lib/events/slug";
+import { describeClassTime, memberTimeZones } from "@/lib/events/notify";
+import { liveClassHref } from "@/lib/events/paths";
 
 /**
  * The two things that have to happen on a timer.
@@ -97,6 +99,11 @@ export async function sendEventReminders(now = new Date()): Promise<ReminderResu
       const pending = attendees.filter((row) => !told.has(row.userId));
       if (pending.length === 0) continue;
 
+      // Each member reads the time on their own clock.
+      const zones = await memberTimeZones(pending.map((row) => row.userId)).catch(
+        () => new Map<string, string>(),
+      );
+
       for (const attendee of pending) {
         // The claim comes first. If two runs overlap, one of them loses here
         // and does not send — rather than both sending and then both
@@ -120,9 +127,11 @@ export async function sendEventReminders(now = new Date()): Promise<ReminderResu
             kind === "T24H"
               ? `Tomorrow: ${event.title}`
               : `Starting soon: ${event.title}`,
-          body: reminderBody(event, kind),
-          href: `/calendar/${event.slug}`,
-          dedupeKey: `event-reminder:${event.id}:${kind}`,
+          body: reminderBody(event, kind, zones.get(attendee.userId) ?? event.timezone),
+          href: liveClassHref(event.slug),
+          // Keyed by the start as well, so a class that moves is reminded
+          // about again at its new time rather than taken for a repeat.
+          dedupeKey: `event-reminder:${event.id}:${kind}:${event.startsAt.toISOString()}`,
         }).catch(() => null);
 
         if (notified) sent += 1;
@@ -134,7 +143,12 @@ export async function sendEventReminders(now = new Date()): Promise<ReminderResu
   return { sent, skipped, events: touched.size };
 }
 
-function reminderBody(
+/**
+ * What a reminder says. The Zoom link itself is never in it: a notification is
+ * emailed and pushed, and the link belongs on the class page, behind the
+ * check of who may join.
+ */
+export function reminderBody(
   event: {
     startsAt: Date;
     timezone: string;
@@ -142,15 +156,18 @@ function reminderBody(
     location: string | null;
   },
   kind: EventReminderKind,
+  viewerTimeZone: string = event.timezone,
 ): string {
-  const when = formatEventTime(event.startsAt, safeTimeZone(event.timezone));
+  const when = describeClassTime(event.startsAt, safeTimeZone(viewerTimeZone));
   const where = event.zoomUrl
-    ? "The joining link is on the event page."
+    ? kind === "T24H"
+      ? "The Zoom link appears on the class page 30 minutes before the start."
+      : "Join on Zoom from the class page."
     : event.location
       ? event.location
       : "";
   return [
-    kind === "T24H" ? `${when}.` : `${when} — that is within the hour.`,
+    kind === "T24H" ? `${when}.` : `${when}, within the hour.`,
     where,
   ]
     .filter(Boolean)

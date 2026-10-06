@@ -54,15 +54,22 @@ async function Inbox({ viewerId }: { viewerId: string }) {
   const rows: InboxRow[] = conversations.map((conversation) => {
     const last = conversation.lastMessage;
     const mine = last?.author.id === viewerId;
+    // In a group the preview says who spoke, by first name as people say it.
+    const speaker = last
+      ? (last.author.profile?.displayName ?? last.author.handle).trim().split(/\s+/)[0]
+      : "";
     const preview = last
-      ? `${mine ? "You: " : conversation.isGroup ? `${last.author.handle}: ` : ""}${
+      ? `${mine ? "You: " : conversation.kind !== "direct" ? `${speaker}: ` : ""}${
           last.body || "Shared an image"
         }`
-      : "No messages yet";
+      : conversation.kind === "crew"
+        ? "Crew chat · no messages yet"
+        : "No messages yet";
     return {
       id: conversation.id,
       title: conversation.title,
       isGroup: conversation.isGroup,
+      isCrew: conversation.kind === "crew",
       others: conversation.others.map((other) => ({
         handle: other.handle,
         name: other.name,

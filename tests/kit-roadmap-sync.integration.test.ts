@@ -2,7 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { PrismaClient } from "@prisma/client";
 import { queueRoadmapKitSync, syncRoadmapToKit } from "@/lib/roadmap/kit-sync";
 import { KitApiError, type KitClient, type KitSubscriber } from "@/lib/roadmap/kit-client";
-import { leaveRoadmap, restartTrack, setPaused, startTrack } from "@/lib/roadmap";
+import { leaveRoadmap, restartTrack, setPace, setPaused, startTrack } from "@/lib/roadmap";
 
 /**
  * The roadmap → Kit sync against the database: real tracks, real roadmaps,
@@ -146,7 +146,7 @@ async function settle(milestoneId: string, how: "done" | "skipped") {
 describe("roadmap → Kit", () => {
   it("syncs fields and the track tag once, and nothing on a repeat", async ({ skip }) => {
     if (!reachable) skip();
-    await startTrack(userId, trackA, "weekly");
+    await startTrack(userId, trackA);
     await queueRoadmapKitSync(userId, { syncNow: false });
     const kit = fakeKit();
 
@@ -169,9 +169,31 @@ describe("roadmap → Kit", () => {
     expect((await prisma.kitRoadmapSync.findUniqueOrThrow({ where: { userId } })).status).toBe("SYNCED");
   });
 
+  it("keeps syncing track, step and status through a pace change, which Kit does not hear about yet", async ({ skip }) => {
+    if (!reachable) skip();
+    await startTrack(userId, trackA);
+    await queueRoadmapKitSync(userId, { syncNow: false });
+    const kit = fakeKit();
+    await sync(kit.client);
+
+    // DEC-080: the pace is the member's and nothing about it reaches Kit until
+    // the roadmap emails are built, so a pace change leaves Kit exactly as it was.
+    await setPace(userId, 3);
+    kit.calls.length = 0;
+    await queueRoadmapKitSync(userId, { syncNow: false });
+    expect((await sync(kit.client)).unchanged).toBe(1);
+    expect(kit.writes()).toHaveLength(0);
+
+    // Progress after it still goes over as before.
+    await settle(milestonesA[0]!, "done");
+    await queueRoadmapKitSync(userId, { syncNow: false });
+    await sync(kit.client);
+    expect(kit.fields).toMatchObject({ vu_roadmap_step: "2 of 2", vu_roadmap_completed: "1" });
+  });
+
   it("follows progress, pause, completion and restart — and keeps the completion tag", async ({ skip }) => {
     if (!reachable) skip();
-    await startTrack(userId, trackA, "weekly");
+    await startTrack(userId, trackA);
     const kit = fakeKit();
     await queueRoadmapKitSync(userId, { syncNow: false });
     await sync(kit.client);
@@ -203,12 +225,12 @@ describe("roadmap → Kit", () => {
 
   it("moves the track tag on a switch and clears on leaving", async ({ skip }) => {
     if (!reachable) skip();
-    await startTrack(userId, trackA, "weekly");
+    await startTrack(userId, trackA);
     const kit = fakeKit();
     await queueRoadmapKitSync(userId, { syncNow: false });
     await sync(kit.client);
 
-    await startTrack(userId, trackB, "monthly");
+    await startTrack(userId, trackB, { weeksPerTopic: 4 });
     await queueRoadmapKitSync(userId, { syncNow: false });
     await sync(kit.client);
     expect([...kit.tags].sort()).toEqual(["2001"]);
@@ -223,7 +245,7 @@ describe("roadmap → Kit", () => {
 
   it("never touches someone who unsubscribed or never subscribed", async ({ skip }) => {
     if (!reachable) skip();
-    await startTrack(userId, trackA, "weekly");
+    await startTrack(userId, trackA);
     for (const kit of [fakeKit({ state: "cancelled" }), fakeKit({ known: false })]) {
       await queueRoadmapKitSync(userId, { syncNow: false });
       const report = await sync(kit.client);
@@ -239,7 +261,7 @@ describe("roadmap → Kit", () => {
 
   it("retries after a Kit outage without repeating what already landed", async ({ skip }) => {
     if (!reachable) skip();
-    await startTrack(userId, trackA, "weekly");
+    await startTrack(userId, trackA);
     await queueRoadmapKitSync(userId, { syncNow: false });
 
     const now = new Date();
@@ -261,7 +283,7 @@ describe("roadmap → Kit", () => {
 
   it("stops at once on a permanent refusal", async ({ skip }) => {
     if (!reachable) skip();
-    await startTrack(userId, trackA, "weekly");
+    await startTrack(userId, trackA);
     await queueRoadmapKitSync(userId, { syncNow: false });
     const report = await sync(fakeKit({ failOn: "update", failStatus: 401 }).client);
     expect(report.failed).toBe(1);
@@ -270,7 +292,7 @@ describe("roadmap → Kit", () => {
 
   it("lets only one of two racing workers sync", async ({ skip }) => {
     if (!reachable) skip();
-    await startTrack(userId, trackA, "weekly");
+    await startTrack(userId, trackA);
     await queueRoadmapKitSync(userId, { syncNow: false });
     const kit = fakeKit();
     const [a, b] = await Promise.all([sync(kit.client), sync(kit.client)]);
@@ -284,7 +306,7 @@ describe("roadmap → Kit", () => {
     process.env.KIT_API_KEY = "";
     process.env.KIT_API_SECRET = "";
     try {
-      await startTrack(userId, trackA, "weekly");
+      await startTrack(userId, trackA);
       await queueRoadmapKitSync(userId, { syncNow: false });
       const report = await syncRoadmapToKit({ userIds: [userId] });
       expect(report.skipped).toBe(1);

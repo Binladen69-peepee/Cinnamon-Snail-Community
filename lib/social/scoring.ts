@@ -111,10 +111,12 @@ function buildReason(input: {
     reasons.push(`you both cook ${input.sharedInterests.slice(0, 2).join(" and ")}`);
   }
   if (input.sharedSpaceCount > 0) {
+    // Spaces are no longer something members see (DEC-078); the signal is
+    // the same, the words are the ones members know.
     reasons.push(
       input.sharedSpaceCount === 1
-        ? "you share a space"
-        : `you share ${input.sharedSpaceCount} spaces`,
+        ? "you're in the same group"
+        : `you're in ${input.sharedSpaceCount} of the same groups`,
     );
   }
   if (input.similarProgress) reasons.push("you are at a similar point in the courses");
@@ -128,19 +130,62 @@ function buildReason(input: {
   return sentence.charAt(0).toUpperCase() + sentence.slice(1) + ".";
 }
 
+/**
+ * The opening line for a match, written as the message itself: the weekly
+ * match puts it straight into a direct message, where the member edits it or
+ * sends it as it is. It says why it is arriving, because the other person was
+ * not necessarily matched back.
+ */
 function buildStarter(
   sharedInterests: string[],
   name: string,
   similarProgress: boolean,
 ): string {
-  const firstName = name.split(" ")[0];
-  if (sharedInterests.length > 0) {
-    return `Ask ${firstName} what they last made with ${sharedInterests[0]}.`;
+  return openerFor(firstNameOf(name), {
+    interest: sharedInterests[0] ?? null,
+    similarProgress,
+  });
+}
+
+function firstNameOf(name: string): string {
+  return name.trim().split(/\s+/)[0] || "there";
+}
+
+const OPENER_INTRO = "Connect suggested we meet this week";
+
+function openerFor(
+  firstName: string,
+  input: { interest: string | null; similarProgress: boolean },
+): string {
+  if (input.interest) {
+    return `Hi ${firstName}! ${OPENER_INTRO}, and we both cook ${input.interest}. What's the last thing you made?`;
   }
-  if (similarProgress) {
-    return `Ask ${firstName} which lesson finally clicked for them.`;
+  if (input.similarProgress) {
+    return `Hi ${firstName}! ${OPENER_INTRO}, and we're at a similar point in the classes. Which lesson finally clicked for you?`;
   }
-  return `Ask ${firstName} what is on their plate this week.`;
+  return `Hi ${firstName}! ${OPENER_INTRO}. What's on your plate lately?`;
+}
+
+/**
+ * The message a match pre-fills, from the starter stored with it.
+ *
+ * Matches drawn before the starter became a message stored it as advice to
+ * the viewer ("Ask Sam what they last made with tofu."), and a week's match is
+ * kept for the week, so those are turned into the same message the new ones
+ * carry. Anything already written as a message is used as it is.
+ */
+export function matchOpener(starter: string, matchedName: string): string {
+  const firstName = firstNameOf(matchedName);
+  const text = starter.trim();
+  const interest = /^Ask \S+ what they last made with (.+?)\.?$/i.exec(text);
+  if (interest) return openerFor(firstName, { interest: interest[1]!, similarProgress: false });
+  if (/^Ask \S+ which lesson finally clicked for them\.?$/i.test(text)) {
+    return openerFor(firstName, { interest: null, similarProgress: true });
+  }
+  if (!text || /^Ask \S+ /i.test(text)) {
+    return openerFor(firstName, { interest: null, similarProgress: false });
+  }
+  return text;
 }
 
 export function rankSuggestions(

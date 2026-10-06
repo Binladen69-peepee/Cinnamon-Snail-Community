@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Bell, MessageSquare, Plus, Shield } from "lucide-react";
+import { Bell, MessageSquare, Plus, Search, Shield } from "lucide-react";
 import { auth } from "@/auth";
 import { signOutAction } from "@/app/(auth)/sign-out-action";
 import { prisma } from "@/lib/db";
 import { totalUnreadForUser } from "@/lib/messages/conversations";
+import { MEMBER_HOME_HREF } from "@/lib/navigation";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { NavSearch } from "@/components/layout/nav-search";
 import { Avatar } from "@/components/ui/avatar";
@@ -16,9 +17,17 @@ import { ThemeToggle } from "@/components/theme-toggle";
  * See PROJECT.md — the member shell and feed layout.
  *
  * `menu` is the navigation drawer's trigger, shown below `lg` where the rail
- * is not; the layout passes it because the layout owns the rail's data.
+ * is not; the layout passes it because the layout owns the rail's data. The
+ * layout also passes the unread message count it already loaded for the
+ * rail, so the page does not count the same messages twice.
  */
-export async function AppHeader({ menu }: { menu?: React.ReactNode }) {
+export async function AppHeader({
+  menu,
+  unreadMessages,
+}: {
+  menu?: React.ReactNode;
+  unreadMessages?: number;
+}) {
   const session = await auth();
   if (!session?.user.id) return null;
 
@@ -26,7 +35,7 @@ export async function AppHeader({ menu }: { menu?: React.ReactNode }) {
     prisma.notification
       .count({ where: { userId: session.user.id, inApp: true, readAt: null } })
       .catch(() => 0),
-    totalUnreadForUser(session.user.id).catch(() => 0),
+    unreadMessages ?? totalUnreadForUser(session.user.id).catch(() => 0),
   ]);
 
   const isStaff = session.user.roles.some(
@@ -44,7 +53,7 @@ export async function AppHeader({ menu }: { menu?: React.ReactNode }) {
 
         {/* The rail carries the wordmark from `lg` up, where it is visible.
             Below that there is no rail, so the bar keeps it. */}
-        <BrandMark href="/home" className="shrink-0 lg:hidden" compactBelowSm />
+        <BrandMark href={MEMBER_HOME_HREF} className="shrink-0 lg:hidden" compactBelowSm />
 
         <div className="mx-auto hidden min-w-0 max-w-xl flex-1 md:block">
           <NavSearch />
@@ -59,6 +68,16 @@ export async function AppHeader({ menu }: { menu?: React.ReactNode }) {
             Create
           </Link>
 
+          {/* The search field needs more room than a phone's bar has, and
+              search no longer holds a tab, so below `md` it is a button to
+              the search page instead. */}
+          <span className="inline-flex md:hidden">
+            <IconLink
+              href="/search"
+              label="Search"
+              icon={<Search className="size-[1.125rem]" aria-hidden />}
+            />
+          </span>
           <IconLink
             href="/notifications"
             label="Notifications"
@@ -71,8 +90,9 @@ export async function AppHeader({ menu }: { menu?: React.ReactNode }) {
             count={messages}
             icon={<MessageSquare className="size-[1.125rem]" aria-hidden />}
           />
-          {/* Staff reach the console from the sidebar too; at 320px the bar
-              has room for the controls every member needs and no more. */}
+          {/* On phones staff reach the console from the menu drawer instead;
+              at 320px the bar has room for the controls every member needs
+              and no more. */}
           {isStaff ? (
             <span className="hidden sm:inline-flex">
               <IconLink

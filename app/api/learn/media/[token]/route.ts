@@ -54,6 +54,7 @@ export async function GET(
       published: true,
       isPreview: true,
       videoUid: true,
+      bunnyVideoId: true,
       audioUid: true,
       downloadUid: true,
       liveUrl: true,

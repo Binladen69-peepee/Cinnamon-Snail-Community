@@ -6,11 +6,6 @@ export function slugifyHandle(input: string): string {
   return base.length >= 2 ? base : "member";
 }
 
-export function parseMentions(text: string): string[] {
-  const matches = text.match(/@[a-z0-9_]{2,32}/gi) ?? [];
-  return [...new Set(matches.map((match) => match.slice(1).toLowerCase()))];
-}
-
 export type FeedCursor = {
   publishedAt: Date;
   id: string;

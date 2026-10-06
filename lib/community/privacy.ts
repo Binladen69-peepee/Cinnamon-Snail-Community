@@ -4,6 +4,8 @@ export type ProfilePrivacy = {
   showInterests: boolean;
 };
 
+export type PrivacyField = keyof ProfilePrivacy;
+
 const defaults: ProfilePrivacy = {
   showLocation: true,
   showLinks: true,
@@ -28,4 +30,20 @@ export function visibleProfileFields(
     return { showLocation: true, showLinks: true, showInterests: true };
   }
   return privacy;
+}
+
+/**
+ * Whether two members both let a field be shown.
+ *
+ * "What you have in common" is read from both profiles, so it is only fair
+ * when both agreed: a member who hides how they cook is not shown "you both
+ * cook Japanese" on anyone's profile, and is not told it on theirs either.
+ * Reciprocal by construction, so the panel reads the same from either side.
+ */
+export function bothAllow(
+  a: ProfilePrivacy,
+  b: ProfilePrivacy,
+  field: PrivacyField,
+): boolean {
+  return a[field] && b[field];
 }

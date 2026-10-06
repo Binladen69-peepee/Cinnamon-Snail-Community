@@ -1,6 +1,12 @@
 import "server-only";
+import type { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { dueDate, isCadence, milestoneStates } from "@/lib/roadmap";
+import {
+  MIN_WEEKS_PER_TOPIC,
+  currentTopic,
+  effectiveWeeksPerTopic,
+  topicSchedule,
+} from "@/lib/roadmap/pacing";
 import type { TriggerKind } from "@/lib/automation/types";
 import type { Facts } from "@/lib/automation/conditions";
 
@@ -395,16 +401,65 @@ type RoadmapShape = {
 };
 
 /**
+ * When the current topic became current, for a roadmap that has no
+ * `topicStartedAt`: one from before pacing existed (DEC-080). The day the
+ * previous topic was settled, or the day the roadmap began for the first
+ * topic. The roadmap page falls back the same way, so a member is nudged
+ * about the week the page shows them.
+ */
+function legacyTopicStart(
+  createdAt: Date,
+  milestones: { id: string }[],
+  progressBy: Map<string, { completedAt: Date | null; skippedAt: Date | null }>,
+  index: number,
+): Date {
+  if (index === 0) return createdAt;
+  const previous = progressBy.get(milestones[index - 1]!.id);
+  return previous?.completedAt ?? previous?.skippedAt ?? createdAt;
+}
+
+/**
  * The three roadmap triggers share one read, because they all need the same
- * thing: where each member is on their track and when that step was due.
+ * thing: where each member is on their track and how long they have been on
+ * the topic in front of them.
+ *
+ * **Due and missed follow the member's pace (DEC-080).** One topic is current
+ * at a time (`currentTopic`), and it is planned to last the member's weeks per
+ * topic from when it became current (`topicSchedule`). "Due" is that plan
+ * running out; "missed" is it running out `graceDays` ago or more. The old
+ * cadence counted every step from the day the roadmap began, so a member who
+ * finished a topic yesterday could be "overdue" on today's; the clock is now
+ * the topic's own. A paused roadmap is never due (its clock is stopped), and
+ * a member still on a pre-pacing roadmap is read at the pace their old cadence
+ * maps to, as the roadmap page reads them.
+ *
+ * The dedupe keys are unchanged (`due:` and `missed:` plus the topic), so a
+ * member nudged about a topic under the old schedule is not nudged about it
+ * again.
  */
 async function roadmapCandidates(shape: RoadmapShape, now: Date): Promise<Candidate[]> {
+  // A topic cannot be due before the shortest pace has run, so roadmaps whose
+  // current topic began more recently are not read at all. That keeps the
+  // capped read on members who might actually be due, oldest clocks first.
+  const timed = shape.kind !== "stalled";
+  const grace = shape.kind === "missed" ? shape.graceDays : 0;
+  const earliest = new Date(now.getTime() - (MIN_WEEKS_PER_TOPIC * 7 + grace) * DAY_MS);
+  const where: Prisma.MemberRoadmapWhereInput = {
+    pausedAt: null,
+    track: { published: true },
+    user: ACTIVE_MEMBER,
+    ...(timed ? { OR: [{ topicStartedAt: null }, { topicStartedAt: { lte: earliest } }] } : {}),
+  };
+
   const roadmaps = await prisma.memberRoadmap.findMany({
-    where: { pausedAt: null, track: { published: true }, user: ACTIVE_MEMBER },
+    where,
     select: {
       userId: true,
       cadence: true,
       createdAt: true,
+      weeksPerTopic: true,
+      pacingUpdatedAt: true,
+      topicStartedAt: true,
       user: { select: { email: true } },
       track: {
         select: {
@@ -414,6 +469,7 @@ async function roadmapCandidates(shape: RoadmapShape, now: Date): Promise<Candid
       },
       milestones: { select: { milestoneId: true, completedAt: true, skippedAt: true } },
     },
+    orderBy: [{ topicStartedAt: { sort: "asc", nulls: "first" } }, { id: "asc" }],
     take: AUDIENCE_CAP,
   });
 
@@ -422,49 +478,56 @@ async function roadmapCandidates(shape: RoadmapShape, now: Date): Promise<Candid
     const milestones = roadmap.track.milestones;
     if (milestones.length === 0) continue;
     const progressBy = new Map(roadmap.milestones.map((row) => [row.milestoneId, row]));
-    const states = milestoneStates(
-      milestones.map((milestone) => ({
+    const current = currentTopic({
+      milestones: milestones.map((milestone) => ({
         done: Boolean(progressBy.get(milestone.id)?.completedAt),
         skipped: Boolean(progressBy.get(milestone.id)?.skippedAt),
       })),
-    );
-    const index = states.indexOf("current");
-    if (index < 0) continue; // finished the track
+    });
+    if (!current) continue; // finished the track
+    const index = current.index;
     const milestone = milestones[index]!;
-    const cadence = isCadence(roadmap.cadence) ? roadmap.cadence : "weekly";
-    const due = dueDate(roadmap.createdAt, index, cadence);
 
-    // Self-paced has no due date, so "due" and "missed" cannot apply.
-    if (shape.kind !== "stalled" && !due) continue;
+    const weeksPerTopic = effectiveWeeksPerTopic(roadmap);
+    const startedAt =
+      roadmap.topicStartedAt ?? legacyTopicStart(roadmap.createdAt, milestones, progressBy, index);
+    const schedule = topicSchedule(startedAt, weeksPerTopic, now);
 
     const facts: Facts = {
       trackName: roadmap.track.name,
       milestoneTopic: milestone.topic,
       milestoneNumber: index + 1,
       milestoneCount: milestones.length,
-      cadence,
+      weeksPerTopic,
+      // The column from before pacing, kept for rules written against it.
+      cadence: roadmap.cadence,
       email: roadmap.user.email,
     };
 
     if (shape.kind === "due") {
-      if (due! > now) continue;
+      if (!schedule.overdue) continue;
       out.push({ userId: roadmap.userId, dedupeKey: `due:${milestone.id}`, facts });
     } else if (shape.kind === "missed") {
-      const overdueBy = daysBetween(due!, now);
-      if (overdueBy < shape.graceDays) continue;
+      if (!schedule.overdue || schedule.daysOver < shape.graceDays) continue;
       out.push({
         userId: roadmap.userId,
         dedupeKey: `missed:${milestone.id}`,
-        facts: { ...facts, daysOverdue: overdueBy },
+        facts: { ...facts, daysOverdue: schedule.daysOver },
       });
     } else {
       // Stalled: nothing settled on this roadmap for a while. The anchor is
-      // the most recent tick, or the day they started.
+      // the most recent tick, or the day they started; or, when later, the
+      // moment the current topic's clock last started, because resuming
+      // after a pause moves it forward and is the opposite of untouched.
       const settled = roadmap.milestones
         .map((row) => row.completedAt ?? row.skippedAt)
         .filter((date): date is Date => Boolean(date))
         .sort((a, b) => b.getTime() - a.getTime())[0];
-      const anchor = settled ?? roadmap.createdAt;
+      const touched = settled ?? roadmap.createdAt;
+      const anchor =
+        roadmap.topicStartedAt && roadmap.topicStartedAt.getTime() > touched.getTime()
+          ? roadmap.topicStartedAt
+          : touched;
       const idle = daysBetween(anchor, now);
       if (idle < shape.stalledDays) continue;
       out.push({

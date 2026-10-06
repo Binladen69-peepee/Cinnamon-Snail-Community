@@ -1,17 +1,29 @@
 import { notFound } from "next/navigation";
-import { ChevronDown, Eye, ListOrdered, Plus, Settings, Waypoints } from "lucide-react";
+import { ChevronDown, Eye, Gauge, ListOrdered, Plus, Settings, Waypoints } from "lucide-react";
 import {
   lessonOptions,
   loadTrack,
   previewFor,
   recipeOptions,
 } from "@/lib/admin/roadmap";
+import { paceBreakdown } from "@/lib/roadmap";
 import {
   COOK_VIBES,
   PRIMARY_BENEFITS,
   SUCKIEST_THINGS,
-  labelFor,
+  normalizeAnswer,
 } from "@/lib/roadmap/answers";
+import {
+  PERSONAS,
+  isPersona,
+  personalisationSentence,
+  trackMatchesPersona,
+} from "@/lib/roadmap/personalisation";
+import {
+  WEEKS_PER_TOPIC_OPTIONS,
+  roadmapEmailPlan,
+  weeksLabel,
+} from "@/lib/roadmap/pacing";
 import {
   Badge,
   Button,
@@ -43,20 +55,30 @@ export default async function AdminTrackPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ gf?: string; benefit?: string; stuck?: string }>;
+  searchParams: Promise<{ gf?: string; benefit?: string; stuck?: string; vibe?: string }>;
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const track = await loadTrack(slug);
   if (!track) notFound();
 
-  const [lessons, recipes] = await Promise.all([lessonOptions(), recipeOptions()]);
+  const [lessons, recipes, paces] = await Promise.all([
+    lessonOptions(),
+    recipeOptions(),
+    paceBreakdown(track.id),
+  ]);
 
+  // "1" and "0" are yes and no; anything else is "never answered", which the
+  // member sentence treats differently from "no".
   const answers = {
-    glutenFree: query.gf === "1",
+    glutenFree: query.gf === "1" ? true : query.gf === "0" ? false : null,
     primaryBenefit: query.benefit ?? null,
     suckiestThing: query.stuck ?? null,
   };
+  const vibe = normalizeAnswer(COOK_VIBES, query.vibe);
+  const persona = isPersona(vibe) ? vibe : null;
+  const sentence = personalisationSentence({ persona, glutenFree: answers.glutenFree });
   const preview = await previewFor(track, answers);
+  const suggestedTo = PERSONAS.filter((candidate) => trackMatchesPersona(track, candidate));
 
   const totalSettled = track.milestones.reduce(
     (sum, milestone) => sum + milestone.completed + milestone.skipped,
@@ -212,16 +234,23 @@ export default async function AdminTrackPage({
             <div className="flex flex-col gap-4 p-4 sm:p-5">
               {/* A GET form, so the chosen combination lives in the URL. */}
               <form method="get" className="flex flex-col gap-3">
-                <label className="flex items-center gap-2 text-label text-foreground">
-                  <input
-                    type="checkbox"
-                    name="gf"
-                    value="1"
-                    defaultChecked={answers.glutenFree}
-                    className="size-4"
-                  />
-                  Eats gluten free
-                </label>
+                <PreviewSelect
+                  name="vibe"
+                  label="Cook vibe"
+                  value={persona}
+                  options={COOK_VIBES}
+                />
+                <PreviewSelect
+                  name="gf"
+                  label="Gluten free"
+                  value={
+                    answers.glutenFree === true ? "1" : answers.glutenFree === false ? "0" : null
+                  }
+                  options={[
+                    { value: "1", label: "Yes" },
+                    { value: "0", label: "No" },
+                  ]}
+                />
                 <PreviewSelect
                   name="benefit"
                   label="Here for"
@@ -238,6 +267,11 @@ export default async function AdminTrackPage({
                   Preview
                 </Button>
               </form>
+
+              {/* The one sentence the member reads at the top of their roadmap. */}
+              <p className="rounded-ctl bg-surface-muted px-3 py-2.5 text-label leading-snug text-foreground">
+                {sentence}
+              </p>
 
               {preview.length === 0 ? (
                 <p className="rounded-ctl bg-surface-muted px-3 py-2.5 text-label text-foreground-muted">
@@ -272,17 +306,65 @@ export default async function AdminTrackPage({
           </Card>
 
           <Card padding="none">
-            <CardHeader title="How this track is matched" icon={<Waypoints />} />
-            <p className="px-4 py-3.5 text-label leading-relaxed text-foreground-muted sm:px-5">
-              A member is recommended this track when their cook-vibe answer
-              matches its slug or name. The four §14 vibes are{" "}
-              {COOK_VIBES.map((vibe) => labelFor(COOK_VIBES, vibe.value)).join(", ")}.
-              This track&apos;s slug is{" "}
-              <code className="rounded-chip bg-default px-1 py-px font-mono text-caption text-foreground">
-                {track.slug}
-              </code>
-              .
+            <CardHeader
+              title="Pacing"
+              icon={<Gauge />}
+              description="How the members on this track pace it, and the email plan each pace will use."
+            />
+            <ul className="divide-y divide-separator">
+              {WEEKS_PER_TOPIC_OPTIONS.map((weeks) => {
+                const plan = roadmapEmailPlan(weeks);
+                return (
+                  <li
+                    key={weeks}
+                    className="flex items-center justify-between gap-3 px-4 py-2.5 sm:px-5"
+                  >
+                    <span className="min-w-0">
+                      <span className="block text-label font-medium text-foreground">
+                        {weeksLabel(weeks)} per topic
+                      </span>
+                      <span className="block truncate text-caption text-foreground-muted">
+                        Every {plan.cadenceDays} days ·{" "}
+                        <code className="font-mono">{plan.sequenceKey}</code>
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-body font-semibold tabular-nums text-foreground">
+                      {paces[weeks]}
+                      <span className="sr-only"> {paces[weeks] === 1 ? "member" : "members"}</span>
+                    </span>
+                  </li>
+                );
+              })}
+            </ul>
+            <p className="border-t border-separator px-4 py-3 text-caption leading-relaxed text-foreground-muted sm:px-5">
+              Members pick 1–4 weeks per topic on their roadmap; changing it never
+              resets their progress. No roadmap email is sent yet. When they are,
+              each pace reads from its own Kit sequence at that interval.
             </p>
+          </Card>
+
+          <Card padding="none">
+            <CardHeader title="How this track is matched" icon={<Waypoints />} />
+            <div className="flex flex-col gap-2 px-4 py-3.5 text-label leading-relaxed text-foreground-muted sm:px-5">
+              <p>
+                A member is suggested this track when their answers point to it:
+                their own cook-vibe answer, else the audience segment their
+                RightMessage survey left in Kit, else the cooking level on their
+                profile (Advanced or Beginner). It matches when the slug, or a whole
+                word of the name, is one of the four §14 vibes:{" "}
+                {COOK_VIBES.map((vibe) => vibe.value).join(", ")}. This track&apos;s
+                slug is{" "}
+                <code className="rounded-chip bg-default px-1 py-px font-mono text-caption text-foreground">
+                  {track.slug}
+                </code>
+                .
+              </p>
+              <p className="text-foreground">
+                {suggestedTo.length > 0
+                  ? `Suggested to members who are ${suggestedTo.join(" or ")}.`
+                  : "No vibe matches this track, so it is never suggested. Members can still choose it."}
+              </p>
+            </div>
           </Card>
         </aside>
       </div>

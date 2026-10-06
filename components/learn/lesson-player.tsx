@@ -22,6 +22,7 @@ import {
   cardClass,
 } from "@/components/app/ui";
 import { cn } from "@/lib/utils";
+import { useBunnyProgress } from "@/components/learn/use-bunny-progress";
 
 /**
  * The lesson player.
@@ -54,6 +55,8 @@ type Source =
       kind: LessonKind;
       src: string;
       embed: boolean;
+      /** Which embed: "bunny" reports progress over Player.js (DEC-081). */
+      provider?: "bunny" | "cloudflare" | null;
       captionsUrl: string | null;
       chapters: Chapter[];
       resumeAt: number;
@@ -92,6 +95,7 @@ export function LessonPlayer({
   const [speed, setSpeed] = useState(1);
   const [done, setDone] = useState(completed);
   const mediaRef = useRef<HTMLVideoElement | HTMLAudioElement | null>(null);
+  const embedRef = useRef<HTMLIFrameElement | null>(null);
   const seekedRef = useRef(false);
   const lastSentRef = useRef(0);
 
@@ -197,6 +201,25 @@ export function LessonPlayer({
     },
     [done, onCompleted, save],
   );
+
+  // The Bunny embed cannot be read like a media element, so it reports its
+  // position over postMessage and saves through the same `save` (DEC-081).
+  const saveFromEmbed = useCallback(
+    (position: number, duration: number | null, finished: boolean) => {
+      save(position, duration, finished);
+      if (finished && !done) {
+        setDone(true);
+        onCompleted?.();
+      }
+    },
+    [done, onCompleted, save],
+  );
+  useBunnyProgress({
+    iframeRef: embedRef,
+    enabled: source.status === "ready" && source.embed && source.provider === "bunny",
+    startAt: source.status === "ready" ? source.resumeAt || resumeAt : 0,
+    save: saveFromEmbed,
+  });
 
   useEffect(() => {
     if (source.status !== "ready" || source.embed) return;
@@ -452,10 +475,12 @@ export function LessonPlayer({
       <div className={cn(kind === "AUDIO" && cardClass())}>
         {source.embed ? (
           <iframe
+            ref={embedRef}
             src={source.src}
             title={title}
-            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture;"
+            allow="accelerometer; gyroscope; autoplay; encrypted-media; picture-in-picture; fullscreen"
             allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
             className="aspect-video w-full rounded-card border-0 bg-black"
           />
         ) : kind === "AUDIO" ? (

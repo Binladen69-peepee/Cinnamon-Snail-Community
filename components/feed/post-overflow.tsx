@@ -3,48 +3,41 @@
 import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { Loader2 } from "lucide-react";
-import {
-  Button,
-  Field,
-  Select,
-  backdropClass,
-  dialogClass,
-  fieldClass,
-} from "@/components/app/ui";
-import {
-  deletePostAction,
-  reportPostAction,
-  sharePostAction,
-} from "@/app/(member)/community-actions";
+import { Button, backdropClass, dialogClass, fieldClass } from "@/components/app/ui";
+import { deletePostAction, reportPostAction } from "@/app/(member)/community-actions";
 import { PostMenu } from "@/components/feed/post-menu";
 import { REPORT_REASONS } from "@/lib/community/report-reasons";
 import { toast } from "@/components/ui/toast";
 import { cn } from "@/lib/utils";
 
 /**
- * The overflow menu and the three dialogs behind it.
+ * The overflow menu and the dialogs behind it.
  *
- * Reporting, sharing and deleting all need something from the member before
- * they can happen — a reason, a destination, a confirmation — so none of them
- * belongs on a menu item that fires immediately. The menu opens a dialog; the
- * dialog does the work.
+ * Reporting and deleting both need something from the member before they can
+ * happen — a reason, a confirmation — so neither belongs on a menu item that
+ * fires immediately. The menu opens a dialog; the dialog does the work.
  *
- * Reporting used to send one hardcoded reason, which told a moderator that
- * something was wrong and nothing about what. It now asks, because the reason
- * is most of the value of the report.
+ * Sharing a post into another space is gone with the spaces themselves
+ * (DEC-078). Posts that were shared before keep their link to the original.
  */
 export function PostOverflow({
   postId,
   pinned,
   canPin,
   canDelete,
+  canReport = true,
+  onDeleted,
 }: {
   postId: string;
   pinned: boolean;
   canPin: boolean;
   canDelete: boolean;
+  /** Off for the author: reporting your own post is not a thing to offer. */
+  canReport?: boolean;
+  /** Called once the post is gone, so the card can leave the page. */
+  onDeleted?: () => void;
 }) {
-  const [dialog, setDialog] = useState<"report" | "share" | "delete" | null>(null);
+  const [dialog, setDialog] = useState<"report" | "delete" | null>(null);
 
   return (
     <>
@@ -53,19 +46,19 @@ export function PostOverflow({
         pinned={pinned}
         canPin={canPin}
         canDelete={canDelete}
-        canShare
+        canReport={canReport}
         onReport={() => setDialog("report")}
-        onShare={() => setDialog("share")}
         onDelete={() => setDialog("delete")}
       />
       {dialog === "report" ? (
         <ReportDialog postId={postId} onClose={() => setDialog(null)} />
       ) : null}
-      {dialog === "share" ? (
-        <ShareDialog postId={postId} onClose={() => setDialog(null)} />
-      ) : null}
       {dialog === "delete" ? (
-        <DeleteDialog postId={postId} onClose={() => setDialog(null)} />
+        <DeleteDialog
+          postId={postId}
+          onClose={() => setDialog(null)}
+          onDeleted={onDeleted}
+        />
       ) : null}
     </>
   );
@@ -75,16 +68,14 @@ export function PostOverflow({
  * A plain modal.
  *
  * Escape closes it, the backdrop closes it, and the panel stops clicks from
- * reaching the backdrop. Small enough to keep here rather than reaching for a
- * dialog library for three uses.
+ * reaching the backdrop.
  *
  * It portals into the app root rather than rendering where the menu is. The
  * menu sits inside a post card, and anything that gives the card paint
- * containment or clipping (an `overflow-hidden`, a `content-visibility`) also
- * makes it the containing block for a fixed child, so the dialog was confined
- * to the card it came from. Into the app root rather than <body>, so the app's
- * type and button rules still reach it. It only ever mounts after a click, so
- * `document` is always there.
+ * containment or clipping also makes it the containing block for a fixed
+ * child, so the dialog was confined to the card it came from. Into the app
+ * root rather than <body>, so the app's type and button rules still reach it.
+ * It only ever mounts after a click, so `document` is always there.
  */
 function Modal({
   title,
@@ -185,6 +176,7 @@ function ReportDialog({ postId, onClose }: { postId: string; onClose: () => void
         onChange={(event) => setDetails(event.target.value)}
         rows={3}
         maxLength={500}
+        aria-label="Anything else a moderator should know"
         placeholder="Anything else a moderator should know (optional)"
         className={fieldClass({ multiline: true, className: "mt-3 min-h-20" })}
       />
@@ -198,105 +190,15 @@ function ReportDialog({ postId, onClose }: { postId: string; onClose: () => void
   );
 }
 
-type ShareTarget = { id: string; name: string; needsApproval: boolean };
-
-function ShareDialog({ postId, onClose }: { postId: string; onClose: () => void }) {
-  const [spaces, setSpaces] = useState<ShareTarget[] | null>(null);
-  const [target, setTarget] = useState("");
-  const [note, setNote] = useState("");
-  const [pending, startTransition] = useTransition();
-
-  useEffect(() => {
-    let cancelled = false;
-    void (async () => {
-      try {
-        const response = await fetch("/api/community/my-spaces");
-        if (!response.ok) throw new Error(String(response.status));
-        const data = (await response.json()) as { spaces: ShareTarget[] };
-        if (cancelled) return;
-        setSpaces(data.spaces);
-        setTarget(data.spaces[0]?.id ?? "");
-      } catch {
-        if (!cancelled) setSpaces([]);
-      }
-    })();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  function submit() {
-    if (!target) return;
-    const data = new FormData();
-    data.set("postId", postId);
-    data.set("spaceId", target);
-    data.set("note", note);
-    startTransition(async () => {
-      const result = await sharePostAction(data);
-      if (result.ok) {
-        toast.success("Shared.");
-        onClose();
-      } else {
-        toast.danger(result.error);
-      }
-    });
-  }
-
-  const chosen = spaces?.find((space) => space.id === target);
-
-  return (
-    <Modal title="Share to a space" onClose={onClose}>
-      {spaces === null ? (
-        <p className="flex items-center gap-2 py-2 text-body text-foreground-muted">
-          <Loader2 className="size-4 animate-spin" aria-hidden />
-          Loading your spaces
-        </p>
-      ) : spaces.length === 0 ? (
-        <p className="py-2 text-body text-foreground-muted">
-          There is nowhere you can post this right now.
-        </p>
-      ) : (
-        <>
-          <Field label="Space" htmlFor="share-space" className="mt-3">
-            <Select
-              id="share-space"
-              size="lg"
-              value={target}
-              onChange={(event) => setTarget(event.target.value)}
-            >
-              {spaces.map((space) => (
-                <option key={space.id} value={space.id}>
-                  {space.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-          <textarea
-            value={note}
-            onChange={(event) => setNote(event.target.value)}
-            rows={3}
-            maxLength={500}
-            placeholder="Say something about it (optional)"
-            className={fieldClass({ multiline: true, className: "mt-3 min-h-20" })}
-          />
-          {chosen?.needsApproval ? (
-            <p className="mt-2 text-caption text-foreground-muted">
-              Posts in that space wait for a host before anyone sees them.
-            </p>
-          ) : null}
-          <DialogButtons
-            pending={pending}
-            confirmLabel="Share"
-            onCancel={onClose}
-            onConfirm={submit}
-          />
-        </>
-      )}
-    </Modal>
-  );
-}
-
-function DeleteDialog({ postId, onClose }: { postId: string; onClose: () => void }) {
+function DeleteDialog({
+  postId,
+  onClose,
+  onDeleted,
+}: {
+  postId: string;
+  onClose: () => void;
+  onDeleted?: () => void;
+}) {
   const [pending, startTransition] = useTransition();
 
   function submit() {
@@ -307,6 +209,7 @@ function DeleteDialog({ postId, onClose }: { postId: string; onClose: () => void
       if (result.ok) {
         toast.success("Post removed.");
         onClose();
+        onDeleted?.();
       } else {
         toast.danger(result.error);
       }

@@ -8,6 +8,7 @@ import { upsertSearchIndex } from "@/lib/search";
 import { parseChapters, type Chapter } from "@/lib/learn/chapters";
 import { objectPathFromUrl, verifyUploaded } from "@/lib/uploads/storage";
 import { LessonKind, Prisma } from "@prisma/client";
+import { checkBunnyVideo, lessonVideoColumns } from "@/lib/bunny/lessons";
 
 /**
  * Authoring a curriculum.
@@ -153,12 +154,14 @@ async function forgetLesson(courseSlug: string, lessonSlug: string) {
 /* -------------------------------------------------------------------------- */
 
 /**
- * The fields the schema always had and no screen could set.
+ * A course's own fields: title, description, instructor and teaser.
  *
- * A course created in the app could never get a description, a category or an
- * instructor, so it sorted to the bottom of the catalog under no heading at
- * all. Slug is deliberately not editable: it is the course's address, and
- * changing it silently breaks every link anyone has saved.
+ * Only those columns are written. Where a class sits in the library is its
+ * category links (DEC-078), saved by the categories card, so the old single
+ * `category`, the two order numbers and the discussion room are not touched
+ * here at all; a form without those fields must not quietly reset them.
+ * Slug is deliberately not editable: it is the course's address, and changing
+ * it silently breaks every link anyone has saved.
  */
 export async function updateCourseDetailsAction(
   formData: FormData,
@@ -169,7 +172,7 @@ export async function updateCourseDetailsAction(
   const slug = String(formData.get("slug") ?? "");
   const course = await prisma.course.findUnique({
     where: { slug },
-    select: { id: true },
+    select: { id: true, spaceId: true },
   });
   if (!course) return { ok: false, error: "That course does not exist." };
 
@@ -192,20 +195,22 @@ export async function updateCourseDetailsAction(
     }
   }
 
-  const order = Number(formData.get("catalogOrder"));
-  const categoryOrder = Number(formData.get("categoryOrder"));
+  const description = String(formData.get("description") ?? "").trim();
+  if (description.length > 5000) {
+    return { ok: false, error: "Keep the description under 5000 characters." };
+  }
+  const instructorName = String(formData.get("instructorName") ?? "").trim();
+  if (instructorName.length > 120) {
+    return { ok: false, error: "That instructor name is too long." };
+  }
 
   await prisma.course.update({
     where: { id: course.id },
     data: {
       title,
-      description: String(formData.get("description") ?? "").trim() || null,
-      category: String(formData.get("category") ?? "").trim() || null,
-      instructorName: String(formData.get("instructorName") ?? "").trim() || null,
+      description: description || null,
+      instructorName: instructorName || null,
       teaserVideoUrl,
-      catalogOrder: Number.isFinite(order) ? Math.trunc(order) : 0,
-      categoryOrder: Number.isFinite(categoryOrder) ? Math.trunc(categoryOrder) : 0,
-      spaceId: String(formData.get("spaceId") ?? "") || null,
     },
   });
 
@@ -213,8 +218,10 @@ export async function updateCourseDetailsAction(
     entityType: "course",
     entityId: slug,
     title,
-    body: String(formData.get("description") ?? "").slice(0, 2000),
-    spaceId: String(formData.get("spaceId") ?? "") || null,
+    body: description.slice(0, 2000),
+    // Unchanged from the row: the search index scopes a course by the room it
+    // was attached to, and this form no longer edits that.
+    spaceId: course.spaceId,
   }).catch(() => undefined);
 
   await writeAuditLog({
@@ -435,6 +442,11 @@ type LessonFields = {
   chapters: Chapter[] | typeof Prisma.DbNull;
   isPreview: boolean;
   published: boolean;
+  /** Bunny Stream (DEC-081): the id plus Bunny's status and length, or all null. */
+  bunnyVideoId: string | null;
+  bunnyVideoStatus: number | null;
+  bunnyVideoLength: number | null;
+  bunnySyncedAt: Date | null;
 };
 
 async function readLessonFields(
@@ -458,9 +470,24 @@ async function readLessonFields(
 
   const body = String(formData.get("body") ?? "").trim() || null;
 
+  // A Bunny video is checked against the library here, whatever the form
+  // said: the browser picked it, the server decides (DEC-081).
+  const rawBunny = String(formData.get("bunnyVideoId") ?? "").trim();
+  let bunny: Pick<LessonFields, "bunnyVideoId" | "bunnyVideoStatus" | "bunnyVideoLength" | "bunnySyncedAt"> = {
+    bunnyVideoId: null,
+    bunnyVideoStatus: null,
+    bunnyVideoLength: null,
+    bunnySyncedAt: null,
+  };
+  if (rawBunny) {
+    const checked = await checkBunnyVideo(rawBunny);
+    if (!checked.ok) return { ok: false, error: checked.error };
+    bunny = lessonVideoColumns(checked.video);
+  }
+
   // A lesson has to be the thing it says it is, or it renders as an empty
   // player and the member is told nothing useful.
-  if (kind === "VIDEO" && !video.uid) {
+  if (kind === "VIDEO" && !video.uid && !bunny.bunnyVideoId) {
     return { ok: false, error: "A video lesson needs a video." };
   }
   if (kind === "AUDIO" && !audio.uid) {
@@ -515,10 +542,15 @@ async function readLessonFields(
       liveUrl,
       liveAt,
       durationMin:
-        Number.isFinite(duration) && duration > 0 ? Math.trunc(duration) : null,
+        Number.isFinite(duration) && duration > 0
+          ? Math.trunc(duration)
+          : bunny.bunnyVideoLength
+            ? Math.max(1, Math.round(bunny.bunnyVideoLength / 60))
+            : null,
       chapters: chapters.length > 0 ? chapters : Prisma.DbNull,
       isPreview: formData.get("isPreview") === "on",
       published: formData.get("published") === "on",
+      ...bunny,
     },
   };
 }

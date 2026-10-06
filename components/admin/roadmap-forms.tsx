@@ -100,7 +100,7 @@ export function TrackCreateForm() {
       <Field
         label="Name"
         htmlFor="track-name"
-        hint="Members see this. The four §14 tracks are New, Busy, Family and Advanced — a name matching a member's cook-vibe answer is marked recommended for them."
+        hint="Members see this. Name it for one of the four §14 tracks (New, Busy, Family or Advanced) and it is suggested to members whose onboarding answers point there."
       >
         <Input id="track-name" name="name" required maxLength={120} />
       </Field>

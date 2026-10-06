@@ -1,14 +1,19 @@
 import "server-only";
 import { prisma } from "@/lib/db";
 import type { MemberSignals } from "@/lib/social/scoring";
-
-function asStringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
-}
+import { matchingTerms } from "@/lib/social/matching-terms";
 
 /**
  * Loads the signals BUILD.md §12.2 lists, for the viewer plus every member who
  * is discoverable and open to being found.
+ *
+ * Interests and skill are what members set today: their tags
+ * (`ProfileInterest`, with each tag's kind) and `Profile.skill`, with the old
+ * free-text columns only as a fallback for someone who never set them, and
+ * nothing at all from a member who switched off "Show how I cook"
+ * (`lib/social/matching-terms.ts`). Who may be matched is unchanged: active
+ * members who are in the directory and opted in to matching, never across a
+ * block in either direction.
  */
 export async function loadMemberSignals(viewerId: string): Promise<{
   viewer: MemberSignals | null;
@@ -28,6 +33,14 @@ export async function loadMemberSignals(viewerId: string): Promise<{
     select: {
       userId: true,
       displayName: true,
+      privacy: true,
+      skill: true,
+      interests: {
+        select: {
+          interest: { select: { slug: true, label: true, kind: true, sortOrder: true } },
+        },
+      },
+      // The fallback for members who never picked tags or a level.
       cookingInterests: true,
       dietaryInterests: true,
       skillLevel: true,
@@ -69,20 +82,20 @@ export async function loadMemberSignals(viewerId: string): Promise<{
     interactionsByUser.set(row.userId, (interactionsByUser.get(row.userId) ?? 0) + 1);
   }
 
-  const signals = profiles.map<MemberSignals>((profile) => ({
-    userId: profile.userId,
-    displayName: profile.displayName,
-    interests: [
-      ...asStringArray(profile.cookingInterests),
-      ...asStringArray(profile.dietaryInterests),
-    ],
-    skillLevel: profile.skillLevel,
-    timezone: profile.timezone,
-    spaceIds: spacesByUser.get(profile.userId) ?? [],
-    lessonsCompleted: lessonsByUser.get(profile.userId) ?? 0,
-    lastActiveAt: profile.user.lastLoginAt,
-    priorInteractions: interactionsByUser.get(profile.userId) ?? 0,
-  }));
+  const signals = profiles.map<MemberSignals>((profile) => {
+    const terms = matchingTerms(profile);
+    return {
+      userId: profile.userId,
+      displayName: profile.displayName,
+      interests: terms.interests,
+      skillLevel: terms.skillLevel,
+      timezone: profile.timezone,
+      spaceIds: spacesByUser.get(profile.userId) ?? [],
+      lessonsCompleted: lessonsByUser.get(profile.userId) ?? 0,
+      lastActiveAt: profile.user.lastLoginAt,
+      priorInteractions: interactionsByUser.get(profile.userId) ?? 0,
+    };
+  });
 
   return {
     viewer: signals.find((signal) => signal.userId === viewerId) ?? null,

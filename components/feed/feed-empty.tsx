@@ -1,39 +1,22 @@
-import { Compass, PenLine, Soup } from "lucide-react";
+import { PenLine, Soup } from "lucide-react";
 import type { FeedSort } from "@/lib/community/sort";
 import { ButtonLink, EmptyState } from "@/components/app/ui";
 
 /**
- * The empty feed.
+ * The empty Kitchen Table.
  *
- * Two genuinely different situations, and conflating them is what makes empty
- * states useless. Someone in no spaces has nothing to read because they have
- * not joined anything — the fix is to go and join. Someone in spaces with an
- * empty sort has nothing to read because the sort is narrow — the fix is a
- * different sort, or writing the first post themselves.
+ * Every member sits at the Kitchen Table, so "join a room first" is no longer
+ * a reason for an empty feed (DEC-078). What is left is a sort that is
+ * narrower than the community, or a community that has not said anything yet,
+ * and the answer to both is the same: try another order, or start it.
  */
 export function FeedEmpty({
   sort,
-  hasSpaces,
 }: {
   sort: FeedSort;
-  hasSpaces: boolean;
+  /** Retired: there are no rooms to join. Accepted so callers compile. */
+  hasSpaces?: boolean;
 }) {
-  if (!hasSpaces) {
-    return (
-      <EmptyState
-        icon={<Compass />}
-        title="Your feed is empty because you have not joined a room yet"
-        description="Every post lives in a space. Join a couple and this fills up with what people are cooking."
-        action={
-          <ButtonLink href="/spaces" variant="primary">
-            <Compass className="size-4" aria-hidden />
-            Find your kitchens
-          </ButtonLink>
-        }
-      />
-    );
-  }
-
   return (
     <EmptyState
       icon={<Soup />}
@@ -42,7 +25,7 @@ export function FeedEmpty({
           ? "Nothing has been voted up this week"
           : sort === "new"
             ? "Nothing new yet"
-            : "Nothing here yet"
+            : "The table is quiet"
       }
       description={
         sort === "new"

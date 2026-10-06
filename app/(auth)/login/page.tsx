@@ -1,8 +1,10 @@
 import { Suspense } from "react";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { auth, socialSignIn } from "@/auth";
 import { LoginForm } from "@/app/(auth)/login/login-form";
 import { Skeleton } from "@/components/ui/skeleton";
+import { safeCallbackUrl } from "@/lib/auth/redirects";
 
 export const metadata = { title: "Sign in" };
 
@@ -16,6 +18,8 @@ export const metadata = { title: "Sign in" };
  *
  * Someone already signed in is sent on rather than shown a form they do not
  * need; arriving at /login with a live session is almost always a stale tab.
+ * They go where the link was taking them when that is a page on this site,
+ * and to the Kitchen Table otherwise.
  */
 export default async function LoginPage({
   searchParams,
@@ -25,7 +29,7 @@ export default async function LoginPage({
   const session = await auth();
   if (session?.sessionId) {
     const { callbackUrl } = await searchParams;
-    redirect(callbackUrl?.startsWith("/") ? callbackUrl : "/home");
+    redirect(safeCallbackUrl(callbackUrl, { host: (await headers()).get("host") }));
   }
 
   return (

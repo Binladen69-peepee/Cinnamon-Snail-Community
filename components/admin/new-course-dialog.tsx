@@ -55,7 +55,7 @@ const TYPES = [
     body: "Sell access to a Zoom or YouTube webinar.",
     icon: Video,
     tone: "bg-default text-foreground-muted",
-    disabled: "Live sessions are events, created on the calendar.",
+    disabled: "Live sessions are live classes, created under Live classes.",
   },
   {
     value: "bundle",

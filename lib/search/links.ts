@@ -3,9 +3,9 @@ import type { SearchType } from "@/lib/search";
 /**
  * Where a search hit goes, and what to call it.
  *
- * The search page had this mapping inlined as a nested ternary, so the command
- * palette would have had to repeat it and the two would have drifted the first
- * time a route changed. One table, both callers.
+ * One table for the results page and the command palette, so the two cannot
+ * drift apart the first time a route changes. The labels use the member-facing
+ * names (DEC-078, DEC-079): classes, not courses; live classes, not events.
  */
 export const SEARCH_GROUPS: {
   type: SearchType;
@@ -17,9 +17,9 @@ export const SEARCH_GROUPS: {
 }[] = [
   { type: "member", label: "Members", order: 0 },
   { type: "post", label: "Posts", order: 1 },
-  { type: "course", label: "Courses", order: 2 },
+  { type: "course", label: "Classes", order: 2 },
   { type: "lesson", label: "Lessons", order: 3 },
-  { type: "event", label: "Events", order: 4 },
+  { type: "event", label: "Live classes", order: 4 },
   { type: "comment", label: "Comments", order: 5 },
 ];
 
@@ -40,10 +40,10 @@ export function searchHref(entityType: string, entityId: string): string {
       return `/posts/${entityId}`;
     case "member":
       return `/members/${entityId}`;
-    // Events are indexed by slug, and every event has its own page.
+    // Live classes are indexed by slug, and every one has its own page.
     case "event":
-      return `/calendar/${entityId}`;
-    // Courses and lessons are indexed by their address, not their id: a
+      return `/live-classes/${entityId}`;
+    // Classes and lessons are indexed by their address, not their id: a
     // course row holds its slug and a lesson row holds "course-slug/lesson-slug".
     case "course":
       return `/learn/${entityId}`;

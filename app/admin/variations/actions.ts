@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { MEMBER_HOME_PATH } from "@/lib/auth/redirects";
 import { reviewVariation, setFeatured, VariationError } from "@/lib/recipes/variations";
 
 /** Moderating recipe variations. Staff only, re-checked on the server. */
@@ -10,7 +11,7 @@ import { reviewVariation, setFeatured, VariationError } from "@/lib/recipes/vari
 async function requireStaff(): Promise<string> {
   const session = await auth();
   const staff = session?.user.roles.some((role) => role === "ADMIN" || role === "SUPER_ADMIN");
-  if (!session?.user.id || !staff) redirect("/home");
+  if (!session?.user.id || !staff) redirect(MEMBER_HOME_PATH);
   return session.user.id;
 }
 

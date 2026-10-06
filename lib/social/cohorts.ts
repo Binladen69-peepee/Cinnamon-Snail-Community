@@ -6,6 +6,10 @@ import { weekStart } from "@/lib/social/scoring";
  * BUILD.md §12.3 — members are grouped automatically, by the week they joined
  * (new members) or the week they started a course (course starters). Each cohort
  * carries an intro prompt, a first cook, and a goal, and hangs off a private space.
+ *
+ * Superseded by crews (DEC-078, `lib/crews`): nothing creates cohorts any more
+ * and members no longer see them. The rows, and these helpers, are kept so the
+ * old groups can still be read or migrated; nothing in the app calls them.
  */
 function cohortSlug(kind: "NEW_MEMBERS" | "COURSE_STARTERS", week: Date, courseSlug?: string) {
   const stamp = week.toISOString().slice(0, 10);

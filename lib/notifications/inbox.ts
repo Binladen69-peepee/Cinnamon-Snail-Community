@@ -14,6 +14,10 @@ import { prisma } from "@/lib/db";
  * The filters are DEC-028's six, not one per category. DMs are the exception
  * that proves it: they are the largest category here and they have their own
  * inbox at /messages, so a DMs tab would be a worse copy of a better page.
+ *
+ * Members never read "events" (DEC-079): the EVENTS tab is labelled Live
+ * classes. Its key stays `events`, because it is the `?filter=` value in
+ * links people already have and it names the category enum, not the screen.
  */
 
 export const INBOX_FILTERS = [
@@ -37,7 +41,7 @@ export const INBOX_FILTER_LABEL: Record<InboxFilter, string> = {
   unread: "Unread",
   mentions: "Mentions",
   replies: "Replies",
-  events: "Events",
+  events: "Live classes",
   system: "System",
 };
 

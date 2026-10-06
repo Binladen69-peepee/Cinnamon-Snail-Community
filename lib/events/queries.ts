@@ -1,49 +1,95 @@
 import "server-only";
 import { cache } from "react";
-import type { EventRecurrence, EventStatus, RsvpStatus } from "@prisma/client";
+import type {
+  EventRecurrence,
+  EventSource,
+  EventStatus,
+  Prisma,
+  RsvpStatus,
+} from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { getEventViewer, visibleEventsWhere, type EventViewer } from "@/lib/events/access";
+import { richTextToPlain } from "@/lib/content/rich-text";
+import {
+  getEventViewer,
+  getMembershipStanding,
+  visibleEventsWhere,
+  type EventViewer,
+} from "@/lib/events/access";
+import {
+  DEFAULT_CLASS_MS,
+  entitledToJoin,
+  hasEnded,
+  isLiveNow,
+  joinState,
+  type JoinState,
+  type MembershipStanding,
+} from "@/lib/events/join";
 import { monthBounds, safeTimeZone, zonedDayKey } from "@/lib/events/timezone";
 
 /**
- * Reading the calendar.
+ * Reading Live Classes (DEC-079).
  *
- * Two shapes, one query each. The month grid and the list are the same rows
- * arranged differently, so they share a loader and differ only in the window
- * they ask for.
+ * The list, the month grid and a class's own page are the same rows arranged
+ * differently, so they share one select and one shaper. Everything a card
+ * needs (the host, the going count, this member's answer, whether and when
+ * they may join, the recording) is gathered in a fixed number of queries
+ * however many classes are on the page.
  *
- * Everything a card needs — the host, the room, the going count, and whether
- * *this* member is going — is selected in that one query. The previous
- * implementation loaded every RSVP row of every event to work out the count,
- * which is fine for six seeded events and ruinous for a real term's calendar.
+ * Upcoming and past split on the class's *end*, not its start: a class that
+ * began ten minutes ago is the one a member most needs at the top of the page,
+ * with its Join button, not at the top of "Past".
+ *
+ * The Zoom link never leaves this file except inside a `JoinState` of kind
+ * "open", and, on a class's own page, as the link a calendar file may carry
+ * for a member who holds a seat. Everything else about joining is decided in
+ * `lib/events/join.ts`.
  */
+
+export type ClassHost = {
+  name: string;
+  image: string | null;
+  /** Set when the host is a member here, so their name can link to them. */
+  handle: string | null;
+};
+
+export type RecordingLink = {
+  kind: "lesson" | "post" | "url";
+  href: string;
+  title: string | null;
+};
 
 export type EventCard = {
   id: string;
   slug: string;
   title: string;
   description: string | null;
+  /** The description as plain text, for a card. */
+  excerpt: string | null;
   startsAt: Date;
   endsAt: Date | null;
   timezone: string;
   location: string | null;
   coverUrl: string | null;
   status: EventStatus;
+  source: EventSource;
   capacity: number | null;
   goingCount: number;
   waitlistCount: number;
   /** Null when this member has not answered. */
   myStatus: RsvpStatus | null;
   myWaitlistPosition: number | null;
-  host: { handle: string; name: string; image: string | null } | null;
+  host: ClassHost | null;
   space: { slug: string; name: string } | null;
-  /** True once `startsAt` is in the past. */
+  /** True once the class has ended. */
   past: boolean;
-  /** True when the doors are open: half an hour before, until an hour after the end. */
+  /** True while it is on: from the start until the joining window closes. */
   live: boolean;
   full: boolean;
   recurrence: EventRecurrence | null;
   hasRecording: boolean;
+  recording: RecordingLink | null;
+  /** Whether, and when, this member can join. */
+  join: JoinState;
 };
 
 const CARD_SELECT = {
@@ -57,9 +103,13 @@ const CARD_SELECT = {
   location: true,
   coverUrl: true,
   status: true,
+  source: true,
   capacity: true,
   recurrence: true,
   recordingUrl: true,
+  zoomUrl: true,
+  hostId: true,
+  hostName: true,
   host: {
     select: {
       handle: true,
@@ -69,26 +119,87 @@ const CARD_SELECT = {
     },
   },
   space: { select: { slug: true, name: true } },
+  recordingLesson: {
+    select: {
+      title: true,
+      slug: true,
+      published: true,
+      section: { select: { course: { select: { slug: true } } } },
+    },
+  },
+  recordingPost: { select: { id: true, title: true, status: true } },
 } as const;
 
-type RawEvent = Awaited<
-  ReturnType<typeof prisma.event.findMany<{ select: typeof CARD_SELECT }>>
->[number];
+type RawEvent = Prisma.EventGetPayload<{ select: typeof CARD_SELECT }>;
 
-const LIVE_BEFORE_MS = 30 * 60 * 1000;
-const LIVE_AFTER_MS = 60 * 60 * 1000;
+/** Who the viewer is, as far as joining is concerned. */
+type JoinViewer = EventViewer & { membership: MembershipStanding };
+
+async function joinViewer(userId: string): Promise<JoinViewer | null> {
+  const [viewer, membership] = await Promise.all([
+    getEventViewer(userId),
+    getMembershipStanding(userId),
+  ]);
+  return viewer ? { ...viewer, membership } : null;
+}
+
+const EXCERPT_LENGTH = 280;
+
+function excerptOf(description: string | null): string | null {
+  if (!description?.trim()) return null;
+  const plain = richTextToPlain(description).replace(/\s+/g, " ").trim();
+  if (!plain) return null;
+  return plain.length > EXCERPT_LENGTH ? `${plain.slice(0, EXCERPT_LENGTH - 1).trimEnd()}…` : plain;
+}
+
+function httpUrl(value: string | null): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:" ? url.toString() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Where to watch a class again: the lesson it became, the post it was
+ * published in, or the link staff attached, in that order.
+ */
+function recordingOf(row: RawEvent): RecordingLink | null {
+  if (row.recordingLesson?.published) {
+    return {
+      kind: "lesson",
+      href: `/learn/${row.recordingLesson.section.course.slug}/${row.recordingLesson.slug}`,
+      title: row.recordingLesson.title,
+    };
+  }
+  if (row.recordingPost && row.recordingPost.status === "PUBLISHED") {
+    return { kind: "post", href: `/posts/${row.recordingPost.id}`, title: row.recordingPost.title };
+  }
+  const url = httpUrl(row.recordingUrl);
+  return url ? { kind: "url", href: url, title: null } : null;
+}
+
+function hostOf(row: RawEvent): ClassHost | null {
+  if (row.host) {
+    return {
+      name: row.host.profile?.displayName ?? row.host.name ?? row.host.handle,
+      image: row.host.profile?.avatarUrl ?? row.host.image,
+      handle: row.host.handle,
+    };
+  }
+  // A Zoom host who is not a member here still has a name worth showing.
+  return row.hostName ? { name: row.hostName, image: null, handle: null } : null;
+}
 
 /**
  * Turn rows into cards.
  *
- * Counts and the viewer's own answer arrive as two grouped queries rather than
- * one per event — the whole point of doing this in a shaper instead of in the
- * select. Two queries for thirty events, not sixty.
+ * Counts and the viewer's own answers arrive as two grouped queries rather
+ * than one per class.
  */
-async function toCards(
-  rows: RawEvent[],
-  viewer: EventViewer,
-): Promise<EventCard[]> {
+async function toCards(rows: RawEvent[], viewer: JoinViewer): Promise<EventCard[]> {
   if (rows.length === 0) return [];
   const ids = rows.map((row) => row.id);
 
@@ -112,51 +223,86 @@ async function toCards(
   }
   const answers = new Map(mine.map((row) => [row.eventId, row] as const));
 
-  const now = Date.now();
+  const now = new Date();
   return rows.map((row) => {
     const goingCount = going.get(row.id) ?? 0;
     const answer = answers.get(row.id);
-    const endsAt = row.endsAt ?? new Date(row.startsAt.getTime() + 60 * 60 * 1000);
+    const myStatus = answer?.status ?? null;
+    const recording = recordingOf(row);
     return {
       id: row.id,
       slug: row.slug,
       title: row.title,
       description: row.description,
+      excerpt: excerptOf(row.description),
       startsAt: row.startsAt,
       endsAt: row.endsAt,
       timezone: safeTimeZone(row.timezone),
       location: row.location,
       coverUrl: row.coverUrl,
       status: row.status,
+      source: row.source,
       capacity: row.capacity,
       goingCount,
       waitlistCount: waiting.get(row.id) ?? 0,
-      myStatus: answer?.status ?? null,
+      myStatus,
       myWaitlistPosition: answer?.waitlistPosition ?? null,
-      host: row.host
-        ? {
-            handle: row.host.handle,
-            name: row.host.profile?.displayName ?? row.host.name ?? row.host.handle,
-            image: row.host.profile?.avatarUrl ?? row.host.image,
-          }
-        : null,
+      host: hostOf(row),
       space: row.space,
-      past: endsAt.getTime() < now,
-      live:
-        now >= row.startsAt.getTime() - LIVE_BEFORE_MS &&
-        now <= endsAt.getTime() + LIVE_AFTER_MS,
+      past: hasEnded(now, row.startsAt, row.endsAt),
+      live: row.status === "PUBLISHED" && isLiveNow(now, row.startsAt, row.endsAt),
       full: row.capacity !== null && goingCount >= row.capacity,
       recurrence: row.recurrence,
-      hasRecording: Boolean(row.recordingUrl),
+      hasRecording: recording !== null,
+      recording,
+      join: joinState({
+        now,
+        startsAt: row.startsAt,
+        endsAt: row.endsAt,
+        status: row.status,
+        zoomUrl: row.zoomUrl,
+        capacity: row.capacity,
+        myStatus,
+        isStaff: viewer.isStaff,
+        isHost: row.hostId === viewer.userId,
+        membership: viewer.membership,
+      }),
     };
   });
 }
+
+/** Classes not over yet, including one that is on right now. */
+function notEndedWhere(now: Date): Prisma.EventWhereInput {
+  return {
+    OR: [
+      { endsAt: { gt: now } },
+      { endsAt: null, startsAt: { gt: new Date(now.getTime() - DEFAULT_CLASS_MS) } },
+    ],
+  };
+}
+
+function endedWhere(now: Date): Prisma.EventWhereInput {
+  return {
+    OR: [
+      { endsAt: { lte: now } },
+      { endsAt: null, startsAt: { lte: new Date(now.getTime() - DEFAULT_CLASS_MS) } },
+    ],
+  };
+}
+
+const HAS_RECORDING: Prisma.EventWhereInput = {
+  OR: [
+    { recordingUrl: { not: null } },
+    { recordingLessonId: { not: null } },
+    { recordingPostId: { not: null } },
+  ],
+};
 
 export type CalendarMonth = {
   year: number;
   month: number;
   timeZone: string;
-  /** Day key -> the events on that day, in the viewer's zone. */
+  /** Day key -> the classes on that day, in the viewer's zone. */
   byDay: Map<string, EventCard[]>;
   events: EventCard[];
 };
@@ -164,7 +310,7 @@ export type CalendarMonth = {
 /**
  * One month of the grid.
  *
- * The window covers the whole six-row grid, not the month, so an event in a
+ * The window covers the whole six-row grid, not the month, so a class in a
  * leading or trailing cell is drawn rather than silently dropped. Grouping is
  * by the viewer's zone: an 8pm New York class on the 3rd is on the 4th for
  * someone in Berlin, and their calendar should say so.
@@ -175,7 +321,7 @@ export async function loadCalendarMonth(input: {
   month: number;
   timeZone?: string;
 }): Promise<CalendarMonth | null> {
-  const viewer = await getEventViewer(input.userId);
+  const viewer = await joinViewer(input.userId);
   if (!viewer) return null;
 
   const timeZone = safeTimeZone(input.timeZone ?? viewer.timeZone);
@@ -215,22 +361,24 @@ export type CalendarList = {
 const LIST_PAGE = 20;
 
 /**
- * The list view, forward or backward in time.
+ * The list, forward or backward in time.
  *
- * Cursor pagination rather than offset: a calendar gains rows while somebody
- * is reading it, and an offset page two would then repeat or skip an event.
- * The cursor is the sort key itself — the start instant and the id to break
- * ties — so a page boundary is stable whatever is inserted around it.
+ * Cursor pagination rather than offset: a schedule gains rows while somebody
+ * is reading it, and an offset page two would then repeat or skip a class.
+ * The cursor is the sort key itself, the start instant and the id to break
+ * ties, so a page boundary is stable whatever is inserted around it.
  */
 export async function loadCalendarList(input: {
   userId: string;
-  /** "upcoming" counts forward from now; "past" counts backwards. */
+  /** "upcoming": not over yet, soonest first. "past": over, latest first. */
   direction?: "upcoming" | "past";
   cursor?: string | null;
   timeZone?: string;
   take?: number;
+  /** Past classes with something to watch, for the "catch up" shelf. */
+  withRecordingOnly?: boolean;
 }): Promise<CalendarList | null> {
-  const viewer = await getEventViewer(input.userId);
+  const viewer = await joinViewer(input.userId);
   if (!viewer) return null;
 
   const timeZone = safeTimeZone(input.timeZone ?? viewer.timeZone);
@@ -239,11 +387,9 @@ export async function loadCalendarList(input: {
   const cursor = decodeCursor(input.cursor);
   const now = new Date();
 
-  const boundary = direction === "upcoming"
-    ? { startsAt: { gte: now } }
-    : { startsAt: { lt: now } };
+  const boundary = direction === "upcoming" ? notEndedWhere(now) : endedWhere(now);
 
-  const seek = cursor
+  const seek: Prisma.EventWhereInput = cursor
     ? direction === "upcoming"
       ? {
           OR: [
@@ -260,7 +406,14 @@ export async function loadCalendarList(input: {
     : {};
 
   const rows = await prisma.event.findMany({
-    where: { AND: [visibleEventsWhere(viewer), boundary, seek] },
+    where: {
+      AND: [
+        visibleEventsWhere(viewer),
+        boundary,
+        seek,
+        input.withRecordingOnly ? HAS_RECORDING : {},
+      ],
+    },
     orderBy:
       direction === "upcoming"
         ? [{ startsAt: "asc" }, { id: "asc" }]
@@ -303,26 +456,32 @@ function decodeCursor(
 }
 
 export type EventDetail = EventCard & {
-  zoomUrl: string | null;
-  recordingUrl: string | null;
   recurrenceEvery: number | null;
   recurrenceUntil: Date | null;
   /** Who else is coming. Capped; the count is the honest total. */
   attendees: { handle: string; name: string; image: string | null }[];
-  /** Where the recording was published, when it was. */
-  recording: { kind: "lesson" | "post"; href: string; title: string } | null;
-  /** The other dates in this series, when it repeats. */
+  /** The other dates of this class, when it repeats. */
   siblings: { slug: string; startsAt: Date }[];
+  /**
+   * The link a calendar file may carry: for staff, the host, and members
+   * entitled to join who said they are coming. A calendar entry outlives the
+   * page it came from, so it is the copy that matters most.
+   */
+  calendarZoomUrl: string | null;
+  /** The post this class was announced in, where the conversation is. */
+  discussion: { id: string; title: string | null } | null;
+  /** Whether the viewer is this class's host. */
+  viewerIsHost: boolean;
 };
 
 const ATTENDEE_LIMIT = 24;
 
-/** One event, everything its page needs, in as few queries as it takes. */
+/** One class, everything its page needs, in as few queries as it takes. */
 export const loadEvent = cache(async function loadEvent(
   userId: string,
   slug: string,
 ): Promise<EventDetail | null> {
-  const viewer = await getEventViewer(userId);
+  const viewer = await joinViewer(userId);
   if (!viewer) return null;
 
   const row = await prisma.event.findUnique({
@@ -330,18 +489,11 @@ export const loadEvent = cache(async function loadEvent(
     select: {
       ...CARD_SELECT,
       spaceId: true,
-      zoomUrl: true,
       recurrenceEvery: true,
       recurrenceUntil: true,
       seriesId: true,
-      recordingLesson: {
-        select: {
-          title: true,
-          slug: true,
-          section: { select: { course: { select: { slug: true } } } },
-        },
-      },
-      recordingPost: { select: { id: true, title: true } },
+      zoomMeetingId: true,
+      zoomOccurrenceId: true,
     },
   });
   if (!row) return null;
@@ -355,7 +507,8 @@ export const loadEvent = cache(async function loadEvent(
   const [card] = await toCards([row], viewer);
   if (!card) return null;
 
-  const [attendees, siblings] = await Promise.all([
+  const now = new Date();
+  const [attendees, siblings, discussion] = await Promise.all([
     prisma.eventRsvp.findMany({
       where: { eventId: row.id, status: "GOING" },
       orderBy: { createdAt: "asc" },
@@ -371,52 +524,58 @@ export const loadEvent = cache(async function loadEvent(
         },
       },
     }),
-    // The rest of the run, for a repeating class. A series parent points at
-    // itself through `seriesId` on its children, so either end works.
-    row.seriesId || row.recurrence
+    // The rest of the run: a series staff scheduled here (a parent and its
+    // occurrences), or the other dates of the same recurring Zoom meeting.
+    row.zoomMeetingId && row.zoomOccurrenceId
       ? prisma.event.findMany({
           where: {
-            OR: [
-              { seriesId: row.seriesId ?? row.id },
-              { id: row.seriesId ?? row.id },
-            ],
+            source: "ZOOM",
+            zoomMeetingId: row.zoomMeetingId,
             id: { not: row.id },
             status: "PUBLISHED",
-            startsAt: { gte: new Date() },
+            startsAt: { gte: now },
           },
           orderBy: { startsAt: "asc" },
           take: 8,
           select: { slug: true, startsAt: true },
         })
-      : Promise.resolve([]),
+      : row.seriesId || row.recurrence
+        ? prisma.event.findMany({
+            where: {
+              OR: [{ seriesId: row.seriesId ?? row.id }, { id: row.seriesId ?? row.id }],
+              id: { not: row.id },
+              status: "PUBLISHED",
+              startsAt: { gte: now },
+            },
+            orderBy: { startsAt: "asc" },
+            take: 8,
+            select: { slug: true, startsAt: true },
+          })
+        : Promise.resolve([]),
+    prisma.post.findFirst({
+      where: {
+        eventId: row.id,
+        status: "PUBLISHED",
+        ...(viewer.isStaff ? {} : { spaceId: { in: [...viewer.spaceIds] } }),
+      },
+      orderBy: { publishedAt: "desc" },
+      select: { id: true, title: true },
+    }),
   ]);
 
-  const recording = row.recordingLesson
-    ? {
-        kind: "lesson" as const,
-        href: `/learn/${row.recordingLesson.section.course.slug}/${row.recordingLesson.slug}`,
-        title: row.recordingLesson.title,
-      }
-    : row.recordingPost
-      ? {
-          kind: "post" as const,
-          href: `/posts/${row.recordingPost.id}`,
-          title: row.recordingPost.title ?? "The recording",
-        }
-      : null;
+  const viewerIsHost = row.hostId === viewer.userId;
+  const mayCarryLink =
+    entitledToJoin({
+      isStaff: viewer.isStaff,
+      isHost: viewerIsHost,
+      membership: viewer.membership,
+      capacity: row.capacity,
+      myStatus: card.myStatus,
+    }) &&
+    (viewer.isStaff || viewerIsHost || card.myStatus === "GOING");
 
   return {
     ...card,
-    // The joining link belongs to the people who said they are coming.
-    //
-    // It is nulled here rather than hidden in the page, because it does not
-    // only appear as a button: it goes into the `.ics` description and into
-    // the Google Calendar URL, and both of those are rendered for anyone who
-    // can see the event. Withholding it at the source is the only version of
-    // this that cannot be undone by a later surface forgetting to check.
-    zoomUrl:
-      card.myStatus === "GOING" || viewer.isStaff ? row.zoomUrl : null,
-    recordingUrl: row.recordingUrl,
     recurrenceEvery: row.recurrenceEvery,
     recurrenceUntil: row.recurrenceUntil,
     attendees: attendees.map((rsvp) => ({
@@ -424,29 +583,33 @@ export const loadEvent = cache(async function loadEvent(
       name: rsvp.user.profile?.displayName ?? rsvp.user.name ?? rsvp.user.handle,
       image: rsvp.user.profile?.avatarUrl ?? rsvp.user.image,
     })),
-    recording,
     siblings,
+    calendarZoomUrl: mayCarryLink && row.status === "PUBLISHED" ? row.zoomUrl : null,
+    discussion,
+    viewerIsHost,
   };
 });
 
 /**
- * The next few things this member said they would be at.
+ * The next few classes this member said they would be at.
  *
- * For the home page rail. Scoped by the RSVP rather than by the calendar, so
- * it is one indexed lookup on `[userId, status]`.
+ * Scoped by the RSVP rather than by the schedule, so it is one indexed lookup
+ * on `[userId, status]`.
  */
 export async function myUpcomingEvents(
   userId: string,
   take = 3,
 ): Promise<EventCard[]> {
-  const viewer = await getEventViewer(userId);
+  const viewer = await joinViewer(userId);
   if (!viewer) return [];
 
   const rows = await prisma.event.findMany({
     where: {
-      status: "PUBLISHED",
-      startsAt: { gte: new Date() },
-      rsvps: { some: { userId, status: { in: ["GOING", "WAITLIST"] } } },
+      AND: [
+        { status: "PUBLISHED" },
+        notEndedWhere(new Date()),
+        { rsvps: { some: { userId, status: { in: ["GOING", "WAITLIST"] } } } },
+      ],
     },
     orderBy: { startsAt: "asc" },
     take,

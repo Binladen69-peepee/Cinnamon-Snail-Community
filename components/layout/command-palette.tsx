@@ -3,27 +3,34 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
+  Bell,
   BookOpen,
   Calendar,
   Compass,
   Loader2,
   Search,
+  UserRound,
   Users,
+  type LucideIcon,
 } from "lucide-react";
 import type { PaletteGroup } from "@/app/api/search/route";
+import { filterSuggestions, type SearchSuggestion } from "@/lib/search/suggest";
 import {
-  filterSuggestions,
-  NAV_SECTION_SUGGESTIONS,
-  type SearchSuggestion,
-} from "@/lib/search/suggest";
+  ACCOUNT_LINKS,
+  MEMBER_DESTINATIONS,
+  MEMBER_NAV_LINKS,
+} from "@/lib/navigation";
 import { cn } from "@/lib/utils";
 
 type Row = SearchSuggestion;
 
-const GROUP_ICON = {
+const GROUP_ICON: Record<string, LucideIcon> = {
   "Live classes": Calendar,
   Classes: BookOpen,
   Sections: Compass,
+  Community: Users,
+  Learning: BookOpen,
+  Account: UserRound,
   Members: Users,
   Posts: Search,
   Courses: BookOpen,
@@ -31,14 +38,26 @@ const GROUP_ICON = {
   Events: Calendar,
   Comments: Search,
   Results: Search,
-} as const;
+};
+
+/** A destination row wears the icon it has in the menu. */
+const DESTINATION_ICON = new Map<string, LucideIcon>([
+  ...[...MEMBER_NAV_LINKS, ...ACCOUNT_LINKS].map(
+    (link) => [link.href, link.icon] as [string, LucideIcon],
+  ),
+  ["/notifications", Bell],
+]);
 
 /**
  * Navbar search, modelled on a command palette: a real field, ⌘K, and a
  * results list with a thumbnail, a name, and a page/section detail.
+ *
+ * With nothing typed it suggests; its standing destinations are the member
+ * menu's (see `MEMBER_DESTINATIONS`), so it never offers a page the menu has
+ * retired.
  */
 export function CommandPalette({
-  suggestions = NAV_SECTION_SUGGESTIONS,
+  suggestions = MEMBER_DESTINATIONS,
 }: {
   suggestions?: SearchSuggestion[];
 }) {
@@ -241,7 +260,7 @@ export function CommandPalette({
             <div className="max-h-[min(18rem,50vh)] overflow-y-auto pb-1">
               {rows.map((row, index) => {
                 const Icon =
-                  GROUP_ICON[row.group as keyof typeof GROUP_ICON] ?? Search;
+                  DESTINATION_ICON.get(row.href) ?? GROUP_ICON[row.group] ?? Search;
                 const selected = index === cursor;
                 return (
                   <button

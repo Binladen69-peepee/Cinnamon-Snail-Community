@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
+import { liveClassHref } from "@/lib/events/paths";
 import { formatEventTime, safeTimeZone, zoneLabel } from "@/lib/events/timezone";
 
 export const metadata = { title: "Events" };
@@ -82,7 +83,7 @@ export default async function PublicEventsPage() {
                   </p>
                 ) : null}
                 <Link
-                  href={`/calendar/${event.slug}`}
+                  href={liveClassHref(event.slug)}
                   className="mt-3 inline-flex text-sm font-semibold text-brand no-underline hover:underline"
                 >
                   Details and RSVP

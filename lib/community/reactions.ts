@@ -88,6 +88,30 @@ export function summarizeReactions(
   };
 }
 
+/**
+ * The per-emoji counts after this member's reaction moves from `from` to `to`.
+ *
+ * Pure, so every surface that shows a post (the card, the lightbox, a reel)
+ * derives the same numbers from the same two facts: the counts the server
+ * sent, which already include the reaction the member had then, and the
+ * reaction the member has now. When the two agree nothing moves; that is what
+ * keeps a fresh server render and a local press from counting twice.
+ */
+export function applyReactionChange(
+  counts: Record<string, number>,
+  from: string | null,
+  to: string | null,
+): Record<string, number> {
+  if (from === to) return counts;
+  const next = { ...counts };
+  if (from) next[from] = Math.max(0, (next[from] ?? 1) - 1);
+  if (to) next[to] = (next[to] ?? 0) + 1;
+  for (const [emoji, count] of Object.entries(next)) {
+    if (count <= 0) delete next[emoji];
+  }
+  return next;
+}
+
 /** Top reactions present on a post, for the summary chips. */
 export function topReactions(
   counts: Record<string, number>,

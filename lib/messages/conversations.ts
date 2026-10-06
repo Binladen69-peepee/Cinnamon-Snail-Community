@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { dispatchNotifications } from "@/lib/notifications/dispatch";
 import { afterResponse } from "@/lib/after-response";
+import { awardBadgesAfterResponse } from "@/lib/social/badge-triggers";
 import { guardMessageAction } from "@/lib/messages/rate-limits";
 import {
   canCreateGroup,
@@ -219,12 +220,57 @@ export async function requireMembership(conversationId: string, userId: string) 
               },
             },
           },
+          // Set when this thread is a crew's group chat (DEC-078).
+          crew: { select: { id: true, slug: true, name: true, kind: true, archivedAt: true } },
         },
       },
     },
   });
   if (!membership || membership.leftAt) return null;
   return membership;
+}
+
+/**
+ * Everyone on either side of a block with this member. In a crew chat their
+ * messages are not shown to each other: a crew is a group space, so a block
+ * cannot stop the other person talking to the crew, but it does mean neither
+ * has to read the other.
+ */
+export async function blockedAuthorIds(viewerId: string): Promise<string[]> {
+  const rows = await prisma.userBlock.findMany({
+    where: { OR: [{ blockerId: viewerId }, { blockedId: viewerId }] },
+    select: { blockerId: true, blockedId: true },
+  });
+  return [
+    ...new Set(rows.flatMap((row) => [row.blockerId, row.blockedId]).filter((id) => id !== viewerId)),
+  ];
+}
+
+/**
+ * The gate for writing in a crew chat. The crew is a group the member is in,
+ * not a private inbox, so direct-message preferences do not apply; what does
+ * is being an active member of the crew, and the crew not being archived.
+ */
+async function assertCanWriteToCrew(
+  crew: { id: string; archivedAt: Date | null },
+  authorId: string,
+): Promise<void> {
+  if (crew.archivedAt) {
+    throw new MessagePermissionError("This crew has been archived, so its chat is read-only.");
+  }
+  const [author, member] = await Promise.all([
+    prisma.user.findUnique({ where: { id: authorId }, select: { status: true } }),
+    prisma.crewMember.findUnique({
+      where: { crewId_userId: { crewId: crew.id, userId: authorId } },
+      select: { id: true },
+    }),
+  ]);
+  if (author?.status !== "ACTIVE") {
+    throw new MessagePermissionError("Your account cannot send messages right now.");
+  }
+  if (!member) {
+    throw new MessagePermissionError("Only members of this crew can write in its chat.");
+  }
 }
 
 export async function findOrCreateDirectConversation(
@@ -243,15 +289,25 @@ export async function findOrCreateDirectConversation(
     });
     return existing;
   }
-  return prisma.conversation.create({
-    data: {
-      isGroup: false,
-      memberKey,
-      members: {
-        create: [{ userId: senderId }, { userId: recipientId }],
+  try {
+    return await prisma.conversation.create({
+      data: {
+        isGroup: false,
+        memberKey,
+        members: {
+          create: [{ userId: senderId }, { userId: recipientId }],
+        },
       },
-    },
-  });
+    });
+  } catch (error) {
+    // Two taps at once (or both people starting the thread together) race on
+    // the unique member key; the loser opens the thread the winner created.
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002") {
+      const winner = await prisma.conversation.findUnique({ where: { memberKey } });
+      if (winner) return winner;
+    }
+    throw error;
+  }
 }
 
 export async function createGroupConversation(
@@ -308,13 +364,20 @@ export async function sendMessage(input: {
   const others = membership.conversation.members.filter(
     (member) => member.userId !== input.authorId && !member.leftAt,
   );
-  // Re-checked on every send, because a preference or a block can change in
-  // the middle of a thread. One pass for the whole group rather than one gate
-  // per recipient.
-  await assertCanMessageAll(
-    input.authorId,
-    others.map((other) => other.userId),
-  );
+  const crew = membership.conversation.crew;
+  if (crew) {
+    // A crew chat is the crew's own space: being in the crew is the
+    // permission, re-checked on every send because membership can end.
+    await assertCanWriteToCrew(crew, input.authorId);
+  } else {
+    // Re-checked on every send, because a preference or a block can change
+    // in the middle of a thread. One pass for the whole group rather than one
+    // gate per recipient.
+    await assertCanMessageAll(
+      input.authorId,
+      others.map((other) => other.userId),
+    );
+  }
 
   const clientId = input.clientId?.trim() || null;
 
@@ -378,7 +441,18 @@ export async function sendMessage(input: {
   // message so a retried send cannot notify twice. The text stays in the
   // inbox only: email and push say who wrote, never what.
   const sentId = message.id;
+  const sentAt = message.createdAt;
   afterResponse(async () => {
+    if (crew) {
+      await notifyCrewChat({
+        crewName: crew.name,
+        conversationId: input.conversationId,
+        authorId: input.authorId,
+        recipientIds: others.map((other) => other.userId),
+        sentAt,
+      });
+      return;
+    }
     await dispatchNotifications(
       others.map((other) => ({
         userId: other.userId,
@@ -392,7 +466,126 @@ export async function sendMessage(input: {
     ).catch(() => undefined);
   });
 
+  // The Conversations badge counts one-to-one threads where both people
+  // wrote, so the reply that makes a thread two-way can earn it, for both of
+  // them. Who that is gets worked out after the response, like the rest.
+  if (!crew && !membership.conversation.isGroup) {
+    await awardBadgesAfterResponse(
+      () =>
+        madeTwoWayBy({
+          conversationId: input.conversationId,
+          authorId: input.authorId,
+          messageId: sentId,
+          sentAt,
+        }),
+      "conversation-two-way",
+    );
+  }
+
   return message;
+}
+
+/**
+ * The two people in a one-to-one thread, when this message is what made it
+ * two-way: the author's first message there (nothing of theirs before it),
+ * and the other person has written too. Anything else is no one.
+ *
+ * Deleted messages are left out, exactly as the badge counts them.
+ */
+async function madeTwoWayBy(input: {
+  conversationId: string;
+  authorId: string;
+  messageId: string;
+  sentAt: Date;
+}): Promise<string[]> {
+  const [earlierOwn, other] = await Promise.all([
+    prisma.message.count({
+      where: {
+        conversationId: input.conversationId,
+        authorId: input.authorId,
+        deletedAt: null,
+        id: { not: input.messageId },
+        createdAt: { lte: input.sentAt },
+      },
+    }),
+    prisma.message.findFirst({
+      where: {
+        conversationId: input.conversationId,
+        authorId: { not: input.authorId },
+        deletedAt: null,
+      },
+      select: { authorId: true },
+    }),
+  ]);
+  if (earlierOwn > 0 || !other) return [];
+  return [input.authorId, other.authorId];
+}
+
+/**
+ * A crew chat is a room, not a letter: a message per notification would bury
+ * every member of a busy crew, and a direct-message email for each one would
+ * be worse. So the crew hears about its chat at most once a day — on the first
+ * message of the day — as group activity, which is in-app by default and
+ * never emailed unless the member asked for it. The unread count in Messages
+ * carries the rest.
+ */
+async function notifyCrewChat(input: {
+  crewName: string;
+  conversationId: string;
+  authorId: string;
+  recipientIds: string[];
+  sentAt: Date;
+}): Promise<void> {
+  if (input.recipientIds.length === 0) return;
+  const day = input.sentAt.toISOString().slice(0, 10);
+  const earlierToday = await prisma.message.count({
+    where: {
+      conversationId: input.conversationId,
+      createdAt: { gte: new Date(`${day}T00:00:00.000Z`), lt: input.sentAt },
+    },
+  });
+  if (earlierToday > 0) return;
+  await dispatchNotifications(
+    input.recipientIds.map((userId) => ({
+      userId,
+      category: "SPACE_ACTIVITY" as const,
+      title: `New messages in ${input.crewName}`,
+      body: "Your crew is talking. Jump in when you have a minute.",
+      href: `/messages/${input.conversationId}`,
+      actorId: input.authorId,
+      dedupeKey: `crewchat:${input.conversationId}:${day}`,
+    })),
+  ).catch(() => undefined);
+}
+
+/**
+ * In a crew chat, a message whose author is on either side of a block with
+ * the viewer is not theirs to read (see `blockedAuthorIds`), so it does not
+ * count as unread either. Everywhere else blocks already stop the message
+ * being sent, so the clause only ever bites in crew chats. `m` is the message.
+ */
+function notHiddenInCrewChat(userId: string) {
+  return Prisma.sql`NOT EXISTS (
+    SELECT 1
+    FROM "Crew" c
+    JOIN "UserBlock" b
+      ON (b."blockerId" = ${userId} AND b."blockedId" = m."authorId")
+      OR (b."blockerId" = m."authorId" AND b."blockedId" = ${userId})
+    WHERE c."conversationId" = m."conversationId"
+  )`;
+}
+
+export type ConversationKind = "direct" | "group" | "crew";
+
+const INBOX_AUTHOR = {
+  select: { id: true, handle: true, profile: { select: { displayName: true } } },
+} as const;
+
+/** "Sam Rivera, Jo, Lee" with a "+3" when there are more than it names. */
+function groupTitle(names: string[], total: number): string {
+  if (names.length === 0) return "Conversation";
+  const extra = total - names.length;
+  return extra > 0 ? `${names.join(", ")} +${extra}` : names.join(", ");
 }
 
 export async function listConversations(userId: string) {
@@ -401,8 +594,11 @@ export async function listConversations(userId: string) {
     include: {
       conversation: {
         include: {
+          // A row shows a face or two; a crew chat can hold hundreds.
           members: {
             where: { userId: { not: userId } },
+            orderBy: { id: "asc" },
+            take: 4,
             include: {
               user: {
                 select: {
@@ -413,11 +609,13 @@ export async function listConversations(userId: string) {
               },
             },
           },
+          _count: { select: { members: { where: { leftAt: null } } } },
+          crew: { select: { slug: true, name: true, archivedAt: true } },
           messages: {
             where: { deletedAt: null },
             orderBy: { createdAt: "desc" },
             take: 1,
-            include: { author: { select: { id: true, handle: true } } },
+            include: { author: INBOX_AUTHOR },
           },
         },
       },
@@ -428,50 +626,91 @@ export async function listConversations(userId: string) {
     ],
   });
 
-  // One grouped count for the whole inbox rather than a COUNT per thread.
-  // The previous shape issued a query per conversation, so a member with sixty
-  // threads paid sixty round trips to render one list -- the classic N+1, and
-  // the thing that makes an inbox slow exactly when someone uses it most.
-  const unreadGroups =
+  // One grouped count for the whole inbox rather than a COUNT per thread: the
+  // same join as the badge below, so the two cannot disagree.
+  const unreadRows =
     memberships.length === 0
       ? []
-      : await prisma.message.groupBy({
-          by: ["conversationId"],
-          where: {
-            authorId: { not: userId },
-            deletedAt: null,
-            OR: memberships.map((membership) => ({
-              conversationId: membership.conversationId,
-              ...(membership.lastReadAt
-                ? { createdAt: { gt: membership.lastReadAt } }
-                : {}),
-            })),
-          },
-          _count: { _all: true },
-        });
+      : await prisma.$queryRaw<{ conversationId: string; unread: number }[]>`
+          SELECT m."conversationId" AS "conversationId", count(*)::int AS unread
+          FROM "Message" m
+          JOIN "ConversationMember" cm
+            ON cm."conversationId" = m."conversationId"
+          WHERE cm."userId" = ${userId}
+            AND cm."leftAt" IS NULL
+            AND m."authorId" <> ${userId}
+            AND m."deletedAt" IS NULL
+            AND (cm."lastReadAt" IS NULL OR m."createdAt" > cm."lastReadAt")
+            AND ${notHiddenInCrewChat(userId)}
+          GROUP BY m."conversationId"
+        `;
   const unreadByConversation = new Map(
-    unreadGroups.map((row) => [row.conversationId, row._count._all] as const),
+    unreadRows.map((row) => [row.conversationId, row.unread] as const),
   );
 
+  // A crew chat whose newest message is from someone the viewer does not see
+  // previews the newest one they do. Rare, so asked per thread.
+  const hidden = memberships.some((membership) => membership.conversation.crew)
+    ? await blockedAuthorIds(userId)
+    : [];
+  const previews = new Map<string, (typeof memberships)[number]["conversation"]["messages"][number] | null>();
+  if (hidden.length > 0) {
+    for (const membership of memberships) {
+      const last = membership.conversation.messages[0];
+      if (!membership.conversation.crew || !last || !hidden.includes(last.authorId)) continue;
+      previews.set(
+        membership.conversationId,
+        await prisma.message.findFirst({
+          where: {
+            conversationId: membership.conversationId,
+            deletedAt: null,
+            authorId: { notIn: hidden },
+          },
+          orderBy: { createdAt: "desc" },
+          include: { author: INBOX_AUTHOR },
+        }),
+      );
+    }
+  }
+
   return memberships.map((membership) => {
-    const others = membership.conversation.members;
+    const { conversation } = membership;
+    const others = conversation.members;
+    const kind: ConversationKind = conversation.crew
+      ? "crew"
+      : conversation.isGroup
+        ? "group"
+        : "direct";
+    const names = others.map((member) => member.user.profile?.displayName ?? member.user.handle);
     return {
       id: membership.conversationId,
-      isGroup: membership.conversation.isGroup,
+      isGroup: conversation.isGroup,
+      kind,
+      crew: conversation.crew
+        ? {
+            slug: conversation.crew.slug,
+            name: conversation.crew.name,
+            archived: Boolean(conversation.crew.archivedAt),
+          }
+        : null,
       title:
-        membership.conversation.title ??
-        others
-          .map((member) => member.user.profile?.displayName ?? member.user.handle)
-          .join(", ") ??
-        "Conversation",
+        conversation.title ??
+        (kind === "direct"
+          ? // Nobody left on the other side: their account was deleted.
+            (names[0] ?? "Former member")
+          : groupTitle(names.slice(0, 3), conversation._count.members - 1)),
+      /** Everyone still in the thread, the viewer included. */
+      memberCount: conversation._count.members,
       others: others.map((member) => ({
         id: member.user.id,
         handle: member.user.handle,
         name: member.user.profile?.displayName ?? member.user.handle,
         avatarUrl: member.user.profile?.avatarUrl ?? null,
       })),
-      lastMessage: membership.conversation.messages[0] ?? null,
-      lastMessageAt: membership.conversation.lastMessageAt,
+      lastMessage: previews.has(membership.conversationId)
+        ? previews.get(membership.conversationId)!
+        : (conversation.messages[0] ?? null),
+      lastMessageAt: conversation.lastMessageAt,
       unread: unreadByConversation.get(membership.conversationId) ?? 0,
     };
   });
@@ -513,6 +752,7 @@ export const totalUnreadForUser = cache(async (userId: string): Promise<number> 
       AND m."authorId" <> ${userId}
       AND m."deletedAt" IS NULL
       AND (cm."lastReadAt" IS NULL OR m."createdAt" > cm."lastReadAt")
+      AND ${notHiddenInCrewChat(userId)}
   `;
   return rows[0]?.unread ?? 0;
 });
@@ -551,11 +791,13 @@ export async function loadOlderMessages(input: {
   });
   if (!anchor) return { messages: [], hasMore: false };
 
+  const hidden = membership.conversation.crew ? await blockedAuthorIds(input.userId) : [];
   const take = Math.min(Math.max(input.take ?? MESSAGE_PAGE, 1), 100);
   const rows = await prisma.message.findMany({
     where: {
       conversationId: input.conversationId,
       deletedAt: null,
+      ...(hidden.length ? { authorId: { notIn: hidden } } : {}),
       OR: [
         { createdAt: { lt: anchor.createdAt } },
         { createdAt: anchor.createdAt, id: { lt: anchor.id } },
@@ -586,27 +828,49 @@ export async function loadOlderMessages(input: {
 export async function readConversation(conversationId: string, userId: string) {
   const membership = await requireMembership(conversationId, userId);
   if (!membership) return null;
+  const crew = membership.conversation.crew;
+  // In a crew chat, people either side of a block with the viewer stay in
+  // the crew but out of the viewer's view (see `blockedAuthorIds`).
+  const hiddenAuthorIds = crew ? await blockedAuthorIds(userId) : [];
   const rows = await prisma.message.findMany({
-    where: { conversationId, deletedAt: null },
+    where: {
+      conversationId,
+      deletedAt: null,
+      ...(hiddenAuthorIds.length ? { authorId: { notIn: hiddenAuthorIds } } : {}),
+    },
     orderBy: [{ createdAt: "desc" }, { id: "desc" }],
     take: MESSAGE_PAGE + 1,
     include: { author: MESSAGE_AUTHOR },
   });
   const hasMore = rows.length > MESSAGE_PAGE;
   const messages = rows.slice(0, MESSAGE_PAGE).reverse();
-  const others = membership.conversation.members.filter(
+  const everyoneElse = membership.conversation.members.filter(
     (member) => member.userId !== userId,
   );
-  const blockedIds = await prisma.userBlock.findMany({
-    where: { blockerId: userId, blockedId: { in: others.map((o) => o.userId) } },
-    select: { blockedId: true },
-  });
+  // A crew chat is a room: its header points to the crew page for the people
+  // in it, rather than shipping a crowd to the browser for receipts nobody
+  // can use at that size.
+  const others = crew ? [] : everyoneElse;
+  const blockedIds = others.length
+    ? await prisma.userBlock.findMany({
+        where: { blockerId: userId, blockedId: { in: others.map((o) => o.userId) } },
+        select: { blockedId: true },
+      })
+    : [];
+  const kind: ConversationKind = crew ? "crew" : membership.conversation.isGroup ? "group" : "direct";
   return {
     id: conversationId,
     isGroup: membership.conversation.isGroup,
+    kind,
+    crew: crew
+      ? { slug: crew.slug, name: crew.name, kind: crew.kind, archived: Boolean(crew.archivedAt) }
+      : null,
+    /** Everyone still in the thread, the viewer included. */
+    memberCount: everyoneElse.filter((member) => !member.leftAt).length + 1,
+    hiddenAuthorIds,
     title:
       membership.conversation.title ??
-      others
+      everyoneElse
         .map((member) => member.user.profile?.displayName ?? member.user.handle)
         .join(", "),
     viewerLastReadAt: membership.lastReadAt,
