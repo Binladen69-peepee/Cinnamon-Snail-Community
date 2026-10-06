@@ -6,9 +6,16 @@
  * slide-in panel instead of redirecting. It only works alongside the
  * `sc-slide-script.js` tag in the root layout; without that script the link
  * loads a blank checkout.
+ *
+ * The checkout is SamCart product 1069354, the monthly free-month membership,
+ * which also offers the annual one (1069358) — the two products the billing
+ * webhook grants membership and Kit tags for. It is addressed by id because a
+ * slug can be renamed in SamCart. The old `monthly-subscription` checkout sold
+ * product 849150, which billing does not recognise, so a purchase through it
+ * granted nothing, and testing the membership in Test Mode never reached it.
  */
 export const CHECKOUT_URL =
-  "https://cinnamonsnail.mysamcart.com/checkout/monthly-subscription#samcart-slide-open-right";
+  "https://cinnamonsnail.mysamcart.com/checkout/1069354#samcart-slide-open-right";
 
 export const CHECKOUT_LABEL = "Become a member";
 

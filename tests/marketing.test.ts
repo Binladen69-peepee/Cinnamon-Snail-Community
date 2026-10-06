@@ -1,6 +1,7 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
+import { isMembershipSamcartProduct } from "@/lib/billing/config";
 import {
   CANCEL_REASSURANCE,
   CHECKOUT_LABEL,
@@ -30,8 +31,15 @@ import {
 describe("the single call to action", () => {
   it("points at the SamCart checkout with the slide-open fragment", () => {
     expect(CHECKOUT_URL).toBe(
-      "https://cinnamonsnail.mysamcart.com/checkout/monthly-subscription#samcart-slide-open-right",
+      "https://cinnamonsnail.mysamcart.com/checkout/1069354#samcart-slide-open-right",
     );
+  });
+
+  it("sells a product the billing webhook grants membership for", () => {
+    // The CTA once sold a SamCart product billing did not map, so a purchase
+    // through the site's own button granted no access and no Kit tag.
+    const productId = new URL(CHECKOUT_URL).pathname.split("/").pop();
+    expect(isMembershipSamcartProduct(productId)).toBe(true);
   });
 
   it("uses the one approved label", () => {
