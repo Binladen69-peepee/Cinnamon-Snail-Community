@@ -477,7 +477,7 @@ function ClassViewer({
             >
               {current.title}
             </h3>
-            <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-white/80">
+            <p className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-background/80">
               <span className="inline-flex items-center gap-1.5">
                 <User className="size-3.5" aria-hidden />
                 {INSTRUCTOR}
@@ -517,7 +517,7 @@ function ClassViewer({
             </div>
           </div>
           <div className="flex flex-wrap items-center justify-between gap-4 px-6 py-6 md:px-8">
-            <ul className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-white/80">
+            <ul className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-background/80">
               <li className="inline-flex items-center gap-1.5">
                 <Leaf className="size-3.5" aria-hidden />
                 100% Plant-Based
@@ -533,7 +533,7 @@ function ClassViewer({
             </ul>
             <Link
               href={classDetailHref(current.slug)}
-              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black no-underline"
+              className="inline-flex items-center gap-2 rounded-full bg-background px-5 py-2.5 text-sm font-semibold text-foreground no-underline"
             >
               View Class Details
               <ArrowRight className="size-4" aria-hidden />

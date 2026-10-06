@@ -3,21 +3,21 @@ import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * Two palettes, each held to its own rules.
+ * One brand hue, held to its own rules in two scopes.
  *
- * The marketing site and the sign-in pages are monochrome, and stay that way.
- * This file has enforced that policy in both directions before — no hue
- * (`DEC-037`), one brand hue (`DEC-044`), no hue again (`DEC-045`) — and the
- * reason for guarding it has not changed: every surface paints from role
+ * The marketing site and the sign-in pages paint from the plum palette at the
+ * top of `globals.css`: plum for the CTA, links and focus, neutrals for the
+ * rest, amber and red reserved for warning and danger. This file has enforced
+ * the marketing palette in several forms before — no hue (`DEC-037`), one
+ * brand hue (`DEC-044`), no hue again (`DEC-045`), and now plum (2026-10-06).
+ * The reason for guarding it has not changed: every surface paints from role
  * tokens, so one stray hue in those blocks repaints hundreds of components.
  *
  * Everything signed in — the member app and the admin console — carries the
- * teal palette (`DEC-076`, `DEC-077`): teal for action and the major areas,
- * neutrals for everything else, and amber, red and blue for status. It is
- * declared once, in the "App design system" section at the end of
- * `globals.css`, and nowhere else. So the policy is now about *where* a hue may
- * live, which is a stricter property than "none at all": a green anywhere
- * outside that section is still the regression this catches.
+ * same plum on its own neutral ladder, declared once in the "App design
+ * system" section at the end of `globals.css` and nowhere else, with amber,
+ * red, blue and (only there) green for status. A green anywhere outside the
+ * app section, or any green used as brand, is the regression this catches.
  */
 
 const root = process.cwd();
@@ -49,19 +49,22 @@ function hue(hex: string): number | null {
 
 /**
  * The marketing sheet's families. Gold and red are reserved: they mean warning
- * and danger, and they are never spent on decoration. Everything else is grey.
+ * and danger, and they are never spent on decoration. Plum is the brand.
+ * Everything else is grey.
  */
 const MARKETING_FAMILIES: [string, number, number][] = [
   ["gold / amber", 25, 60],
   ["red / terracotta", 0, 24],
+  ["plum / mulberry", 318, 345],
 ];
 
-/** The app's families: teal, the yellow accent, and status. */
+/** The app's families: plum, and the four status hues. */
 const APP_FAMILIES: [string, number, number][] = [
   ["danger red", 0, 24],
   ["yellow / amber", 25, 60],
-  ["teal", 165, 190],
-  ["info blue", 200, 215],
+  ["success green", 120, 165],
+  ["info blue", 200, 225],
+  ["plum / mulberry", 318, 345],
 ];
 
 const familyIn =
@@ -150,11 +153,17 @@ describe("marketing palette", () => {
     expect(greens).toEqual([]);
   });
 
-  it("keeps the two grounds Adam chose", () => {
-    // Light is the pale off-white Adam picked by hand; dark stays pure black,
-    // which is what "truly black and white" means here.
-    expect(tokenIn(blockAfter(":root,"), "background")).toBe("#f3f7f0");
-    expect(tokenIn(blockAfter('[data-theme="dark"] {'), "background")).toBe("#000000");
+  it("keeps the marketing grounds", () => {
+    // A warm off-white in light and a plum-tinted near-black in dark; the
+    // green-tinted off-white and the pure black went with the monochrome.
+    expect(tokenIn(blockAfter(":root,"), "background")).toBe("#faf6f4");
+    expect(tokenIn(blockAfter('[data-theme="dark"] {'), "background")).toBe("#0f0b0e");
+  });
+
+  it("brands the call to action, links and focus in plum", () => {
+    expect(tokenIn(blockAfter(":root,"), "cta-fill")).toBe("#7b2d56");
+    expect(familyIn(MARKETING_FAMILIES)(tokenIn(blockAfter(":root,"), "link"))).toBe("plum / mulberry");
+    expect(familyIn(MARKETING_FAMILIES)(tokenIn(blockAfter('[data-theme="dark"] {'), "link"))).toBe("plum / mulberry");
   });
 
   it("still keeps warning and danger exactly where they were", () => {
@@ -175,20 +184,21 @@ describe("marketing palette", () => {
 });
 
 describe("app palette", () => {
-  it("is the palette the client briefed", () => {
+  it("is the plum palette", () => {
     const light = blockAfter(APP_LIGHT);
-    expect(tokenIn(light, "background")).toBe("#fafaf7");
+    expect(tokenIn(light, "background")).toBe("#faf7f8");
     expect(tokenIn(light, "surface")).toBe("#ffffff");
-    expect(tokenIn(light, "foreground")).toBe("#171717");
-    expect(tokenIn(light, "brand-fill")).toBe("#0f746f");
-    expect(tokenIn(light, "sidebar")).toBe("#0f746f");
-    expect(tokenIn(light, "highlight")).toBe("#0f746f");
+    expect(tokenIn(light, "foreground")).toBe("#1c1519");
+    expect(tokenIn(light, "brand-fill")).toBe("#7b2d56");
+    expect(tokenIn(light, "sidebar")).toBe("#561d3f");
+    // Counts and hearts are brand, never a third hue that could read as status.
+    expect(tokenIn(light, "highlight")).toBe("#7b2d56");
   });
 
-  it("has no trace of the forest palette it replaced", () => {
-    // DEC-077 retired forest, sage and terracotta from the app entirely.
-    // The client then asked for no yellow either: teal and neutrals only.
-    for (const retired of ["#1f5a45", "#8faf96", "#d47755", "#f7f5ef", "#0d1512", "accent-sage", "#ffd447"]) {
+  it("has no trace of the forest or teal palettes it replaced", () => {
+    // DEC-077 retired forest, sage and terracotta from the app entirely; the
+    // teal that followed (2026-10) is retired too: no green as brand or accent.
+    for (const retired of ["#1f5a45", "#8faf96", "#d47755", "#f7f5ef", "#0d1512", "accent-sage", "#ffd447", "#0f746f", "#3ebfb6", "#5fd0c7"]) {
       expect(appCss.toLowerCase(), retired).not.toContain(retired);
     }
   });
@@ -202,8 +212,8 @@ describe("app palette", () => {
   });
 
   it("designs dark mode rather than inverting light", () => {
-    // Teal #0f746f is too dim as text on the dark ground, so dark mode lifts
-    // brand text to a bright teal and keeps the fill legible against its ground.
+    // Plum #7b2d56 is too dim as text on the dark ground, so dark mode lifts
+    // brand text to a rose-mauve and keeps the fill legible against its ground.
     const light = blockAfter(APP_LIGHT);
     const dark = blockAfter(APP_DARK);
     expect(tokenIn(dark, "brand-strong")).not.toBe(tokenIn(light, "brand-strong"));

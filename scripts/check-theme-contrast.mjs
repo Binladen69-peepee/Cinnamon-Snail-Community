@@ -109,16 +109,16 @@ const SIDEBAR = [
 ];
 
 /**
- * Inside a teal band (the rails, the hero header) the app re-points its roles
- * so ordinary utilities read on teal. Checked against the band's own ground.
+ * Inside a plum band (the rails, the hero header) the app re-points its roles
+ * so ordinary utilities read on plum. Checked against the band's own ground.
  */
 const BAND_PAIRS = [
-  ["foreground", "sidebar", 4.5, "text in a teal band"],
+  ["foreground", "sidebar", 4.5, "text in a band"],
   ["foreground-muted", "sidebar", 4.5, "an inactive nav item, a band's description"],
   ["foreground", "surface-muted", 4.5, "text on a band's hover fill"],
   ["foreground-muted", "surface-muted", 4.5, "muted text on a band's hover fill"],
   ["brand-fill-foreground", "brand-fill", 4.5, "the white primary button in a band"],
-  ["brand", "sidebar", 3, "the white mark on teal"],
+  ["brand", "sidebar", 3, "the white mark on the band"],
   ["sidebar-accent-foreground", "sidebar-accent", 4.5, "the active nav item"],
 ];
 
@@ -137,7 +137,7 @@ const APP_PAIRS = [
   ["highlight-ink", "highlight-wash", 4.5, "highlight text on its wash"],
   ["on-highlight", "highlight", 4.5, "a count on its badge"],
   ["on-highlight", "highlight", 4.5, "text on a highlight fill"],
-  ["on-brand-wash", "brand-wash", 4.5, "text on a teal wash"],
+  ["on-brand-wash", "brand-wash", 4.5, "text on a brand wash"],
   ["highlight-ink", "background", 4.5, "highlight text on the ground"],
   ["success", "success-wash", 4.5, "a success badge"],
   ["warning", "warning-wash", 4.5, "a warning badge"],
@@ -157,8 +157,8 @@ const SCOPES = [
   ["marketing — dark", block(".dark,\n  [data-theme=\"dark\"]"), "marketing"],
   ["member app + console — light", APP_LIGHT, "app"],
   ["member app + console — dark", APP_DARK, "app"],
-  ["teal band — light", BAND_LIGHT, "band"],
-  ["teal band — dark", BAND_DARK, "band"],
+  ["plum band — light", BAND_LIGHT, "band"],
+  ["plum band — dark", BAND_DARK, "band"],
 ];
 
 let failures = 0;

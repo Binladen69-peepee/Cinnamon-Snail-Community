@@ -3,53 +3,55 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* Vegan University identity: monochrome. Ink on a cream ground in light, white
-   on pure black in dark, and no hue anywhere except the amber and red that
-   carry warning and danger -- stripping those would take meaning out of the
-   interface rather than decoration out of it.
+/* Vegan University identity: one plum, and neutrals that do the work.
 
-   The forest was tried and taken back out: on the black ground the pale green
-   it needed in order to stay legible read as a tint over every photograph in
-   the feed, and there is nothing a brand hue was doing here that contrast and
-   type were not already doing better. */
+   The brand hue is a deep mulberry (#7b2d56 in light, lifted to a rose-mauve
+   for text on dark grounds) and it is spent only on action and identity: the
+   CTA, links, the focus ring, the rails. Everything else is a warm off-white
+   with white cards in light, and a plum-tinted near-black ladder in dark. Amber
+   and red stay reserved for warning and danger. No green anywhere on the
+   marketing site; in the app, green is the success status and nothing else.
+
+   The monochrome and teal palettes that preceded this are gone; the role
+   tokens they established are what this palette is written into. */
 @layer theme {
   :root,
   .light,
   [data-theme="light"] {
     color-scheme: light;
 
-    --background: #f3f7f0;
-    --foreground: #0a0a0a;
+    --background: #faf6f4;
+    --foreground: #141114;
     --surface: #ffffff;
-    --surface-foreground: #0a0a0a;
+    --surface-foreground: #141114;
     /* One step off the surface: hover fills, media placeholders, the ground a
        thumbnail sits on. */
-    --surface-muted: #f4f4f4;
+    --surface-muted: #f5f1f2;
     --overlay: #ffffff;
-    --overlay-foreground: #0a0a0a;
-    --muted: #6e6e6e;
-    --primary: #0a0a0a;
+    --overlay-foreground: #141114;
+    --muted: #6b6368;
+    --primary: #7b2d56;
     --primary-foreground: #ffffff;
-    --accent: #0a0a0a;
+    --accent: #7b2d56;
     --accent-foreground: #ffffff;
     --accent-gold: #8a6a00;
     --accent-magenta: #b4442a;
     --accent-coral: #b4442a;
-    --foreground-muted: #6e6e6e;
-    --border: #e6e6e6;
-    --separator: #efefef;
-    --focus: #0a0a0a;
-    --link: #0a0a0a;
-    --default: #f4f4f4;
-    --default-foreground: #0a0a0a;
+    --foreground-muted: #6b6368;
+    --border: #e8e2e5;
+    --separator: #f0ebee;
+    --focus: #7b2d56;
+    --link: #6b2449;
+    --default: #f3eef1;
+    --default-foreground: #141114;
     --field-background: #ffffff;
-    --field-foreground: #0a0a0a;
+    --field-foreground: #141114;
     /* A shade darker than the original monochrome grey, which measured 3.28:1
        on white — placeholder text is text, and it is held to 4.5 like any. */
-    --field-placeholder: #757575;
-    --field-border: #dcdcdc;
+    --field-placeholder: #726a6f;
+    --field-border: #d9d2d6;
     --field-border-width: 1px;
-    --success: #0a0a0a;
+    --success: #6b2449;
     --success-foreground: #ffffff;
     --warning: #8a6a00;
     --warning-foreground: #ffffff;
@@ -57,43 +59,43 @@
     --danger-foreground: #ffffff;
     --radius: 0.75rem;
     --field-radius: 0.75rem;
-    --surface-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+    --surface-shadow: 0 10px 30px rgba(20, 10, 16, 0.06);
     --field-shadow: 0 0 0 0 transparent;
-    --overlay-shadow: 0 20px 60px rgba(0, 0, 0, 0.10);
+    --overlay-shadow: 0 20px 60px rgba(20, 10, 16, 0.10);
 
     /* Elevation is derived from ink, never from forest. Shadows built on the
        brand green painted a coloured halo around every card; these stay
        neutral so depth reads as depth. */
-    --e1: 0 1px 2px rgb(0 0 0 / 0.06);
-    --e2: 0 4px 14px rgb(0 0 0 / 0.08), 0 1px 3px rgb(0 0 0 / 0.05);
-    --e3: 0 18px 44px rgb(0 0 0 / 0.14), 0 2px 8px rgb(0 0 0 / 0.06);
+    --e1: 0 1px 2px rgb(20 10 16 / 0.06);
+    --e2: 0 4px 14px rgb(20 10 16 / 0.08), 0 1px 3px rgb(20 10 16 / 0.05);
+    --e3: 0 18px 44px rgb(20 10 16 / 0.14), 0 2px 8px rgb(20 10 16 / 0.06);
     --lift: 0 0 #0000;
 
-    /* Ink is the brand. --brand-strong is the one that carries text, so it
+    /* Plum is the brand. --brand-strong is the one that carries text, so it
        goes darker here and lighter in dark mode rather than staying put. */
-    --brand: #0a0a0a;
-    --brand-strong: #000000;
-    --brand-wash: #f4f4f4;
-    --on-brand-wash: #0a0a0a;
+    --brand: #7b2d56;
+    --brand-strong: #6b2449;
+    --brand-wash: #f6e6ee;
+    --on-brand-wash: #6b2449;
     --on-brand: #ffffff;
 
     /* A filled brand control -- primary button, active tab, own chat bubble.
-       It needs its own role because --brand-strong inverts: it is the darkest
-       green in light mode and the palest in dark, so a fill built on it with
-       fixed white text measured 1.4:1 against WCAG's 4.5. Fill and foreground
-       move together here, and neither is ever chosen at the call site. */
-    --brand-fill: #0a0a0a;
-    --brand-fill-hover: #262626;
+       It needs its own role because --brand-strong inverts: it is the deepest
+       plum in light mode and the palest in dark, so a fill built on it with
+       fixed white text would fail. Fill and foreground move together here,
+       and neither is ever chosen at the call site. */
+    --brand-fill: #7b2d56;
+    --brand-fill-hover: #682346;
     --brand-fill-foreground: #ffffff;
 
     /* White, like the cards: on a cream ground the rail does not need to shout
        to be a rail, and the border carries the edge. */
     --sidebar: #ffffff;
-    --sidebar-foreground: #0a0a0a;
-    --sidebar-accent: #f4f4f4;
-    --sidebar-accent-foreground: #0a0a0a;
-    --sidebar-border: #e6e6e6;
-    --sidebar-ring: #0a0a0a;
+    --sidebar-foreground: #141114;
+    --sidebar-accent: #f6e6ee;
+    --sidebar-accent-foreground: #6b2449;
+    --sidebar-border: #e8e2e5;
+    --sidebar-ring: #7b2d56;
 
     /* Radii live as runtime variables because @theme inline bakes literals in
        at build time, which would make them unswappable. 12px everywhere. */
@@ -104,26 +106,26 @@
 
     /* One step firmer than --border. Cards rest on a hairline and firm up on
        hover; without this the hover state was a no-op class. */
-    --hairline-firm: #cfcfcf;
+    --hairline-firm: #d2c9ce;
 
     /* The literal names, flattened to greys. Older pages still reference every
        one of them, so they resolve to the monochrome ladder rather than being
        deleted out from under that code. */
-    --forest: #0a0a0a;
-    --deep-forest: #000000;
-    --olive: #6e6e6e;
-    --sage: #efefef;
-    --mint: #f7f7f7;
+    --forest: #6b2449;
+    --deep-forest: #52183a;
+    --olive: #6b6368;
+    --sage: #f6e6ee;
+    --mint: #f8f4f6;
     --cream: #ffffff;
     --paper: #ffffff;
-    --warm-white: #ffffff;
-    --sand: #e6e6e6;
-    --taupe: #6e6e6e;
+    --warm-white: #fffdfc;
+    --sand: #e8e2e5;
+    --taupe: #6b6368;
     --terracotta: #b4442a;
     --apricot: #8a6a00;
-    --ink: #0a0a0a;
-    --cta-fill: #0a0a0a;
-    --cta-fill-hover: #262626;
+    --ink: #141114;
+    --cta-fill: #7b2d56;
+    --cta-fill-hover: #682346;
     --cta-fill-foreground: #ffffff;
   }
 
@@ -131,34 +133,34 @@
   [data-theme="dark"] {
     color-scheme: dark;
 
-    --background: #000000;
-    --foreground: #ffffff;
-    --surface: #0b0b0b;
-    --surface-foreground: #ffffff;
-    --surface-muted: #171717;
-    --overlay: #141414;
-    --overlay-foreground: #ffffff;
-    --muted: #a1a1a1;
-    --primary: #ffffff;
-    --primary-foreground: #000000;
-    --accent: #ffffff;
-    --accent-foreground: #000000;
+    --background: #0f0b0e;
+    --foreground: #f7f3f5;
+    --surface: #171116;
+    --surface-foreground: #f7f3f5;
+    --surface-muted: #211a1f;
+    --overlay: #1d161b;
+    --overlay-foreground: #f7f3f5;
+    --muted: #ada2a8;
+    --primary: #9a4a78;
+    --primary-foreground: #ffffff;
+    --accent: #e7a6c8;
+    --accent-foreground: #0f0b0e;
     --accent-gold: #e0b341;
     --accent-magenta: #ef8b6f;
     --accent-coral: #ef8b6f;
-    --foreground-muted: #a1a1a1;
-    --border: #232323;
-    --separator: #1a1a1a;
-    --focus: #ffffff;
-    --link: #ffffff;
-    --default: #1a1a1a;
-    --default-foreground: #ffffff;
-    --field-background: #0b0b0b;
-    --field-foreground: #ffffff;
-    --field-placeholder: #8a8a8a;
-    --field-border: #2a2a2a;
-    --success: #ffffff;
-    --success-foreground: #000000;
+    --foreground-muted: #ada2a8;
+    --border: #2a2127;
+    --separator: #221b20;
+    --focus: #e7a6c8;
+    --link: #e7a6c8;
+    --default: #221b20;
+    --default-foreground: #f7f3f5;
+    --field-background: #171116;
+    --field-foreground: #f7f3f5;
+    --field-placeholder: #968a91;
+    --field-border: #352b32;
+    --success: #e7a6c8;
+    --success-foreground: #0f0b0e;
     --warning: #e0b341;
     --warning-foreground: #000000;
     --danger: #ef6f6f;
@@ -171,48 +173,47 @@
     --e3: 0 20px 50px rgb(0 0 0 / 0.7);
     /* On a near-black ground a shadow is invisible, so elevation is carried by
        a lit top edge instead. */
-    --lift: inset 0 1px 0 rgb(255 255 255 / 0.06);
+    --lift: inset 0 1px 0 rgb(255 240 248 / 0.06);
 
-    /* White is the accent on black. The only colour left anywhere is the amber
-       and red that carry warning and danger, because stripping those would
-       take meaning out of the interface rather than decoration. */
-    --brand: #ffffff;
-    --brand-strong: #ffffff;
-    --brand-wash: #1a1a1a;
-    --on-brand-wash: #ffffff;
-    --on-brand: #000000;
+    /* On the near-black ground the brand lifts to a rose-mauve for text and
+       stays a true plum for fills. Amber and red carry warning and danger. */
+    --brand: #d98fb8;
+    --brand-strong: #e7a6c8;
+    --brand-wash: #3a1f31;
+    --on-brand-wash: #e7a6c8;
+    --on-brand: #0f0b0e;
 
-    /* Inverted: on black the fill is the lit colour and the label is the dark
-       one, which is what keeps a primary action legible here (10.96:1). */
-    --brand-fill: #ffffff;
-    --brand-fill-hover: #e5e5e5;
-    --brand-fill-foreground: #000000;
+    /* The fill stays a mid plum with a white label; a pale fill with dark
+       text would read as a disabled control on this ground. */
+    --brand-fill: #9a4a78;
+    --brand-fill-hover: #8c3f6c;
+    --brand-fill-foreground: #ffffff;
 
-    --sidebar: #070707;
-    --sidebar-foreground: #ffffff;
-    --sidebar-accent: #1a1a1a;
-    --sidebar-accent-foreground: #ffffff;
-    --sidebar-border: #1a1a1a;
-    --sidebar-ring: #ffffff;
+    --sidebar: #120d10;
+    --sidebar-foreground: #f7f3f5;
+    --sidebar-accent: #3a1f31;
+    --sidebar-accent-foreground: #e7a6c8;
+    --sidebar-border: #221b20;
+    --sidebar-ring: #e7a6c8;
 
-    --hairline-firm: #3a3a3a;
+    --hairline-firm: #3f343b;
 
-    --forest: #ffffff;
-    --deep-forest: #e5e5e5;
-    --olive: #a1a1a1;
-    --sage: #1a1a1a;
-    --mint: #111111;
-    --cream: #000000;
-    --paper: #000000;
-    --warm-white: #0b0b0b;
-    --sand: #232323;
-    --taupe: #a1a1a1;
+    --forest: #e7a6c8;
+    --deep-forest: #d98fb8;
+    --olive: #ada2a8;
+    --sage: #3a1f31;
+    --mint: #171116;
+    --cream: #0f0b0e;
+    --paper: #0f0b0e;
+    --warm-white: #171116;
+    --sand: #2a2127;
+    --taupe: #ada2a8;
     --terracotta: #ef8b6f;
     --apricot: #e0b341;
-    --ink: #ffffff;
-    --cta-fill: #ffffff;
-    --cta-fill-hover: #e5e5e5;
-    --cta-fill-foreground: #000000;
+    --ink: #f7f3f5;
+    --cta-fill: #9a4a78;
+    --cta-fill-hover: #8c3f6c;
+    --cta-fill-foreground: #ffffff;
   }
 }
 
@@ -2092,9 +2093,9 @@ button:hover .vu-media-zoom {
 /* ===========================================================================
    App design system: the member app and the admin console.
 
-   Scope. The marketing site and the sign-in pages keep the monochrome palette
-   at the top of this file, untouched. Everything signed in takes the teal
-   palette below: the member app (`[data-app-shell]`,
+   Scope. The marketing site and the sign-in pages take the palette at the
+   top of this file. Everything signed in takes the app palette below, the
+   same plum on a tighter neutral ladder: the member app (`[data-app-shell]`,
    app/(member)/layout.tsx) and the console (`.vu-admin`, app/admin/layout.tsx).
    See DEC-076 and DEC-077.
 
@@ -2108,112 +2109,112 @@ button:hover .vu-media-zoom {
    Unlayered, so these beat the `@layer theme` defaults whatever their
    specificity, and the dark block carries one more class than the light one.
 
-   Light is an off-white page with white cards and teal for the major areas.
-   Dark keeps that identity rather than inverting it: a teal-black ground,
-   deep-teal rails, a true teal fill, and brand text lifted to a bright teal,
-   because #0f746f as text on a dark ground is too dim. Every pair below is checked by `npm run check:theme`.
+   Light is an off-white page with white cards and a deep plum for the major
+   areas. Dark keeps that identity rather than inverting it: a plum-tinted
+   near-black ground, a deep plum rail, a mid plum fill, and brand text lifted
+   to a rose-mauve, because #7b2d56 as text on a dark ground is too dim. Every
+   pair below is checked by `npm run check:theme`.
    =========================================================================== */
 :root:has([data-app-shell], .vu-admin) {
   color-scheme: light;
 
   /* Grounds and text: an off-white page, white cards, near-black ink. */
-  --background: #fafaf7;
-  --foreground: #171717;
+  --background: #faf7f8;
+  --foreground: #1c1519;
   --surface: #ffffff;
-  --surface-foreground: #171717;
+  --surface-foreground: #1c1519;
   /* One step off a surface: hover fills, inset wells, media placeholders. */
-  --surface-muted: #f3f3ee;
-  --surface-secondary: #f3f3ee;
+  --surface-muted: #f4eff2;
+  --surface-secondary: #f4eff2;
   /* HeroUI paints skeletons from this; its own default is a cool blue-grey. */
-  --surface-tertiary: #ebebe5;
+  --surface-tertiary: #ebe4e8;
   --overlay: #ffffff;
-  --overlay-foreground: #171717;
-  --foreground-muted: #5c605e;
-  --muted: #5c605e;
+  --overlay-foreground: #1c1519;
+  --foreground-muted: #655a60;
+  --muted: #655a60;
   /* Neutral fill: segmented tracks, neutral badges, pressed states. */
-  --default: #f0f0ea;
-  --default-foreground: #171717;
+  --default: #f0e9ed;
+  --default-foreground: #1c1519;
   --segment: #ffffff;
-  --backdrop: rgb(23 23 23 / 0.45);
+  --backdrop: rgb(28 21 25 / 0.45);
 
   /* Lines. Cards are soft: a faint edge and a soft shadow. */
-  --border: #e9e9e3;
-  --separator: #efefea;
-  --hairline-firm: #d5d5cd;
+  --border: #ebe4e8;
+  --separator: #f1ebee;
+  --hairline-firm: #d9cfd5;
 
   /* Fields. The edge clears 3:1 (WCAG 1.4.11), so an empty input is findable. */
   --field-background: #ffffff;
-  --field-foreground: #171717;
-  --field-placeholder: #6a6d6b;
-  --field-border: #8d8d85;
+  --field-foreground: #1c1519;
+  --field-placeholder: #6f6369;
+  --field-border: #8f848a;
 
-  /* Teal carries action and identity: 5.6:1 with white on it. */
-  --brand: #0f746f;
-  --brand-strong: #0f746f;
-  --brand-wash: #e4f2f1;
-  --on-brand-wash: #0c625e;
+  /* Plum carries action and identity: 8.9:1 with white on it. */
+  --brand: #7b2d56;
+  --brand-strong: #6b2449;
+  --brand-wash: #f6e6ee;
+  --on-brand-wash: #6b2449;
   --on-brand: #ffffff;
-  --brand-fill: #0f746f;
-  --brand-fill-hover: #0b5f5b;
+  --brand-fill: #7b2d56;
+  --brand-fill-hover: #682346;
   --brand-fill-foreground: #ffffff;
-  --primary: #0f746f;
+  --primary: #7b2d56;
   --primary-foreground: #ffffff;
-  --accent: #0f746f;
+  --accent: #7b2d56;
   --accent-foreground: #ffffff;
-  --focus: #0f746f;
-  --link: #0f746f;
+  --focus: #7b2d56;
+  --link: #6b2449;
 
-  /* The highlight role (counts, "new", a liked heart) is teal too: the
-     palette is teal and neutrals only, with red, amber and blue kept for
-     status. */
-  --highlight: #0f746f;
-  --highlight-ink: #0c625e;
-  --highlight-wash: #e4f2f1;
+  /* The highlight role (counts, "new", a liked heart) is the brand plum, so
+     it can never be mistaken for a status colour. */
+  --highlight: #7b2d56;
+  --highlight-ink: #6b2449;
+  --highlight-wash: #f6e6ee;
   --on-highlight: #ffffff;
 
   /* Status: each with a wash for callouts and badges. */
-  --success: #0b6b66;
+  --success: #2e6b45;
   --success-foreground: #ffffff;
-  --success-wash: #e2f2f0;
+  --success-wash: #e4f2e9;
   --warning: #8a5300;
   --warning-foreground: #ffffff;
-  --warning-wash: #ffefd6;
-  --danger: #b42318;
+  --warning-wash: #fdf0d9;
+  --danger: #b3261e;
   --danger-foreground: #ffffff;
-  --danger-wash: #fdecea;
-  --info: #2a5f8f;
+  --danger-wash: #fde8e6;
+  --info: #2f5f8f;
   --info-foreground: #ffffff;
-  --info-wash: #e8f0f8;
+  --info-wash: #e7eff8;
 
-  /* The rails are the app's teal band (their inside is re-pointed below). */
-  --sidebar: #0f746f;
+  /* The rails are the app's plum band (their inside is re-pointed below). */
+  --sidebar: #561d3f;
   --sidebar-foreground: #ffffff;
   --sidebar-accent: #ffffff;
-  --sidebar-accent-foreground: #0f746f;
-  --sidebar-border: #0d6863;
+  --sidebar-accent-foreground: #6b2449;
+  --sidebar-border: #43132f;
   --sidebar-ring: #ffffff;
 
   /* The literal names older components still use, re-pointed at the role
      each one plays, so those call sites land on this palette legibly. */
-  --forest: #0c625e;
-  --deep-forest: #0b5f5b;
-  --olive: #5c605e;
-  --taupe: #5c605e;
-  /* Avatars sit on a teal tint, with teal initials. */
-  --sage: #e4f2f1;
-  --mint: #f3f3ee;
-  --cream: #fafaf7;
+  --forest: #6b2449;
+  --deep-forest: #52183a;
+  --olive: #655a60;
+  --taupe: #655a60;
+  /* Avatars sit on a plum tint, with plum initials. */
+  --sage: #f6e6ee;
+  --mint: #f4eff2;
+  --cream: #faf7f8;
   --paper: #ffffff;
   --warm-white: #ffffff;
-  --sand: #e9e9e3;
-  --ink: #171717;
-  --terracotta: #b42318;
+  --sand: #ebe4e8;
+  --ink: #1c1519;
+  --terracotta: #b3261e;
   --apricot: #8a5300;
   --accent-gold: #8a5300;
-  --accent-magenta: #b42318;
-  --accent-coral: #b42318;
-  --cta-fill: #0f746f;
-  --cta-fill-hover: #0b5f5b;
+  --accent-magenta: #b3261e;
+  --accent-coral: #b3261e;
+  --cta-fill: #7b2d56;
+  --cta-fill-hover: #682346;
   --cta-fill-foreground: #ffffff;
 
   /* Shape: soft, generous corners. */
@@ -2224,160 +2225,160 @@ button:hover .vu-media-zoom {
   --field-radius: 0.75rem;
 
   /* Elevation: soft and wide rather than dark and tight. */
-  --e1: 0 1px 2px rgb(23 23 23 / 0.04), 0 4px 16px -8px rgb(23 23 23 / 0.08);
-  --e2: 0 2px 4px rgb(23 23 23 / 0.04), 0 12px 28px -10px rgb(23 23 23 / 0.14);
-  --e3: 0 4px 10px rgb(23 23 23 / 0.06), 0 24px 48px -12px rgb(23 23 23 / 0.2);
+  --e1: 0 1px 2px rgb(28 21 25 / 0.04), 0 4px 16px -8px rgb(28 21 25 / 0.08);
+  --e2: 0 2px 4px rgb(28 21 25 / 0.04), 0 12px 28px -10px rgb(28 21 25 / 0.14);
+  --e3: 0 4px 10px rgb(28 21 25 / 0.06), 0 24px 48px -12px rgb(28 21 25 / 0.2);
   --lift: 0 0 #0000;
-  --surface-shadow: 0 1px 2px rgb(23 23 23 / 0.04), 0 4px 16px -8px rgb(23 23 23 / 0.08);
-  --overlay-shadow: 0 4px 10px rgb(23 23 23 / 0.06), 0 24px 48px -12px rgb(23 23 23 / 0.2);
+  --surface-shadow: 0 1px 2px rgb(28 21 25 / 0.04), 0 4px 16px -8px rgb(28 21 25 / 0.08);
+  --overlay-shadow: 0 4px 10px rgb(28 21 25 / 0.06), 0 24px 48px -12px rgb(28 21 25 / 0.2);
   --field-shadow: 0 0 0 0 transparent;
 }
 
 :root.dark:has([data-app-shell], .vu-admin) {
   color-scheme: dark;
 
-  /* A deep teal-black ground, with each surface a step lighter and tealer. */
-  --background: #0b1716;
-  --foreground: #f1f5f4;
-  --surface: #112220;
-  --surface-foreground: #f1f5f4;
-  --surface-muted: #162b29;
-  --surface-secondary: #162b29;
-  --surface-tertiary: #1d3533;
-  --overlay: #172e2c;
-  --overlay-foreground: #f1f5f4;
-  --foreground-muted: #9cb0ad;
-  --muted: #9cb0ad;
-  --default: #1a302e;
-  --default-foreground: #f1f5f4;
-  --segment: #203633;
-  --backdrop: rgb(2 8 8 / 0.68);
+  /* A plum-tinted near-black ground, with each surface a step lighter. */
+  --background: #131014;
+  --foreground: #f5f0f3;
+  --surface: #1e171c;
+  --surface-foreground: #f5f0f3;
+  --surface-muted: #261d23;
+  --surface-secondary: #261d23;
+  --surface-tertiary: #2e242b;
+  --overlay: #292027;
+  --overlay-foreground: #f5f0f3;
+  --foreground-muted: #b3a6ad;
+  --muted: #b3a6ad;
+  --default: #2b2128;
+  --default-foreground: #f5f0f3;
+  --segment: #322730;
+  --backdrop: rgb(8 4 7 / 0.68);
 
-  --border: #203633;
-  --separator: #192d2b;
-  --hairline-firm: #2c4744;
+  --border: #2e242b;
+  --separator: #261d23;
+  --hairline-firm: #3e323a;
 
-  --field-background: #0e1d1c;
-  --field-foreground: #f1f5f4;
-  --field-placeholder: #8ea3a0;
-  --field-border: #527370;
+  --field-background: #19131a;
+  --field-foreground: #f5f0f3;
+  --field-placeholder: #a3959d;
+  --field-border: #75656f;
 
-  /* #0f746f as text is too dark here, so brand ink lifts to a bright teal;
-     the fill stays a true teal with a white label. */
-  --brand: #3ebfb6;
-  --brand-strong: #5fd0c7;
-  --brand-wash: #0f2f2d;
-  --on-brand-wash: #7fdcd4;
-  --on-brand: #0b1716;
-  --brand-fill: #0f7a74;
-  --brand-fill-hover: #0d6b66;
+  /* #7b2d56 as text is too dark here, so brand ink lifts to a rose-mauve;
+     the fill stays a mid plum with a white label. */
+  --brand: #d98fb8;
+  --brand-strong: #e7a6c8;
+  --brand-wash: #3a1f31;
+  --on-brand-wash: #e7a6c8;
+  --on-brand: #150f13;
+  --brand-fill: #974576;
+  --brand-fill-hover: #893d6a;
   --brand-fill-foreground: #ffffff;
-  --primary: #0f7a74;
+  --primary: #974576;
   --primary-foreground: #ffffff;
-  --accent: #0f7a74;
+  --accent: #974576;
   --accent-foreground: #ffffff;
-  --focus: #5fd0c7;
-  --link: #5fd0c7;
+  --focus: #e7a6c8;
+  --link: #e7a6c8;
 
-  --highlight: #0f7a74;
-  --highlight-ink: #5fd0c7;
-  --highlight-wash: #0f2f2d;
+  --highlight: #974576;
+  --highlight-ink: #e7a6c8;
+  --highlight-wash: #3a1f31;
   --on-highlight: #ffffff;
 
-  --success: #5fd0c7;
-  --success-foreground: #0b1716;
-  --success-wash: #0f2f2d;
+  --success: #7fcf9b;
+  --success-foreground: #0f1a14;
+  --success-wash: #183022;
   --warning: #f2b35a;
-  --warning-foreground: #171717;
-  --warning-wash: #33270f;
-  --danger: #ff8a80;
+  --warning-foreground: #1c1519;
+  --warning-wash: #3a2a10;
+  --danger: #f98a7d;
   --danger-foreground: #1a0b09;
-  --danger-wash: #3a1a18;
+  --danger-wash: #4a1a16;
   --info: #8cc0ec;
-  --info-foreground: #0b1716;
-  --info-wash: #13263a;
+  --info-foreground: #0f1a24;
+  --info-wash: #15263a;
 
-  --sidebar: #0d3d3a;
+  --sidebar: #3b1a31;
   --sidebar-foreground: #ffffff;
-  --sidebar-accent: #eaf5f4;
-  --sidebar-accent-foreground: #0b4f4b;
-  --sidebar-border: #0a302e;
+  --sidebar-accent: #f6e6ee;
+  --sidebar-accent-foreground: #5e1f45;
+  --sidebar-border: #2b1022;
   --sidebar-ring: #ffffff;
 
-  --forest: #7fdcd4;
-  --deep-forest: #7fdcd4;
-  --olive: #9cb0ad;
-  --taupe: #9cb0ad;
-  --sage: #0f2f2d;
-  --mint: #162b29;
-  --cream: #0b1716;
-  --paper: #0b1716;
-  --warm-white: #112220;
-  --sand: #203633;
-  --ink: #f1f5f4;
-  --terracotta: #ff8a80;
+  --forest: #e7a6c8;
+  --deep-forest: #e7a6c8;
+  --olive: #b3a6ad;
+  --taupe: #b3a6ad;
+  --sage: #3a1f31;
+  --mint: #261d23;
+  --cream: #131014;
+  --paper: #131014;
+  --warm-white: #1e171c;
+  --sand: #2e242b;
+  --ink: #f5f0f3;
+  --terracotta: #f98a7d;
   --apricot: #f2b35a;
   --accent-gold: #f2b35a;
-  --accent-magenta: #ff8a80;
-  --accent-coral: #ff8a80;
-  --cta-fill: #0f7a74;
-  --cta-fill-hover: #0d6b66;
+  --accent-magenta: #f98a7d;
+  --accent-coral: #f98a7d;
+  --cta-fill: #974576;
+  --cta-fill-hover: #893d6a;
   --cta-fill-foreground: #ffffff;
 
   --e1: 0 1px 2px rgb(0 0 0 / 0.35), 0 6px 18px -10px rgb(0 0 0 / 0.5);
   --e2: 0 2px 4px rgb(0 0 0 / 0.35), 0 14px 30px -12px rgb(0 0 0 / 0.6);
   --e3: 0 4px 12px rgb(0 0 0 / 0.4), 0 28px 56px -14px rgb(0 0 0 / 0.75);
-  --lift: inset 0 1px 0 rgb(241 245 244 / 0.04);
+  --lift: inset 0 1px 0 rgb(245 240 243 / 0.04);
   --surface-shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 6px 18px -10px rgb(0 0 0 / 0.5);
   --overlay-shadow: 0 4px 12px rgb(0 0 0 / 0.4), 0 28px 56px -14px rgb(0 0 0 / 0.75);
 }
 
 /* ---------------------------------------------------------------------------
-   Teal bands: the rails, and the hero header.
+   Plum bands: the rails, and the hero header.
 
    Inside a band the roles are re-pointed, so every utility in it (text,
-   muted text, hover fills, counts, the brand mark) reads correctly on teal
+   muted text, hover fills, counts, the brand mark) reads correctly on plum
    without a single component knowing it sits on a coloured ground. White is
-   the accent on teal: the primary action and the counts turn white with teal
+   the accent on plum: the primary action and the counts turn white with plum
    text.
 --------------------------------------------------------------------------- */
 :root:has([data-app-shell], .vu-admin) :is(.vu-app-sidebar, .vu-admin-rail, .vu-band) {
   --foreground: #ffffff;
-  --foreground-muted: #dcedeb;
-  --olive: #dcedeb;
+  --foreground-muted: #ead3df;
+  --olive: #ead3df;
   /* Surfaces inside a band are frosted, so a segmented control or a
      secondary button keeps white text legible on them. */
   --surface: rgb(255 255 255 / 0.14);
-  --surface-muted: #0b625e;
-  --default: #0b625e;
-  --border: #0d6863;
-  --separator: #0d6863;
-  --hairline-firm: #2a8a85;
+  --surface-muted: #71305b;
+  --default: #71305b;
+  --border: #43132f;
+  --separator: #43132f;
+  --hairline-firm: #7f3a62;
   --brand: #ffffff;
   --brand-strong: #ffffff;
   --focus: #ffffff;
   --brand-fill: #ffffff;
-  --brand-fill-hover: #e4f2f1;
-  --brand-fill-foreground: #0f746f;
+  --brand-fill-hover: #f6e6ee;
+  --brand-fill-foreground: #6b2449;
   --highlight: #ffffff;
-  --on-highlight: #0f746f;
+  --on-highlight: #6b2449;
   --highlight-ink: #ffffff;
-  --sage: #e4f2f1;
-  --forest: #0c625e;
+  --sage: #f6e6ee;
+  --forest: #6b2449;
   color: var(--foreground);
 }
 
 :root.dark:has([data-app-shell], .vu-admin) :is(.vu-app-sidebar, .vu-admin-rail, .vu-band) {
-  --foreground-muted: #a9cdc9;
-  --olive: #a9cdc9;
-  --surface-muted: #135250;
-  --default: #135250;
-  --border: #0a302e;
-  --separator: #0a302e;
-  --hairline-firm: #1e5f5b;
+  --foreground-muted: #d9bfd0;
+  --olive: #d9bfd0;
+  --surface-muted: #532542;
+  --default: #532542;
+  --border: #2b1022;
+  --separator: #2b1022;
+  --hairline-firm: #5f2d4c;
 }
 
-/* The hero band takes the teal of the rails in each mode. */
+/* The hero band takes the plum of the rails in each mode. */
 .vu-band {
   background-color: var(--sidebar);
 }
@@ -2527,8 +2528,8 @@ button:hover .vu-media-zoom {
   border-radius: var(--r-ctl);
 }
 
-/* The marketing CTA fill's dark-mode hairline is a white ring on black; on a
-   teal fill it is a stray outline. */
+/* The marketing CTA fill's dark-mode hairline is a ring; on the app's plum
+   fill it is a stray outline. */
 :is([data-app-shell], .vu-admin) .vu-cta-fill {
   box-shadow: var(--e1);
 }

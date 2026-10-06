@@ -62,7 +62,7 @@ function CatalogRail({ row }: { row: CatalogRowView }) {
         <div>
           <h3
             id={`row-${slugify(row.category)}`}
-            className="font-display text-xl font-bold tracking-tight text-black md:text-2xl"
+            className="font-display text-xl font-bold tracking-tight text-foreground md:text-2xl"
           >
             {row.category}
           </h3>
@@ -76,7 +76,7 @@ function CatalogRail({ row }: { row: CatalogRowView }) {
             type="button"
             onClick={() => nudge(-1)}
             aria-label={`Scroll ${row.category} left`}
-            className="grid size-9 place-items-center rounded-full border border-sand bg-surface text-black transition hover:border-accent"
+            className="grid size-9 place-items-center rounded-full border border-sand bg-surface text-foreground transition hover:border-accent"
           >
             <ChevronLeft className="size-4" aria-hidden />
           </button>
@@ -84,7 +84,7 @@ function CatalogRail({ row }: { row: CatalogRowView }) {
             type="button"
             onClick={() => nudge(1)}
             aria-label={`Scroll ${row.category} right`}
-            className="grid size-9 place-items-center rounded-full border border-sand bg-surface text-black transition hover:border-accent"
+            className="grid size-9 place-items-center rounded-full border border-sand bg-surface text-foreground transition hover:border-accent"
           >
             <ChevronRight className="size-4" aria-hidden />
           </button>
@@ -104,7 +104,7 @@ function CatalogRail({ row }: { row: CatalogRowView }) {
         ))}
         <li className="w-[16rem] shrink-0 sm:w-[18rem]">
           <div className="vu-card vu-lift flex h-full min-h-[15rem] flex-col items-center justify-center gap-2 rounded-[1.25rem] p-6 text-center">
-            <p className="font-display text-lg font-bold text-black">
+            <p className="font-display text-lg font-bold text-foreground">
               …and many more
             </p>
             <p className="text-xs leading-relaxed text-foreground-muted">
@@ -197,7 +197,7 @@ function CatalogCard({ course }: { course: CatalogCardView }) {
             })}
           </p>
         ) : null}
-        <h4 className={cn("font-display text-base font-bold leading-snug text-black")}>
+        <h4 className={cn("font-display text-base font-bold leading-snug text-foreground")}>
           {course.title}
         </h4>
         {course.description ? (
