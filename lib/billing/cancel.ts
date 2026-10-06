@@ -77,71 +77,99 @@ export async function confirmCancellation(input: {
   const result = await cancelSamcartSubscription(samcartId);
   if (!result.ok) {
     await failRequest(request.id, result.error);
-    await notifyFailure(
-      request.subscription.user.email,
-      request.subscription.user.profile?.displayName,
-      request.subscription.product.name,
+    await afterSamcart("failure email", request.id, () =>
+      notifyFailure(
+        request.subscription.user.email,
+        request.subscription.user.profile?.displayName,
+        request.subscription.product.name,
+      ),
     );
-    await writeAuditLog({
-      actorId: input.userId,
-      action: "billing.cancel.failed",
-      targetType: "subscription",
-      targetId: request.subscriptionId,
-      metadata: { error: result.error },
-    });
+    await afterSamcart("failure audit", request.id, () =>
+      writeAuditLog({
+        actorId: input.userId,
+        action: "billing.cancel.failed",
+        targetType: "subscription",
+        targetId: request.subscriptionId,
+        metadata: { error: result.error },
+      }),
+    );
     return { ok: false as const, error: result.error };
   }
 
-  await applyCanonicalEvent({
-    type: "canceled",
-    rawType: "member_cancel_confirmed",
-    providerEventId: `cancel:${request.id}`,
-    email: request.subscription.user.email,
-    samcartProductId: null,
-    samcartProductName: request.subscription.product.name,
-    samcartOrderId: request.subscription.samcartOrderId,
-    samcartSubscriptionId: samcartId,
-    samcartCustomerId: request.subscription.samcartCustomerId,
-    amountCents: request.subscription.amountCents,
-    currency: request.subscription.currency,
-    gateway: request.subscription.gateway,
-    interval: request.subscription.interval,
-    periodEnd: result.periodEnd ?? request.subscription.periodEnd,
-    cancelAt: result.periodEnd ?? request.subscription.periodEnd,
-  });
+  // SamCart has cancelled. Nothing below may turn that into an error page
+  // telling the member it did not happen. If the local write fails, SamCart's
+  // own Cancel webhook applies the same change moments later.
+  await afterSamcart("local state", request.id, () =>
+    applyCanonicalEvent({
+      type: "canceled",
+      rawType: "member_cancel_confirmed",
+      providerEventId: `cancel:${request.id}`,
+      email: request.subscription.user.email,
+      samcartProductId: null,
+      samcartProductName: request.subscription.product.name,
+      samcartOrderId: request.subscription.samcartOrderId,
+      samcartSubscriptionId: samcartId,
+      samcartCustomerId: request.subscription.samcartCustomerId,
+      amountCents: request.subscription.amountCents,
+      currency: request.subscription.currency,
+      gateway: request.subscription.gateway,
+      interval: request.subscription.interval,
+      periodEnd: result.periodEnd ?? request.subscription.periodEnd,
+      cancelAt: result.periodEnd ?? request.subscription.periodEnd,
+    }),
+  );
 
-  await prisma.cancellationRequest.update({
-    where: { id: request.id },
-    data: {
-      status: "succeeded",
-      samcartConfirmedAt: result.confirmedAt,
-      error: null,
-    },
-  });
+  await afterSamcart("request status", request.id, () =>
+    prisma.cancellationRequest.update({
+      where: { id: request.id },
+      data: {
+        status: "succeeded",
+        samcartConfirmedAt: result.confirmedAt,
+        error: null,
+      },
+    }),
+  );
 
   const accessNote = result.periodEnd
     ? `SamCart reported access through ${result.periodEnd.toDateString()}. We use that period as the source of truth.`
     : "SamCart confirmed cancellation and did not report a remaining period, so access ends now.";
 
-  await sendTransactionalEmail({
-    to: request.subscription.user.email,
-    subject: "Your Vegan University membership cancellation is confirmed",
-    html: cancellationConfirmedHtml({
-      name: request.subscription.user.profile?.displayName ?? "there",
-      productName: request.subscription.product.name,
-      accessNote,
+  await afterSamcart("confirmation email", request.id, () =>
+    sendTransactionalEmail({
+      to: request.subscription.user.email,
+      subject: "Your Vegan University membership cancellation is confirmed",
+      html: cancellationConfirmedHtml({
+        name: request.subscription.user.profile?.displayName ?? "there",
+        productName: request.subscription.product.name,
+        accessNote,
+      }),
     }),
-  });
+  );
 
-  await writeAuditLog({
-    actorId: input.userId,
-    action: "billing.cancel.succeeded",
-    targetType: "subscription",
-    targetId: request.subscriptionId,
-    metadata: { periodEnd: result.periodEnd?.toISOString() ?? null },
-  });
+  await afterSamcart("success audit", request.id, () =>
+    writeAuditLog({
+      actorId: input.userId,
+      action: "billing.cancel.succeeded",
+      targetType: "subscription",
+      targetId: request.subscriptionId,
+      metadata: { periodEnd: result.periodEnd?.toISOString() ?? null },
+    }),
+  );
 
   return { ok: true as const, periodEnd: result.periodEnd };
+}
+
+/**
+ * A step after SamCart has answered. SamCart's answer is the outcome the
+ * member is shown; a step that fails here is logged, never thrown, so an
+ * email or audit outage cannot replace that outcome with a 500.
+ */
+async function afterSamcart(step: string, requestId: string, run: () => Promise<unknown>) {
+  try {
+    await run();
+  } catch (error) {
+    console.error(`[billing] cancellation ${requestId}: ${step} failed after SamCart answered`, error);
+  }
 }
 
 async function failRequest(id: string, error: string) {
