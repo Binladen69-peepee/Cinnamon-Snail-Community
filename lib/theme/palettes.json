@@ -1,0 +1,45 @@
+{
+  "default": "mulberry",
+  "palettes": [
+    {
+      "id": "mulberry",
+      "name": "Mulberry",
+      "description": "The house plum, on warm greys.",
+      "swatches": ["#561d3f", "#7b2d56", "#d98fb8", "#f6e6ee"],
+      "builtin": true
+    },
+    {
+      "id": "charcoal",
+      "name": "Charcoal Rose",
+      "description": "Soft charcoal greys with a dusty rose accent.",
+      "swatches": ["#37353e", "#44444e", "#715a5a", "#d3dad9"],
+      "fill": 2,
+      "darkFill": "lift2"
+    },
+    {
+      "id": "dusk",
+      "name": "Dusk Lavender",
+      "description": "Deep violet greys, lavender, and linen.",
+      "swatches": ["#352f44", "#5c5470", "#b9b4c7", "#faf0e6"],
+      "fill": 1,
+      "darkFill": 2
+    },
+    {
+      "id": "slate",
+      "name": "Slate Blue",
+      "description": "Cool slate and steel blues.",
+      "swatches": ["#27374d", "#526d82", "#9db2bf", "#dde6ed"],
+      "fill": 1,
+      "darkFill": 2
+    },
+    {
+      "id": "midnight",
+      "name": "Midnight Cream",
+      "description": "Midnight navy with a warm cream.",
+      "swatches": ["#010736", "#0d1c42", "#22396f", "#fcf1d0"],
+      "fill": 2,
+      "darkFill": 3,
+      "darkInk": 2
+    }
+  ]
+}

@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 import { BrandLogo } from "@/components/brand/brand-mark";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { backdropClass } from "@/components/app/ui";
+import { ThemeButton } from "@/components/theme/theme-button";
 import { cn } from "@/lib/utils";
 
 /**
@@ -66,6 +67,8 @@ export function AdminMobileNav({
         <span className="text-label font-semibold text-foreground">
           Admin console
         </span>
+        {/* One tap to the Theme dialog; the drawer's rail has it as a row. */}
+        <ThemeButton variant="icon" className="ml-auto" />
       </div>
 
       {open ? (

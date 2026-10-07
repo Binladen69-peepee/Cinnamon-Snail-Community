@@ -2109,45 +2109,52 @@ button:hover .vu-media-zoom {
    Unlayered, so these beat the `@layer theme` defaults whatever their
    specificity, and the dark block carries one more class than the light one.
 
-   Light is an off-white page with white cards and a deep plum for the major
-   areas. Dark keeps that identity rather than inverting it: a plum-tinted
-   near-black ground, a deep plum rail, a mid plum fill, and brand text lifted
-   to a rose-mauve, because #7b2d56 as text on a dark ground is too dim. Every
-   pair below is checked by `npm run check:theme`.
+   Two layers, set independently by the member (DEC-082):
+     - The mode. Light is white, but never pure white: an off-white page with
+       near-white cards. Dark is black: a #000 ground with each surface a step
+       lighter. The neutrals below carry no hue, so any palette sits on them.
+     - The palette, `data-accent` on <html>, chosen in the Theme dialog.
+       Mulberry, the house plum, is the default and is written by hand in the
+       blocks below. The others are generated from `lib/theme/palettes.json`
+       by `scripts/theme-accents.mjs` into the theme-accents block, after the
+       bands, and only re-point the brand roles.
+   In dark mode brand text lifts (#7b2d56 as text on black is too dim) and the
+   fill stays legible against the ground. Every pair, in every palette and
+   mode, is checked by `npm run check:theme`.
    =========================================================================== */
 :root:has([data-app-shell], .vu-admin) {
   color-scheme: light;
 
-  /* Grounds and text: an off-white page, white cards, near-black ink. */
-  --background: #faf7f8;
-  --foreground: #1c1519;
-  --surface: #ffffff;
-  --surface-foreground: #1c1519;
+  /* Grounds and text: an off-white page, near-white cards, near-black ink. */
+  --background: #f7f7f5;
+  --foreground: #171717;
+  --surface: #fdfdfc;
+  --surface-foreground: #171717;
   /* One step off a surface: hover fills, inset wells, media placeholders. */
-  --surface-muted: #f4eff2;
-  --surface-secondary: #f4eff2;
+  --surface-muted: #f1f1ee;
+  --surface-secondary: #f1f1ee;
   /* HeroUI paints skeletons from this; its own default is a cool blue-grey. */
-  --surface-tertiary: #ebe4e8;
-  --overlay: #ffffff;
-  --overlay-foreground: #1c1519;
-  --foreground-muted: #655a60;
-  --muted: #655a60;
+  --surface-tertiary: #e8e8e4;
+  --overlay: #fdfdfc;
+  --overlay-foreground: #171717;
+  --foreground-muted: #5c5c57;
+  --muted: #5c5c57;
   /* Neutral fill: segmented tracks, neutral badges, pressed states. */
-  --default: #f0e9ed;
-  --default-foreground: #1c1519;
-  --segment: #ffffff;
-  --backdrop: rgb(28 21 25 / 0.45);
+  --default: #efefec;
+  --default-foreground: #171717;
+  --segment: #fdfdfc;
+  --backdrop: rgb(23 23 23 / 0.45);
 
   /* Lines. Cards are soft: a faint edge and a soft shadow. */
-  --border: #ebe4e8;
-  --separator: #f1ebee;
-  --hairline-firm: #d9cfd5;
+  --border: #e6e6e2;
+  --separator: #eeeeeb;
+  --hairline-firm: #d3d3ce;
 
   /* Fields. The edge clears 3:1 (WCAG 1.4.11), so an empty input is findable. */
-  --field-background: #ffffff;
-  --field-foreground: #1c1519;
-  --field-placeholder: #6f6369;
-  --field-border: #8f848a;
+  --field-background: #fdfdfc;
+  --field-foreground: #171717;
+  --field-placeholder: #66665f;
+  --field-border: #8b8b85;
 
   /* Plum carries action and identity: 8.9:1 with white on it. */
   --brand: #7b2d56;
@@ -2198,16 +2205,16 @@ button:hover .vu-media-zoom {
      each one plays, so those call sites land on this palette legibly. */
   --forest: #6b2449;
   --deep-forest: #52183a;
-  --olive: #655a60;
-  --taupe: #655a60;
+  --olive: #5c5c57;
+  --taupe: #5c5c57;
   /* Avatars sit on a plum tint, with plum initials. */
   --sage: #f6e6ee;
-  --mint: #f4eff2;
-  --cream: #faf7f8;
-  --paper: #ffffff;
-  --warm-white: #ffffff;
-  --sand: #ebe4e8;
-  --ink: #1c1519;
+  --mint: #f1f1ee;
+  --cream: #f7f7f5;
+  --paper: #fdfdfc;
+  --warm-white: #fdfdfc;
+  --sand: #e6e6e2;
+  --ink: #171717;
   --terracotta: #b3261e;
   --apricot: #8a5300;
   --accent-gold: #8a5300;
@@ -2225,43 +2232,43 @@ button:hover .vu-media-zoom {
   --field-radius: 0.75rem;
 
   /* Elevation: soft and wide rather than dark and tight. */
-  --e1: 0 1px 2px rgb(28 21 25 / 0.04), 0 4px 16px -8px rgb(28 21 25 / 0.08);
-  --e2: 0 2px 4px rgb(28 21 25 / 0.04), 0 12px 28px -10px rgb(28 21 25 / 0.14);
-  --e3: 0 4px 10px rgb(28 21 25 / 0.06), 0 24px 48px -12px rgb(28 21 25 / 0.2);
+  --e1: 0 1px 2px rgb(23 23 23 / 0.04), 0 4px 16px -8px rgb(23 23 23 / 0.08);
+  --e2: 0 2px 4px rgb(23 23 23 / 0.04), 0 12px 28px -10px rgb(23 23 23 / 0.14);
+  --e3: 0 4px 10px rgb(23 23 23 / 0.06), 0 24px 48px -12px rgb(23 23 23 / 0.2);
   --lift: 0 0 #0000;
-  --surface-shadow: 0 1px 2px rgb(28 21 25 / 0.04), 0 4px 16px -8px rgb(28 21 25 / 0.08);
-  --overlay-shadow: 0 4px 10px rgb(28 21 25 / 0.06), 0 24px 48px -12px rgb(28 21 25 / 0.2);
+  --surface-shadow: 0 1px 2px rgb(23 23 23 / 0.04), 0 4px 16px -8px rgb(23 23 23 / 0.08);
+  --overlay-shadow: 0 4px 10px rgb(23 23 23 / 0.06), 0 24px 48px -12px rgb(23 23 23 / 0.2);
   --field-shadow: 0 0 0 0 transparent;
 }
 
 :root.dark:has([data-app-shell], .vu-admin) {
   color-scheme: dark;
 
-  /* A plum-tinted near-black ground, with each surface a step lighter. */
-  --background: #131014;
-  --foreground: #f5f0f3;
-  --surface: #1e171c;
-  --surface-foreground: #f5f0f3;
-  --surface-muted: #261d23;
-  --surface-secondary: #261d23;
-  --surface-tertiary: #2e242b;
-  --overlay: #292027;
-  --overlay-foreground: #f5f0f3;
-  --foreground-muted: #b3a6ad;
-  --muted: #b3a6ad;
-  --default: #2b2128;
-  --default-foreground: #f5f0f3;
-  --segment: #322730;
-  --backdrop: rgb(8 4 7 / 0.68);
+  /* Black: a #000 ground, with each surface a step lighter. */
+  --background: #000000;
+  --foreground: #f2f2f0;
+  --surface: #0e0e0e;
+  --surface-foreground: #f2f2f0;
+  --surface-muted: #161616;
+  --surface-secondary: #161616;
+  --surface-tertiary: #1e1e1e;
+  --overlay: #141414;
+  --overlay-foreground: #f2f2f0;
+  --foreground-muted: #a3a39f;
+  --muted: #a3a39f;
+  --default: #1a1a1a;
+  --default-foreground: #f2f2f0;
+  --segment: #222222;
+  --backdrop: rgb(0 0 0 / 0.72);
 
-  --border: #2e242b;
-  --separator: #261d23;
-  --hairline-firm: #3e323a;
+  --border: #222222;
+  --separator: #181818;
+  --hairline-firm: #333333;
 
-  --field-background: #19131a;
-  --field-foreground: #f5f0f3;
-  --field-placeholder: #a3959d;
-  --field-border: #75656f;
+  --field-background: #0b0b0b;
+  --field-foreground: #f2f2f0;
+  --field-placeholder: #8e8e89;
+  --field-border: #6c6c67;
 
   /* #7b2d56 as text is too dark here, so brand ink lifts to a rose-mauve;
      the fill stays a mid plum with a white label. */
@@ -2307,15 +2314,15 @@ button:hover .vu-media-zoom {
 
   --forest: #e7a6c8;
   --deep-forest: #e7a6c8;
-  --olive: #b3a6ad;
-  --taupe: #b3a6ad;
+  --olive: #a3a39f;
+  --taupe: #a3a39f;
   --sage: #3a1f31;
-  --mint: #261d23;
-  --cream: #131014;
-  --paper: #131014;
-  --warm-white: #1e171c;
-  --sand: #2e242b;
-  --ink: #f5f0f3;
+  --mint: #161616;
+  --cream: #000000;
+  --paper: #000000;
+  --warm-white: #0e0e0e;
+  --sand: #222222;
+  --ink: #f2f2f0;
   --terracotta: #f98a7d;
   --apricot: #f2b35a;
   --accent-gold: #f2b35a;
@@ -2328,7 +2335,7 @@ button:hover .vu-media-zoom {
   --e1: 0 1px 2px rgb(0 0 0 / 0.35), 0 6px 18px -10px rgb(0 0 0 / 0.5);
   --e2: 0 2px 4px rgb(0 0 0 / 0.35), 0 14px 30px -12px rgb(0 0 0 / 0.6);
   --e3: 0 4px 12px rgb(0 0 0 / 0.4), 0 28px 56px -14px rgb(0 0 0 / 0.75);
-  --lift: inset 0 1px 0 rgb(245 240 243 / 0.04);
+  --lift: inset 0 1px 0 rgb(255 255 255 / 0.05);
   --surface-shadow: 0 1px 2px rgb(0 0 0 / 0.35), 0 6px 18px -10px rgb(0 0 0 / 0.5);
   --overlay-shadow: 0 4px 12px rgb(0 0 0 / 0.4), 0 28px 56px -14px rgb(0 0 0 / 0.75);
 }
@@ -2378,7 +2385,402 @@ button:hover .vu-media-zoom {
   --hairline-firm: #5f2d4c;
 }
 
-/* The hero band takes the plum of the rails in each mode. */
+/* ---------------------------------------------------------------------------
+   Palettes (DEC-082). Each re-points the brand roles, the rail and the band
+   for one `data-accent`, in light and in dark, and nothing else: the grounds
+   above stay. One more attribute than the blocks above, so a palette wins
+   in either mode, and its dark block restates every token its light block
+   sets, so dark mode never inherits a light-mode brand colour.
+--------------------------------------------------------------------------- */
+/* theme-accents:start (generated by scripts/theme-accents.mjs; do not edit by hand) */
+
+/* Charcoal Rose: #37353e #44444e #715a5a #d3dad9 */
+:root[data-accent="charcoal"]:has([data-app-shell], .vu-admin) {
+  --brand: #715a5a;
+  --brand-strong: #5c4d50;
+  --brand-wash: #dee3e2;
+  --on-brand-wash: #37353e;
+  --on-brand: #ffffff;
+  --brand-fill: #715a5a;
+  --brand-fill-hover: #5e4b4b;
+  --brand-fill-foreground: #ffffff;
+  --primary: #715a5a;
+  --primary-foreground: #ffffff;
+  --accent: #715a5a;
+  --accent-foreground: #ffffff;
+  --focus: #5c4d50;
+  --link: #5c4d50;
+  --highlight: #715a5a;
+  --highlight-ink: #5c4d50;
+  --highlight-wash: #dee3e2;
+  --on-highlight: #ffffff;
+  --sidebar: #37353e;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #d3dad9;
+  --sidebar-accent-foreground: #37353e;
+  --sidebar-border: #201e24;
+  --sidebar-ring: #ffffff;
+  --forest: #5c4d50;
+  --deep-forest: #423739;
+  --sage: #dee3e2;
+  --cta-fill: #715a5a;
+  --cta-fill-hover: #5e4b4b;
+  --cta-fill-foreground: #ffffff;
+}
+:root.dark[data-accent="charcoal"]:has([data-app-shell], .vu-admin) {
+  --brand: #afa1a0;
+  --brand-strong: #c3b8b7;
+  --brand-wash: #26252b;
+  --on-brand-wash: #dce1e1;
+  --on-brand: #37353e;
+  --brand-fill: #afa1a0;
+  --brand-fill-hover: #baaead;
+  --brand-fill-foreground: #37353e;
+  --primary: #afa1a0;
+  --primary-foreground: #37353e;
+  --accent: #afa1a0;
+  --accent-foreground: #37353e;
+  --focus: #c3b8b7;
+  --link: #c3b8b7;
+  --highlight: #afa1a0;
+  --highlight-ink: #c3b8b7;
+  --highlight-wash: #26252b;
+  --on-highlight: #37353e;
+  --sidebar: #1e1d23;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #d3dad9;
+  --sidebar-accent-foreground: #37353e;
+  --sidebar-border: #343439;
+  --sidebar-ring: #ffffff;
+  --forest: #c3b8b7;
+  --deep-forest: #c3b8b7;
+  --sage: #26252b;
+  --cta-fill: #afa1a0;
+  --cta-fill-hover: #baaead;
+  --cta-fill-foreground: #37353e;
+}
+:root[data-accent="charcoal"]:has([data-app-shell], .vu-admin) :is(.vu-app-sidebar, .vu-admin-rail, .vu-band) {
+  --foreground-muted: #e2e7e6;
+  --olive: #e2e7e6;
+  --surface-muted: #4e4c54;
+  --default: #4e4c54;
+  --border: #201e24;
+  --separator: #201e24;
+  --hairline-firm: #626068;
+  --brand-fill: #ffffff;
+  --brand-fill-hover: #d3dad9;
+  --brand-fill-foreground: #37353e;
+  --on-highlight: #37353e;
+  --sage: #d3dad9;
+  --forest: #37353e;
+}
+:root.dark[data-accent="charcoal"]:has([data-app-shell], .vu-admin) :is(.vu-app-sidebar, .vu-admin-rail, .vu-band) {
+  --foreground-muted: #e0e5e4;
+  --olive: #e0e5e4;
+  --surface-muted: #343439;
+  --default: #343439;
+  --border: #343439;
+  --separator: #343439;
+  --hairline-firm: #48484d;
+  --brand-fill: #ffffff;
+  --brand-fill-hover: #d3dad9;
+  --brand-fill-foreground: #37353e;
+  --on-highlight: #37353e;
+  --sage: #d3dad9;
+  --forest: #37353e;
+}
+
+/* Dusk Lavender: #352f44 #5c5470 #b9b4c7 #faf0e6 */
+:root[data-accent="dusk"]:has([data-app-shell], .vu-admin) {
+  --brand: #5c5470;
+  --brand-strong: #4e4760;
+  --brand-wash: #e4e2ea;
+  --on-brand-wash: #352f44;
+  --on-brand: #ffffff;
+  --brand-fill: #5c5470;
+  --brand-fill-hover: #4c465d;
+  --brand-fill-foreground: #ffffff;
+  --primary: #5c5470;
+  --primary-foreground: #ffffff;
+  --accent: #5c5470;
+  --accent-foreground: #ffffff;
+  --focus: #4e4760;
+  --link: #4e4760;
+  --highlight: #5c5470;
+  --highlight-ink: #4e4760;
+  --highlight-wash: #e4e2ea;
+  --on-highlight: #ffffff;
+  --sidebar: #352f44;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #faf0e6;
+  --sidebar-accent-foreground: #352f44;
+  --sidebar-border: #1e1a28;
+  --sidebar-ring: #ffffff;
+  --forest: #4e4760;
+  --deep-forest: #383245;
+  --sage: #e4e2ea;
+  --cta-fill: #5c5470;
+  --cta-fill-hover: #4c465d;
+  --cta-fill-foreground: #ffffff;
+}
+:root.dark[data-accent="dusk"]:has([data-app-shell], .vu-admin) {
+  --brand: #b9b4c7;
+  --brand-strong: #cac6d5;
+  --brand-wash: #252030;
+  --on-brand-wash: #fbf3eb;
+  --on-brand: #352f44;
+  --brand-fill: #b9b4c7;
+  --brand-fill-hover: #c3becf;
+  --brand-fill-foreground: #352f44;
+  --primary: #b9b4c7;
+  --primary-foreground: #352f44;
+  --accent: #b9b4c7;
+  --accent-foreground: #352f44;
+  --focus: #cac6d5;
+  --link: #cac6d5;
+  --highlight: #b9b4c7;
+  --highlight-ink: #cac6d5;
+  --highlight-wash: #252030;
+  --on-highlight: #352f44;
+  --sidebar: #1d1926;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #faf0e6;
+  --sidebar-accent-foreground: #352f44;
+  --sidebar-border: #33303c;
+  --sidebar-ring: #ffffff;
+  --forest: #cac6d5;
+  --deep-forest: #cac6d5;
+  --sage: #252030;
+  --cta-fill: #b9b4c7;
+  --cta-fill-hover: #c3becf;
+  --cta-fill-foreground: #352f44;
+}
+:root[data-accent="dusk"]:has([data-app-shell], .vu-admin) :is(.vu-app-sidebar, .vu-admin-rail, .vu-band) {
+  --foreground-muted: #fcf5ef;
+  --olive: #fcf5ef;
+  --surface-muted: #4c475a;
+  --default: #4c475a;
+  --border: #1e1a28;
+  --separator: #1e1a28;
+  --hairline-firm: #605c6d;
+  --brand-fill: #ffffff;
+  --brand-fill-hover: #faf0e6;
+  --brand-fill-foreground: #352f44;
+  --on-highlight: #352f44;
+  --sage: #faf0e6;
+  --forest: #352f44;
+}
+:root.dark[data-accent="dusk"]:has([data-app-shell], .vu-admin) :is(.vu-app-sidebar, .vu-admin-rail, .vu-band) {
+  --foreground-muted: #fcf4ed;
+  --olive: #fcf4ed;
+  --surface-muted: #33303c;
+  --default: #33303c;
+  --border: #33303c;
+  --separator: #33303c;
+  --hairline-firm: #474450;
+  --brand-fill: #ffffff;
+  --brand-fill-hover: #faf0e6;
+  --brand-fill-foreground: #352f44;
+  --on-highlight: #352f44;
+  --sage: #faf0e6;
+  --forest: #352f44;
+}
+
+/* Slate Blue: #27374d #526d82 #9db2bf #dde6ed */
+:root[data-accent="slate"]:has([data-app-shell], .vu-admin) {
+  --brand: #526d82;
+  --brand-strong: #42596f;
+  --brand-wash: #e5ecf1;
+  --on-brand-wash: #27374d;
+  --on-brand: #ffffff;
+  --brand-fill: #526d82;
+  --brand-fill-hover: #445b6d;
+  --brand-fill-foreground: #ffffff;
+  --primary: #526d82;
+  --primary-foreground: #ffffff;
+  --accent: #526d82;
+  --accent-foreground: #ffffff;
+  --focus: #42596f;
+  --link: #42596f;
+  --highlight: #526d82;
+  --highlight-ink: #42596f;
+  --highlight-wash: #e5ecf1;
+  --on-highlight: #ffffff;
+  --sidebar: #27374d;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #dde6ed;
+  --sidebar-accent-foreground: #27374d;
+  --sidebar-border: #15202e;
+  --sidebar-ring: #ffffff;
+  --forest: #42596f;
+  --deep-forest: #2f4051;
+  --sage: #e5ecf1;
+  --cta-fill: #526d82;
+  --cta-fill-hover: #445b6d;
+  --cta-fill-foreground: #ffffff;
+}
+:root.dark[data-accent="slate"]:has([data-app-shell], .vu-admin) {
+  --brand: #9db2bf;
+  --brand-strong: #b5c5cf;
+  --brand-wash: #1a2637;
+  --on-brand-wash: #e4ebf1;
+  --on-brand: #27374d;
+  --brand-fill: #9db2bf;
+  --brand-fill-hover: #aabdc8;
+  --brand-fill-foreground: #27374d;
+  --primary: #9db2bf;
+  --primary-foreground: #27374d;
+  --accent: #9db2bf;
+  --accent-foreground: #27374d;
+  --focus: #b5c5cf;
+  --link: #b5c5cf;
+  --highlight: #9db2bf;
+  --highlight-ink: #b5c5cf;
+  --highlight-wash: #1a2637;
+  --on-highlight: #27374d;
+  --sidebar: #141e2c;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #dde6ed;
+  --sidebar-accent-foreground: #27374d;
+  --sidebar-border: #2b3542;
+  --sidebar-ring: #ffffff;
+  --forest: #b5c5cf;
+  --deep-forest: #b5c5cf;
+  --sage: #1a2637;
+  --cta-fill: #9db2bf;
+  --cta-fill-hover: #aabdc8;
+  --cta-fill-foreground: #27374d;
+}
+:root[data-accent="slate"]:has([data-app-shell], .vu-admin) :is(.vu-app-sidebar, .vu-admin-rail, .vu-band) {
+  --foreground-muted: #e9eff3;
+  --olive: #e9eff3;
+  --surface-muted: #3f4e62;
+  --default: #3f4e62;
+  --border: #15202e;
+  --separator: #15202e;
+  --hairline-firm: #556275;
+  --brand-fill: #ffffff;
+  --brand-fill-hover: #dde6ed;
+  --brand-fill-foreground: #27374d;
+  --on-highlight: #27374d;
+  --sage: #dde6ed;
+  --forest: #27374d;
+}
+:root.dark[data-accent="slate"]:has([data-app-shell], .vu-admin) :is(.vu-app-sidebar, .vu-admin-rail, .vu-band) {
+  --foreground-muted: #e7edf2;
+  --olive: #e7edf2;
+  --surface-muted: #2b3542;
+  --default: #2b3542;
+  --border: #2b3542;
+  --separator: #2b3542;
+  --hairline-firm: #404955;
+  --brand-fill: #ffffff;
+  --brand-fill-hover: #dde6ed;
+  --brand-fill-foreground: #27374d;
+  --on-highlight: #27374d;
+  --sage: #dde6ed;
+  --forest: #27374d;
+}
+
+/* Midnight Cream: #010736 #0d1c42 #22396f #fcf1d0 */
+:root[data-accent="midnight"]:has([data-app-shell], .vu-admin) {
+  --brand: #22396f;
+  --brand-strong: #13275a;
+  --brand-wash: #fcf1d0;
+  --on-brand-wash: #010736;
+  --on-brand: #ffffff;
+  --brand-fill: #22396f;
+  --brand-fill-hover: #1b2f5d;
+  --brand-fill-foreground: #ffffff;
+  --primary: #22396f;
+  --primary-foreground: #ffffff;
+  --accent: #22396f;
+  --accent-foreground: #ffffff;
+  --focus: #13275a;
+  --link: #13275a;
+  --highlight: #22396f;
+  --highlight-ink: #13275a;
+  --highlight-wash: #fcf1d0;
+  --on-highlight: #ffffff;
+  --sidebar: #010736;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #fcf1d0;
+  --sidebar-accent-foreground: #010736;
+  --sidebar-border: #00031f;
+  --sidebar-ring: #ffffff;
+  --forest: #13275a;
+  --deep-forest: #0b1a41;
+  --sage: #fcf1d0;
+  --cta-fill: #22396f;
+  --cta-fill-hover: #1b2f5d;
+  --cta-fill-foreground: #ffffff;
+}
+:root.dark[data-accent="midnight"]:has([data-app-shell], .vu-admin) {
+  --brand: #fcf1d0;
+  --brand-strong: #909ebb;
+  --brand-wash: #09142d;
+  --on-brand-wash: #fdf4da;
+  --on-brand: #010736;
+  --brand-fill: #fcf1d0;
+  --brand-fill-hover: #fcf3d7;
+  --brand-fill-foreground: #010736;
+  --primary: #fcf1d0;
+  --primary-foreground: #010736;
+  --accent: #fcf1d0;
+  --accent-foreground: #010736;
+  --focus: #909ebb;
+  --link: #909ebb;
+  --highlight: #fcf1d0;
+  --highlight-ink: #909ebb;
+  --highlight-wash: #09142d;
+  --on-highlight: #010736;
+  --sidebar: #00021e;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #fcf1d0;
+  --sidebar-accent-foreground: #010736;
+  --sidebar-border: #0d1a36;
+  --sidebar-ring: #ffffff;
+  --forest: #909ebb;
+  --deep-forest: #909ebb;
+  --sage: #09142d;
+  --cta-fill: #fcf1d0;
+  --cta-fill-hover: #fcf3d7;
+  --cta-fill-foreground: #010736;
+}
+:root[data-accent="midnight"]:has([data-app-shell], .vu-admin) :is(.vu-app-sidebar, .vu-admin-rail, .vu-band) {
+  --foreground-muted: #fdf6e1;
+  --olive: #fdf6e1;
+  --surface-muted: #15254f;
+  --default: #15254f;
+  --border: #00031f;
+  --separator: #00031f;
+  --hairline-firm: #2d3e64;
+  --brand-fill: #ffffff;
+  --brand-fill-hover: #fcf1d0;
+  --brand-fill-foreground: #010736;
+  --on-highlight: #010736;
+  --sage: #fcf1d0;
+  --forest: #010736;
+}
+:root.dark[data-accent="midnight"]:has([data-app-shell], .vu-admin) :is(.vu-app-sidebar, .vu-admin-rail, .vu-band) {
+  --foreground-muted: #fdf5de;
+  --olive: #fdf5de;
+  --surface-muted: #0d1a36;
+  --default: #0d1a36;
+  --border: #0d1a36;
+  --separator: #0d1a36;
+  --hairline-firm: #23304b;
+  --brand-fill: #ffffff;
+  --brand-fill-hover: #fcf1d0;
+  --brand-fill-foreground: #010736;
+  --on-highlight: #010736;
+  --sage: #fcf1d0;
+  --forest: #010736;
+}
+
+/* theme-accents:end */
+
+/* The hero band takes the rail's colour in each mode and palette. */
 .vu-band {
   background-color: var(--sidebar);
 }
@@ -2430,26 +2832,78 @@ button:hover .vu-media-zoom {
 }
 
 /* ---------------------------------------------------------------------------
-   App controls.
+   App controls: Aceternity's buttons, fields, menus and disclosures.
 
-   One construction for every button in the app: a 10px radius, a flat face,
-   a hairline edge on secondary, a one-step-darker hover, and the focus ring.
-   The Polaris bevel above stays for the sign-in pages, which this does not
-   reach. The variants map one to one onto `Button` in components/app/ui.tsx.
+   The member app and the console take their buttons, inputs, dropdown menus
+   and disclosures from Aceternity UI (ui.aceternity.com): its look and its
+   motion, with every colour a role token, so each palette (DEC-082) and both
+   modes repaint them and nothing from here to "aceternity:end" names a hue.
+   The Polaris bevel above stays for the sign-in pages, which none of this
+   reaches. tests/aceternity-primitives.test.ts holds all of it.
+
+   Buttons. One construction, mapped one to one onto `Button` in
+   components/app/ui.tsx, which also marks the size (`vu-btn-sm`, -md, -lg)
+   so the halo can scale with it.
+     - Primary is the "Get Started" button: a vertical gradient from a lighter
+       top down to the fill, a 1px darker edge, a soft halo ring in the fill's
+       own colour, a soft drop shadow and a bold label. The top is 8% white,
+       mixed in oklab: as much as slate's white label allows, 4.6:1 at the
+       lightest point. Where a fill is light and its label dark (most palettes
+       in dark mode) a lighter top only raises the contrast, so one rule
+       serves both modes; the test recomputes every stop of every state, in
+       every palette and mode, from the tokens in this file.
+     - Hover brightens it by moving the bottom toward the top, never past it,
+       so no state has a lighter point than the resting top; the halo widens
+       a pixel. Press flattens the face and sinks it a pixel.
+     - Danger is the primary on the danger roles.
+     - Secondary is Aceternity's "Simple" and "Next.js White": the surface, a
+       firm hairline, a soft shadow, and a one-pixel lift on hover.
+     - Ghost is bare until hovered, then takes a wash of its own ink, so it
+       reads on any ground: a card, a well, a band.
 --------------------------------------------------------------------------- */
+@property --vu-btn-top {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
+}
+
+@property --vu-btn-bottom {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
+}
+
 :is([data-app-shell], .vu-admin) .vu-btn {
+  /* The halo's width, and how far a button moves when it lifts or sinks. */
+  --vu-btn-ring: 3px;
+  --vu-btn-lift: 1px;
   border-radius: var(--r-ctl);
   font-weight: 500;
   letter-spacing: -0.005em;
   transition:
+    --vu-btn-top 180ms cubic-bezier(0.2, 0, 0.2, 1),
+    --vu-btn-bottom 180ms cubic-bezier(0.2, 0, 0.2, 1),
     background-color 150ms cubic-bezier(0.2, 0, 0.2, 1),
-    box-shadow 150ms cubic-bezier(0.2, 0, 0.2, 1),
-    color 150ms cubic-bezier(0.2, 0, 0.2, 1);
+    box-shadow 200ms cubic-bezier(0.2, 0, 0.2, 1),
+    color 150ms cubic-bezier(0.2, 0, 0.2, 1),
+    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Small buttons sit in tables, toolbars and the console's row actions, 8px
+   apart: a thinner halo keeps a row of them from running together. */
+:is([data-app-shell], .vu-admin) .vu-btn-sm {
+  --vu-btn-ring: 2px;
 }
 
 :is([data-app-shell], .vu-admin) .vu-btn:focus-visible {
   outline: 2px solid var(--focus);
   outline-offset: 2px;
+}
+
+/* A filled button's halo sits outside its edge; the focus outline goes
+   outside the halo rather than over it. */
+:is([data-app-shell], .vu-admin) :is(.vu-btn-primary, .vu-btn-danger):focus-visible {
+  outline-offset: calc(var(--vu-btn-ring) + 2px);
 }
 
 :is([data-app-shell], .vu-admin) .vu-btn-secondary {
@@ -2460,29 +2914,82 @@ button:hover .vu-media-zoom {
     var(--e1);
 }
 
-:is([data-app-shell], .vu-admin) .vu-btn-secondary:hover:not(:disabled) {
+:is([data-app-shell], .vu-admin) .vu-btn-secondary:hover:not(:disabled, [aria-disabled="true"]) {
   background-color: var(--surface-muted);
+  transform: translateY(calc(var(--vu-btn-lift) * -1));
+  box-shadow:
+    inset 0 0 0 1px var(--hairline-firm),
+    var(--e2);
 }
 
-:is([data-app-shell], .vu-admin) .vu-btn-secondary:active:not(:disabled) {
+:is([data-app-shell], .vu-admin) .vu-btn-secondary:active:not(:disabled, [aria-disabled="true"]) {
   background-color: var(--default);
+  transform: none;
   box-shadow: inset 0 0 0 1px var(--hairline-firm);
 }
 
 :is([data-app-shell], .vu-admin) .vu-btn-primary {
-  background-color: var(--brand-fill);
-  color: var(--brand-fill-foreground);
+  --vu-btn-face: var(--brand-fill);
+  --vu-btn-ink: var(--brand-fill-foreground);
+}
+
+:is([data-app-shell], .vu-admin) .vu-btn-danger {
+  --vu-btn-face: var(--danger);
+  --vu-btn-ink: var(--danger-foreground);
+}
+
+/* The construction, in terms of the face. `--vu-btn-sheen` (the lighter top)
+   and `--vu-btn-base` (the bottom) are the design; `--vu-btn-top` and
+   `--vu-btn-bottom` are what is painted, registered above so a state change
+   eases between gradients instead of snapping. */
+:is([data-app-shell], .vu-admin) :is(.vu-btn-primary, .vu-btn-danger) {
+  --vu-btn-sheen: color-mix(in oklab, var(--vu-btn-face) 92%, white);
+  --vu-btn-base: var(--vu-btn-face);
+  --vu-btn-edge: color-mix(in oklab, var(--vu-btn-face) 72%, black);
+  --vu-btn-halo: color-mix(in oklab, var(--vu-btn-face) 28%, transparent);
+  --vu-btn-shade: color-mix(in oklab, var(--vu-btn-face) 35%, black);
+  --vu-btn-top: var(--vu-btn-sheen);
+  --vu-btn-bottom: var(--vu-btn-base);
+  background-color: var(--vu-btn-base);
+  background-image: linear-gradient(to bottom, var(--vu-btn-top), var(--vu-btn-bottom));
+  color: var(--vu-btn-ink);
+  font-weight: 700;
   box-shadow:
-    inset 0 1px 0 rgb(255 255 255 / 0.1),
-    var(--e1);
+    inset 0 0 0 1px var(--vu-btn-edge),
+    0 0 0 var(--vu-btn-ring) var(--vu-btn-halo),
+    0 1px 2px color-mix(in oklab, var(--vu-btn-shade) 24%, transparent),
+    0 6px 14px -6px color-mix(in oklab, var(--vu-btn-shade) 45%, transparent);
 }
 
-:is([data-app-shell], .vu-admin) .vu-btn-primary:hover:not(:disabled) {
-  background-color: var(--brand-fill-hover);
+:is([data-app-shell], .vu-admin) :is(.vu-btn-primary, .vu-btn-danger):hover:not(:disabled, [aria-disabled="true"]) {
+  --vu-btn-bottom: color-mix(in oklab, var(--vu-btn-base) 60%, var(--vu-btn-sheen));
+  box-shadow:
+    inset 0 0 0 1px var(--vu-btn-edge),
+    0 0 0 calc(var(--vu-btn-ring) + 1px) var(--vu-btn-halo),
+    0 1px 2px color-mix(in oklab, var(--vu-btn-shade) 24%, transparent),
+    0 8px 18px -8px color-mix(in oklab, var(--vu-btn-shade) 55%, transparent);
 }
 
-:is([data-app-shell], .vu-admin) .vu-btn-primary:active:not(:disabled) {
-  box-shadow: inset 0 1px 2px rgb(0 0 0 / 0.25);
+:is([data-app-shell], .vu-admin) :is(.vu-btn-primary, .vu-btn-danger):active:not(:disabled, [aria-disabled="true"]) {
+  --vu-btn-top: color-mix(in oklab, var(--vu-btn-sheen) 30%, var(--vu-btn-base));
+  --vu-btn-bottom: var(--vu-btn-base);
+  transform: translateY(var(--vu-btn-lift));
+  box-shadow:
+    inset 0 0 0 1px var(--vu-btn-edge),
+    0 0 0 var(--vu-btn-ring) var(--vu-btn-halo),
+    0 1px 1px color-mix(in oklab, var(--vu-btn-shade) 24%, transparent),
+    0 2px 4px -2px color-mix(in oklab, var(--vu-btn-shade) 40%, transparent);
+}
+
+/* In a band (the rails, the hero header) the primary is white with a dark
+   label, and white has no lighter top: the gradient runs from white down to
+   the band's own tint instead, and the edge takes the band's colour rather
+   than black, so the button sits on the band instead of cut out of it. */
+:is([data-app-shell], .vu-admin) :is(.vu-app-sidebar, .vu-admin-rail, .vu-band) .vu-btn-primary {
+  --vu-btn-sheen: var(--vu-btn-face);
+  --vu-btn-base: var(--brand-fill-hover);
+  --vu-btn-edge: color-mix(in oklab, var(--brand-fill-hover) 72%, var(--sidebar));
+  --vu-btn-halo: color-mix(in oklab, var(--vu-btn-face) 26%, transparent);
 }
 
 :is([data-app-shell], .vu-admin) .vu-btn-ghost {
@@ -2491,26 +2998,16 @@ button:hover .vu-media-zoom {
   box-shadow: none;
 }
 
-:is([data-app-shell], .vu-admin) .vu-btn-ghost:hover:not(:disabled) {
-  background-color: var(--surface-muted);
+:is([data-app-shell], .vu-admin) .vu-btn-ghost:hover:not(:disabled, [aria-disabled="true"]) {
+  background-color: color-mix(in oklab, var(--foreground) 7%, transparent);
   color: var(--foreground);
 }
 
-/* Destructive actions read as secondary until they are hovered: a red fill
-   on every delete button would turn a list of rows into a list of alarms. */
-:is([data-app-shell], .vu-admin) .vu-btn-danger {
-  background-color: var(--surface);
-  color: var(--danger);
-  box-shadow:
-    inset 0 0 0 1px var(--hairline-firm),
-    var(--e1);
+:is([data-app-shell], .vu-admin) .vu-btn-ghost:active:not(:disabled, [aria-disabled="true"]) {
+  background-color: color-mix(in oklab, var(--foreground) 11%, transparent);
 }
 
-:is([data-app-shell], .vu-admin) .vu-btn-danger:hover:not(:disabled) {
-  background-color: var(--danger-wash);
-  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--danger) 35%, transparent);
-}
-
+/* Muted, and no halo or shadow: nothing about it says "press me". */
 :is([data-app-shell], .vu-admin) .vu-btn:disabled,
 :is([data-app-shell], .vu-admin) .vu-btn[aria-disabled="true"] {
   cursor: not-allowed;
@@ -2521,6 +3018,13 @@ button:hover .vu-media-zoom {
 :is([data-app-shell], .vu-admin) .vu-btn-ghost:disabled,
 :is([data-app-shell], .vu-admin) .vu-btn-ghost[aria-disabled="true"] {
   box-shadow: none;
+}
+
+/* Colours still ease; nothing lifts or sinks. */
+@media (prefers-reduced-motion: reduce) {
+  :is([data-app-shell], .vu-admin) .vu-btn {
+    --vu-btn-lift: 0px;
+  }
 }
 
 /* HeroUI's Button is a pill by the global rule; in the app it is a control. */
@@ -2607,37 +3111,149 @@ button:hover .vu-media-zoom {
 }
 
 /* ---------------------------------------------------------------------------
-   App fields: one focus treatment for every input built from `fieldClass`.
-   A ring in the brand colour rather than the global outline, which sits two
-   pixels off a field's edge and reads as a second border.
+   App fields: Aceternity's input on the role tokens.
+
+   Every input, textarea, select and editor built from `fieldClass`. At rest
+   it is the field it always was: the field ground, the app's radius, a soft
+   shadow, and a 1px edge that clears 3:1 against the field and the page
+   (WCAG 1.4.11, held by `npm run check:theme`). On hover it takes
+   Aceternity's signature: a glow in the brand colour that follows the
+   pointer around the field's frame (theirs is a 100px radial gradient in a
+   2px wrapper).
+
+   An input can hold neither a wrapper nor a pseudo-element, so the frame is
+   the field's own 1px border, made transparent and painted from layered
+   backgrounds, top to bottom:
+     1. the field ground, one pixel in from the padding edge;
+     2. the glow, clipped to the padding box, so it shows only in that
+        one-pixel band: the frame's inner pixel;
+     3. the field ground again, under the band, for when nothing glows;
+     4. the glow over the border box: the frame's outer pixel;
+     5. the edge colour, under everything.
+   So the glow is two pixels deep, as Aceternity's is, while the border, the
+   padding and the text stay exactly where they were. It is extra and never
+   replaces the edge: wherever it is not drawn, the edge is.
+   components/app/field-glow.tsx moves it, setting --mx and --my (the
+   pointer, from the field's border edge) and --glow-r on the hovered field
+   from one delegated listener, and does nothing on a screen that cannot
+   hover or over a disabled field. --glow-r is registered, so the glow grows
+   in and fades out rather than snapping.
+
+   Focus is a 2px ring in the focus colour, the edge and one pixel outside
+   it, rather than the global outline, which sits two pixels off a field's
+   edge and reads as a second border.
 --------------------------------------------------------------------------- */
-.vu-field:focus,
-.vu-field:focus-visible {
-  outline: none;
-  border-color: var(--brand);
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--brand) 18%, transparent);
+@property --glow-r {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
 }
 
-.vu-field:hover:not(:focus):not(:disabled) {
-  border-color: color-mix(in oklab, var(--field-border) 65%, var(--foreground));
+/* Registered too, so the edge still eases on hover as the border did. */
+@property --vu-field-edge {
+  syntax: "<color>";
+  inherits: false;
+  initial-value: transparent;
 }
 
-.vu-field[aria-invalid="true"] {
-  border-color: var(--danger);
-}
-
-.vu-field[aria-invalid="true"]:focus {
-  box-shadow: 0 0 0 3px color-mix(in oklab, var(--danger) 18%, transparent);
+.vu-field {
+  --vu-field-edge: var(--field-border);
+  --vu-glow: var(--brand);
+  --vu-field-ground: linear-gradient(var(--field-background), var(--field-background));
+  --vu-field-glow: radial-gradient(var(--glow-r, 0px) circle at var(--mx, 50%) var(--my, 50%), var(--vu-glow), transparent 80%);
+  --vu-field-layers:
+    var(--vu-field-ground) center / calc(100% - 2px) calc(100% - 2px) no-repeat padding-box,
+    var(--vu-field-glow) border-box padding-box,
+    var(--vu-field-ground) padding-box,
+    var(--vu-field-glow) border-box;
+  border-color: transparent;
+  background: var(--vu-field-layers), var(--vu-field-edge) border-box;
+  box-shadow: var(--e1);
+  transition:
+    --glow-r 300ms cubic-bezier(0.22, 1, 0.36, 1),
+    --vu-field-edge 150ms cubic-bezier(0.2, 0, 0.2, 1),
+    border-color 150ms cubic-bezier(0.2, 0, 0.2, 1),
+    box-shadow 150ms cubic-bezier(0.2, 0, 0.2, 1);
 }
 
 /* A native select with the system chevron replaced, so it matches the
-   inputs beside it. The stroke is a mid grey that reads on both fields. */
+   inputs beside it. The stroke is a mid grey that reads on both fields. The
+   chevron rides on top of the field's own layers. */
 .vu-select {
   appearance: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23848b86' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
   background-position: right 0.625rem center;
   background-repeat: no-repeat;
   background-size: 1rem;
+}
+
+.vu-field.vu-select {
+  background:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23848b86' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E") right 0.625rem center / 1rem no-repeat,
+    var(--vu-field-layers),
+    var(--vu-field-edge) border-box;
+}
+
+/* Aceternity drops the field's shadow while the glow is on it. */
+.vu-field:hover:not(:focus, :disabled, [aria-disabled="true"], [aria-invalid="true"]) {
+  --vu-field-edge: color-mix(in oklab, var(--field-border) 65%, var(--field-foreground));
+  box-shadow: none;
+}
+
+/* In a band --brand is white, which would wash out on a light field; the
+   glow takes the brand ink that already reads on a field in either mode. */
+:is(.vu-app-sidebar, .vu-admin-rail, .vu-band) .vu-field {
+  --vu-glow: var(--on-brand-wash);
+}
+
+.vu-field[aria-invalid="true"] {
+  --vu-field-edge: var(--danger);
+  --vu-glow: var(--danger);
+}
+
+.vu-field:is(:disabled, [aria-disabled="true"]) {
+  --vu-glow: transparent;
+  box-shadow: none;
+}
+
+/* Autofill paints its own background over every layer, edge included; the
+   edge comes back as a plain border. */
+.vu-field:is(:autofill, :-webkit-autofill) {
+  border-color: var(--field-border);
+}
+
+.vu-field:focus,
+.vu-field:focus-visible {
+  outline: none;
+  border-color: var(--focus);
+  box-shadow:
+    0 0 0 1px var(--focus),
+    var(--e1);
+}
+
+.vu-field[aria-invalid="true"]:focus {
+  border-color: var(--danger);
+  box-shadow:
+    0 0 0 1px var(--danger),
+    var(--e1);
+}
+
+/* The glow still follows the pointer; it just does not grow in. */
+@media (prefers-reduced-motion: reduce) {
+  .vu-field {
+    transition:
+      --vu-field-edge 150ms cubic-bezier(0.2, 0, 0.2, 1),
+      border-color 150ms cubic-bezier(0.2, 0, 0.2, 1),
+      box-shadow 150ms cubic-bezier(0.2, 0, 0.2, 1);
+  }
+}
+
+/* Forced colours drop the painted edge with the rest of the background;
+   a real border keeps every field findable. */
+@media (forced-colors: active) {
+  .vu-field {
+    border-color: CanvasText;
+  }
 }
 
 /* The leaf in the app's lockup takes the brand colour; the wordmark stays ink. */
@@ -2649,3 +3265,110 @@ button:hover .vu-media-zoom {
 :is([data-app-shell], .vu-admin) :is(input[type="checkbox"], input[type="radio"], input[type="range"], progress) {
   accent-color: var(--brand-fill);
 }
+
+/* ---------------------------------------------------------------------------
+   App dropdown menus: Aceternity's Navbar Menu panel.
+
+   Every menu built from `menuClass` (the account menu, the post menu, the
+   reaction picker, the editor's mention list, the thread menu, the table's
+   notification menu) rises into place as Aceternity's does, up from 8px and
+   from 96% on a spring-like curve, on a slightly glassy panel: the overlay
+   colour at 94% with the page blurred behind it. The entrance runs as the
+   menu mounts and keeps nothing afterwards (fill-mode backwards), so a
+   settled menu carries no transform and positions exactly as before. Each
+   menu already sets its own position and z-index; the glass adds no
+   stacking a positioned menu did not already have. Reduced motion keeps
+   the fade only.
+--------------------------------------------------------------------------- */
+@keyframes vu-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes vu-menu-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.vu-menu {
+  background-color: color-mix(in oklab, var(--overlay) 94%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.2);
+  backdrop-filter: blur(12px) saturate(1.2);
+  transform-origin: top;
+  animation: vu-menu-in 200ms cubic-bezier(0.34, 1.3, 0.64, 1) backwards;
+}
+
+/* The reaction picker opens upwards from the like button, so it keeps its
+   own pop rather than rising from below. */
+.vu-menu.reaction-pop {
+  transform-origin: bottom left;
+  animation: reaction-pop 180ms cubic-bezier(0.22, 1, 0.36, 1) backwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vu-menu,
+  .vu-menu.reaction-pop {
+    animation-name: vu-menu-fade;
+  }
+}
+
+/* ---------------------------------------------------------------------------
+   App disclosures: Aceternity's accordion motion on the native <details>.
+
+   The roadmap, the kitchen table's side panel, the bulletin forms, the
+   console's roadmap editor and the similarities panel all disclose with a
+   <details>. They stay native, CSS only: the summary is still the button,
+   the browser still announces expanded and collapsed, and find-in-page still
+   opens them. The content eases between no height and its own
+   (`interpolate-size`) and fades in; closing keeps it rendered until the
+   height has gone (`content-visibility` … `allow-discrete`). It clips only
+   while it moves, so once open a focus ring or a card's shadow at its edge
+   is whole. A browser that cannot animate to `auto` opens and closes them
+   exactly as before.
+--------------------------------------------------------------------------- */
+@supports (interpolate-size: allow-keywords) {
+  :is([data-app-shell], .vu-admin) details {
+    interpolate-size: allow-keywords;
+  }
+
+  :is([data-app-shell], .vu-admin) details::details-content {
+    block-size: 0;
+    opacity: 0;
+    overflow-y: clip;
+    transition:
+      block-size 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 180ms ease-out,
+      content-visibility 280ms allow-discrete,
+      overflow-y 0s allow-discrete;
+  }
+
+  :is([data-app-shell], .vu-admin) details[open]::details-content {
+    block-size: auto;
+    opacity: 1;
+    overflow-y: visible;
+    transition:
+      block-size 280ms cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 240ms ease-out 40ms,
+      content-visibility 280ms allow-discrete,
+      overflow-y 0s 280ms allow-discrete;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :is([data-app-shell], .vu-admin) details::details-content,
+  :is([data-app-shell], .vu-admin) details[open]::details-content {
+    transition: none;
+  }
+}
+
+/* aceternity:end */

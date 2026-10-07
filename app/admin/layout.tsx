@@ -6,6 +6,7 @@ import { AdminMobileNav } from "@/components/admin/admin-mobile-nav";
 import { AdminTopbar } from "@/components/admin/admin-topbar";
 import { countOpenReports } from "@/lib/admin/overview";
 import { AnalyticsIdentity } from "@/components/analytics/identity";
+import { FieldGlow } from "@/components/app/field-glow";
 
 /**
  * The admin console.
@@ -70,6 +71,7 @@ export default async function AdminLayout({
         </main>
       </div>
       <AnalyticsIdentity userId={session.user.id} />
+      <FieldGlow />
     </div>
   );
 }

@@ -8,6 +8,7 @@ import { SideRail } from "@/components/app/side-rail";
 import { MobileTabs } from "@/components/app/mobile-tabs";
 import { NavDrawer } from "@/components/app/nav-drawer";
 import { AnalyticsIdentity } from "@/components/analytics/identity";
+import { FieldGlow } from "@/components/app/field-glow";
 
 export const dynamic = "force-dynamic";
 
@@ -97,6 +98,7 @@ export default async function MemberLayout({
 
       <MobileTabs />
       <AnalyticsIdentity userId={session.user.id} />
+      <FieldGlow />
     </div>
   );
 }

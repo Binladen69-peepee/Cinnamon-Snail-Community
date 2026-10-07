@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { Shield, type LucideIcon } from "lucide-react";
 import { BrandMark } from "@/components/brand/brand-mark";
 import { CountBadge } from "@/components/app/ui";
+import { ThemeButton } from "@/components/theme/theme-button";
 import {
   MEMBER_HOME_HREF,
   MEMBER_NAV_GROUPS,
@@ -67,9 +68,11 @@ export function SideRail({
         ))}
       </nav>
 
-      {staff ? (
-        <div className="shrink-0 border-t border-sidebar-border px-3 py-3">
-          <ul className="flex flex-col gap-px">
+      {/* The foot: the console for staff, and the Theme dialog for everyone.
+          The phone drawer renders this same rail, so it has both too. */}
+      <div className="shrink-0 border-t border-sidebar-border px-3 py-3">
+        <ul className="flex flex-col gap-px">
+          {staff ? (
             <Row
               href="/admin"
               label="Admin console"
@@ -77,9 +80,12 @@ export function SideRail({
               active={pathname === "/admin" || pathname.startsWith("/admin/")}
               count={0}
             />
-          </ul>
-        </div>
-      ) : null}
+          ) : null}
+          <li>
+            <ThemeButton />
+          </li>
+        </ul>
+      </div>
     </div>
   );
 }

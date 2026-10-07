@@ -338,7 +338,15 @@ type ButtonStyle = {
   iconOnly?: boolean;
 };
 
-/** The class string, for the rare control that cannot be a `Button`. */
+/**
+ * The class string, for the rare control that cannot be a `Button`.
+ *
+ * The look is Aceternity's (globals.css, "App controls"): primary and danger
+ * are the gradient "Get Started" button with its halo, secondary is the lifted
+ * "Simple" button. `vu-btn-sm|md|lg` names the size for the stylesheet, which
+ * draws a thinner halo on small buttons so a row of them in a table or a
+ * toolbar does not run together.
+ */
 export function buttonClass({
   variant = "secondary",
   size = "md",
@@ -348,6 +356,7 @@ export function buttonClass({
   return cn(
     "vu-btn inline-flex shrink-0 select-none items-center justify-center whitespace-nowrap no-underline [&_svg]:shrink-0",
     BUTTON_VARIANT[variant],
+    `vu-btn-${size}`,
     iconOnly ? ICON_BUTTON_SIZE[size] : BUTTON_SIZE[size],
     className,
   );
@@ -632,9 +641,12 @@ const FIELD_SIZE = {
 } as const;
 
 /**
- * Text inputs, selects and textareas share one look. `vu-field` carries the
- * focus treatment in globals.css, because the global focus outline is
- * unlayered and a utility cannot replace it.
+ * Text inputs, selects and textareas share one look: Aceternity's input on the
+ * field tokens. `vu-field` carries it in globals.css ("App fields"): the
+ * resting edge, the glow that follows the pointer around it on hover (moved by
+ * `FieldGlow`, components/app/field-glow.tsx, mounted once per layout) and the
+ * focus ring, because the global focus outline is unlayered and a utility
+ * cannot replace it. The utilities below are the plain field it paints over.
  */
 export function fieldClass({
   size = "md",
@@ -1142,9 +1154,13 @@ export const backdropClass = "fixed inset-0 bg-backdrop";
 /** A dialog's panel. */
 export const dialogClass = "rounded-modal border border-border bg-overlay text-foreground shadow-e3";
 
-/** A dropdown menu and its rows. */
+/**
+ * A dropdown menu and its rows. `vu-menu` (globals.css, "App dropdown menus")
+ * gives it Aceternity's navbar-menu entrance and a slightly glassy panel; the
+ * caller still places it (`absolute`, a side, a z-index).
+ */
 export const menuClass =
-  "min-w-48 overflow-hidden rounded-card border border-border bg-overlay p-1 text-foreground shadow-e3";
+  "vu-menu min-w-48 overflow-hidden rounded-card border border-border bg-overlay p-1 text-foreground shadow-e3";
 
 export const menuItemClass =
   "flex w-full items-center gap-2.5 rounded-[calc(var(--r-card)-0.375rem)] px-2.5 py-2 text-left text-label font-medium text-foreground no-underline transition hover:bg-surface-muted [&_svg]:size-4 [&_svg]:shrink-0 [&_svg]:text-foreground-muted";

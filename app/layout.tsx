@@ -11,6 +11,7 @@ import {
 import { Providers } from "@/app/providers";
 import { MediaRevealRuntime } from "@/components/ui/media-reveal-runtime";
 import { SAMCART_SLIDE_SCRIPT } from "@/lib/marketing/checkout";
+import { ACCENT_BOOT_SCRIPT } from "@/lib/theme/boot-script";
 import "./globals.css";
 
 const inter = Inter({
@@ -91,6 +92,15 @@ export default function RootLayout({
       suppressHydrationWarning
       className={`${inter.variable} ${poppins.variable} ${caveat.variable} ${brush.variable} ${momo.variable} ${fraunces.variable} h-full antialiased`}
     >
+      <head>
+        {/* The member's palette (DEC-082), put on <html> while the page is
+            still parsing so the first paint is already in it. It only sets
+            `data-accent`, which nothing outside the app reads, so the
+            marketing pages are unchanged. Inline per the Next.js guide on
+            preventing flash before hydration; `suppressHydrationWarning`
+            above covers the attribute React did not render. */}
+        <script dangerouslySetInnerHTML={{ __html: ACCENT_BOOT_SCRIPT }} />
+      </head>
       <body className="relative min-h-full bg-background font-sans text-foreground">
         <Script src={SAMCART_SLIDE_SCRIPT} strategy="afterInteractive" />
         {/* One observer drives the reveal for every MediaFrame on the page. */}

@@ -161,6 +161,37 @@ const SCOPES = [
   ["plum band — dark", BAND_DARK, "band"],
 ];
 
+/**
+ * Every palette a member can choose (DEC-082), in each mode, with the same
+ * pairs as the default. A palette block restates only the brand roles, so
+ * each scope is the default's tokens with the palette's laid over them, in
+ * the order the cascade applies them.
+ */
+const ACCENTS = [...new Set([...css.matchAll(/:root\[data-accent="([a-z0-9-]+)"\]/g)].map((m) => m[1]))];
+// The band blocks alone. A band element takes the root's tokens by
+// inheritance and then its own band rules, so those land last.
+const BAND_ONLY_LIGHT = block(`:root:has([data-app-shell], .vu-admin) ${BAND}`);
+const BAND_ONLY_DARK = block(`:root.dark:has([data-app-shell], .vu-admin) ${BAND}`);
+for (const id of ACCENTS) {
+  const scope = `[data-accent="${id}"]:has([data-app-shell], .vu-admin)`;
+  const light = block(`:root${scope} {`);
+  const dark = block(`:root.dark${scope} {`);
+  const bandLight = block(`:root${scope} ${BAND}`);
+  const bandDark = block(`:root.dark${scope} ${BAND}`);
+  const appLight = { ...APP_LIGHT, ...light };
+  const appDark = { ...APP_LIGHT, ...APP_DARK, ...light, ...dark };
+  SCOPES.push(
+    [`${id} — light`, appLight, "app"],
+    [`${id} — dark`, appDark, "app"],
+    [`${id} band — light`, { ...appLight, ...BAND_ONLY_LIGHT, ...bandLight }, "band"],
+    [
+      `${id} band — dark`,
+      { ...appDark, ...BAND_ONLY_LIGHT, ...BAND_ONLY_DARK, ...bandLight, ...bandDark },
+      "band",
+    ],
+  );
+}
+
 let failures = 0;
 let checked = 0;
 let skipped = 0;

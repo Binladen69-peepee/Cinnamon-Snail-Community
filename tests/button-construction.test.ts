@@ -3,13 +3,20 @@ import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * The button is built the way Polaris builds it.
+ * The button is built the way Polaris builds it, outside the signed-in app:
+ * the sign-in pages and the marketing site.
  *
  * Values were read out of @shopify/polaris 13.9.5's shipped stylesheet rather
  * than guessed, and the library cannot be installed here — the React package is
  * deprecated and React-18-only, and the web components need App Bridge inside
  * Shopify Admin. So the construction is reproduced, and this is what keeps it
  * honest if someone later "simplifies" the shadows into one drop shadow.
+ *
+ * The member app and the console restyle the same classes inside their own
+ * scope as Aceternity's buttons (the gradient primary with its halo, the
+ * lifted secondary); tests/aceternity-primitives.test.ts holds that
+ * construction. The lookups below find the first rule of each name, which is
+ * this one, ahead of the app section.
  */
 
 const css = readFileSync(resolve(process.cwd(), "app/globals.css"), "utf8");

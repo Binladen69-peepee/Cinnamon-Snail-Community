@@ -1,0 +1,48 @@
+import data from "@/lib/theme/palettes.json";
+
+/**
+ * The palettes a member can give the app (DEC-082).
+ *
+ * The four colours of each, darkest to lightest, are the palette as the
+ * member sees it in the Theme dialog. The tokens the app actually paints with
+ * are derived from them by `scripts/theme-accents.mjs` into `app/globals.css`;
+ * the colours here are only ever shown, never used to style anything.
+ *
+ * Mulberry, the house plum, is the default and needs no attribute: with no
+ * `data-accent` on <html> the app is already Mulberry.
+ */
+
+export type PaletteId = "mulberry" | "charcoal" | "dusk" | "slate" | "midnight";
+
+export type Palette = {
+  id: PaletteId;
+  name: string;
+  description: string;
+  /** Darkest to lightest, as in the reference palettes. */
+  swatches: readonly [string, string, string, string];
+  /** The default palette, written by hand rather than generated. */
+  builtin?: boolean;
+};
+
+export const PALETTES: readonly Palette[] = data.palettes.map((palette) => ({
+  id: palette.id as PaletteId,
+  name: palette.name,
+  description: palette.description,
+  swatches: palette.swatches as unknown as Palette["swatches"],
+  builtin: "builtin" in palette ? Boolean(palette.builtin) : undefined,
+}));
+
+export const DEFAULT_PALETTE = data.default as PaletteId;
+
+export const PALETTE_IDS: readonly PaletteId[] = PALETTES.map((palette) => palette.id);
+
+/** Where the choice is kept, in this browser. */
+export const ACCENT_STORAGE_KEY = "vu-accent";
+
+export function isPaletteId(value: unknown): value is PaletteId {
+  return typeof value === "string" && (PALETTE_IDS as readonly string[]).includes(value);
+}
+
+export function paletteById(id: PaletteId): Palette {
+  return PALETTES.find((palette) => palette.id === id) ?? PALETTES[0]!;
+}

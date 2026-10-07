@@ -6,6 +6,7 @@ import { ArrowUpRight } from "lucide-react";
 import { BrandLogo } from "@/components/brand/brand-mark";
 import { Avatar } from "@/components/ui/avatar";
 import { CountBadge } from "@/components/app/ui";
+import { ThemeButton } from "@/components/theme/theme-button";
 import { ADMIN_NAV, activeAdminHref } from "@/lib/admin/nav";
 import { MEMBER_HOME_HREF } from "@/lib/navigation";
 import { cn } from "@/lib/utils";
@@ -87,6 +88,8 @@ export function AdminSidebar({
       </nav>
 
       <div className="mt-auto flex flex-col gap-1 border-t border-sidebar-border p-3">
+        {/* The console follows the member's palette and mode too (DEC-082). */}
+        <ThemeButton />
         <Link
           href={MEMBER_HOME_HREF}
           className="flex h-9 items-center gap-2.5 rounded-ctl px-2.5 text-label font-medium text-foreground-muted no-underline transition hover:bg-surface-muted hover:text-foreground"

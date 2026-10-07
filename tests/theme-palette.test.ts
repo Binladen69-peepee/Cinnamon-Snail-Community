@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -112,6 +113,12 @@ const tokenIn = (block: string, name: string): string => {
 const APP_LIGHT = ":root:has([data-app-shell], .vu-admin) {";
 const APP_DARK = ":root.dark:has([data-app-shell], .vu-admin) {";
 
+/** The generated palettes (DEC-082), and the app sheet without them. */
+const ACCENTS_START = "/* theme-accents:start";
+const ACCENTS_END = "/* theme-accents:end */";
+const accentsCss = css.slice(css.indexOf(ACCENTS_START), css.indexOf(ACCENTS_END));
+const handWrittenAppCss = appCss.replace(accentsCss, "");
+
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
     if (entry === "node_modules" || entry === ".next") continue;
@@ -184,15 +191,32 @@ describe("marketing palette", () => {
 });
 
 describe("app palette", () => {
-  it("is the plum palette", () => {
+  it("is the plum palette by default, on neutral grounds", () => {
     const light = blockAfter(APP_LIGHT);
-    expect(tokenIn(light, "background")).toBe("#faf7f8");
-    expect(tokenIn(light, "surface")).toBe("#ffffff");
-    expect(tokenIn(light, "foreground")).toBe("#1c1519");
+    expect(tokenIn(light, "background")).toBe("#f7f7f5");
+    expect(tokenIn(light, "surface")).toBe("#fdfdfc");
+    expect(tokenIn(light, "foreground")).toBe("#171717");
     expect(tokenIn(light, "brand-fill")).toBe("#7b2d56");
     expect(tokenIn(light, "sidebar")).toBe("#561d3f");
     // Counts and hearts are brand, never a third hue that could read as status.
     expect(tokenIn(light, "highlight")).toBe("#7b2d56");
+  });
+
+  it("is white but never pure white in light mode, and black in dark mode", () => {
+    // DEC-082: "dark mode uses black, light mode uses white (though not pure
+    // white)". The grounds carry no hue, so every palette sits on them.
+    const light = blockAfter(APP_LIGHT);
+    const dark = blockAfter(APP_DARK);
+    for (const role of ["background", "surface", "overlay", "field-background"]) {
+      const value = tokenIn(light, role);
+      expect(value, `light --${role}`).not.toBe("#ffffff");
+      expect(contrast(value, "#ffffff"), `light --${role} is still white`).toBeLessThan(1.1);
+      expect(hue(value), `light --${role} has no hue`).toBeNull();
+    }
+    expect(tokenIn(dark, "background")).toBe("#000000");
+    for (const role of ["surface", "overlay", "default", "surface-muted"]) {
+      expect(hue(tokenIn(dark, role)), `dark --${role} has no hue`).toBeNull();
+    }
   });
 
   it("has no trace of the forest or teal palettes it replaced", () => {
@@ -204,7 +228,9 @@ describe("app palette", () => {
   });
 
   it("uses only the brand's families and status hues", () => {
-    const hexes = appCss.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
+    // The member-chosen palettes are generated and held to their own families
+    // below; everything written by hand stays plum, grey and status.
+    const hexes = handWrittenAppCss.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
     const strays = [...new Set(hexes)]
       .filter((hex) => familyIn(APP_FAMILIES)(hex) === null)
       .map((hex) => `${hex} (hue ${hue(hex)}°)`);
@@ -226,6 +252,87 @@ describe("app palette", () => {
       contrast(tokenIn(dark, "brand-fill"), tokenIn(dark, "background")),
       "a dark-mode button against its ground",
     ).toBeGreaterThanOrEqual(3);
+  });
+});
+
+describe("member palettes (DEC-082)", () => {
+  const registry = JSON.parse(readFileSync(resolve(root, "lib/theme/palettes.json"), "utf8")) as {
+    default: string;
+    palettes: { id: string; swatches: string[]; builtin?: boolean }[];
+  };
+  const chosen = registry.palettes.filter((palette) => !palette.builtin);
+  const scope = (id: string) => `[data-accent="${id}"]:has([data-app-shell], .vu-admin)`;
+  const BAND = ":is(.vu-app-sidebar, .vu-admin-rail, .vu-band) {";
+  const names = (block: string) => [...block.matchAll(/--([a-z0-9-]+):/g)].map((m) => m[1]).sort();
+
+  it("generates exactly the palettes the dialog offers, from palettes.json, up to date", () => {
+    const generated = [
+      ...new Set([...accentsCss.matchAll(/data-accent="([a-z0-9-]+)"/g)].map((m) => m[1])),
+    ].sort();
+    expect(generated).toEqual(chosen.map((palette) => palette.id).sort());
+    // The default is the hand-written plum, and the only built-in.
+    expect(registry.palettes.filter((p) => p.builtin).map((p) => p.id)).toEqual([registry.default]);
+    // The script refuses to write a pair that fails contrast, and --check
+    // fails when globals.css has drifted from palettes.json.
+    expect(() =>
+      execFileSync(process.execPath, ["scripts/theme-accents.mjs", "--check"], {
+        cwd: root,
+        stdio: "pipe",
+      }),
+    ).not.toThrow();
+  });
+
+  it("restates every light-mode token in dark mode, so dark never inherits a light brand colour", () => {
+    for (const { id } of chosen) {
+      expect(names(blockAfter(`:root.dark${scope(id)} {`)), id).toEqual(
+        names(blockAfter(`:root${scope(id)} {`)),
+      );
+      expect(names(blockAfter(`:root.dark${scope(id)} ${BAND}`)), `${id} band`).toEqual(
+        names(blockAfter(`:root${scope(id)} ${BAND}`)),
+      );
+    }
+  });
+
+  it("re-points only brand roles, never the grounds or the status colours", () => {
+    const grounds = /^(background|surface|surface-muted|overlay|foreground|default|border|separator|field-.*|success.*|warning.*|danger.*|info.*)$/;
+    for (const { id } of chosen) {
+      for (const marker of [`:root${scope(id)} {`, `:root.dark${scope(id)} {`]) {
+        expect(names(blockAfter(marker)).filter((name) => grounds.test(name!)), marker).toEqual([]);
+      }
+    }
+  });
+
+  it("makes each palette's darkest colour the rail, and keeps every palette in its own hues", () => {
+    const near = (a: number, b: number) => Math.min(Math.abs(a - b), 360 - Math.abs(a - b)) <= 20;
+    for (const { id, swatches } of chosen) {
+      expect(tokenIn(blockAfter(`:root${scope(id)} {`), "sidebar"), id).toBe(swatches[0]!.toLowerCase());
+      const own = swatches.map(hue).filter((h): h is number => h !== null);
+      const blocks = [
+        `:root${scope(id)} {`,
+        `:root.dark${scope(id)} {`,
+        `:root${scope(id)} ${BAND}`,
+        `:root.dark${scope(id)} ${BAND}`,
+      ]
+        .map(blockAfter)
+        .join("\n");
+      const strays = [...new Set(blocks.match(/#[0-9a-fA-F]{6}\b/g) ?? [])].filter((hex) => {
+        const h = hue(hex);
+        return h !== null && !own.some((o) => near(h, o));
+      });
+      expect(strays, id).toEqual([]);
+    }
+  });
+
+  it("carries a legible primary button in every palette and mode", () => {
+    for (const { id } of chosen) {
+      for (const marker of [`:root${scope(id)} {`, `:root.dark${scope(id)} {`]) {
+        const block = blockAfter(marker);
+        expect(
+          contrast(tokenIn(block, "brand-fill"), tokenIn(block, "brand-fill-foreground")),
+          `${marker} label on a primary button`,
+        ).toBeGreaterThanOrEqual(4.5);
+      }
+    }
   });
 });
 
