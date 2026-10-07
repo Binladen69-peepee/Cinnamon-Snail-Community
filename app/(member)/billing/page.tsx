@@ -7,6 +7,7 @@ import { prisma } from "@/lib/db";
 import { beginCancelAction } from "@/app/(member)/billing/actions";
 import { isEntitlementActive } from "@/lib/entitlements/check";
 import { isPayingStatus } from "@/lib/billing/types";
+import { formatAccessDate } from "@/lib/billing/cancel";
 import { AppShell } from "@/components/app/app-shell";
 import {
   Badge,
@@ -61,6 +62,9 @@ export default async function BillingPage({
   ]);
   const hasAccess = entitlements.some((item) => isEntitlementActive(item));
   const paying = subscriptions.filter((item) => isPayingStatus(item.status));
+  // The cancellation just confirmed: renewal is off, access runs to this date.
+  const ending = subscriptions.find((item) => item.status === "CANCELING");
+  const endingOn = ending ? (ending.cancelAt ?? ending.periodEnd) : null;
 
   return (
     <AppShell>
@@ -68,12 +72,16 @@ export default async function BillingPage({
         <PageHeader
           eyebrow="Membership"
           title="Your seat at the table"
-          description="SamCart is the record of money. This page is the record of access. If you cancel, access follows the period SamCart reports."
+          description="SamCart is the record of money. This page is the record of access. If you cancel, you keep everything you have paid for until the end of your billing period."
         />
 
         {canceled ? (
           <Callout tone="success" role="status">
-            SamCart confirmed the cancellation. Access follows the period they reported.
+            {ending
+              ? endingOn
+                ? `SamCart confirmed the cancellation. Your membership will not renew, and you keep full access until ${formatAccessDate(endingOn)}.`
+                : "SamCart confirmed the cancellation. Your membership will not renew, and you keep full access until the end of the period you have paid for."
+              : "SamCart confirmed the cancellation."}
           </Callout>
         ) : null}
 
@@ -139,11 +147,18 @@ export default async function BillingPage({
           ) : (
             <ul className="divide-y divide-separator">
               {subscriptions.map((item) => {
+                const endsOn = item.status === "CANCELING" ? (item.cancelAt ?? item.periodEnd) : null;
                 const detail = [
                   item.amountCents != null
                     ? `$${(item.amountCents / 100).toFixed(2)} ${item.currency ?? "usd"}`
                     : null,
-                  item.periodEnd ? `period ends ${item.periodEnd.toDateString()}` : null,
+                  item.status === "CANCELING"
+                    ? endsOn
+                      ? `will not renew · access until ${formatAccessDate(endsOn)}`
+                      : "will not renew · access until the end of this period"
+                    : item.periodEnd
+                      ? `period ends ${item.periodEnd.toDateString()}`
+                      : null,
                 ]
                   .filter(Boolean)
                   .join(" · ");
@@ -163,7 +178,7 @@ export default async function BillingPage({
                         <p className="mt-1 text-label tabular-nums text-foreground-muted">{detail}</p>
                       ) : null}
                     </div>
-                    {isPayingStatus(item.status) ? (
+                    {isPayingStatus(item.status) && item.status !== "CANCELING" ? (
                       <form action={beginCancelAction} className="shrink-0">
                         <input type="hidden" name="subscriptionId" value={item.id} />
                         <Button type="submit" size="sm">

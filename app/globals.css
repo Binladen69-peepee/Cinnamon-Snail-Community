@@ -1741,6 +1741,174 @@ button:hover .vu-media-zoom {
 }
 
 /* ---------------------------------------------------------------------------
+   The console's frame (DEC-088), after the client's reference: a light rail
+   on the page's own ground, a quiet top bar, and white cards with soft
+   corners. Nothing here is a colour of its own; the palette's roles paint it,
+   so every palette and both modes follow.
+
+   - The rail is 16rem, or 4.75rem collapsed to its icons. The state is a
+     cookie, so the server renders the right width and nothing jumps; the
+     toggle flips `data-rail` at once and writes the cookie for next time.
+   - The active row is a raised white pill with a brand icon, as in the
+     reference; hover is a wash of the ink.
+--------------------------------------------------------------------------- */
+.vu-admin {
+  --admin-rail: 16rem;
+}
+
+.vu-admin[data-rail="collapsed"] {
+  --admin-rail: 4.75rem;
+}
+
+.vu-admin-aside {
+  width: var(--admin-rail);
+  transition: width 220ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+@media (min-width: 64rem) {
+  .vu-admin-main {
+    padding-left: var(--admin-rail);
+    transition: padding-left 220ms cubic-bezier(0.2, 0, 0.2, 1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vu-admin-aside,
+  .vu-admin-main {
+    transition: none;
+  }
+}
+
+/* Collapsed: labels, group names and the wordmark go; icons centre. The
+   narrow-only parts (the icon Theme button) take their place. */
+.vu-admin[data-rail="collapsed"] .vu-admin-aside :is(.vu-rail-label, .vu-rail-wide) {
+  display: none;
+}
+
+.vu-admin:not([data-rail="collapsed"]) .vu-admin-aside .vu-rail-narrow {
+  display: none;
+}
+
+.vu-admin[data-rail="collapsed"] .vu-admin-aside .vu-rail-row {
+  justify-content: center;
+  padding-inline: 0;
+}
+
+.vu-admin-nav-link {
+  color: var(--foreground-muted);
+}
+
+.vu-admin-nav-link:hover {
+  background-color: color-mix(in oklab, var(--foreground) 5%, transparent);
+  color: var(--foreground);
+}
+
+.vu-admin-nav-link[aria-current="page"] {
+  background-color: var(--surface);
+  color: var(--foreground);
+  font-weight: 600;
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    0 1px 2px rgb(23 23 23 / 0.04),
+    0 2px 8px -4px rgb(23 23 23 / 0.1);
+}
+
+.vu-admin-nav-link[aria-current="page"] .vu-admin-nav-icon {
+  color: var(--brand);
+}
+
+/* The bar's search: a pill on the surface, as in the reference. */
+.vu-admin-search {
+  border-radius: 9999px;
+  background-color: var(--surface);
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    0 1px 2px rgb(23 23 23 / 0.03);
+}
+
+.vu-admin-search:focus-within {
+  box-shadow:
+    inset 0 0 0 1px var(--hairline-firm),
+    0 0 0 3px color-mix(in oklab, var(--focus) 22%, transparent);
+}
+
+/* A square button on the surface: the bell, the kebab on a card. */
+.vu-admin-icon-btn {
+  background-color: var(--surface);
+  color: var(--foreground-muted);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.vu-admin-icon-btn:hover {
+  color: var(--foreground);
+  background-color: var(--surface-muted);
+}
+
+/* The AI button: a soft gradient from the palette's wash into a tint of its
+   brand, with the wash's own ink. Mixed at a quarter so the label clears
+   4.5:1 at the deep end in every palette and mode (Mulberry dark is the
+   tightest, at 4.9:1). */
+.vu-ai-btn {
+  --vu-ai-from: var(--brand-wash);
+  --vu-ai-to: color-mix(in oklab, var(--brand-wash) 75%, var(--brand));
+  background-image: linear-gradient(100deg, var(--vu-ai-from), var(--vu-ai-to));
+  color: var(--on-brand-wash);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--brand) 22%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 0.45),
+    0 6px 16px -8px color-mix(in oklab, var(--brand) 55%, transparent);
+  transition:
+    box-shadow 200ms cubic-bezier(0.2, 0, 0.2, 1),
+    transform 200ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+.vu-ai-btn:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--brand) 32%, transparent),
+    inset 0 1px 0 rgb(255 255 255 / 0.45),
+    0 10px 22px -10px color-mix(in oklab, var(--brand) 65%, transparent);
+}
+
+.vu-ai-btn:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.dark .vu-ai-btn {
+  box-shadow:
+    inset 0 0 0 1px color-mix(in oklab, var(--brand) 35%, transparent),
+    0 6px 16px -8px color-mix(in oklab, var(--brand) 45%, transparent);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vu-ai-btn,
+  .vu-ai-btn:hover {
+    transform: none;
+  }
+}
+
+/* A dashboard card, as in the reference: the surface, a faint edge, a wide
+   soft shadow and generous corners, with an inset well for figures. */
+.vu-dash-card {
+  border-radius: var(--r-card);
+  background-color: var(--surface);
+  box-shadow:
+    inset 0 0 0 1px var(--border),
+    0 1px 2px rgb(23 23 23 / 0.03),
+    0 10px 30px -18px rgb(23 23 23 / 0.16);
+}
+
+.dark .vu-dash-card {
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+
+.vu-dash-well {
+  border-radius: calc(var(--r-card) - 0.375rem);
+  background-color: var(--surface-muted);
+}
+
+/* ---------------------------------------------------------------------------
    Buttons, to Polaris's construction.
 
    Values read from @shopify/polaris 13.9.5's shipped stylesheet, not guessed.

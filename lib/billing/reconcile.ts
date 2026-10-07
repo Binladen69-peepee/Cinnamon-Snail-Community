@@ -2,6 +2,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { applyEntitlementEffect } from "@/lib/billing/apply";
+import { expireEndedAccess } from "@/lib/billing/expire";
 import { listSamcartSubscriptions } from "@/lib/billing/samcart-api";
 import { isPayingStatus } from "@/lib/billing/types";
 import { sendTransactionalEmail } from "@/lib/email/send";
@@ -23,6 +24,8 @@ export function detectLocalDrift(input: {
     productId: string;
     status: Parameters<typeof isPayingStatus>[0];
     samcartSubscriptionId: string | null;
+    cancelAt?: Date | null;
+    periodEnd?: Date | null;
   }[];
   entitlements: {
     id: string;
@@ -39,7 +42,14 @@ export function detectLocalDrift(input: {
 }): FindingDraft[] {
   const now = input.now ?? new Date();
   const findings: FindingDraft[] = [];
-  const paying = input.subscriptions.filter((item) => isPayingStatus(item.status));
+  // A subscription set to cancel stops paying on its end date. Past it, it is
+  // owed no access, so the auto-fix must not hand access back.
+  const paying = input.subscriptions.filter((item) => {
+    if (!isPayingStatus(item.status)) return false;
+    if (item.status !== "CANCELING") return true;
+    const end = item.cancelAt ?? item.periodEnd;
+    return !end || end > now;
+  });
 
   for (const subscription of paying) {
     const matching = input.entitlements.filter(
@@ -116,6 +126,12 @@ export async function runNightlyReconciliation() {
   });
 
   try {
+    // Ended access first, so drift is measured against the record as it now
+    // stands. Its failure is reported, not allowed to stop the run.
+    const expiry = await expireEndedAccess().catch((error: unknown) => ({
+      error: error instanceof Error ? error.message.slice(0, 300) : "failed",
+    }));
+
     const [subscriptions, entitlements, pending] = await Promise.all([
       prisma.subscription.findMany(),
       prisma.entitlement.findMany(),
@@ -224,6 +240,7 @@ export async function runNightlyReconciliation() {
           autoFixed,
           alerts,
           samcartCompared: remote.ok,
+          expiry,
         },
       },
     });
@@ -244,7 +261,7 @@ export async function runNightlyReconciliation() {
       targetId: run.id,
       metadata: { status, autoFixed, alerts },
     });
-    return { runId: run.id, status, autoFixed, alerts };
+    return { runId: run.id, status, autoFixed, alerts, expiry };
   } catch (error) {
     await prisma.reconciliationRun.update({
       where: { id: run.id },

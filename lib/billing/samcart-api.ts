@@ -4,12 +4,25 @@ export type SamcartCancelResult =
   | { ok: true; confirmedAt: Date; periodEnd: Date | null; raw: unknown }
   | { ok: false; error: string };
 
+/**
+ * `scheduled`: renewal is off and the subscription ends at `periodEnd` (null
+ * when SamCart did not say when). `ended`: nothing is left running — SamCart
+ * had already ended it, or ended it now because no paid period remained.
+ */
+export type SamcartScheduleResult =
+  | { ok: true; outcome: "scheduled" | "ended"; confirmedAt: Date; periodEnd: Date | null }
+  | { ok: false; error: string };
+
 export type SamcartSubscriptionSnapshot = {
   id: string;
   status: string;
   customerEmail: string | null;
   productId: string | null;
   periodEnd: Date | null;
+  /** When a scheduled cancellation takes effect; null when none is scheduled. */
+  cancelScheduledFor: Date | null;
+  /** The next renewal charge, which is where the paid period ends. */
+  nextRebillAt: Date | null;
   /**
    * When the subscription originally started, as SamCart reports it. This is
    * what places a member in their cohort crew (DEC-078); null when SamCart's
@@ -37,6 +50,8 @@ function asString(value: unknown): string | null {
 }
 
 export function readSamcartPeriodEnd(raw: unknown): Date | null {
+  const scheduled = readSamcartCancelDate(raw);
+  if (scheduled) return scheduled;
   const root = asRecord(raw);
   const data = asRecord(root.data);
   const subscription = asRecord(root.subscription);
@@ -55,6 +70,33 @@ export function readSamcartPeriodEnd(raw: unknown): Date | null {
   ];
   for (const value of candidates) {
     const date = parseDate(value);
+    if (date) return date;
+  }
+  return null;
+}
+
+/**
+ * When a scheduled cancellation takes effect, from the subscription's
+ * `cancel_schedule` (`{ status: "scheduled", cancel_date }`); null when no
+ * cancellation is scheduled.
+ */
+export function readSamcartCancelDate(raw: unknown): Date | null {
+  const root = asRecord(raw);
+  for (const source of [asRecord(root.data), asRecord(root.subscription), root]) {
+    const schedule = asRecord(source.cancel_schedule);
+    const status = asString(schedule.status)?.toLowerCase();
+    if (status && status !== "scheduled") continue;
+    const date = parseDate(schedule.cancel_date);
+    if (date) return date;
+  }
+  return null;
+}
+
+/** The subscription's next renewal charge: the end of the period already paid for. */
+export function readSamcartNextRebill(raw: unknown): Date | null {
+  const root = asRecord(raw);
+  for (const source of [asRecord(root.data), asRecord(root.subscription), root]) {
+    const date = parseDate(source.next_rebilling_date);
     if (date) return date;
   }
   return null;
@@ -154,6 +196,59 @@ export async function cancelSamcartSubscription(
     periodEnd: periodEnd ?? fromCancel,
     raw: cancel.raw,
   };
+}
+
+/** SamCart statuses for a subscription with nothing left running. */
+const ENDED_STATUSES = new Set(["canceled", "cancelled", "completed", "deleted"]);
+
+/**
+ * Stops a subscription renewing without taking away what the member has paid
+ * for: SamCart cancels it when the current billing period ends
+ * (`scheduleCancel` with `cancel_when: "end"`), and access runs until then.
+ *
+ * SamCart only schedules an active subscription. Its 409 covers three cases,
+ * told apart by reading the subscription back: a cancellation is already
+ * scheduled (that date stands), the subscription has already ended (nothing to
+ * stop), or it is delinquent or paused — no paid period remains to keep, so it
+ * is canceled outright.
+ */
+export async function scheduleSamcartCancellation(
+  samcartSubscriptionId: string,
+): Promise<SamcartScheduleResult> {
+  const path = `/subscriptions/${encodeURIComponent(samcartSubscriptionId)}`;
+  const scheduled = await samcartRequest(`${path}/scheduleCancel`, {
+    method: "POST",
+    body: { cancel_when: "end" },
+  });
+  if (scheduled.ok) {
+    let periodEnd = readSamcartCancelDate(scheduled.raw) ?? readSamcartNextRebill(scheduled.raw);
+    if (!periodEnd) {
+      const latest = await getSamcartSubscription(samcartSubscriptionId);
+      if (latest.ok) {
+        periodEnd = latest.subscription.cancelScheduledFor ?? latest.subscription.nextRebillAt;
+      }
+    }
+    return { ok: true, outcome: "scheduled", confirmedAt: new Date(), periodEnd };
+  }
+  if (scheduled.status !== 409) return { ok: false, error: scheduled.error };
+
+  const latest = await getSamcartSubscription(samcartSubscriptionId);
+  if (!latest.ok) return { ok: false, error: scheduled.error };
+  const { subscription } = latest;
+  if (subscription.cancelScheduledFor) {
+    return {
+      ok: true,
+      outcome: "scheduled",
+      confirmedAt: new Date(),
+      periodEnd: subscription.cancelScheduledFor,
+    };
+  }
+  if (ENDED_STATUSES.has(subscription.status.toLowerCase())) {
+    return { ok: true, outcome: "ended", confirmedAt: new Date(), periodEnd: null };
+  }
+  const now = await cancelSamcartSubscription(samcartSubscriptionId);
+  if (!now.ok) return now;
+  return { ok: true, outcome: "ended", confirmedAt: now.confirmedAt, periodEnd: null };
 }
 
 export async function getSamcartSubscription(samcartSubscriptionId: string): Promise<
@@ -266,9 +361,14 @@ function snapshotFromRaw(raw: unknown, fallbackId?: string): SamcartSubscription
     customerEmail: asString(customer.email)?.toLowerCase() ?? null,
     productId: asString(product.id) ?? asString(source.product_id),
     periodEnd: readSamcartPeriodEnd(raw),
+    cancelScheduledFor: readSamcartCancelDate(raw),
+    nextRebillAt: readSamcartNextRebill(raw),
     startedAt: readSamcartStartedAt(raw),
   };
 }
+
+/** SamCart's "2021-03-08 00:18:35": UTC, written without a zone. */
+const ZONELESS_DATE_TIME = /^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}(:\d{2}(\.\d+)?)?$/;
 
 function parseDate(value: unknown) {
   if (value instanceof Date && !Number.isNaN(value.getTime())) return value;
@@ -278,6 +378,9 @@ function parseDate(value: unknown) {
     return Number.isNaN(date.getTime()) ? null : date;
   }
   if (typeof value !== "string" || !value.trim()) return null;
-  const date = new Date(value);
+  const text = value.trim();
+  // Read as UTC wherever this runs; left alone, JavaScript would take the
+  // server's own time zone.
+  const date = new Date(ZONELESS_DATE_TIME.test(text) ? `${text.replace(" ", "T")}Z` : text);
   return Number.isNaN(date.getTime()) ? null : date;
 }

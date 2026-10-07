@@ -1,4 +1,5 @@
 import { youTubeEmbed, youTubeId, youTubeThumbnail } from "@/lib/marketing/teasers";
+import { servableImageUrl } from "@/lib/media/servable-image";
 
 /**
  * iframe src for a linked video, or null when the URL is a plain media file
@@ -26,7 +27,7 @@ export function videoPosterUrl(
   url: string,
   thumbnailUrl?: string | null,
 ): string | null {
-  if (thumbnailUrl) return thumbnailUrl;
+  if (thumbnailUrl) return servableImageUrl(thumbnailUrl);
   if (youTubeId(url)) return youTubeThumbnail(url);
   return null;
 }

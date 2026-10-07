@@ -7,6 +7,7 @@ import { InlineVideo } from "@/components/feed/inline-video";
 import { useIsMobile, useMediaQuery } from "@/components/hooks/use-media-query";
 import { videoEmbedSrc, videoPosterUrl } from "@/lib/community/media";
 import { isAnimatedMedia } from "@/lib/uploads/policy";
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { cn } from "@/lib/utils";
 
 export type MediaItem = {
@@ -383,7 +384,7 @@ function Frame({
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img
-      src={item.url}
+      src={servableImageUrl(item.url)}
       alt={item.alt ?? ""}
       width={item.width ?? undefined}
       height={item.height ?? undefined}

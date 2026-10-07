@@ -29,9 +29,11 @@ import {
 } from "@/lib/marketing/copy";
 
 describe("the single call to action", () => {
-  it("points at the SamCart checkout with the slide-open fragment", () => {
+  it("points at the live SamCart checkout with the slide-open fragment", () => {
+    // 849150 is the paid monthly membership; 1069354, the free-month version
+    // used while testing, is no longer what the site sells.
     expect(CHECKOUT_URL).toBe(
-      "https://cinnamonsnail.mysamcart.com/checkout/1069354#samcart-slide-open-right",
+      "https://cinnamonsnail.mysamcart.com/checkout/849150#samcart-slide-open-right",
     );
   });
 

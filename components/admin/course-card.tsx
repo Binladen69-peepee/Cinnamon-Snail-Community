@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChefHat } from "lucide-react";
 import type { AdminClassCard } from "@/lib/learn/categories";
 import { Badge, cardClass } from "@/components/app/ui";
+import { servableImageUrl } from "@/lib/media/servable-image";
 
 /**
  * A course in the admin grid, to the supplied design.
@@ -34,7 +35,7 @@ export function CourseCard({ course }: { course: AdminClassCard }) {
             // Class stills come from the client's own media host.
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={course.photo}
+              src={servableImageUrl(course.photo, 800)}
               alt=""
               loading="lazy"
               decoding="async"

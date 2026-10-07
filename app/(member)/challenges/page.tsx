@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Flag } from "lucide-react";
 import { auth } from "@/auth";
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { listChallenges, type ChallengeCard } from "@/lib/challenges";
 import { AppShell } from "@/components/app/app-shell";
 import {
@@ -82,7 +83,7 @@ function ChallengeSection({
                 <div className="h-32 overflow-hidden bg-surface-muted">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src={challenge.coverUrl}
+                    src={servableImageUrl(challenge.coverUrl, 800)}
                     alt=""
                     className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
                     loading="lazy"

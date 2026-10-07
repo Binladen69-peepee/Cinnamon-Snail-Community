@@ -50,8 +50,14 @@ export function entitlementEffect(
     case "delinquent":
     case "refund":
       return { kind: "revoke", immediate: true };
-    case "canceled":
     case "cancel_scheduled":
+      // Renewal is off; the period already paid for runs on. With no end
+      // date to go by, access stays until SamCart reports the cancellation
+      // itself — never cut short on a missing date.
+      if (!periodEnd) return { kind: "keep" };
+      if (periodEnd > now) return { kind: "set_end", endsAt: periodEnd };
+      return { kind: "revoke", immediate: true };
+    case "canceled":
     case "completed":
       if (periodEnd && periodEnd > now) {
         return { kind: "set_end", endsAt: periodEnd };

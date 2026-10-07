@@ -1,44 +1,38 @@
 import Link from "next/link";
-import { Bell, ChevronRight, Search, Shield } from "lucide-react";
-import { Avatar } from "@/components/ui/avatar";
-import { CountBadge, fieldClass } from "@/components/app/ui";
+import { Bell, Search, Sparkles } from "lucide-react";
+import { CountBadge } from "@/components/app/ui";
+import { AdminPageTitle } from "@/components/admin/admin-page-title";
 
 /**
- * The console's top bar.
+ * The console's top bar (DEC-088), after the client's reference: the section's
+ * name on the left; search, the bell and the gradient AI button on the right.
+ * The signed-in person moved to the foot of the rail, as in the reference.
  *
- * A plain GET form, not a client-side search box: submitting it lands on the
- * members list with `?q=` in the URL, which means the result is linkable, the
- * back button works, and the whole thing runs before any JavaScript does.
+ * The search is a plain GET form, not a client-side box: submitting it lands
+ * on the members list with `?q=` in the URL, so the result is linkable, the
+ * back button works, and it runs before any JavaScript does.
  *
  * The bell is a link to moderation rather than a menu, because the console has
- * exactly one queue a human has to clear and pretending otherwise would be
- * furniture. Its count is the same one the rail shows — both read it from the
- * layout, so they cannot disagree.
+ * exactly one queue a human has to clear. Its count is the one the rail shows;
+ * both read it from the layout, so they cannot disagree. The AI button opens
+ * the AI cohost, where Claude's drafted prompts wait for approval.
  */
-export function AdminTopbar({
-  name,
-  role,
-  avatarUrl,
-  openReports,
-}: {
-  name: string;
-  role: string;
-  avatarUrl: string | null;
-  openReports: number;
-}) {
+export function AdminTopbar({ openReports }: { openReports: number }) {
   return (
-    // Sticky only from `lg`: below that the mobile drawer's bar owns `top-0`,
-    // and two sticky headers at the same offset overlap each other.
-    <header className="z-30 border-b border-border bg-background/90 backdrop-blur-md lg:sticky lg:top-0">
-      <div className="mx-auto flex h-14 w-full max-w-300 items-center gap-2 px-4 sm:px-6 lg:px-8">
+    // Sticky only from `lg`: below that the phone bar owns `top-0`, and two
+    // sticky headers at the same offset overlap each other.
+    <header className="z-30 bg-background/85 backdrop-blur-md lg:sticky lg:top-0">
+      <div className="mx-auto flex h-16 w-full max-w-360 items-center gap-2.5 px-4 sm:px-6 lg:px-8">
+        <AdminPageTitle className="hidden min-w-0 flex-1 truncate text-title font-semibold tracking-[-0.01em] text-foreground lg:block" />
+
         <form
           action="/admin/members"
           method="get"
           role="search"
-          className="relative min-w-0 flex-1"
+          className="vu-admin-search relative flex h-10 min-w-0 flex-1 items-center lg:w-80 lg:flex-none"
         >
           <Search
-            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-foreground-muted"
+            className="pointer-events-none absolute left-3.5 size-4 text-foreground-muted"
             aria-hidden
           />
           <input
@@ -46,7 +40,7 @@ export function AdminTopbar({
             name="q"
             placeholder="Search members…"
             aria-label="Search members"
-            className={fieldClass({ className: "max-w-md pl-9 text-label" })}
+            className="size-full rounded-full bg-transparent pl-10 pr-4 text-label text-foreground outline-none placeholder:text-field-placeholder"
           />
         </form>
 
@@ -57,33 +51,25 @@ export function AdminTopbar({
               ? `Moderation — ${openReports} waiting`
               : "Moderation — nothing waiting"
           }
-          className="relative grid size-9 shrink-0 place-items-center rounded-ctl text-foreground-muted no-underline transition hover:bg-surface-muted hover:text-foreground"
+          className="vu-admin-icon-btn relative grid size-10 shrink-0 place-items-center rounded-ctl no-underline transition"
         >
-          <Bell className="size-[1.125rem]" aria-hidden />
+          <Bell className="size-4.5" aria-hidden />
           {/* The count is spelled out in the label above, so the dot is not the
               only thing carrying it. */}
           <CountBadge
             count={openReports}
             max={9}
-            className="absolute -right-0.5 -top-0.5 ring-2 ring-background"
+            className="absolute -right-1 -top-1 ring-2 ring-background"
           />
         </Link>
 
         <Link
-          href="/settings"
-          className="flex shrink-0 items-center gap-2 rounded-ctl py-1 pl-1 pr-1.5 no-underline transition hover:bg-surface-muted sm:pr-2"
+          href="/admin/cohost"
+          aria-label="AI cohost"
+          className="vu-ai-btn inline-flex h-10 shrink-0 items-center gap-2 rounded-ctl px-3 text-label font-semibold no-underline sm:px-4"
         >
-          <Avatar name={name} src={avatarUrl} size="sm" className="size-8" />
-          <span className="hidden min-w-0 sm:block">
-            <span className="block max-w-[14ch] truncate text-label font-semibold leading-tight text-foreground">
-              {name}
-            </span>
-            <span className="flex items-center gap-1 text-caption leading-tight text-foreground-muted">
-              <Shield className="size-2.5" aria-hidden />
-              {role}
-            </span>
-          </span>
-          <ChevronRight className="size-3.5 shrink-0 text-foreground-muted" aria-hidden />
+          <Sparkles className="size-4" aria-hidden />
+          <span className="hidden sm:inline">AI cohost</span>
         </Link>
       </div>
     </header>

@@ -1,3 +1,4 @@
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { cn } from "@/lib/utils";
 
 /**
@@ -71,13 +72,17 @@ export function HeroImage({
 
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={src}
+        // Full-bleed, so asked for wider than a content photo.
+        src={servableImageUrl(src, 2000)}
         alt={alt}
         // The LCP element: never lazy, and asked for ahead of the scripts.
         loading="eager"
         fetchPriority="high"
         decoding="async"
-        className="vu-hero-photo size-full object-cover object-[50%_45%]"
+        // Positioned, like the plate under it: an unpositioned image paints
+        // beneath every positioned sibling, so with reduced motion (no
+        // transform animation to lift it) the black plate covered it.
+        className="vu-hero-photo absolute inset-0 size-full object-cover object-[50%_45%]"
       />
 
       <HeroScrim />

@@ -1,5 +1,6 @@
 "use client";
 
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { cn } from "@/lib/utils";
 
 const sizeClass = {
@@ -39,7 +40,7 @@ export function Avatar({
       {src ? (
         // Local member photos must render even if the image optimizer is skipped.
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={src} alt={name} className="size-full object-cover" />
+        <img src={servableImageUrl(src, 240)} alt={name} className="size-full object-cover" />
       ) : (
         <span className="flex size-full items-center justify-center">{initials}</span>
       )}

@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, it } from "vitest";
-import { loadDashboard } from "@/lib/admin/dashboard";
+import { buildInsights, loadDashboard, monthBars } from "@/lib/admin/dashboard";
 
 /**
  * The dashboard, against the database.
@@ -26,17 +26,19 @@ describe("loadDashboard", () => {
 
   it("returns a coherent dashboard for the default window", () => {
     expect(data.windowDays).toBe(30);
-    expect(data.headline).toHaveLength(4);
-    expect(data.engagement).toHaveLength(4);
+    expect(data.growth.map((series) => series.key)).toEqual(["posts", "comments", "members"]);
+    expect(data.memberMonths).toHaveLength(6);
     expect(data.health.length).toBeGreaterThan(0);
   });
 
   it("never reports a negative count", () => {
-        for (const kpi of data.headline) {
-      expect(kpi.value).toBeGreaterThanOrEqual(0);
+    expect(data.members.total).toBeGreaterThanOrEqual(0);
+    expect(data.renewalsEnding).toBeGreaterThanOrEqual(0);
+    for (const month of data.memberMonths) {
+      expect(month.value).toBeGreaterThanOrEqual(0);
     }
-    for (const tile of data.engagement) {
-      expect(tile.value).toBeGreaterThanOrEqual(0);
+    for (const row of data.liveClasses) {
+      expect(row.going).toBeGreaterThanOrEqual(0);
     }
   });
 
@@ -87,16 +89,25 @@ describe("loadDashboard", () => {
     expect([...learners].sort((a, b) => b - a)).toEqual(learners);
   });
 
-  it("orders the activity feed newest first and caps it", () => {
-        expect(data.activity.length).toBeLessThanOrEqual(7);
-    const times = data.activity.map((item) => item.at.getTime());
-    expect([...times].sort((a, b) => b - a)).toEqual(times);
+  it("lists six calendar months, oldest first, ending with this one", () => {
+    const months = data.memberMonths.map((month) => month.month);
+    expect([...months].sort()).toEqual(months);
+    expect(months.at(-1)).toBe(new Date().toISOString().slice(0, 7));
   });
 
-  it("gives every activity item somewhere to go", () => {
-        for (const item of data.activity) {
-      expect(item.href.startsWith("/")).toBe(true);
-      expect(item.detail.length).toBeGreaterThan(0);
+  it("puts what is on now or next before what already ran", () => {
+    expect(data.liveClasses.length).toBeLessThanOrEqual(5);
+    const states = data.liveClasses.map((row) => row.state);
+    const firstPast = states.indexOf("completed");
+    if (firstPast >= 0) {
+      expect(states.slice(firstPast).every((state) => state === "completed")).toBe(true);
+    }
+  });
+
+  it("gives every insight somewhere to go", () => {
+    for (const insight of data.insights) {
+      expect(insight.href.startsWith("/")).toBe(true);
+      expect(insight.detail.length).toBeGreaterThan(0);
     }
   });
 
@@ -119,11 +130,13 @@ describe("loadDashboard", () => {
     const wide = await loadDashboard(90);
     const narrow = await loadDashboard(7);
     expect(narrow.windowDays).toBe(7);
-    // A 7-day window cannot contain more events than a 90-day one that
-    // includes it.
-    const reactionsOf = (data: Awaited<ReturnType<typeof loadDashboard>>) =>
-      data.engagement.find((tile) => tile.key === "reactions")!.value;
-    expect(reactionsOf(narrow)).toBeLessThanOrEqual(reactionsOf(wide));
+    // A 7-day window cannot contain more posts, comments or sign-ups than a
+    // 90-day one that includes it.
+    const totals = (data: Awaited<ReturnType<typeof loadDashboard>>) =>
+      data.growth.map((series) => series.total);
+    totals(narrow).forEach((total, index) => {
+      expect(total).toBeLessThanOrEqual(totals(wide)[index]!);
+    });
   });
 
   it("ranks top content by the engagement it claims to rank by", () => {
@@ -139,5 +152,38 @@ describe("loadDashboard", () => {
       expect(typeof member.signedIn).toBe("boolean");
       expect(member.name.length).toBeGreaterThan(0);
     }
+  });
+});
+
+describe("the dashboard's derived figures", () => {
+  it("zero-fills the months nobody joined in", () => {
+    const from = new Date(Date.UTC(2026, 4, 1));
+    const bars = monthBars([{ month: new Date(Date.UTC(2026, 6, 1)), count: BigInt(3) }], from);
+    expect(bars.map((bar) => [bar.month, bar.value])).toEqual([
+      ["2026-05", 0],
+      ["2026-06", 0],
+      ["2026-07", 3],
+      ["2026-08", 0],
+      ["2026-09", 0],
+      ["2026-10", 0],
+    ]);
+    expect(bars[2]!.label).toBe("Jul");
+  });
+
+  it("names the busiest posting day only from posts that happened", () => {
+    const posts = [
+      { date: "2026-10-05", value: 1 }, // a Monday
+      { date: "2026-10-06", value: 4 }, // a Tuesday
+      { date: "2026-10-07", value: 2 },
+    ];
+    const insights = buildInsights({ windowDays: 7, posts, next: null, renewalsEnding: 0, loved: null });
+    expect(insights.map((insight) => insight.title)).toEqual(["Members post most on Tuesdays"]);
+    const quiet = posts.map((post) => ({ ...post, value: 0 }));
+    expect(buildInsights({ windowDays: 7, posts: quiet, next: null, renewalsEnding: 0, loved: null })).toEqual([]);
+  });
+
+  it("says how many memberships will not renew", () => {
+    const [insight] = buildInsights({ windowDays: 30, posts: [], next: null, renewalsEnding: 2, loved: null });
+    expect(insight).toMatchObject({ key: "renewals", title: "2 memberships won't renew", href: "/admin/billing" });
   });
 });

@@ -10,7 +10,12 @@ import {
 import { getDeletionGraceDays, MEMBERSHIP_SAMCART_PRODUCT_IDS } from "@/lib/billing/config";
 import { detectLocalDrift } from "@/lib/billing/reconcile";
 import { canAccessPaidContent } from "@/lib/entitlements/check";
-import { readSamcartPeriodEnd } from "@/lib/billing/samcart-api";
+import {
+  readSamcartCancelDate,
+  readSamcartNextRebill,
+  readSamcartPeriodEnd,
+} from "@/lib/billing/samcart-api";
+import { formatAccessDate } from "@/lib/billing/cancel";
 
 describe("where the SamCart secret arrives", () => {
   const URL_BASE = "https://cinnamon-snail-community.vercel.app/api/webhooks/samcart";
@@ -225,6 +230,73 @@ describe("reconciliation detection", () => {
     expect(findings.some((item) => item.kind === "access_not_paying" && item.severity === "alert")).toBe(true);
     expect(findings.some((item) => item.kind === "duplicate_subscription")).toBe(true);
   });
+
+  it("never hands access back to a cancellation whose paid period has ended", () => {
+    // The auto-fix grants access to a paying subscription with none. A
+    // subscription set to cancel stops paying on its end date, so past it an
+    // expired entitlement is the right state, not drift.
+    const subscription = {
+      userId: "user-1",
+      productId: "prod-1",
+      status: "CANCELING" as const,
+      samcartSubscriptionId: "sc-1",
+    };
+    const ended = detectLocalDrift({
+      now,
+      subscriptions: [{ ...subscription, id: "sub-ended", cancelAt: new Date("2026-09-01T00:00:00Z") }],
+      entitlements: [],
+    });
+    expect(ended).toEqual([]);
+
+    const running = detectLocalDrift({
+      now,
+      subscriptions: [{ ...subscription, id: "sub-running", cancelAt: new Date("2026-10-01T00:00:00Z") }],
+      entitlements: [],
+    });
+    expect(running.map((item) => item.kind)).toEqual(["paying_no_access"]);
+  });
+});
+
+describe("cancelling at the end of the billing period", () => {
+  const now = new Date("2026-10-07T12:00:00.000Z");
+
+  it("keeps access to the scheduled end, and never cuts it short on a missing date", () => {
+    expect(nextSubscriptionStatus("cancel_scheduled", "ACTIVE")).toBe("CANCELING");
+    const end = new Date("2026-11-07T00:18:35.000Z");
+    expect(entitlementEffect("cancel_scheduled", end, now)).toEqual({ kind: "set_end", endsAt: end });
+    expect(entitlementEffect("cancel_scheduled", null, now)).toEqual({ kind: "keep" });
+    expect(entitlementEffect("cancel_scheduled", new Date("2026-10-01T00:00:00Z"), now)).toEqual({
+      kind: "revoke",
+      immediate: true,
+    });
+  });
+
+  it("reads the date a scheduled cancellation takes effect, in UTC", () => {
+    // SamCart's shape: UTC written without a zone. Read as local time it
+    // would move by the server's offset.
+    const raw = {
+      id: 1337,
+      status: "active",
+      next_rebilling_date: "2026-11-07 00:18:35",
+      cancel_schedule: { status: "scheduled", cancel_date: "2026-11-07 00:18:35" },
+    };
+    expect(readSamcartCancelDate(raw)?.toISOString()).toBe("2026-11-07T00:18:35.000Z");
+    expect(readSamcartPeriodEnd(raw)?.toISOString()).toBe("2026-11-07T00:18:35.000Z");
+    expect(readSamcartNextRebill(raw)?.toISOString()).toBe("2026-11-07T00:18:35.000Z");
+    // Wrapped in `data`, as the list endpoint returns it.
+    expect(readSamcartCancelDate({ data: raw })?.toISOString()).toBe("2026-11-07T00:18:35.000Z");
+  });
+
+  it("ignores a cancel date that is no longer scheduled", () => {
+    expect(
+      readSamcartCancelDate({ cancel_schedule: { status: "canceled", cancel_date: "2026-11-07 00:18:35" } }),
+    ).toBeNull();
+    expect(readSamcartCancelDate({ status: "active", cancel_schedule: null })).toBeNull();
+  });
+
+  it("writes the access date the way a member reads it", () => {
+    expect(formatAccessDate(new Date("2026-11-07T00:18:35.000Z"))).toBe("November 7, 2026");
+  });
 });
 
 describe("accepted billing decisions", () => {
@@ -236,8 +308,8 @@ describe("accepted billing decisions", () => {
     else process.env.ACCOUNT_DELETION_GRACE_DAYS = previous;
   });
 
-  it("maps both 1-month trial products without special-casing period math", () => {
-    expect([...MEMBERSHIP_SAMCART_PRODUCT_IDS]).toEqual(["1069358", "1069354"]);
+  it("maps the live products and both 1-month trial products without special-casing period math", () => {
+    expect([...MEMBERSHIP_SAMCART_PRODUCT_IDS]).toEqual(["849150", "849151", "1069358", "1069354"]);
     const periodEnd = readSamcartPeriodEnd({
       data: { service_end_date: "2026-10-10T12:00:00.000Z" },
     });

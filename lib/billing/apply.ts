@@ -3,7 +3,7 @@ import { prisma } from "@/lib/db";
 import { findUserByAnyEmail } from "@/lib/auth/magic-link";
 import { writeAuditLog } from "@/lib/audit";
 import { entitlementEffect, nextSubscriptionStatus } from "@/lib/billing/policy";
-import { syncKitForEntitlementChange, syncKitTags } from "@/lib/billing/kit";
+import { syncKitTags } from "@/lib/billing/kit";
 import { normalizeInterval, planTags } from "@/lib/billing/kit-tags";
 import { samcartStartFromWebhook } from "@/lib/billing/samcart-api";
 import type { CanonicalBillingEvent } from "@/lib/billing/types";
@@ -78,7 +78,12 @@ export async function applyCanonicalEvent(
     });
   }
 
-  const effect = entitlementEffect(event.type, event.periodEnd ?? subscription.periodEnd);
+  // A scheduled cancellation ends access on the date it takes effect.
+  const endsAt =
+    event.type === "cancel_scheduled"
+      ? subscription.cancelAt ?? event.periodEnd ?? subscription.periodEnd
+      : event.periodEnd ?? subscription.periodEnd;
+  const effect = entitlementEffect(event.type, endsAt);
   const entitlementChanged = await applyEntitlementEffect({
     userId: user.id,
     productId: product.id,
@@ -87,7 +92,10 @@ export async function applyCanonicalEvent(
     effect,
   });
 
-  if (entitlementChanged) {
+  // An end date changes nothing the member holds today, so Kit is left as it
+  // is: the tags come off when access actually ends — a revocation here, or
+  // the expiry sweep once the date has passed (lib/billing/expire.ts).
+  if (entitlementChanged && effect.kind !== "set_end") {
     // The interval decides the tag. SamCart's webhook is the source of truth
     // for it; the subscription row carries what earlier events reported, and
     // the SamCart product's own declaration is the last resort.
@@ -276,13 +284,17 @@ export async function applyEntitlementEffect(input: {
   if (!existing) return false;
 
   if (input.effect.kind === "set_end") {
+    // An end date limits access that is still open; it never reopens access
+    // that a refund, a delinquency or an earlier end already closed. A
+    // cancellation arriving after a refund used to hand the access back.
+    const closed =
+      existing.status !== "ACTIVE" ||
+      existing.revokedAt !== null ||
+      (existing.endsAt !== null && existing.endsAt <= new Date());
+    if (closed) return false;
     await prisma.entitlement.update({
       where: { id: existing.id },
-      data: {
-        status: "ACTIVE",
-        endsAt: input.effect.endsAt,
-        revokedAt: null,
-      },
+      data: { endsAt: input.effect.endsAt },
     });
     return true;
   }

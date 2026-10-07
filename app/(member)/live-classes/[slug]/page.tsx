@@ -9,6 +9,7 @@ import {
   Users,
 } from "lucide-react";
 import { auth } from "@/auth";
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { AppShell } from "@/components/app/app-shell";
 import {
   ButtonLink,
@@ -181,7 +182,7 @@ export default async function LiveClassPage({
             // The cover comes from the client's own media host, not the optimizer.
             // eslint-disable-next-line @next/next/no-img-element
             <img
-              src={event.coverUrl}
+              src={servableImageUrl(event.coverUrl, 1600)}
               alt=""
               className="aspect-16/7 w-full rounded-card bg-surface-muted object-cover"
             />

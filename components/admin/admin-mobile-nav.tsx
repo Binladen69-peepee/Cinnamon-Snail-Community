@@ -7,6 +7,7 @@ import { BrandLogo } from "@/components/brand/brand-mark";
 import { AdminSidebar } from "@/components/admin/admin-sidebar";
 import { backdropClass } from "@/components/app/ui";
 import { ThemeButton } from "@/components/theme/theme-button";
+import { adminPageTitle } from "@/lib/admin/nav";
 import { cn } from "@/lib/utils";
 
 /**
@@ -21,10 +22,14 @@ export function AdminMobileNav({
   name,
   role,
   avatarUrl,
+  badges,
+  signOutAction,
 }: {
   name: string;
   role: string;
   avatarUrl: string | null;
+  badges?: { openReports?: number };
+  signOutAction?: () => Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -63,11 +68,13 @@ export function AdminMobileNav({
         >
           <Menu className="size-5" aria-hidden />
         </button>
-        <BrandLogo className="size-6 text-brand" />
-        <span className="text-label font-semibold text-foreground">
-          Admin console
+        <span className="grid size-8 shrink-0 place-items-center rounded-ctl bg-brand-fill text-brand-fill-foreground">
+          <BrandLogo className="size-4.5" />
         </span>
-        {/* One tap to the Theme dialog; the drawer's rail has it as a row. */}
+        <span className="min-w-0 truncate text-label font-semibold text-foreground">
+          {adminPageTitle(pathname)}
+        </span>
+        {/* One tap to the Theme dialog; the drawer has it as a row. */}
         <ThemeButton variant="icon" className="ml-auto" />
       </div>
 
@@ -82,16 +89,19 @@ export function AdminMobileNav({
             className={cn(backdropClass, "absolute")}
             onClick={() => setOpen(false)}
           />
-          <div className="vu-admin-rail absolute inset-y-0 left-0 w-72 max-w-[85vw] border-r border-sidebar-border bg-sidebar shadow-e3">
+          <div className="absolute inset-y-0 left-0 w-72 max-w-[85vw] border-r border-border bg-background shadow-e3">
             <button
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Close admin menu"
-              className="absolute right-2.5 top-2.5 z-10 grid size-9 place-items-center rounded-ctl text-foreground-muted transition hover:bg-surface-muted hover:text-foreground"
+              className="absolute right-2.5 top-3.5 z-10 grid size-9 place-items-center rounded-ctl text-foreground-muted transition hover:bg-surface-muted hover:text-foreground"
             >
               <X className="size-4.5" aria-hidden />
             </button>
-            <AdminSidebar name={name} role={role} avatarUrl={avatarUrl} />
+            <AdminSidebar variant="drawer" name={name} role={role} avatarUrl={avatarUrl}
+              badges={badges}
+              signOutAction={signOutAction}
+            />
           </div>
         </div>
       ) : null}

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { redirect } from "next/navigation";
 import { auth } from "@/auth";
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { SEARCH_GROUPS } from "@/lib/search/links";
 import type { SearchType } from "@/lib/search";
 import {
@@ -267,7 +268,7 @@ function HitMark({ hit }: { hit: ResultHit }) {
     return (
       // eslint-disable-next-line @next/next/no-img-element -- course covers come from several hosts
       <img
-        src={hit.imageUrl}
+        src={servableImageUrl(hit.imageUrl, 120)}
         alt=""
         className="size-9 shrink-0 rounded-ctl object-cover"
         loading="lazy"

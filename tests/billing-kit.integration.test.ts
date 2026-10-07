@@ -72,6 +72,13 @@ function installNetwork() {
     }
     if (url.host === "samcart.test") {
       seen.push(record);
+      if (url.pathname.endsWith("/scheduleCancel")) {
+        return Response.json({
+          id: "x",
+          status: "active",
+          cancel_schedule: { status: "scheduled", cancel_date: "2099-01-31 00:00:00" },
+        });
+      }
       if (url.pathname.endsWith("/cancel")) return Response.json({ data: { status: "canceled" } });
       if (url.pathname.startsWith("/v1/subscriptions/")) {
         return Response.json({ data: { id: "x", status: "canceled", service_end_date: "2099-01-31T00:00:00Z" } });
@@ -304,7 +311,7 @@ describe("the confirmed interval mapping, end to end", () => {
 });
 
 describe("cancellation → SamCart", () => {
-  it("cancels in SamCart with the API key and keeps access until SamCart's period end", async ({ skip }) => {
+  it("schedules the cancellation in SamCart with the API key and keeps access until the period ends", async ({ skip }) => {
     if (!reachable) skip();
     const subscription = await prisma.subscription.create({
       data: {
@@ -321,16 +328,23 @@ describe("cancellation → SamCart", () => {
     const result = await confirmCancellation({ requestId: request.id, userId, reason: "test" });
 
     expect(result.ok).toBe(true);
-    const cancel = seen.find((call) => call.host === "samcart.test" && call.path.endsWith("/cancel"));
-    expect(cancel).toMatchObject({ method: "POST", path: `/v1/subscriptions/sc-${stamp}/cancel` });
+    const cancel = seen.find((call) => call.host === "samcart.test" && call.method === "POST");
+    expect(cancel).toMatchObject({
+      method: "POST",
+      path: `/v1/subscriptions/sc-${stamp}/scheduleCancel`,
+      body: { cancel_when: "end" },
+    });
     expect(cancel?.headers.get("sc-api")).toBe("test-samcart");
+    // Never the immediate cancel, which would end what the member paid for.
+    expect(seen.some((call) => call.path.endsWith("/cancel"))).toBe(false);
 
     const after = await prisma.subscription.findUniqueOrThrow({ where: { id: subscription.id } });
-    expect(after.status).not.toBe("ACTIVE");
+    expect(after.status).toBe("CANCELING");
     const done = await prisma.cancellationRequest.findUniqueOrThrow({ where: { id: request.id } });
     expect(done.status).toBe("succeeded");
-    // SamCart said 2099: access runs until then.
+    // SamCart said 2099: access runs until then, and the Kit tag stays.
     expect(await userHasActiveEntitlement(userId)).toBe(true);
+    expect(kitCalls().some((call) => call.path.endsWith("/unsubscribe"))).toBe(false);
   });
 });
 

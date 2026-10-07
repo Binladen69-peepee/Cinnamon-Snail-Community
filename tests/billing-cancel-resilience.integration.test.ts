@@ -31,6 +31,8 @@ vi.mock("@/lib/email/send", async (importOriginal) => ({
 
 const prisma = new PrismaClient();
 const stamp = Date.now().toString(36);
+/** Where SamCart says the paid period ends, in its own zone-less UTC format. */
+const PERIOD_END = "2099-05-01 00:00:00";
 let reachable = true;
 let samcartCancelStatus = 200;
 const userIds: string[] = [];
@@ -47,6 +49,13 @@ beforeAll(async () => {
   vi.stubGlobal("fetch", async (input: URL | string | Request, init?: RequestInit) => {
     const url = new URL(typeof input === "string" || input instanceof URL ? input : input.url);
     if (url.host !== "samcart.test") return real(input as RequestInfo, init);
+    // A member's cancellation is scheduled for the end of the paid period.
+    if (url.pathname.endsWith("/scheduleCancel")) {
+      return Response.json(
+        { id: "x", status: "active", cancel_schedule: { status: "scheduled", cancel_date: PERIOD_END } },
+        { status: samcartCancelStatus },
+      );
+    }
     if (url.pathname.endsWith("/cancel")) {
       return Response.json({ data: { status: "canceled" } }, { status: samcartCancelStatus });
     }
@@ -99,7 +108,7 @@ async function activeMember(label: string) {
 }
 
 describe("a cancellation SamCart has answered", () => {
-  it("succeeds, and ends access, when the confirmation email fails", async ({ skip }) => {
+  it("succeeds, and keeps access to the period's end, when the confirmation email fails", async ({ skip }) => {
     if (!reachable) skip();
     samcartCancelStatus = 200;
     const { user, subscription } = await activeMember("ok");
@@ -110,8 +119,9 @@ describe("a cancellation SamCart has answered", () => {
     expect(result.ok).toBe(true);
     expect(sendTransactionalEmail).toHaveBeenCalled();
     const after = await prisma.subscription.findUniqueOrThrow({ where: { id: subscription.id } });
-    expect(after.status).toBe("CANCELED");
-    expect(await userHasActiveEntitlement(user.id)).toBe(false);
+    expect(after.status).toBe("CANCELING");
+    expect(after.cancelAt?.toISOString()).toBe("2099-05-01T00:00:00.000Z");
+    expect(await userHasActiveEntitlement(user.id)).toBe(true);
     const saved = await prisma.cancellationRequest.findUniqueOrThrow({ where: { id: request.id } });
     expect(saved.status).toBe("succeeded");
   });

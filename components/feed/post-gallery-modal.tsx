@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { RichText } from "@/components/content/rich-text";
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { CommentThread, type ThreadComment } from "@/components/feed/comment-thread";
 import { PostMenu } from "@/components/feed/post-menu";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -284,7 +285,7 @@ function GalleryDialog({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               key={current.id}
-              src={current.url}
+              src={servableImageUrl(current.url, 2000)}
               alt={current.alt ?? ""}
               className="max-h-full max-w-full object-contain"
             />

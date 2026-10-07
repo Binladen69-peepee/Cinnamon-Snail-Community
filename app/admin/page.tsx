@@ -3,57 +3,51 @@ import Link from "next/link";
 import {
   AlertCircle,
   AlertTriangle,
+  CalendarPlus,
   CheckCircle2,
   ChevronRight,
-  Info,
-  PieChart,
+  CreditCard,
+  PenSquare,
+  UserCheck,
+  UserPlus,
+  Users,
 } from "lucide-react";
 import { auth } from "@/auth";
 import { loadAnalytics } from "@/lib/admin/analytics";
 import { loadDashboard } from "@/lib/admin/dashboard";
-import { Donut } from "@/components/admin/dashboard-charts";
-import { GrowthPanel } from "@/components/admin/growth-panel";
+import { ButtonLink } from "@/components/app/ui";
+import { KpiCard, MetaPill, TrendPill } from "@/components/admin/dashboard/kpi-card";
+import { ActivityChart } from "@/components/admin/dashboard/activity-chart";
+import { AccessDonut } from "@/components/admin/dashboard/access-donut";
+import { GrowthBars } from "@/components/admin/dashboard/growth-bars";
 import {
-  ActivityPanel,
-  EngagementPanel,
-  GrowCta,
-  HeadlineCard,
-  QuickActions,
+  InsightsPanel,
+  LiveClassesPanel,
   RecentMembersPanel,
-  SystemStatusPanel,
-  TopContentPanel,
-  TopCoursesPanel,
-} from "@/components/admin/dashboard-panels";
-import {
-  Card,
-  CardHeader,
-  EmptyState,
-  PageHeader,
-  Segmented,
-  cardClass,
-  segmentClass,
-} from "@/components/app/ui";
+  SystemHealthPanel,
+  TopClassesPanel,
+  TopPostsPanel,
+} from "@/components/admin/dashboard/panels";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
 
 export const metadata = { title: "Dashboard" };
 
 /**
- * The console's dashboard.
+ * The console's dashboard (DEC-088).
  *
- * The composition follows the reference design supplied with the brief:
- * headline tiles across the top, a growth chart with a breakdown beside it,
- * three mid panels, and a right-hand utility column that collapses on tablet
- * and stacks on mobile. The colour does not follow the reference — every
- * surface here paints from the app's role tokens, with forest carrying
- * identity and amber and red reserved for warning and danger.
+ * The composition follows the client's reference: a welcome line with the two
+ * actions an admin reaches for, four headline figures, then rows of three —
+ * activity over time with how access was granted and the top classes; member
+ * growth by month with the live classes and what is worth knowing; and who
+ * just arrived, the posts people answer, and whether everything is running.
+ * The colour is the palette's, not the reference's.
  *
- * **Everything on this page is counted from real rows.** Three things the
- * reference asks for have no source in this database and are not invented:
- * traffic attribution, per-post view counts, and uptime percentages. Each is
- * replaced by the nearest question the data *can* answer, and the panel says
- * which. The alert card stays at the top because the first thing an admin
- * opening this page wants to know is whether anything is wrong.
+ * **Everything on this page is counted from real rows.** Where the reference
+ * asks for something this database cannot answer — traffic sources, view
+ * counts, uptime — the panel answers the nearest question it can and says
+ * which. Anything that needs a person now sits in a strip above the figures,
+ * because that is the first thing an admin opening this page wants to know.
  */
 
 /** The windows the range picker offers. */
@@ -71,35 +65,52 @@ export default async function AdminDashboardPage({
     : 30;
 
   const firstName = (session?.user.name || session?.user.handle || "there").split(" ")[0];
-  const { partOfDay, range } = describeNow(windowDays);
 
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        tone="hero"
-        title={`Good ${partOfDay}, ${firstName}`}
-        description="Here is what has happened in your community. Every number is counted from real rows."
-        actions={
-          // Links rather than a menu: the window belongs in the URL, so a
-          // particular view of the dashboard can be sent to someone.
-          <nav aria-label="Date range" className="flex flex-col items-start gap-1 sm:items-end">
-            <Segmented>
-              {RANGES.map((days) => (
-                <Link
-                  key={days}
-                  href={days === 30 ? "/admin" : `/admin?days=${days}`}
-                  scroll={false}
-                  aria-current={days === windowDays ? "page" : undefined}
-                  className={segmentClass(days === windowDays, "tabular-nums")}
-                >
-                  {days}d
-                </Link>
-              ))}
-            </Segmented>
-            <p className="text-caption tabular-nums text-foreground-muted">{range}</p>
+    <div className="flex flex-col gap-5">
+      <header className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <div className="min-w-0">
+          <h1 className="text-[1.625rem] font-bold leading-tight tracking-[-0.02em] text-foreground sm:text-[1.875rem]">
+            Welcome back, {firstName}!
+          </h1>
+          <p className="mt-1 text-label text-foreground-muted">
+            Here is what is happening in your community. Every number is counted from real rows.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          {/* Links rather than a menu: the window belongs in the URL, so a
+              particular view of the dashboard can be sent to someone. */}
+          <nav
+            aria-label="Date range"
+            className="flex items-center gap-0.5 rounded-ctl bg-surface p-0.5 shadow-[inset_0_0_0_1px_var(--border)]"
+          >
+            {RANGES.map((days) => (
+              <Link
+                key={days}
+                href={days === 30 ? "/admin" : `/admin?days=${days}`}
+                scroll={false}
+                aria-current={days === windowDays ? "page" : undefined}
+                className={cn(
+                  "rounded-[calc(var(--r-ctl)-0.125rem)] px-2.5 py-1.5 text-caption font-semibold tabular-nums no-underline transition",
+                  days === windowDays
+                    ? "bg-brand-wash text-on-brand-wash"
+                    : "text-foreground-muted hover:text-foreground",
+                )}
+              >
+                {days}d
+              </Link>
+            ))}
           </nav>
-        }
-      />
+          <ButtonLink href="/admin/events/new" variant="secondary">
+            <CalendarPlus className="size-4" aria-hidden />
+            Schedule a class
+          </ButtonLink>
+          <ButtonLink href="/compose" variant="primary">
+            <PenSquare className="size-4" aria-hidden />
+            Create a post
+          </ButtonLink>
+        </div>
+      </header>
 
       <Suspense key={windowDays} fallback={<DashboardSkeleton />}>
         <DashboardBody windowDays={windowDays} />
@@ -109,281 +120,166 @@ export default async function AdminDashboardPage({
 }
 
 async function DashboardBody({ windowDays }: { windowDays: number }) {
-  // Two batches, issued together. They overlap on a handful of counts, which
-  // is the price of keeping "is anything wrong" and "what is going on" as two
-  // readable modules rather than one 80-query function.
+  // Two batches, issued together: "is anything wrong" and "what is going on"
+  // stay two readable modules rather than one 80-query function.
   const [data, analytics] = await Promise.all([
     loadDashboard(windowDays),
     loadAnalytics(windowDays),
   ]);
 
   const serious = analytics.attention.filter((item) => item.level !== "info");
-  const notes = analytics.attention.filter((item) => item.level === "info");
+  const kpi = (key: string) => analytics.kpis.find((item) => item.key === key);
+  const joined = kpi("joined");
+  const active = kpi("active");
+  const payingShare = data.members.total
+    ? Math.round((analytics.payingMembers / data.members.total) * 100)
+    : 0;
 
   return (
-    <div className="flex flex-col gap-6">
-      {/* ---- what needs attention ------------------------------------- */}
-      {serious.length === 0 ? (
-        <section
-          aria-label="Needs attention"
-          className={cardClass({
-            padding: "none",
-            className: "flex items-center gap-3 px-4 py-3 sm:px-5",
-          })}
-        >
-          <CheckCircle2 className="size-4 shrink-0 text-success" aria-hidden />
-          <p className="text-body text-foreground">
-            Nothing needs attention. Billing is clean, no reports are waiting,
-            and the content members can reach is in place.
-          </p>
-        </section>
-      ) : (
-        <Card padding="none" aria-label="Needs attention">
-          <CardHeader title="Needs attention" count={serious.length} />
-          <ul className="divide-y divide-separator">
-            {serious.map((item) => {
-              const Icon = item.level === "bad" ? AlertCircle : AlertTriangle;
-              return (
-                <li key={item.title}>
-                  <Link
-                    href={item.href}
-                    className="group flex items-start gap-3 px-4 py-3 no-underline transition hover:bg-surface-muted sm:px-5"
-                  >
-                    {/* Status colour never carries meaning alone: the icon's
-                        shape and a sentence say it too. The tone stays on the
-                        icon so the row itself reads calmly. */}
-                    <Icon
-                      className={cn(
-                        "mt-0.5 size-4 shrink-0",
-                        item.level === "bad" ? "text-danger" : "text-warning",
-                      )}
-                      aria-hidden
-                    />
-                    <span className="min-w-0 flex-1">
-                      <span className="block text-body font-medium text-foreground">
-                        {item.title}
-                      </span>
-                      <span className="mt-0.5 block text-label leading-snug text-foreground-muted">
-                        {item.detail}
-                      </span>
-                    </span>
-                    <ChevronRight
-                      className="mt-0.5 size-4 shrink-0 text-foreground-muted transition group-hover:text-foreground"
-                      aria-hidden
-                    />
-                  </Link>
-                </li>
-              );
-            })}
-          </ul>
-        </Card>
-      )}
+    <div className="flex flex-col gap-4">
+      <AttentionStrip items={serious} />
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_312px]">
-        {/* ---- main column ------------------------------------------- */}
-        <div className="flex min-w-0 flex-col gap-4">
-          <section
-            aria-label="Headline figures"
-            className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
-          >
-            {data.headline.map((kpi) => (
-              <HeadlineCard key={kpi.key} kpi={kpi} />
-            ))}
-          </section>
+      <section aria-label="Headline figures" className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <KpiCard
+          icon={<Users />}
+          label="Total members"
+          value={data.members.total}
+          href="/admin/members"
+          pill={<TrendPill trend={data.members.trend} />}
+          help={`Active accounts, against ${windowDays} days ago.`}
+        />
+        <KpiCard
+          icon={<UserPlus />}
+          label="New members"
+          value={joined?.value ?? 0}
+          href="/admin/members"
+          pill={<TrendPill trend={joined?.trend ?? null} />}
+          help={`Joined in the last ${windowDays} days, against the ${windowDays} before.`}
+        />
+        <KpiCard
+          icon={<UserCheck />}
+          label="Active members"
+          value={active?.value ?? 0}
+          href="/admin/members"
+          pill={<TrendPill trend={active?.trend ?? null} />}
+          help={`Posted or commented in the last ${windowDays} days.`}
+        />
+        <KpiCard
+          icon={<CreditCard />}
+          label="Paying members"
+          value={analytics.payingMembers}
+          href="/admin/billing"
+          pill={<MetaPill>{payingShare}% of members</MetaPill>}
+          help={
+            data.renewalsEnding > 0
+              ? `Holding live access now. ${data.renewalsEnding} set not to renew.`
+              : "Holding live access now."
+          }
+        />
+      </section>
 
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)]">
-            <GrowthPanel series={data.growth} windowDays={windowDays} />
-            <AccessPanel access={data.access} />
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
-            <TopCoursesPanel courses={data.topCourses} />
-            <ActivityPanel items={data.activity} />
-            <div className="md:col-span-2 2xl:col-span-1">
-              <EngagementPanel tiles={data.engagement} windowDays={windowDays} />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <RecentMembersPanel members={data.recentMembers} />
-            <WorthKnowingPanel notes={notes} />
-          </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <div className="flex min-w-0 lg:col-span-2 xl:col-span-1 [&>*]:flex-1">
+          <ActivityChart series={data.growth} windowDays={windowDays} />
         </div>
+        <AccessDonut access={data.access} />
+        <TopClassesPanel courses={data.topCourses} />
+      </div>
 
-        {/* ---- utility column ---------------------------------------- */}
-        <aside className="flex flex-col gap-4">
-          <GrowCta />
-          <QuickActions />
-          <TopContentPanel items={data.topContent} />
-          <SystemStatusPanel rows={data.health} />
-        </aside>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,1fr)]">
+        <GrowthBars months={data.memberMonths} />
+        <LiveClassesPanel rows={data.liveClasses} />
+        <div className="flex min-w-0 lg:col-span-2 xl:col-span-1 [&>*]:flex-1">
+          <InsightsPanel insights={data.insights} />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-3">
+        <RecentMembersPanel members={data.recentMembers} />
+        <TopPostsPanel items={data.topContent} />
+        <div className="flex min-w-0 lg:col-span-2 xl:col-span-1 [&>*]:flex-1">
+          <SystemHealthPanel rows={data.health} />
+        </div>
       </div>
     </div>
   );
 }
 
 /**
- * How members got their access.
- *
- * The reference panel here is "Member Sources" — organic search, social,
- * referral, direct. Nothing in this product captures a referrer or a UTM tag at
- * sign-up, so those shares cannot be measured and are not guessed at. What the
- * database does record is how each live entitlement was granted, which is the
- * same shape of question with a real answer behind it.
+ * What needs a person, before any figure. Status colour never carries the
+ * meaning alone: each item has its own icon shape and says what is wrong.
+ * When nothing does, one quiet line says so.
  */
-function AccessPanel({
-  access,
+function AttentionStrip({
+  items,
 }: {
-  access: {
-    slices: { label: string; value: number; percent: number; help?: string }[];
-    total: number;
-  };
+  items: { level: "bad" | "warn" | "info"; title: string; detail: string; href: string }[];
 }) {
-  return (
-    <Card padding="none" className="flex flex-col">
-      <CardHeader title="How access was granted" icon={<PieChart />} />
-      <div className="flex flex-1 flex-col justify-center p-4 sm:p-5">
-        {access.total === 0 ? (
-          <EmptyState
-            size="sm"
-            bordered={false}
-            icon={<PieChart />}
-            title="No member holds a live entitlement yet."
-          />
-        ) : (
-          <div className="text-brand">
-            <Donut
-              slices={access.slices}
-              total={access.total}
-              centerLabel="entitlements"
-            />
-          </div>
-        )}
-      </div>
-      <p className="border-t border-separator px-4 py-2.5 text-caption leading-snug text-foreground-muted sm:px-5">
-        Traffic sources are not tracked. These are entitlements, and one
-        member can hold more than one.
+  if (items.length === 0) {
+    return (
+      <p className="flex items-center gap-2 text-label text-foreground-muted">
+        <CheckCircle2 className="size-4 shrink-0 text-success" aria-hidden />
+        Nothing needs attention: billing is clean, no reports are waiting, and the content members can reach is in place.
       </p>
-    </Card>
-  );
-}
-
-function WorthKnowingPanel({
-  notes,
-}: {
-  notes: { title: string; detail: string; href: string }[];
-}) {
+    );
+  }
   return (
-    <Card padding="none" className="flex flex-col">
-      <CardHeader title="Worth knowing" icon={<Info />} count={notes.length} />
-      {notes.length === 0 ? (
-        <EmptyState
-          size="sm"
-          bordered={false}
-          icon={<CheckCircle2 />}
-          title="Nothing to flag"
-          description="Every room has posts, the calendar has something on it, and past classes have their recordings."
-          className="flex-1 justify-center"
-        />
-      ) : (
-        <ul className="divide-y divide-separator">
-          {notes.map((note) => (
-            <li key={note.title}>
+    <section
+      aria-label="Needs attention"
+      className="vu-dash-card flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:p-3.5"
+    >
+      <p className="flex shrink-0 items-center gap-2 px-1 text-label font-semibold text-foreground">
+        <AlertTriangle className="size-4 text-warning" aria-hidden />
+        Needs attention
+      </p>
+      <ul className="flex flex-wrap gap-2">
+        {items.map((item) => {
+          const Icon = item.level === "bad" ? AlertCircle : AlertTriangle;
+          return (
+            <li key={item.title}>
               <Link
-                href={note.href}
-                className="group flex items-start gap-3 px-4 py-3 no-underline transition hover:bg-surface-muted sm:px-5"
+                href={item.href}
+                title={item.detail}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-label font-medium no-underline transition hover:brightness-95",
+                  item.level === "bad" ? "bg-danger-wash text-danger" : "bg-warning-wash text-warning",
+                )}
               >
-                <span className="min-w-0 flex-1">
-                  <span className="block text-label font-medium text-foreground">
-                    {note.title}
-                  </span>
-                  <span className="mt-0.5 block text-caption leading-snug text-foreground-muted">
-                    {note.detail}
-                  </span>
-                </span>
-                <ChevronRight
-                  className="mt-0.5 size-4 shrink-0 text-foreground-muted transition group-hover:text-foreground"
-                  aria-hidden
-                />
+                <Icon className="size-3.5 shrink-0" aria-hidden />
+                {item.title}
+                <ChevronRight className="size-3.5 shrink-0" aria-hidden />
               </Link>
             </li>
-          ))}
-        </ul>
-      )}
-    </Card>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 
 /**
- * The shape of the page, before the numbers arrive.
- *
- * It mirrors the real grid rather than showing one spinner, so nothing jumps
- * when the data lands and the reader can already see what is coming.
+ * The shape of the page, before the numbers arrive. It mirrors the real grid,
+ * so nothing jumps when the data lands.
  */
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-6" aria-busy="true" aria-label="Loading the dashboard">
-      <Skeleton className="h-12 w-full rounded-card" />
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[minmax(0,1fr)_312px]">
-        <div className="flex min-w-0 flex-col gap-4">
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            {[0, 1, 2, 3].map((index) => (
-              <Skeleton key={index} className="h-32 rounded-card" />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1.9fr)_minmax(0,1fr)]">
-            <Skeleton className="h-84 rounded-card" />
-            <Skeleton className="h-84 rounded-card" />
-          </div>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
-            {[0, 1, 2].map((index) => (
-              <Skeleton key={index} className="h-60 rounded-card" />
-            ))}
-          </div>
-          <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            <Skeleton className="h-44 rounded-card" />
-            <Skeleton className="h-44 rounded-card" />
-          </div>
-        </div>
-        <div className="flex flex-col gap-4">
-          <Skeleton className="h-48 rounded-card" />
-          <Skeleton className="h-60 rounded-card" />
-          <Skeleton className="h-56 rounded-card" />
-          <Skeleton className="h-52 rounded-card" />
-        </div>
+    <div className="flex flex-col gap-4" aria-busy="true" aria-label="Loading the dashboard">
+      <Skeleton className="h-5 w-2/3 rounded-chip" />
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {[0, 1, 2, 3].map((index) => (
+          <Skeleton key={index} className="h-36 rounded-card" />
+        ))}
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.7fr)_minmax(0,1fr)_minmax(0,1fr)]">
+        <Skeleton className="h-96 rounded-card lg:col-span-2 xl:col-span-1" />
+        <Skeleton className="h-96 rounded-card" />
+        <Skeleton className="h-96 rounded-card" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,1.5fr)_minmax(0,1fr)]">
+        <Skeleton className="h-80 rounded-card" />
+        <Skeleton className="h-80 rounded-card" />
+        <Skeleton className="h-80 rounded-card lg:col-span-2 xl:col-span-1" />
       </div>
     </div>
   );
-}
-
-/**
- * The clock, read once.
- *
- * It lives out here rather than in the component body because reading the time
- * during render is impure and `react-hooks/purity` rejects it — correctly, for
- * a client component. This page is a Server Component rendered per request, so
- * the value is stable for the response; keeping the call in a plain function
- * says that, and keeps the rule honest everywhere else.
- *
- * The part of day comes from the *server's* clock, so an admin in another
- * timezone may be greeted with the wrong one. It is a greeting, not a
- * measurement; every figure on the page is timezone-independent because all of
- * them are counted over absolute instants.
- */
-function describeNow(windowDays: number): { partOfDay: string; range: string } {
-  const now = new Date();
-  const hour = now.getHours();
-  const from = new Date(now.getTime() - windowDays * 86_400_000);
-  return {
-    partOfDay: hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening",
-    range: `${format(from)} – ${format(now)}`,
-  };
-}
-
-function format(date: Date): string {
-  return new Intl.DateTimeFormat("en-GB", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  }).format(date);
 }

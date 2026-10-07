@@ -20,6 +20,7 @@ import {
   MEMBER_DESTINATIONS,
   MEMBER_NAV_LINKS,
 } from "@/lib/navigation";
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { cn } from "@/lib/utils";
 
 type Row = SearchSuggestion;
@@ -278,7 +279,7 @@ export function CommandPalette({
                       {row.imageUrl ? (
                         // Course covers and member photos are remote or local files.
                         // eslint-disable-next-line @next/next/no-img-element
-                        <img src={row.imageUrl} alt="" />
+                        <img src={servableImageUrl(row.imageUrl, 120)} alt="" />
                       ) : (
                         <Icon className="size-4" aria-hidden />
                       )}

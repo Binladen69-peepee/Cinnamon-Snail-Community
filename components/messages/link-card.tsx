@@ -10,6 +10,7 @@ import {
   UserRound,
 } from "lucide-react";
 import type { LinkPreview } from "@/lib/messages/link-preview";
+import { servableImageUrl } from "@/lib/media/servable-image";
 
 /**
  * A link to something inside the community, unfurled.
@@ -64,7 +65,7 @@ export function LinkCard({
         // optimizer's allowlist.
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={preview.imageUrl}
+          src={servableImageUrl(preview.imageUrl, 120)}
           alt=""
           className="size-9 shrink-0 rounded-chip bg-default object-cover"
         />

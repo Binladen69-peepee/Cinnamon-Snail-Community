@@ -7,6 +7,7 @@ import { requestUploadAction } from "@/app/(member)/upload-actions";
 import { prepareForUpload, putWithProgress } from "@/lib/uploads/client";
 import { IMAGE_ACCEPT, validateUpload } from "@/lib/uploads/policy";
 import { Button, Card } from "@/components/app/ui";
+import { servableImageUrl } from "@/lib/media/servable-image";
 
 /**
  * The thumbnail card from the design: preview, the file rule, Reset and Upload.
@@ -102,7 +103,7 @@ export function CourseThumbnail({
       <div className="relative aspect-16/10 w-full border-b border-separator bg-surface-muted">
         {preview ? (
           // eslint-disable-next-line @next/next/no-img-element
-          <img src={preview} alt="" className="size-full object-cover" />
+          <img src={servableImageUrl(preview, 800)} alt="" className="size-full object-cover" />
         ) : (
           <span className="grid size-full place-items-center text-foreground-muted">
             <ImageIcon className="size-8" aria-hidden />

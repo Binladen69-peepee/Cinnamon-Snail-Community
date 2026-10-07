@@ -39,7 +39,7 @@ export default async function CancelConfirmPage({
           back={{ href: "/billing", label: "Membership" }}
           eyebrow="Stay if you want"
           title="One clear confirmation"
-          description={`Canceling ${request.subscription.product.name} asks SamCart to stop billing. We will not tell you it worked unless SamCart confirms it. Access then follows the period SamCart reports — including the 31-day window on the 1-month trial memberships.`}
+          description={`Canceling ${request.subscription.product.name} stops it renewing. You keep full access to everything you have already paid for until the end of your current billing period; then access ends. We will not tell you it worked unless SamCart confirms it.`}
         />
         {failed ? (
           <Callout tone="danger" role="alert">
@@ -59,7 +59,7 @@ export default async function CancelConfirmPage({
             </Field>
             <div className="flex flex-wrap items-center gap-2 border-t border-separator pt-4">
               <Button type="submit" variant="danger">
-                Yes, cancel with SamCart
+                Yes, cancel at the end of this period
               </Button>
               <ButtonLink href="/billing" variant="ghost">
                 Keep my seat

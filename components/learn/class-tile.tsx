@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChefHat, Play } from "lucide-react";
 import { classHref, type ClassSummary } from "@/lib/learn/classes";
 import { cardClass } from "@/components/app/ui";
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { cn } from "@/lib/utils";
 
 /**
@@ -57,7 +58,7 @@ export function ClassTile({
           // Class stills come from the client's own media host, not the optimizer.
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={cls.photo}
+            src={servableImageUrl(cls.photo, 800)}
             alt=""
             loading={eager ? undefined : "lazy"}
             decoding="async"

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { cn } from "@/lib/utils";
 
 /**
@@ -59,7 +60,7 @@ export function MediaFrame({
     >
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
-        src={src}
+        src={servableImageUrl(src)}
         alt={alt}
         loading={loading}
         decoding="async"

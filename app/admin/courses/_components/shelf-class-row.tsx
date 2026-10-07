@@ -10,6 +10,7 @@ import {
   type CategoryActionResult,
 } from "@/app/admin/courses/categories/actions";
 import { Badge } from "@/components/app/ui";
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { RowIconButton } from "@/app/admin/courses/_components/row-icon-button";
 
 /**
@@ -85,7 +86,7 @@ export function ShelfClassRow({
               // Class stills come from the client's own media host.
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={cls.photo}
+                src={servableImageUrl(cls.photo, 400)}
                 alt=""
                 loading="lazy"
                 decoding="async"

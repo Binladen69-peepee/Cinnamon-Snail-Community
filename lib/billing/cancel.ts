@@ -1,7 +1,10 @@
 import { prisma } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { applyCanonicalEvent } from "@/lib/billing/apply";
-import { cancelSamcartSubscription } from "@/lib/billing/samcart-api";
+import {
+  cancelSamcartSubscription,
+  scheduleSamcartCancellation,
+} from "@/lib/billing/samcart-api";
 import { sendTransactionalEmail } from "@/lib/email/send";
 import {
   cancellationConfirmedHtml,
@@ -44,10 +47,22 @@ export async function markSaveShown(requestId: string, userId: string) {
   });
 }
 
+/**
+ * Cancels a membership with SamCart, then records what SamCart confirmed.
+ *
+ * A member's own cancellation stops the renewal and nothing else: SamCart
+ * cancels at the end of the billing period, and the member keeps everything
+ * they have paid for until then (`when: "period_end"`, the default). Their
+ * entitlement carries that end date, so access stops at that moment on its
+ * own; the nightly expiry sweep (`expireEndedAccess`) then closes the
+ * subscription and removes the Kit membership tag. Closing the account cancels
+ * outright instead (`when: "now"`).
+ */
 export async function confirmCancellation(input: {
   requestId: string;
   userId: string;
   reason: string;
+  when?: "period_end" | "now";
 }) {
   const request = await prisma.cancellationRequest.findFirst({
     where: { id: input.requestId, userId: input.userId },
@@ -74,7 +89,10 @@ export async function confirmCancellation(input: {
     return { ok: false as const, error: "Missing SamCart subscription id" };
   }
 
-  const result = await cancelSamcartSubscription(samcartId);
+  const result =
+    input.when === "now"
+      ? await cancelNow(samcartId)
+      : await scheduleSamcartCancellation(samcartId);
   if (!result.ok) {
     await failRequest(request.id, result.error);
     await afterSamcart("failure email", request.id, () =>
@@ -98,11 +116,17 @@ export async function confirmCancellation(input: {
 
   // SamCart has cancelled. Nothing below may turn that into an error page
   // telling the member it did not happen. If the local write fails, SamCart's
-  // own Cancel webhook applies the same change moments later.
+  // own webhook applies the same change.
+  const scheduled = result.outcome === "scheduled";
+  const stored = request.subscription.periodEnd;
+  // A stored period end in the past is a stale one, from an earlier period;
+  // ending a scheduled cancellation on it would cut off a period already paid.
+  const periodEnd =
+    result.periodEnd ?? (scheduled ? (stored && stored > new Date() ? stored : null) : stored);
   await afterSamcart("local state", request.id, () =>
     applyCanonicalEvent({
-      type: "canceled",
-      rawType: "member_cancel_confirmed",
+      type: scheduled ? "cancel_scheduled" : "canceled",
+      rawType: scheduled ? "member_cancel_scheduled" : "member_cancel_confirmed",
       providerEventId: `cancel:${request.id}`,
       email: request.subscription.user.email,
       samcartProductId: null,
@@ -114,8 +138,8 @@ export async function confirmCancellation(input: {
       currency: request.subscription.currency,
       gateway: request.subscription.gateway,
       interval: request.subscription.interval,
-      periodEnd: result.periodEnd ?? request.subscription.periodEnd,
-      cancelAt: result.periodEnd ?? request.subscription.periodEnd,
+      periodEnd,
+      cancelAt: periodEnd,
     }),
   );
 
@@ -130,10 +154,6 @@ export async function confirmCancellation(input: {
     }),
   );
 
-  const accessNote = result.periodEnd
-    ? `SamCart reported access through ${result.periodEnd.toDateString()}. We use that period as the source of truth.`
-    : "SamCart confirmed cancellation and did not report a remaining period, so access ends now.";
-
   await afterSamcart("confirmation email", request.id, () =>
     sendTransactionalEmail({
       to: request.subscription.user.email,
@@ -141,7 +161,7 @@ export async function confirmCancellation(input: {
       html: cancellationConfirmedHtml({
         name: request.subscription.user.profile?.displayName ?? "there",
         productName: request.subscription.product.name,
-        accessNote,
+        accessNote: accessNote(scheduled, periodEnd),
       }),
     }),
   );
@@ -152,11 +172,37 @@ export async function confirmCancellation(input: {
       action: "billing.cancel.succeeded",
       targetType: "subscription",
       targetId: request.subscriptionId,
-      metadata: { periodEnd: result.periodEnd?.toISOString() ?? null },
+      metadata: {
+        when: scheduled ? "period_end" : "now",
+        periodEnd: periodEnd?.toISOString() ?? null,
+      },
     }),
   );
 
-  return { ok: true as const, periodEnd: result.periodEnd };
+  return { ok: true as const, scheduled, periodEnd };
+}
+
+/** "November 7, 2026". SamCart's dates are UTC, so the day is read in UTC. */
+export function formatAccessDate(date: Date) {
+  return new Intl.DateTimeFormat("en-US", { dateStyle: "long", timeZone: "UTC" }).format(date);
+}
+
+function accessNote(scheduled: boolean, periodEnd: Date | null) {
+  const open = periodEnd && periodEnd > new Date();
+  if (scheduled) {
+    return open
+      ? `Your membership will not renew. You keep full access to everything you have paid for until ${formatAccessDate(periodEnd)}; after that, access ends.`
+      : "Your membership will not renew. You keep full access to everything until the end of the billing period you have already paid for; after that, access ends.";
+  }
+  return open
+    ? `Your access continues until ${formatAccessDate(periodEnd)}.`
+    : "Your access has ended.";
+}
+
+/** Closing the account: billing stops now rather than at the period's end. */
+async function cancelNow(samcartId: string) {
+  const result = await cancelSamcartSubscription(samcartId);
+  return result.ok ? { ...result, outcome: "ended" as const } : result;
 }
 
 /**

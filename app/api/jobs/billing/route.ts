@@ -4,6 +4,7 @@ import { getDeletionGraceDays } from "@/lib/billing/config";
 import { purgeDueDeletions } from "@/lib/billing/deletion";
 import { jobRequestAuthorized } from "@/lib/jobs/auth";
 import { retryFailedKitSyncs } from "@/lib/billing/kit";
+import { expireEndedAccess } from "@/lib/billing/expire";
 
 /**
  * Billing jobs, by `?job=`. POST for running one by hand; GET because that is
@@ -28,7 +29,11 @@ export async function POST(request: Request) {
     return Response.json({ ok: true, result: events, kit });
   }
   if (job === "reconcile") {
+    // Also expires access whose paid period has ended, before measuring drift.
     return Response.json({ ok: true, result: await runNightlyReconciliation() });
+  }
+  if (job === "expire") {
+    return Response.json({ ok: true, result: await expireEndedAccess() });
   }
   if (job === "purge") {
     const grace = getDeletionGraceDays();

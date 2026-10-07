@@ -22,6 +22,8 @@ export async function requestAccountDeletion(userId: string, reason?: string) {
         requestId: request.id,
         userId,
         reason: reason ?? "account_deletion",
+        // The account is closing, so billing stops now, not at the period's end.
+        when: "now",
       });
       results.push(confirmed);
       if (!confirmed.ok) {

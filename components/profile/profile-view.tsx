@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { Composer } from "@/components/feed/composer";
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { PostGalleryModal } from "@/components/feed/post-gallery-modal";
 import { useIsMobile } from "@/components/hooks/use-media-query";
 import {
@@ -617,7 +618,7 @@ function PostTile({
       ) : (
         // eslint-disable-next-line @next/next/no-img-element
         <img
-          src={first.url}
+          src={servableImageUrl(first.url, 800)}
           alt={first.alt ?? ""}
           loading="lazy"
           className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"

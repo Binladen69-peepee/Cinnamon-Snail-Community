@@ -5,6 +5,7 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import gsap from "gsap";
 import { useGSAP } from "@gsap/react";
 import type { MembershipSlide } from "@/lib/marketing/class-library";
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { cn } from "@/lib/utils";
 
 gsap.registerPlugin(useGSAP);
@@ -122,7 +123,7 @@ export function MembershipGallery({ slides }: { slides: MembershipSlide[] }) {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={slide.photo}
+            src={servableImageUrl(slide.photo, 960)}
             alt=""
             width={720}
             height={960}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChefHat, Play } from "lucide-react";
 import { playingEmbedSrc } from "@/lib/marketing/class-library";
+import { servableImageUrl } from "@/lib/media/servable-image";
 
 /**
  * The still, and the teaser behind it.
@@ -44,7 +45,7 @@ export function ClassPlayer({
     <div className="relative aspect-video w-full overflow-hidden rounded-card bg-black">
       {photo ? (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={photo} alt="" className="size-full object-cover" />
+        <img src={servableImageUrl(photo)} alt="" className="size-full object-cover" />
       ) : (
         <span className="grid size-full place-items-center bg-surface-muted text-foreground-muted/50">
           <ChefHat className="size-12" aria-hidden />

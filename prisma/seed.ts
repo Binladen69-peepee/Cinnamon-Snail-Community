@@ -79,9 +79,12 @@ async function main() {
     update: { productId: membership.id },
     create: { productId: membership.id, samcartProductId: "1001" },
   });
-  // The client's confirmed SamCart products. The interval here is only a
+  // The client's confirmed SamCart products: the live paid pair the checkout
+  // sells, and their 1-month-free versions. The interval here is only a
   // fallback for webhooks that do not state one; SamCart's event wins.
   for (const [samcartProductId, interval] of [
+    ["849150", "month"],
+    ["849151", "year"],
     ["1069358", "year"],
     ["1069354", "month"],
   ] as const) {

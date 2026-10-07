@@ -48,7 +48,7 @@ export type AdminNavGroup = {
 export const ADMIN_NAV: AdminNavGroup[] = [
   {
     label: null,
-    items: [{ href: "/admin", label: "Overview", icon: LayoutDashboard }],
+    items: [{ href: "/admin", label: "Dashboard", icon: LayoutDashboard }],
   },
   {
     label: "Community",
@@ -112,3 +112,12 @@ export function activeAdminHref(pathname: string): string | null {
     item.href.length > longest.href.length ? item : longest,
   ).href;
 }
+
+/** The top bar's title: the section the page belongs to, by the same rule. */
+export function adminPageTitle(pathname: string): string {
+  const href = activeAdminHref(pathname);
+  return ADMIN_NAV_ITEMS.find((item) => item.href === href)?.label ?? "Admin";
+}
+
+/** The cookie that remembers a collapsed rail, read by the layout. */
+export const ADMIN_RAIL_COOKIE = "vu-admin-rail";

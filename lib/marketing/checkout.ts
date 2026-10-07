@@ -7,15 +7,15 @@
  * `sc-slide-script.js` tag in the root layout; without that script the link
  * loads a blank checkout.
  *
- * The checkout is SamCart product 1069354, the monthly free-month membership,
- * which also offers the annual one (1069358) — the two products the billing
- * webhook grants membership and Kit tags for. It is addressed by id because a
- * slug can be renamed in SamCart. The old `monthly-subscription` checkout sold
- * product 849150, which billing does not recognise, so a purchase through it
- * granted nothing, and testing the membership in Test Mode never reached it.
+ * The checkout is the live one: SamCart product 849150, the paid monthly
+ * membership, which also offers the annual one (849151) — both mapped to the
+ * membership, so the billing webhook grants access and the Kit tag for either
+ * (DEC-086). It is addressed by id because a slug can be renamed in SamCart.
+ * While the membership was being tested the button opened 1069354 instead, a
+ * "1 Month FREE" version of the same membership.
  */
 export const CHECKOUT_URL =
-  "https://cinnamonsnail.mysamcart.com/checkout/1069354#samcart-slide-open-right";
+  "https://cinnamonsnail.mysamcart.com/checkout/849150#samcart-slide-open-right";
 
 export const CHECKOUT_LABEL = "Become a member";
 

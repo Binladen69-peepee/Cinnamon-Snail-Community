@@ -3,11 +3,13 @@ import { prisma } from "@/lib/db";
 import { type SeriesPoint, type Trend, trend, zeroFill } from "@/lib/admin/analytics";
 
 /**
- * The dashboard's panels.
+ * The dashboard's panels (DEC-088).
  *
- * `analytics.ts` answers "is anything wrong". This answers "what is going on" —
- * the courses people are taking, the posts they are reading, who just arrived,
- * and whether the machinery behind all of it is still running.
+ * `analytics.ts` answers "is anything wrong" and supplies the member figures.
+ * This answers "what is going on": how the community moved over the window,
+ * how members got their access, the classes people take, how membership grew
+ * month by month, the live classes on the calendar, the posts people answer,
+ * who just arrived, and whether the machinery behind it is still running.
  *
  * The same rule holds as everywhere else in the console: **every figure is a
  * count of real rows, and a panel with no data says so rather than drawing a
@@ -30,17 +32,6 @@ import { type SeriesPoint, type Trend, trend, zeroFill } from "@/lib/admin/analy
 
 const DAY = 86_400_000;
 
-export type HeadlineKpi = {
-  key: string;
-  label: string;
-  value: number;
-  trend: Trend | null;
-  series: SeriesPoint[];
-  href: string;
-  /** Set when the number has no data behind it at all. */
-  empty: string | null;
-};
-
 export type GrowthSeries = {
   key: string;
   label: string;
@@ -62,21 +53,6 @@ export type TopCourse = {
   coverUrl: string | null;
   learners: number;
   completed: number;
-};
-
-export type ActivityItem = {
-  kind: "member" | "enrollment" | "rsvp" | "post" | "comment";
-  title: string;
-  detail: string;
-  at: Date;
-  href: string;
-};
-
-export type EngagementTile = {
-  key: string;
-  label: string;
-  value: number;
-  trend: Trend | null;
 };
 
 export type RecentMember = {
@@ -106,20 +82,57 @@ export type HealthRow = {
   reading: string;
 };
 
+/** Accounts created in one calendar month (UTC). */
+export type MonthBar = {
+  /** "2026-10". */
+  month: string;
+  /** "Oct". */
+  label: string;
+  value: number;
+};
+
+export type LiveClassState = "live" | "scheduled" | "draft" | "completed";
+
+export type LiveClassRow = {
+  id: string;
+  title: string;
+  slug: string;
+  startsAt: Date;
+  state: LiveClassState;
+  /** Members holding a seat (RSVP "going"). */
+  going: number;
+  capacity: number | null;
+};
+
+export type Insight = {
+  key: string;
+  icon: "calendar" | "renewal" | "posts" | "heart" | "note";
+  title: string;
+  detail: string;
+  href: string;
+};
+
 export type Dashboard = {
   windowDays: number;
-  headline: HeadlineKpi[];
+  /** Active members now, against the same count at the start of the window. */
+  members: { total: number; trend: Trend | null };
+  /** Posts, comments and new members per day across the window. */
   growth: GrowthSeries[];
   access: { slices: AccessSlice[]; total: number };
   topCourses: TopCourse[];
-  activity: ActivityItem[];
-  engagement: EngagementTile[];
+  /** New accounts in each of the last six calendar months, oldest first. */
+  memberMonths: MonthBar[];
+  liveClasses: LiveClassRow[];
+  /** Subscriptions set to end at the close of their paid period. */
+  renewalsEnding: number;
+  insights: Insight[];
   recentMembers: RecentMember[];
   topContent: TopContentItem[];
   health: HealthRow[];
 };
 
 type DayRow = { day: Date; count: bigint };
+type MonthRow = { month: Date; count: bigint };
 
 /** How access was granted, in the words an admin would use. */
 const ACCESS_LABELS: Record<string, { label: string; help: string }> = {
@@ -132,11 +145,18 @@ const ACCESS_LABELS: Record<string, { label: string; help: string }> = {
   MIGRATION: { label: "Migrated in", help: "Carried over from the previous platform." },
 };
 
+const MONTHS = 6;
+/** How long a class with no end time is treated as running. */
+const CLASS_LENGTH = 90 * 60_000;
+
 export async function loadDashboard(windowDays = 30): Promise<Dashboard> {
   const now = Date.now();
   const current = new Date(now - windowDays * DAY);
-  const prior = new Date(now - windowDays * 2 * DAY);
   const seriesFrom = new Date(now - (windowDays - 1) * DAY);
+  const at = new Date(now);
+  const monthsFrom = new Date(
+    Date.UTC(at.getUTCFullYear(), at.getUTCMonth() - (MONTHS - 1), 1),
+  );
 
   // The database check is timed rather than merely awaited: a query that
   // answers in 2 seconds is not "healthy", and only the clock can tell.
@@ -147,33 +167,18 @@ export async function loadDashboard(windowDays = 30): Promise<Dashboard> {
     .catch(() => ({ ok: false, ms: Date.now() - dbStartedAt }));
 
   const [
-    firstUser,
     memberTotal,
     memberPrior,
     memberSeries,
-    publishedCourses,
-    coursesPrior,
-    upcomingEvents,
-    eventsPrior,
-    postsTotal,
-    postsPrior,
+    memberMonthRows,
     postsSeries,
     commentsSeries,
-    reactionsNow,
-    reactionsPrior,
-    commentsNow,
-    commentsPrior,
-    messagesNow,
-    messagesPrior,
-    rsvpsNow,
-    rsvpsPrior,
     accessRows,
     enrollmentRows,
     completionRows,
-    newMembers,
-    newEnrollments,
-    newRsvps,
-    newPosts,
+    upcomingClasses,
+    pastClasses,
+    renewalsEnding,
     recentMembers,
     topPosts,
     deadLettered,
@@ -182,25 +187,16 @@ export async function loadDashboard(windowDays = 30): Promise<Dashboard> {
     failedWelcome,
     db,
   ] = await Promise.all([
-    prisma.user.findFirst({ orderBy: { createdAt: "asc" }, select: { createdAt: true } }),
-
     prisma.user.count({ where: { status: "ACTIVE" } }),
     prisma.user.count({ where: { status: "ACTIVE", createdAt: { lt: current } } }),
     prisma.$queryRaw<DayRow[]>`
       SELECT date_trunc('day', "createdAt")::date AS day, count(*)::bigint AS count
       FROM "User" WHERE "createdAt" >= ${seriesFrom}
       GROUP BY 1 ORDER BY 1`,
-
-    prisma.course.count({ where: { published: true } }),
-    prisma.course.count({ where: { published: true, createdAt: { lt: current } } }),
-
-    prisma.event.count({ where: { status: "PUBLISHED", startsAt: { gte: new Date() } } }),
-    prisma.event.count({
-      where: { status: "PUBLISHED", startsAt: { gte: new Date() }, createdAt: { lt: current } },
-    }),
-
-    prisma.post.count({ where: { status: "PUBLISHED" } }),
-    prisma.post.count({ where: { status: "PUBLISHED", publishedAt: { lt: current } } }),
+    prisma.$queryRaw<MonthRow[]>`
+      SELECT date_trunc('month', "createdAt") AS month, count(*)::bigint AS count
+      FROM "User" WHERE "createdAt" >= ${monthsFrom}
+      GROUP BY 1 ORDER BY 1`,
     prisma.$queryRaw<DayRow[]>`
       SELECT date_trunc('day', "publishedAt")::date AS day, count(*)::bigint AS count
       FROM "Post" WHERE "status" = 'PUBLISHED' AND "publishedAt" >= ${seriesFrom}
@@ -209,15 +205,6 @@ export async function loadDashboard(windowDays = 30): Promise<Dashboard> {
       SELECT date_trunc('day', "createdAt")::date AS day, count(*)::bigint AS count
       FROM "Comment" WHERE "createdAt" >= ${seriesFrom}
       GROUP BY 1 ORDER BY 1`,
-
-    prisma.reaction.count({ where: { createdAt: { gte: current } } }),
-    prisma.reaction.count({ where: { createdAt: { gte: prior, lt: current } } }),
-    prisma.comment.count({ where: { createdAt: { gte: current } } }),
-    prisma.comment.count({ where: { createdAt: { gte: prior, lt: current } } }),
-    prisma.message.count({ where: { createdAt: { gte: current } } }),
-    prisma.message.count({ where: { createdAt: { gte: prior, lt: current } } }),
-    prisma.eventRsvp.count({ where: { createdAt: { gte: current } } }),
-    prisma.eventRsvp.count({ where: { createdAt: { gte: prior, lt: current } } }),
 
     // How access was actually granted. The real answer to "where do members
     // come from" that this database can give.
@@ -238,49 +225,30 @@ export async function loadDashboard(windowDays = 30): Promise<Dashboard> {
       _count: { _all: true },
     }),
 
-    // The activity feed, assembled from five small reads rather than one
-    // union view. Each is indexed and capped at six rows.
-    prisma.user.findMany({
-      where: { status: "ACTIVE" },
-      orderBy: { createdAt: "desc" },
-      take: 6,
-      select: { id: true, name: true, handle: true, createdAt: true },
-    }),
-    prisma.courseProgress.findMany({
-      orderBy: { startedAt: "desc" },
-      take: 6,
-      select: {
-        startedAt: true,
-        user: { select: { name: true, handle: true } },
-        course: { select: { title: true, slug: true } },
+    // The calendar: what is on now or next, then what just finished. A class
+    // that started up to its length ago may still be running.
+    prisma.event.findMany({
+      where: {
+        status: { in: ["PUBLISHED", "DRAFT"] },
+        startsAt: { gte: new Date(now - CLASS_LENGTH) },
       },
+      orderBy: { startsAt: "asc" },
+      take: 5,
+      select: liveClassFields,
     }),
-    prisma.eventRsvp.findMany({
-      orderBy: { createdAt: "desc" },
-      take: 6,
-      select: {
-        createdAt: true,
-        user: { select: { name: true, handle: true } },
-        event: { select: { title: true, slug: true } },
-      },
+    prisma.event.findMany({
+      where: { status: "PUBLISHED", startsAt: { lt: new Date(now - CLASS_LENGTH) } },
+      orderBy: { startsAt: "desc" },
+      take: 5,
+      select: liveClassFields,
     }),
-    prisma.post.findMany({
-      where: { status: "PUBLISHED" },
-      orderBy: { publishedAt: "desc" },
-      take: 6,
-      select: {
-        id: true,
-        title: true,
-        publishedAt: true,
-        author: { select: { name: true, handle: true } },
-        space: { select: { name: true } },
-      },
-    }),
+
+    prisma.subscription.count({ where: { status: "CANCELING" } }),
 
     prisma.user.findMany({
       where: { status: "ACTIVE" },
       orderBy: { createdAt: "desc" },
-      take: 6,
+      take: 5,
       select: {
         id: true,
         name: true,
@@ -323,62 +291,16 @@ export async function loadDashboard(windowDays = 30): Promise<Dashboard> {
     dbProbe,
   ]);
 
-  const firstEver = firstUser?.createdAt ?? null;
-  // An *event* window can only be compared with the one before it when that
-  // earlier window sits entirely after the first row that could have landed in
-  // it; otherwise "down 100%" just means the community did not exist yet.
-  const eventWindowsComparable = Boolean(firstEver && firstEver <= prior);
-
-  // A *level* is different. "How many members existed 30 days ago" is a real
-  // historical figure whatever the community's age — if it predates the first
-  // signup the answer is zero, which is true rather than unknowable. So the
-  // headline figures always carry their comparison, and `trend()` still
-  // withholds the *percentage* when that earlier level was zero.
-  const LEVEL = true;
-
-  const headline: HeadlineKpi[] = [
-    {
-      key: "members",
-      label: "Total members",
-      value: memberTotal,
-      trend: trend(memberTotal, memberPrior, LEVEL),
-      series: zeroFill(memberSeries, windowDays),
-      href: "/admin/members",
-      empty: memberTotal === 0 ? "Nobody has joined yet." : null,
-    },
-    {
-      key: "courses",
-      label: "Active courses",
-      value: publishedCourses,
-      trend: trend(publishedCourses, coursesPrior, LEVEL),
-      series: [],
-      href: "/admin/courses",
-      empty: publishedCourses === 0 ? "No course is published." : null,
-    },
-    {
-      key: "events",
-      label: "Upcoming events",
-      value: upcomingEvents,
-      trend: trend(upcomingEvents, eventsPrior, LEVEL),
-      series: [],
-      href: "/admin/events",
-      empty: upcomingEvents === 0 ? "Nothing is scheduled." : null,
-    },
-    {
-      key: "posts",
-      label: "Total posts",
-      value: postsTotal,
-      trend: trend(postsTotal, postsPrior, LEVEL),
-      series: zeroFill(postsSeries, windowDays),
-      href: "/admin/spaces",
-      empty: postsTotal === 0 ? "Nothing has been posted yet." : null,
-    },
-  ];
+  // "How many members existed when the window opened" is a real historical
+  // figure whatever the community's age — zero if it predates the first
+  // signup, which is true rather than unknowable. `trend()` still withholds
+  // the percentage when that earlier level was zero.
+  const members = { total: memberTotal, trend: trend(memberTotal, memberPrior, true) };
 
   const growth: GrowthSeries[] = [
-    { key: "members", label: "Members", points: zeroFill(memberSeries, windowDays), total: 0 },
     { key: "posts", label: "Posts", points: zeroFill(postsSeries, windowDays), total: 0 },
     { key: "comments", label: "Comments", points: zeroFill(commentsSeries, windowDays), total: 0 },
+    { key: "members", label: "New members", points: zeroFill(memberSeries, windowDays), total: 0 },
   ].map((series) => ({
     ...series,
     total: series.points.reduce((sum, point) => sum + point.value, 0),
@@ -426,76 +348,12 @@ export async function loadDashboard(windowDays = 30): Promise<Dashboard> {
     ];
   });
 
-  const who = (person: { name: string | null; handle: string }) =>
-    person.name || `@${person.handle}`;
+  const memberMonths = monthBars(memberMonthRows, monthsFrom);
 
-  const activity: ActivityItem[] = [
-    ...newMembers.map((member) => ({
-      kind: "member" as const,
-      title: who(member),
-      detail: "Joined the community",
-      at: member.createdAt,
-      href: `/admin/members?q=${encodeURIComponent(member.handle)}`,
-    })),
-    ...newEnrollments.map((row) => ({
-      kind: "enrollment" as const,
-      title: row.course.title,
-      detail: `${who(row.user)} started this course`,
-      at: row.startedAt,
-      href: `/admin/courses/${row.course.slug}/edit`,
-    })),
-    ...newRsvps.map((row) => ({
-      kind: "rsvp" as const,
-      title: row.event.title,
-      detail: `${who(row.user)} is coming`,
-      at: row.createdAt,
-      href: `/admin/events/${row.event.slug}`,
-    })),
-    ...newPosts.flatMap((post) =>
-      post.publishedAt
-        ? [
-            {
-              kind: "post" as const,
-              title: post.title || `New post in ${post.space.name}`,
-              detail: post.title
-                ? `${who(post.author)} in ${post.space.name}`
-                : who(post.author),
-              at: post.publishedAt,
-              href: `/posts/${post.id}`,
-            },
-          ]
-        : [],
-    ),
-  ]
-    .sort((a, b) => b.at.getTime() - a.at.getTime())
-    .slice(0, 7);
-
-  const engagement: EngagementTile[] = [
-    {
-      key: "reactions",
-      label: "Reactions",
-      value: reactionsNow,
-      trend: trend(reactionsNow, reactionsPrior, eventWindowsComparable),
-    },
-    {
-      key: "comments",
-      label: "Comments",
-      value: commentsNow,
-      trend: trend(commentsNow, commentsPrior, eventWindowsComparable),
-    },
-    {
-      key: "messages",
-      label: "Messages",
-      value: messagesNow,
-      trend: trend(messagesNow, messagesPrior, eventWindowsComparable),
-    },
-    {
-      key: "rsvps",
-      label: "RSVPs",
-      value: rsvpsNow,
-      trend: trend(rsvpsNow, rsvpsPrior, eventWindowsComparable),
-    },
-  ];
+  const liveClasses: LiveClassRow[] = [
+    ...upcomingClasses.map((row) => liveClassRow(row, now)),
+    ...pastClasses.map((row) => liveClassRow(row, now)),
+  ].slice(0, 5);
 
   const topContent: TopContentItem[] = topPosts.map((post) => ({
     id: post.id,
@@ -505,6 +363,14 @@ export async function loadDashboard(windowDays = 30): Promise<Dashboard> {
     comments: post._count.comments,
     href: `/posts/${post.id}`,
   }));
+
+  const insights = buildInsights({
+    windowDays,
+    posts: growth[0]!.points,
+    next: liveClasses.find((row) => row.state === "live" || row.state === "scheduled") ?? null,
+    renewalsEnding,
+    loved: topContent[0] ?? null,
+  });
 
   /**
    * Health, checked rather than reported.
@@ -547,12 +413,14 @@ export async function loadDashboard(windowDays = 30): Promise<Dashboard> {
 
   return {
     windowDays,
-    headline,
+    members,
     growth,
     access,
     topCourses,
-    activity,
-    engagement,
+    memberMonths,
+    liveClasses,
+    renewalsEnding,
+    insights,
     recentMembers: recentMembers.map((member) => ({
       id: member.id,
       name: member.name || `@${member.handle}`,
@@ -564,4 +432,136 @@ export async function loadDashboard(windowDays = 30): Promise<Dashboard> {
     topContent,
     health,
   };
+}
+
+const liveClassFields = {
+  id: true,
+  title: true,
+  slug: true,
+  startsAt: true,
+  endsAt: true,
+  status: true,
+  capacity: true,
+  _count: { select: { rsvps: { where: { status: "GOING" as const } } } },
+} as const;
+
+function liveClassRow(
+  row: {
+    id: string;
+    title: string;
+    slug: string;
+    startsAt: Date;
+    endsAt: Date | null;
+    status: "DRAFT" | "PUBLISHED" | "CANCELED";
+    capacity: number | null;
+    _count: { rsvps: number };
+  },
+  now: number,
+): LiveClassRow {
+  const start = row.startsAt.getTime();
+  const end = row.endsAt?.getTime() ?? start + CLASS_LENGTH;
+  const state: LiveClassState =
+    row.status === "DRAFT"
+      ? "draft"
+      : now >= start && now < end
+        ? "live"
+        : start > now
+          ? "scheduled"
+          : "completed";
+  return {
+    id: row.id,
+    title: row.title,
+    slug: row.slug,
+    startsAt: row.startsAt,
+    state,
+    going: row._count.rsvps,
+    capacity: row.capacity,
+  };
+}
+
+/** Six calendar months, zero-filled, oldest first. */
+export function monthBars(rows: MonthRow[], from: Date): MonthBar[] {
+  const byMonth = new Map(
+    rows.map((row) => [new Date(row.month).toISOString().slice(0, 7), Number(row.count)] as const),
+  );
+  const label = new Intl.DateTimeFormat("en-GB", { month: "short", timeZone: "UTC" });
+  return Array.from({ length: MONTHS }, (_, index) => {
+    const date = new Date(Date.UTC(from.getUTCFullYear(), from.getUTCMonth() + index, 1));
+    const month = date.toISOString().slice(0, 7);
+    return { month, label: label.format(date), value: byMonth.get(month) ?? 0 };
+  });
+}
+
+const WEEKDAYS = ["Sundays", "Mondays", "Tuesdays", "Wednesdays", "Thursdays", "Fridays", "Saturdays"];
+
+/**
+ * What is worth knowing this week, worked out from the figures on the page —
+ * never a guess. Each says where to act on it.
+ */
+export function buildInsights(input: {
+  windowDays: number;
+  posts: SeriesPoint[];
+  next: LiveClassRow | null;
+  renewalsEnding: number;
+  loved: TopContentItem | null;
+}): Insight[] {
+  const insights: Insight[] = [];
+
+  if (input.next) {
+    const when = new Intl.DateTimeFormat("en-GB", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "UTC",
+    }).format(input.next.startsAt);
+    insights.push({
+      key: "next-class",
+      icon: "calendar",
+      title: input.next.state === "live" ? `Live now: ${input.next.title}` : `Next class: ${input.next.title}`,
+      detail: `${when} UTC · ${input.next.going} going`,
+      href: `/admin/events/${input.next.slug}`,
+    });
+  }
+
+  if (input.renewalsEnding > 0) {
+    const n = input.renewalsEnding;
+    insights.push({
+      key: "renewals",
+      icon: "renewal",
+      title: `${n} ${n === 1 ? "membership" : "memberships"} won't renew`,
+      detail: "They keep access to the end of the period they paid for. A note now could keep them.",
+      href: "/admin/billing",
+    });
+  }
+
+  const byWeekday = Array.from({ length: 7 }, () => 0);
+  for (const point of input.posts) {
+    const day = new Date(`${point.date}T00:00:00Z`).getUTCDay();
+    byWeekday[day] = (byWeekday[day] ?? 0) + point.value;
+  }
+  const most = Math.max(...byWeekday);
+  if (most > 0) {
+    const day = WEEKDAYS[byWeekday.indexOf(most)];
+    insights.push({
+      key: "busiest-day",
+      icon: "posts",
+      title: `Members post most on ${day}`,
+      detail: `${most} ${most === 1 ? "post" : "posts"} on ${day} in the last ${input.windowDays} days, the day a cohost prompt meets the most people.`,
+      href: "/admin/cohost",
+    });
+  }
+
+  if (input.loved && input.loved.reactions + input.loved.comments > 0) {
+    insights.push({
+      key: "most-loved",
+      icon: "heart",
+      title: `Most-loved post: ${input.loved.title}`,
+      detail: `${input.loved.reactions} reactions · ${input.loved.comments} replies in ${input.loved.space}`,
+      href: input.loved.href,
+    });
+  }
+
+  return insights;
 }

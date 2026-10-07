@@ -2,6 +2,7 @@ import Link from "next/link";
 import { CalendarDays, ExternalLink, MessageSquare, PenLine, Radio } from "lucide-react";
 import { Avatar } from "@/components/ui/avatar";
 import { ButtonLink, Card, CardHeader } from "@/components/app/ui";
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { cn } from "@/lib/utils";
 
 export type RailEvent = {
@@ -91,7 +92,7 @@ export function FeedRail({
                   {event.coverUrl ? (
                     <span className="relative size-12 shrink-0 overflow-hidden rounded-ctl bg-surface-muted">
                       {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={event.coverUrl} alt="" className="size-full object-cover" />
+                      <img src={servableImageUrl(event.coverUrl, 160)} alt="" className="size-full object-cover" />
                     </span>
                   ) : (
                     <span className="grid size-12 shrink-0 place-items-center rounded-ctl bg-brand-wash text-center text-on-brand-wash">

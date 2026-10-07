@@ -29,6 +29,7 @@ import {
 import { LessonDiscussion } from "@/components/learn/lesson-discussion";
 import { ResourceList } from "@/components/learn/resource-list";
 import { classHref } from "@/lib/learn/classes";
+import { servableImageUrl } from "@/lib/media/servable-image";
 import { cn } from "@/lib/utils";
 
 /**
@@ -139,7 +140,7 @@ export default async function LessonPage({
                 lessonId={lesson.id}
                 kind={lesson.kind}
                 title={lesson.title}
-                poster={course.photo}
+                poster={servableImageUrl(course.photo)}
                 chapters={lesson.chapters}
                 resumeAt={progress.positionSeconds}
                 completed={progress.completed}
