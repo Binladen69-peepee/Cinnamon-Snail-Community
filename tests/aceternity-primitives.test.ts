@@ -176,10 +176,10 @@ const SCOPES: Scope[] = (() => {
   const bandLight = tokens(`:root${SCOPE} ${BAND}`);
   const bandDark = tokens(`:root.dark${SCOPE} ${BAND}`);
   const scopes: Scope[] = [
-    { name: "mulberry light", tokens: light, band: false },
-    { name: "mulberry dark", tokens: dark, band: false },
-    { name: "mulberry band light", tokens: { ...light, ...bandLight }, band: true },
-    { name: "mulberry band dark", tokens: { ...dark, ...bandLight, ...bandDark }, band: true },
+    { name: "default light", tokens: light, band: false },
+    { name: "default dark", tokens: dark, band: false },
+    { name: "default band light", tokens: { ...light, ...bandLight }, band: true },
+    { name: "default band dark", tokens: { ...dark, ...bandLight, ...bandDark }, band: true },
   ];
   const ids = [...new Set([...css.matchAll(/:root\[data-accent="([a-z0-9-]+)"\]/g)].map((m) => m[1]!))];
   for (const id of ids) {

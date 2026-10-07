@@ -180,6 +180,10 @@ for (const id of ACCENTS) {
   const bandDark = block(`:root.dark${scope} ${BAND}`);
   const appLight = { ...APP_LIGHT, ...light };
   const appDark = { ...APP_LIGHT, ...APP_DARK, ...light, ...dark };
+  // The same palette on the marketing site and the sign-in pages (DEC-084):
+  // its theme-layer blocks over the site's own grounds.
+  const siteLight = block(`:root[data-accent="${id}"] {`);
+  const siteDark = block(`:root.dark[data-accent="${id}"],`);
   SCOPES.push(
     [`${id} — light`, appLight, "app"],
     [`${id} — dark`, appDark, "app"],
@@ -189,6 +193,8 @@ for (const id of ACCENTS) {
       { ...appDark, ...BAND_ONLY_LIGHT, ...BAND_ONLY_DARK, ...bandLight, ...bandDark },
       "band",
     ],
+    [`${id} site — light`, { ...SCOPES[0][1], ...siteLight }, "marketing"],
+    [`${id} site — dark`, { ...SCOPES[1][1], ...siteLight, ...siteDark }, "marketing"],
   );
 }
 

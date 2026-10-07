@@ -3,9 +3,10 @@ import { ACCENT_STORAGE_KEY, DEFAULT_PALETTE, PALETTE_IDS } from "@/lib/theme/pa
 /**
  * The attribute on <html> that carries the member's palette (DEC-082).
  *
- * Absent means Mulberry, the default. The tokens it selects only exist inside
- * the app (`:has([data-app-shell], .vu-admin)` in app/globals.css), so it is
- * harmless on the marketing site and the sign-in pages.
+ * Absent means the default palette (Royal Blue). The tokens it selects cover
+ * the whole site (DEC-084): the marketing and sign-in pages through their
+ * theme-layer blocks, the app and the console through theirs, all in
+ * app/globals.css.
  */
 export const ACCENT_ATTRIBUTE = "data-accent";
 

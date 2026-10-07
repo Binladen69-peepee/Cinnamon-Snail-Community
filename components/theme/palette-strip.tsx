@@ -40,7 +40,9 @@ export function SwatchStrip({
  * it has a line here.
  */
 export const STRIP_SHOWN_WHEN: Record<PaletteId, string> = {
-  mulberry: "flex [:root[data-accent]:not([data-accent=mulberry])_&]:hidden",
+  // The default needs no attribute, so it shows unless another palette is on.
+  royal: "flex [:root[data-accent]:not([data-accent=royal])_&]:hidden",
+  mulberry: "hidden [:root[data-accent=mulberry]_&]:flex",
   charcoal: "hidden [:root[data-accent=charcoal]_&]:flex",
   dusk: "hidden [:root[data-accent=dusk]_&]:flex",
   slate: "hidden [:root[data-accent=slate]_&]:flex",

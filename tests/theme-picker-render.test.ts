@@ -72,8 +72,8 @@ describe("the Theme button", () => {
     expect(button).toContain("before:-inset-y-0.5");
   });
 
-  it("names the palette in use for a screen reader, Mulberry before hydration", () => {
-    expect(render(createElement(ThemeButton))).toContain('<span class="sr-only">, Mulberry</span>');
+  it("names the palette in use for a screen reader, Royal Blue before hydration", () => {
+    expect(render(createElement(ThemeButton))).toContain('<span class="sr-only">, Royal Blue</span>');
   });
 
   it("carries every palette's strip, with CSS showing the one in use from the first paint", () => {
@@ -105,7 +105,7 @@ describe("the Theme button", () => {
     expect(button).toContain("size-9");
     expect(button).toContain("before:-inset-0.5");
     expect(attr(button!, "aria-expanded")).toBe("false");
-    expect(html).toContain('<span class="sr-only">Theme, Mulberry</span>');
+    expect(html).toContain('<span class="sr-only">Theme, Royal Blue</span>');
   });
 });
 
@@ -137,7 +137,7 @@ describe("where the Theme button sits", () => {
     const html = render(createElement(AdminMobileNav, { name: "Ada", role: "Super admin", avatarUrl: null }));
     const [button] = tagsWith(html, 'aria-haspopup="dialog"');
     expect(button).toContain("ml-auto");
-    expect(html).toContain("Theme, Mulberry");
+    expect(html).toContain("Theme, Royal Blue");
   });
 });
 
@@ -211,7 +211,7 @@ describe("the dialog body", () => {
     expect(radios.every((tag) => tag.startsWith('<button type="button"'))).toBe(true);
   });
 
-  it("offers every palette, in order, as one radio group with Mulberry chosen by default", () => {
+  it("offers every palette, in order, as one radio group with Royal Blue chosen by default", () => {
     const palettes = group(html, "Palette");
     const radios = tagsWith(palettes, 'role="radio"');
     expect(radios).toHaveLength(PALETTES.length);
@@ -274,7 +274,7 @@ describe("the dialog body", () => {
     expect(preview).toContain("vu-band");
     expect(preview).toContain("bg-brand-wash text-on-brand-wash");
     expect(preview).toContain("text-link underline");
-    expect(preview).toMatch(/<p class="sr-only">A sample of the app in the Mulberry palette/);
+    expect(preview).toMatch(/<p class="sr-only">A sample of the app in the Royal Blue palette/);
   });
 
   it("puts the details in an accordion of buttons that control labelled regions", () => {
@@ -298,8 +298,8 @@ describe("the dialog body", () => {
   });
 
   it("lists the palette's four codes, each with a copy button that names it", () => {
-    const mulberry = PALETTES.find((p) => p.id === DEFAULT_PALETTE)!;
-    for (const swatch of mulberry.swatches) {
+    const fallback = PALETTES.find((p) => p.id === DEFAULT_PALETTE)!;
+    for (const swatch of fallback.swatches) {
       const code = swatch.toUpperCase();
       expect(html).toContain(`>${code}</span>`);
       expect(html).toMatch(new RegExp(`>Copy<span class="sr-only"> ${code}</span></button>`));
@@ -309,7 +309,9 @@ describe("the dialog body", () => {
   it("explains where the choice is kept", () => {
     expect(html).toContain("kept in this browser");
     expect(html).toContain("the member app and the admin console");
-    expect(html).toContain("the public site keeps the house colours");
+    // DEC-084: the palette follows the member onto the public pages too.
+    expect(html).toContain("the home page and");
+    expect(html).not.toContain("house colours");
   });
 });
 

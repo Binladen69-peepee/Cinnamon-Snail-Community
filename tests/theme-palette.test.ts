@@ -4,21 +4,22 @@ import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 /**
- * One brand hue, held to its own rules in two scopes.
+ * One palette at a time, across the whole site (DEC-082, DEC-084).
  *
- * The marketing site and the sign-in pages paint from the plum palette at the
- * top of `globals.css`: plum for the CTA, links and focus, neutrals for the
- * rest, amber and red reserved for warning and danger. This file has enforced
- * the marketing palette in several forms before — no hue (`DEC-037`), one
- * brand hue (`DEC-044`), no hue again (`DEC-045`), and now plum (2026-10-06).
- * The reason for guarding it has not changed: every surface paints from role
- * tokens, so one stray hue in those blocks repaints hundreds of components.
+ * The marketing site and the sign-in pages paint from the blocks at the top of
+ * `globals.css`; the member app and the admin console from the "App design
+ * system" section at the end. Both are neutral grounds written by hand (white
+ * but never pure white in light, black in dark) with amber and red reserved
+ * for warning and danger, and blue and (only in the app) green for status.
+ * The brand roles are not written by hand at all: `scripts/theme-accents.mjs`
+ * generates them from `lib/theme/palettes.json`, the default palette (Royal
+ * Blue) into marked regions inside the base blocks and every other palette
+ * under its `data-accent`. This file holds the hand-written CSS to greys and
+ * status hues, and each generated palette to its own hues.
  *
- * Everything signed in — the member app and the admin console — carries the
- * same plum on its own neutral ladder, declared once in the "App design
- * system" section at the end of `globals.css` and nowhere else, with amber,
- * red, blue and (only there) green for status. A green anywhere outside the
- * app section, or any green used as brand, is the regression this catches.
+ * The reason for guarding it has not changed since the marketing palette was
+ * first pinned (DEC-037): every surface paints from role tokens, so one stray
+ * hue in those blocks repaints hundreds of components.
  */
 
 const root = process.cwd();
@@ -29,6 +30,17 @@ const APP_MARKER = "App design system: the member app and the admin console.";
 const appStart = css.indexOf(APP_MARKER);
 const marketingCss = css.slice(0, appStart);
 const appCss = css.slice(appStart);
+
+/** The regions the generator writes the default palette into. */
+const GENERATED_REGION = /\/\* theme-default:([a-z-]+):start[\s\S]*?theme-default:\1:end \*\//g;
+const withoutGenerated = (text: string) => text.replace(GENERATED_REGION, "");
+
+/** The palettes, as the Theme dialog offers them. */
+const registry = JSON.parse(readFileSync(resolve(root, "lib/theme/palettes.json"), "utf8")) as {
+  default: string;
+  palettes: { id: string; swatches: string[] }[];
+};
+const fallback = registry.palettes.find((palette) => palette.id === registry.default)!;
 
 /** Hue in degrees, or null for a grey. */
 function hue(hex: string): number | null {
@@ -49,23 +61,21 @@ function hue(hex: string): number | null {
 }
 
 /**
- * The marketing sheet's families. Gold and red are reserved: they mean warning
- * and danger, and they are never spent on decoration. Plum is the brand.
- * Everything else is grey.
+ * The hand-written marketing sheet's families. Gold and red are reserved: they
+ * mean warning and danger, and they are never spent on decoration. The brand
+ * is generated, so it is not here. Everything else is grey.
  */
 const MARKETING_FAMILIES: [string, number, number][] = [
   ["gold / amber", 25, 60],
   ["red / terracotta", 0, 24],
-  ["plum / mulberry", 318, 345],
 ];
 
-/** The app's families: plum, and the four status hues. */
+/** The hand-written app sheet's families: the four status hues. */
 const APP_FAMILIES: [string, number, number][] = [
   ["danger red", 0, 24],
   ["yellow / amber", 25, 60],
   ["success green", 120, 165],
   ["info blue", 200, 225],
-  ["plum / mulberry", 318, 345],
 ];
 
 const familyIn =
@@ -117,7 +127,8 @@ const APP_DARK = ":root.dark:has([data-app-shell], .vu-admin) {";
 const ACCENTS_START = "/* theme-accents:start";
 const ACCENTS_END = "/* theme-accents:end */";
 const accentsCss = css.slice(css.indexOf(ACCENTS_START), css.indexOf(ACCENTS_END));
-const handWrittenAppCss = appCss.replace(accentsCss, "");
+const handWrittenAppCss = withoutGenerated(appCss.replace(accentsCss, ""));
+const handWrittenMarketingCss = withoutGenerated(marketingCss);
 
 function walk(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -139,8 +150,8 @@ describe("marketing palette", () => {
     }
   });
 
-  it("contains no hue outside the two reserved families", () => {
-    const hexes = marketingCss.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
+  it("writes no hue by hand outside the two reserved families", () => {
+    const hexes = handWrittenMarketingCss.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
     expect(hexes.length).toBeGreaterThan(50);
     const strays = [...new Set(hexes)]
       .filter((hex) => familyIn(MARKETING_FAMILIES)(hex) === null)
@@ -160,17 +171,38 @@ describe("marketing palette", () => {
     expect(greens).toEqual([]);
   });
 
-  it("keeps the marketing grounds", () => {
-    // A warm off-white in light and a plum-tinted near-black in dark; the
-    // green-tinted off-white and the pure black went with the monochrome.
-    expect(tokenIn(blockAfter(":root,"), "background")).toBe("#faf6f4");
-    expect(tokenIn(blockAfter('[data-theme="dark"] {'), "background")).toBe("#0f0b0e");
+  it("is white but never pure white in light, and black in dark, like the app", () => {
+    // DEC-084: the site takes the app's grounds, which carry no hue.
+    const light = blockAfter(":root,");
+    const dark = blockAfter('[data-theme="dark"] {');
+    expect(tokenIn(light, "background")).toBe("#f5f7fa");
+    for (const role of ["background", "surface", "overlay", "field-background"]) {
+      expect(tokenIn(light, role), `light --${role}`).not.toBe("#ffffff");
+      expect(hue(tokenIn(light, role)), `light --${role} has no hue`).toBeNull();
+    }
+    expect(tokenIn(dark, "background")).toBe("#000000");
+    expect(tokenIn(light, "background")).toBe(tokenIn(blockAfter(APP_LIGHT), "background"));
+    expect(tokenIn(dark, "background")).toBe(tokenIn(blockAfter(APP_DARK), "background"));
   });
 
-  it("brands the call to action, links and focus in plum", () => {
-    expect(tokenIn(blockAfter(":root,"), "cta-fill")).toBe("#7b2d56");
-    expect(familyIn(MARKETING_FAMILIES)(tokenIn(blockAfter(":root,"), "link"))).toBe("plum / mulberry");
-    expect(familyIn(MARKETING_FAMILIES)(tokenIn(blockAfter('[data-theme="dark"] {'), "link"))).toBe("plum / mulberry");
+  it("brands the call to action, links and focus in the default palette, the same as the app", () => {
+    const light = blockAfter(":root,");
+    const dark = blockAfter('[data-theme="dark"] {');
+    // The same filled blue on the landing page as on a primary button in the app.
+    expect(tokenIn(light, "cta-fill")).toBe(tokenIn(blockAfter(APP_LIGHT), "brand-fill"));
+    expect(tokenIn(dark, "cta-fill")).toBe(tokenIn(blockAfter(APP_DARK), "brand-fill"));
+    const own = fallback.swatches.map(hue).filter((h): h is number => h !== null);
+    for (const [block, role] of [
+      [light, "cta-fill"],
+      [light, "link"],
+      [light, "focus"],
+      [dark, "link"],
+      [dark, "focus"],
+    ] as const) {
+      const h = hue(tokenIn(block, role));
+      expect(h, role).not.toBeNull();
+      expect(own.some((o) => Math.min(Math.abs(h! - o), 360 - Math.abs(h! - o)) <= 20), role).toBe(true);
+    }
   });
 
   it("still keeps warning and danger exactly where they were", () => {
@@ -191,15 +223,20 @@ describe("marketing palette", () => {
 });
 
 describe("app palette", () => {
-  it("is the plum palette by default, on neutral grounds", () => {
+  it("is Royal Blue by default, from the client's reference, on neutral grounds", () => {
+    expect(registry.default).toBe("royal");
     const light = blockAfter(APP_LIGHT);
-    expect(tokenIn(light, "background")).toBe("#f7f7f5");
-    expect(tokenIn(light, "surface")).toBe("#fdfdfc");
+    expect(tokenIn(light, "background")).toBe("#f5f7fa");
+    expect(tokenIn(light, "surface")).toBe("#fcfdfe");
     expect(tokenIn(light, "foreground")).toBe("#171717");
-    expect(tokenIn(light, "brand-fill")).toBe("#7b2d56");
-    expect(tokenIn(light, "sidebar")).toBe("#561d3f");
+    // The rail is the reference's navy, the fill its royal blue (a shade
+    // deeper, so a white label clears 4.5:1 under the button's sheen).
+    expect(tokenIn(light, "sidebar")).toBe(fallback.swatches[0]);
+    expect(tokenIn(light, "brand-wash")).toBe(fallback.swatches[3]);
+    expect(hue(tokenIn(light, "brand-fill"))).toBeGreaterThanOrEqual(212);
+    expect(hue(tokenIn(light, "brand-fill"))).toBeLessThanOrEqual(228);
     // Counts and hearts are brand, never a third hue that could read as status.
-    expect(tokenIn(light, "highlight")).toBe("#7b2d56");
+    expect(tokenIn(light, "highlight")).toBe(tokenIn(light, "brand-fill"));
   });
 
   it("is white but never pure white in light mode, and black in dark mode", () => {
@@ -227,9 +264,9 @@ describe("app palette", () => {
     }
   });
 
-  it("uses only the brand's families and status hues", () => {
-    // The member-chosen palettes are generated and held to their own families
-    // below; everything written by hand stays plum, grey and status.
+  it("writes only greys and the status hues by hand", () => {
+    // The palettes, the default included, are generated and held to their own
+    // families below; everything written by hand is grey or status.
     const hexes = handWrittenAppCss.match(/#[0-9a-fA-F]{6}\b/g) ?? [];
     const strays = [...new Set(hexes)]
       .filter((hex) => familyIn(APP_FAMILIES)(hex) === null)
@@ -255,23 +292,29 @@ describe("app palette", () => {
   });
 });
 
-describe("member palettes (DEC-082)", () => {
-  const registry = JSON.parse(readFileSync(resolve(root, "lib/theme/palettes.json"), "utf8")) as {
-    default: string;
-    palettes: { id: string; swatches: string[]; builtin?: boolean }[];
-  };
-  const chosen = registry.palettes.filter((palette) => !palette.builtin);
+describe("member palettes (DEC-082, DEC-084)", () => {
+  const chosen = registry.palettes.filter((palette) => palette.id !== registry.default);
   const scope = (id: string) => `[data-accent="${id}"]:has([data-app-shell], .vu-admin)`;
   const BAND = ":is(.vu-app-sidebar, .vu-admin-rail, .vu-band) {";
   const names = (block: string) => [...block.matchAll(/--([a-z0-9-]+):/g)].map((m) => m[1]).sort();
+  const regionIn = (name: string) => {
+    const start = css.indexOf(`/* theme-default:${name}:start`);
+    const end = css.indexOf(`/* theme-default:${name}:end */`);
+    expect(start, `region ${name}`).toBeGreaterThan(-1);
+    return css.slice(start, end);
+  };
 
   it("generates exactly the palettes the dialog offers, from palettes.json, up to date", () => {
     const generated = [
       ...new Set([...accentsCss.matchAll(/data-accent="([a-z0-9-]+)"/g)].map((m) => m[1])),
     ].sort();
     expect(generated).toEqual(chosen.map((palette) => palette.id).sort());
-    // The default is the hand-written plum, and the only built-in.
-    expect(registry.palettes.filter((p) => p.builtin).map((p) => p.id)).toEqual([registry.default]);
+    // The default needs no attribute: it is written into the base blocks, for
+    // the site and the app, in both modes, and the band in both.
+    expect(generated).not.toContain(registry.default);
+    for (const region of ["site-light", "site-dark", "app-light", "app-dark", "band-light", "band-dark"]) {
+      expect(names(regionIn(region)).length, region).toBeGreaterThan(5);
+    }
     // The script refuses to write a pair that fails contrast, and --check
     // fails when globals.css has drifted from palettes.json.
     expect(() =>
@@ -286,6 +329,10 @@ describe("member palettes (DEC-082)", () => {
     for (const { id } of chosen) {
       expect(names(blockAfter(`:root.dark${scope(id)} {`)), id).toEqual(
         names(blockAfter(`:root${scope(id)} {`)),
+      );
+      // The same for the site's blocks.
+      expect(names(blockAfter(`:root.dark[data-accent="${id}"],`)), `${id} site`).toEqual(
+        names(blockAfter(`:root[data-accent="${id}"] {`)),
       );
       expect(names(blockAfter(`:root.dark${scope(id)} ${BAND}`)), `${id} band`).toEqual(
         names(blockAfter(`:root${scope(id)} ${BAND}`)),

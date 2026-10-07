@@ -10,7 +10,7 @@ import {
 /**
  * The member's palette, on this page and in this browser (DEC-082).
  *
- * What is applied lives on <html> as `data-accent` (absent for Mulberry, the
+ * What is applied lives on <html> as `data-accent` (absent for the default palette, the
  * default) and is what the app's CSS reads; what is remembered lives in
  * localStorage under `vu-accent`. The boot script (`./boot-script`) copies
  * the second onto the first before the first paint, and this keeps the two in
@@ -39,7 +39,7 @@ function htmlElement(): HTMLElement | null {
   return typeof document === "undefined" ? null : document.documentElement;
 }
 
-/** The palette applied to the page now. Mulberry without an attribute. */
+/** The palette applied to the page now. The default palette without an attribute. */
 export function getAccent(): PaletteId {
   const value = htmlElement()?.getAttribute(ACCENT_ATTRIBUTE);
   return isPaletteId(value) ? value : DEFAULT_PALETTE;
@@ -50,7 +50,7 @@ export function getServerAccent(): PaletteId {
   return DEFAULT_PALETTE;
 }
 
-/** The saved palette, Mulberry when nothing valid is saved, or null when storage cannot be read. */
+/** The saved palette, the default palette when nothing valid is saved, or null when storage cannot be read. */
 export function readStoredAccent(): PaletteId | null {
   try {
     const value = localStorage.getItem(ACCENT_STORAGE_KEY);
@@ -132,7 +132,7 @@ export function subscribeAccent(onChange: () => void): () => void {
 
 /**
  * The palette applied now, kept current. The server, and the first render in
- * the browser, see Mulberry; React then re-renders with the real one, so
+ * the browser, see the default palette; React then re-renders with the real one, so
  * hydration never mismatches.
  */
 export function useAccent(): PaletteId {

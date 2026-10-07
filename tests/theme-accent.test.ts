@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
  *
  * There is no browser here, so <html>, localStorage and the window's events
  * are small fakes; the store only touches what they provide. The rules held:
- * a palette applies to <html> and is remembered, Mulberry is "no attribute,
+ * a palette applies to <html> and is remembered, Royal Blue is "no attribute,
  * nothing saved", anything else is refused, other tabs are followed, and a
  * browser that blocks storage still gets its palette for the visit.
  */
@@ -83,12 +83,12 @@ describe("choosing a palette", () => {
     expect(store.getAccent()).toBe("slate");
   });
 
-  it("clears both for Mulberry, the default", () => {
+  it("clears both for Royal Blue, the default", () => {
     store.setAccent("midnight");
-    expect(store.setAccent("mulberry")).toBe(true);
+    expect(store.setAccent("royal")).toBe(true);
     expect(html.attributes.has("data-accent")).toBe(false);
     expect(storage.items.has("vu-accent")).toBe(false);
-    expect(store.getAccent()).toBe("mulberry");
+    expect(store.getAccent()).toBe("royal");
   });
 
   it("refuses anything that is not a palette, and changes nothing", () => {
@@ -103,10 +103,10 @@ describe("choosing a palette", () => {
     expect(heard).not.toHaveBeenCalled();
   });
 
-  it("reads Mulberry from a page with no attribute, or a stray one", () => {
-    expect(store.getAccent()).toBe("mulberry");
+  it("reads Royal Blue from a page with no attribute, or a stray one", () => {
+    expect(store.getAccent()).toBe("royal");
     html.setAttribute("data-accent", "teal");
-    expect(store.getAccent()).toBe("mulberry");
+    expect(store.getAccent()).toBe("royal");
   });
 
   it("announces the change on the window, naming the palette", () => {
@@ -115,8 +115,8 @@ describe("choosing a palette", () => {
       details.push((event as CustomEvent).detail),
     );
     store.setAccent("dusk");
-    store.setAccent("mulberry");
-    expect(details).toEqual([{ accent: "dusk" }, { accent: "mulberry" }]);
+    store.setAccent("royal");
+    expect(details).toEqual([{ accent: "dusk" }, { accent: "royal" }]);
   });
 
   it("tells this tab's subscribers, until they unsubscribe", () => {
@@ -141,7 +141,7 @@ describe("another tab", () => {
     expect(storage.items.has("vu-accent")).toBe(false);
   });
 
-  it("falls back to Mulberry when the other tab removes, garbles or clears it", () => {
+  it("falls back to Royal Blue when the other tab removes, garbles or clears it", () => {
     store.subscribeAccent(() => {});
     for (const [key, value] of [
       ["vu-accent", null],
@@ -232,28 +232,28 @@ describe("putting the saved palette back", () => {
     expect(heard).not.toHaveBeenCalled();
   });
 
-  it("treats a garbled saved value as Mulberry", () => {
+  it("treats a garbled saved value as Royal Blue", () => {
     storage.items.set("vu-accent", "<script>");
-    expect(store.readStoredAccent()).toBe("mulberry");
+    expect(store.readStoredAccent()).toBe("royal");
   });
 });
 
 describe("on the server", () => {
-  it("is always Mulberry, and the hook renders that for hydration", () => {
-    expect(store.getServerAccent()).toBe("mulberry");
+  it("is always Royal Blue, and the hook renders that for hydration", () => {
+    expect(store.getServerAccent()).toBe("royal");
     // Even with a palette on the page, the server snapshot is what a first
     // render uses, so server and browser markup agree.
     html.setAttribute("data-accent", "slate");
     function Probe() {
       return store.useAccent();
     }
-    expect(renderToStaticMarkup(createElement(Probe))).toBe("mulberry");
+    expect(renderToStaticMarkup(createElement(Probe))).toBe("royal");
   });
 
   it("does not touch a page or a window that is not there", () => {
     vi.stubGlobal("document", undefined);
     vi.stubGlobal("window", undefined);
-    expect(store.getAccent()).toBe("mulberry");
+    expect(store.getAccent()).toBe("royal");
     const unsubscribe = store.subscribeAccent(() => {});
     expect(unsubscribe).toBeTypeOf("function");
     expect(() => unsubscribe()).not.toThrow();

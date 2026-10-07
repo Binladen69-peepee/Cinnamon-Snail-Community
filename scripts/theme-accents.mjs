@@ -1,26 +1,35 @@
 #!/usr/bin/env node
 /**
- * Theme accents: one palette in, a full set of app tokens out.
+ * Theme palettes: four colours in, every token the site paints with out.
  *
  * A member picks a palette in the app's Theme dialog (`data-accent` on
- * <html>). Each palette is four colours, darkest to lightest, in
- * `lib/theme/palettes.json`. This script turns them into the tokens the app
- * paints with, for light mode (an off-white page) and dark mode (black), and
- * for the rails and the hero band, and writes them into `app/globals.css`
- * between the `theme-accents` markers. The palette's darkest colour is the
- * rail; one of its middle colours carries action; its lightest is the tint
- * chips and the active row sit on.
+ * <html>), and it applies to the whole site: the landing and marketing pages,
+ * the sign-in pages, the member app and the admin console (DEC-082, DEC-084).
+ * Each palette is four colours, darkest to lightest, in
+ * `lib/theme/palettes.json`. This script turns them into tokens for light
+ * mode (an off-white page) and dark mode (black), for the app, for the app's
+ * rails and hero band, and for the marketing site, and writes them into
+ * `app/globals.css`:
  *
- * Every pair is held to the same thresholds as `scripts/check-theme-contrast.mjs`
- * before anything is written, and colours that miss are nudged (darker on a
- * light ground, lighter on black) until they clear. The grounds themselves are
- * read from the app blocks in `globals.css`, so the two can never disagree.
+ *   - the default palette (palettes.json "default") into the marked
+ *     `theme-default:*` regions inside the base blocks, so the site is in it
+ *     with no attribute at all;
+ *   - every other palette into the `theme-accents` block, keyed by
+ *     `[data-accent="<id>"]`.
  *
- *   node scripts/theme-accents.mjs           write the block
- *   node scripts/theme-accents.mjs --check   fail if the block is out of date
+ * Derivation: the palette's darkest colour is the app rail; `fill` picks the
+ * colour that carries action in light mode, `darkFill` the one that carries it
+ * on black (a light tint, labelled in the darkest), `wash` (optional) the pale
+ * tint chips and the active row sit on. A palette may instead give explicit
+ * token sets under `tokens` (Mulberry keeps its hand-tuned values that way).
  *
- * The built-in palette (Mulberry) is the app's own default, written by hand in
- * the app blocks; it is listed in the JSON only so the dialog can show it.
+ * Every pair is held to WCAG before anything is written: derived colours
+ * that miss are nudged (darker on a light ground, lighter on black) until
+ * they clear, and explicit ones that miss stop the script. The grounds are
+ * read from `globals.css` itself, so the two can never disagree.
+ *
+ *   node scripts/theme-accents.mjs           write the CSS
+ *   node scripts/theme-accents.mjs --check   fail if the CSS is out of date
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
@@ -36,6 +45,25 @@ export const END = "/* theme-accents:end */";
 
 const SCOPE = ":has([data-app-shell], .vu-admin)";
 const BANDS = ":is(.vu-app-sidebar, .vu-admin-rail, .vu-band)";
+
+/** The base blocks, and the region inside each the default palette fills. */
+export const SITE_LIGHT = ":root,\n  .light,\n  [data-theme=\"light\"] {";
+export const SITE_DARK = ".dark,\n  [data-theme=\"dark\"] {";
+export const APP_LIGHT = `:root${SCOPE} {`;
+export const APP_DARK = `:root.dark${SCOPE} {`;
+export const BAND_LIGHT = `:root${SCOPE} ${BANDS} {`;
+export const BAND_DARK = `:root.dark${SCOPE} ${BANDS} {`;
+
+const REGIONS = {
+  "site-light": "    ",
+  "site-dark": "    ",
+  "app-light": "  ",
+  "app-dark": "  ",
+  "band-light": "  ",
+  "band-dark": "  ",
+};
+const regionStart = (name) => `/* theme-default:${name}:start (generated; do not edit by hand) */`;
+const regionEnd = (name) => `/* theme-default:${name}:end */`;
 
 // ---------------------------------------------------------------- colour math
 
@@ -111,7 +139,7 @@ function clear(fg, bg, min, toward) {
   return out;
 }
 
-// ------------------------------------------------------------------ the grounds
+// ------------------------------------------------------------------ the CSS
 
 const CR = String.fromCharCode(13);
 
@@ -147,27 +175,41 @@ export function readPalettes() {
   return JSON.parse(readFileSync(PALETTES_PATH, "utf8"));
 }
 
-/** The app's light and dark grounds, as `globals.css` declares them. */
+/** The grounds the palettes sit on, as `globals.css` declares them. */
 export function readBases(css = readCss()) {
+  const appLight = tokensIn(css, APP_LIGHT);
   return {
-    light: tokensIn(css, `:root${SCOPE} {`),
-    dark: { ...tokensIn(css, `:root${SCOPE} {`), ...tokensIn(css, `:root.dark${SCOPE} {`) },
+    light: appLight,
+    dark: { ...appLight, ...tokensIn(css, APP_DARK) },
+    siteLight: tokensIn(css, SITE_LIGHT),
+    siteDark: tokensIn(css, SITE_DARK),
   };
 }
 
 // --------------------------------------------------------------- derivation
 
-function lightTokens(swatches, fillIndex, base) {
+function lightTokens(palette, base) {
+  const { swatches, fill: fillIndex } = palette;
   const [c1, , c3, c4] = swatches;
   const F = swatches[fillIndex];
   const S = base.surface;
   const brandStrong = clear(mix(F, c1, 0.35), S, 7, BLACK);
-  // The palette's light end is the tint chips, badges and the active row sit
-  // on. Kept when it reads on the page, by lightness or by hue (Midnight's
-  // cream); otherwise a pale tint of the palette's mid colour.
-  let wash = chroma(c4) > 0.035 ? c4 : mix(c4, WHITE, 0.25);
-  if (contrast(wash, base.background) < 1.06 && chroma(wash) <= 0.035) wash = mix(c3, WHITE, 0.62);
-  const fill = clear(F, WHITE, 4.5, BLACK);
+  // The pale tint chips, badges and the active row sit on: the palette's
+  // light end when it reads on the page (by lightness or by hue), otherwise a
+  // pale tint of its mid colour. `wash` names one outright.
+  let wash;
+  if (palette.wash !== undefined) wash = swatches[palette.wash];
+  else {
+    wash = chroma(c4) > 0.035 ? c4 : mix(c4, WHITE, 0.25);
+    if (contrast(wash, base.background) < 1.06 && chroma(wash) <= 0.035) wash = mix(c3, WHITE, 0.62);
+  }
+  // The app's primary button paints its fill with an 8% white sheen at the
+  // top (the "Get Started" gradient), so its white label has to clear 4.5:1
+  // there too, not only on the fill itself.
+  let fill = clear(F, WHITE, 4.5, BLACK);
+  for (let step = 0; step < 80 && contrast(mix(fill, WHITE, 0.08), WHITE) < 4.5; step += 1) {
+    fill = mix(fill, BLACK, 0.04);
+  }
   const hover = mix(fill, BLACK, 0.12);
   const tokens = {
     brand: clear(F, S, 3, BLACK),
@@ -221,7 +263,8 @@ function lightTokens(swatches, fillIndex, base) {
   return { tokens, band };
 }
 
-function darkTokens(swatches, darkFill, darkInk, base) {
+function darkTokens(palette, base) {
+  const { swatches, darkFill, darkInk } = palette;
   const [c1, , c3, c4] = swatches;
   const S = base.surface;
   const pick = darkFill === "lift2" ? mix(c3, WHITE, 0.45) : swatches[darkFill];
@@ -234,8 +277,8 @@ function darkTokens(swatches, darkFill, darkInk, base) {
     darkInk === undefined
       ? clear(mix(fill, WHITE, 0.25), S, 7, WHITE)
       : clear(mix(swatches[darkInk], WHITE, 0.5), S, 7, WHITE);
-  // A dark tint for chips. Midnight's darkest is all but black, so its tint
-  // comes from the mid blue instead.
+  // A dark tint for chips. A darkest that is all but black gives no tint, so
+  // the mid colour does instead.
   const wash = luminance(c1) < 0.01 ? mix(c3, BLACK, 0.45) : mix(c1, BLACK, 0.2);
   const sidebar = mix(c1, BLACK, 0.3);
   const hover = mix(fill, WHITE, 0.14);
@@ -292,17 +335,106 @@ function darkTokens(swatches, darkFill, darkInk, base) {
   return { tokens, band };
 }
 
-/** A palette's four token sets: light, dark, and the band in each. */
-export function derivePalette(palette, bases) {
+/** The marketing site's brand roles, from the app's, for one mode. */
+function siteTokens(app, mode, c1) {
+  const t = app.tokens;
+  if (mode === "light") {
+    return {
+      primary: t["brand-fill"],
+      "primary-foreground": t["brand-fill-foreground"],
+      accent: t["brand-fill"],
+      "accent-foreground": t["brand-fill-foreground"],
+      focus: t.brand,
+      link: t["brand-strong"],
+      success: t["brand-strong"],
+      "success-foreground": WHITE,
+      brand: t.brand,
+      "brand-strong": t["brand-strong"],
+      "brand-wash": t["brand-wash"],
+      "on-brand-wash": t["on-brand-wash"],
+      "on-brand": WHITE,
+      "brand-fill": t["brand-fill"],
+      "brand-fill-hover": t["brand-fill-hover"],
+      "brand-fill-foreground": t["brand-fill-foreground"],
+      "sidebar-accent": t["brand-wash"],
+      "sidebar-accent-foreground": t["on-brand-wash"],
+      "sidebar-ring": t.brand,
+      forest: t["brand-strong"],
+      "deep-forest": t["deep-forest"],
+      sage: t["brand-wash"],
+      "cta-fill": t["cta-fill"],
+      "cta-fill-hover": t["cta-fill-hover"],
+      "cta-fill-foreground": t["cta-fill-foreground"],
+    };
+  }
+  // On black the accent is the palette's light ink, labelled in its darkest.
+  const onInk = clear(c1, t["brand-strong"], 4.5, BLACK);
   return {
-    light: lightTokens(palette.swatches, palette.fill, bases.light),
-    dark: darkTokens(palette.swatches, palette.darkFill, palette.darkInk, bases.dark),
+    primary: t["brand-fill"],
+    "primary-foreground": t["brand-fill-foreground"],
+    accent: t["brand-strong"],
+    "accent-foreground": onInk,
+    focus: t["brand-strong"],
+    link: t["brand-strong"],
+    success: t["brand-strong"],
+    "success-foreground": onInk,
+    brand: t.brand,
+    "brand-strong": t["brand-strong"],
+    "brand-wash": t["brand-wash"],
+    "on-brand-wash": t["on-brand-wash"],
+    "on-brand": t["on-brand"],
+    "brand-fill": t["brand-fill"],
+    "brand-fill-hover": t["brand-fill-hover"],
+    "brand-fill-foreground": t["brand-fill-foreground"],
+    "sidebar-accent": t["brand-wash"],
+    "sidebar-accent-foreground": t["on-brand-wash"],
+    "sidebar-ring": t["brand-strong"],
+    forest: t["brand-strong"],
+    "deep-forest": t.brand,
+    sage: t["brand-wash"],
+    "cta-fill": t["cta-fill"],
+    "cta-fill-hover": t["cta-fill-hover"],
+    "cta-fill-foreground": t["cta-fill-foreground"],
+  };
+}
+
+/**
+ * A palette's token sets: the app in light and dark (with the band in each),
+ * and the marketing site in light and dark. Explicit sets win over derived.
+ */
+export function derivePalette(palette, bases) {
+  const given = palette.tokens ?? {};
+  const derivedLight = palette.fill === undefined ? null : lightTokens(palette, bases.light);
+  const derivedDark = palette.darkFill === undefined ? null : darkTokens(palette, bases.dark);
+  const light = {
+    tokens: given.light ?? derivedLight?.tokens,
+    band: given.bandLight ?? derivedLight?.band,
+  };
+  const dark = {
+    tokens: given.dark ?? derivedDark?.tokens,
+    band: given.bandDark ?? derivedDark?.band,
+  };
+  for (const [name, set] of [
+    ["light", light.tokens],
+    ["light band", light.band],
+    ["dark", dark.tokens],
+    ["dark band", dark.band],
+  ]) {
+    if (!set) throw new Error(`${palette.id}: no ${name} tokens (give fill/darkFill or explicit tokens)`);
+  }
+  return {
+    light,
+    dark,
+    site: {
+      light: given.siteLight ?? siteTokens(light, "light", palette.swatches[0]),
+      dark: given.siteDark ?? siteTokens(dark, "dark", palette.swatches[0]),
+    },
   };
 }
 
 // ---------------------------------------------------------------- contrast
 
-/** What each palette must clear, in each mode. Mirrors check-theme-contrast. */
+/** What each palette must clear in the app, in each mode. */
 export const ACCENT_PAIRS = [
   ["brand-strong", "surface", 4.5],
   ["on-brand-wash", "brand-wash", 4.5],
@@ -329,57 +461,112 @@ export const ACCENT_BAND_PAIRS = [
   ["sidebar-accent-foreground", "sidebar-accent", 4.5],
 ];
 
+/** What each palette must clear on the marketing site, in each mode. */
+export const SITE_PAIRS = [
+  ["brand-strong", "surface", 4.5],
+  ["on-brand-wash", "brand-wash", 4.5],
+  ["brand", "surface", 3],
+  ["brand-fill-foreground", "brand-fill", 4.5],
+  ["link", "surface", 4.5],
+  ["link", "background", 4.5],
+  ["focus", "surface", 3],
+  ["sidebar-accent-foreground", "sidebar-accent", 4.5],
+  ["cta-fill-foreground", "cta-fill", 4.5],
+  ["primary-foreground", "primary", 4.5],
+  ["accent-foreground", "accent", 4.5],
+  ["success-foreground", "success", 4.5],
+];
+
 /** Every failing pair, as readable lines. Empty when the palette passes. */
 export function failures(id, derived, bases) {
   const out = [];
+  const check = (scope, label, pairs) => {
+    for (const [fg, bg, min] of pairs) {
+      const r = contrast(scope[fg], scope[bg]);
+      if (!(r >= min)) out.push(`${id} ${label}: ${fg} on ${bg} is ${r.toFixed(2)}:1 (needs ${min})`);
+    }
+  };
   for (const mode of ["light", "dark"]) {
     const scope = { ...bases[mode], ...derived[mode].tokens };
-    const band = { ...scope, foreground: WHITE, brand: WHITE, ...derived[mode].band };
-    for (const [fg, bg, min] of ACCENT_PAIRS) {
-      const r = contrast(scope[fg], scope[bg]);
-      if (r < min) out.push(`${id} ${mode}: ${fg} on ${bg} is ${r.toFixed(2)}:1 (needs ${min})`);
-    }
-    for (const [fg, bg, min] of ACCENT_BAND_PAIRS) {
-      const r = contrast(band[fg], band[bg]);
-      if (r < min) out.push(`${id} ${mode} band: ${fg} on ${bg} is ${r.toFixed(2)}:1 (needs ${min})`);
-    }
+    check(scope, mode, ACCENT_PAIRS);
+    check({ ...scope, foreground: WHITE, brand: WHITE, ...derived[mode].band }, `${mode} band`, ACCENT_BAND_PAIRS);
   }
+  check({ ...bases.siteLight, ...derived.site.light }, "site light", SITE_PAIRS);
+  check({ ...bases.siteDark, ...derived.site.dark }, "site dark", SITE_PAIRS);
   return out;
 }
 
-// ------------------------------------------------------------------ the CSS
+// ------------------------------------------------------------------ render
 
-const declarations = (tokens) =>
+const declarations = (tokens, indent) =>
   Object.entries(tokens)
-    .map(([name, value]) => `  --${name}: ${value};`)
+    .map(([name, value]) => `${indent}--${name}: ${value};`)
     .join("\n");
 
-export function renderAccents(palettes, bases) {
+/** The default palette's six regions, keyed by region name. */
+export function renderDefault(palette, bases) {
+  const d = derivePalette(palette, bases);
+  const sets = {
+    "site-light": d.site.light,
+    "site-dark": d.site.dark,
+    "app-light": d.light.tokens,
+    "app-dark": d.dark.tokens,
+    "band-light": d.light.band,
+    "band-dark": d.dark.band,
+  };
+  return Object.fromEntries(
+    Object.entries(sets).map(([region, tokens]) => [region, declarations(tokens, REGIONS[region])]),
+  );
+}
+
+/** Every other palette, keyed by `data-accent`, for the app and the site. */
+export function renderAccents(palettes, bases, defaultId) {
   const parts = [START];
-  for (const palette of palettes.filter((p) => !p.builtin)) {
-    const derived = derivePalette(palette, bases);
+  for (const palette of palettes.filter((p) => p.id !== defaultId)) {
+    const d = derivePalette(palette, bases);
     const id = palette.id;
+    const site = `[data-accent="${id}"]`;
     parts.push(
       "",
       `/* ${palette.name}: ${palette.swatches.join(" ")} */`,
-      `:root[data-accent="${id}"]${SCOPE} {\n${declarations(derived.light.tokens)}\n}`,
-      `:root.dark[data-accent="${id}"]${SCOPE} {\n${declarations(derived.dark.tokens)}\n}`,
-      `:root[data-accent="${id}"]${SCOPE} ${BANDS} {\n${declarations(derived.light.band)}\n}`,
-      `:root.dark[data-accent="${id}"]${SCOPE} ${BANDS} {\n${declarations(derived.dark.band)}\n}`,
+      `:root${site}${SCOPE} {\n${declarations(d.light.tokens, "  ")}\n}`,
+      `:root.dark${site}${SCOPE} {\n${declarations(d.dark.tokens, "  ")}\n}`,
+      `:root${site}${SCOPE} ${BANDS} {\n${declarations(d.light.band, "  ")}\n}`,
+      `:root.dark${site}${SCOPE} ${BANDS} {\n${declarations(d.dark.band, "  ")}\n}`,
+      // The marketing site's blocks live in the theme layer, like its base
+      // blocks, so the app's unlayered blocks still win inside the app.
+      `@layer theme {\n  :root${site} {\n${declarations(d.site.light, "    ")}\n  }\n\n` +
+        `  :root.dark${site},\n  :root[data-theme="dark"]${site} {\n${declarations(d.site.dark, "    ")}\n  }\n}`,
     );
   }
   parts.push("", END);
   return parts.join("\n");
 }
 
-/** The stylesheet with its accent block replaced by `block`. */
-export function withAccents(css, block) {
-  const start = css.indexOf(START);
-  const end = css.indexOf(END);
-  if (start === -1 || end === -1 || end < start) {
-    throw new Error("theme-accents markers not found in app/globals.css");
+/** The stylesheet with a marked region's contents replaced. */
+function withRegion(css, start, end, content, label) {
+  const from = css.indexOf(start);
+  const to = css.indexOf(end);
+  if (from === -1 || to === -1 || to < from) throw new Error(`${label} markers not found in app/globals.css`);
+  return css.slice(0, from) + content + css.slice(to + end.length);
+}
+
+/** The stylesheet with every generated region rewritten. */
+export function render(css, data) {
+  const bases = readBases(css);
+  const byId = Object.fromEntries(data.palettes.map((p) => [p.id, p]));
+  const fallback = byId[data.default];
+  if (!fallback) throw new Error(`default palette "${data.default}" is not in palettes.json`);
+  let next = css;
+  const regions = renderDefault(fallback, bases);
+  for (const [region, body] of Object.entries(regions)) {
+    const start = regionStart(region);
+    const end = regionEnd(region);
+    const indent = REGIONS[region];
+    next = withRegion(next, start, end, `${start}\n${body}\n${indent}${end}`, `theme-default:${region}`);
   }
-  return css.slice(0, start) + block + css.slice(end + END.length);
+  next = withRegion(next, START, END, renderAccents(data.palettes, bases, data.default), "theme-accents");
+  return next;
 }
 
 // --------------------------------------------------------------------- main
@@ -389,29 +576,29 @@ function main() {
   const raw = readFileSync(CSS_PATH, "utf8");
   const crlf = raw.includes(CR + "\n");
   const css = raw.split(CR).join("");
+  const data = readPalettes();
   const bases = readBases(css);
-  const { palettes } = readPalettes();
 
-  const problems = palettes
-    .filter((p) => !p.builtin)
-    .flatMap((p) => failures(p.id, derivePalette(p, bases), bases));
+  const problems = data.palettes.flatMap((p) => failures(p.id, derivePalette(p, bases), bases));
   if (problems.length) {
     console.error(problems.join("\n"));
     console.error(`${problems.length} pair(s) fail; nothing written.`);
     process.exit(1);
   }
 
-  const next = withAccents(css, renderAccents(palettes, bases));
+  const next = render(css, data);
   if (check) {
     if (next !== css) {
       console.error("app/globals.css is out of date: run node scripts/theme-accents.mjs");
       process.exit(1);
     }
-    console.log("theme accents are up to date");
+    console.log("theme palettes are up to date");
     return;
   }
   writeFileSync(CSS_PATH, crlf ? next.split("\n").join(CR + "\n") : next);
-  console.log(`wrote ${palettes.filter((p) => !p.builtin).length} accents into app/globals.css`);
+  console.log(
+    `wrote ${data.default} as the default and ${data.palettes.length - 1} palettes into app/globals.css`,
+  );
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main();

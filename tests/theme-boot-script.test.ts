@@ -35,7 +35,7 @@ describe("the boot script", () => {
     }
   });
 
-  it("leaves <html> alone for Mulberry, for nothing saved, and for anything unknown", () => {
+  it("leaves <html> alone for the default palette, for nothing saved, and for anything unknown", () => {
     for (const value of [DEFAULT_PALETTE, null, "", "teal", "Slate", "slate ", "__proto__", "constructor", '"><img>']) {
       expect(run(saved(value)).size, String(value)).toBe(0);
     }

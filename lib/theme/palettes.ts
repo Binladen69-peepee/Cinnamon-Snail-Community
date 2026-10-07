@@ -1,18 +1,21 @@
 import data from "@/lib/theme/palettes.json";
 
 /**
- * The palettes a member can give the app (DEC-082).
+ * The palettes a member can give the whole site (DEC-082, DEC-084): the
+ * landing and marketing pages, the sign-in pages, the member app and the
+ * admin console.
  *
  * The four colours of each, darkest to lightest, are the palette as the
- * member sees it in the Theme dialog. The tokens the app actually paints with
- * are derived from them by `scripts/theme-accents.mjs` into `app/globals.css`;
- * the colours here are only ever shown, never used to style anything.
+ * member sees it in the Theme dialog. The tokens the site actually paints
+ * with are derived from them by `scripts/theme-accents.mjs` into
+ * `app/globals.css`; the colours here are only ever shown, never used to
+ * style anything.
  *
- * Mulberry, the house plum, is the default and needs no attribute: with no
- * `data-accent` on <html> the app is already Mulberry.
+ * Royal Blue, from the client's reference, is the default and needs no
+ * attribute: with no `data-accent` on <html> the site is already Royal Blue.
  */
 
-export type PaletteId = "mulberry" | "charcoal" | "dusk" | "slate" | "midnight";
+export type PaletteId = "royal" | "mulberry" | "charcoal" | "dusk" | "slate" | "midnight";
 
 export type Palette = {
   id: PaletteId;
@@ -20,8 +23,6 @@ export type Palette = {
   description: string;
   /** Darkest to lightest, as in the reference palettes. */
   swatches: readonly [string, string, string, string];
-  /** The default palette, written by hand rather than generated. */
-  builtin?: boolean;
 };
 
 export const PALETTES: readonly Palette[] = data.palettes.map((palette) => ({
@@ -29,7 +30,6 @@ export const PALETTES: readonly Palette[] = data.palettes.map((palette) => ({
   name: palette.name,
   description: palette.description,
   swatches: palette.swatches as unknown as Palette["swatches"],
-  builtin: "builtin" in palette ? Boolean(palette.builtin) : undefined,
 }));
 
 export const DEFAULT_PALETTE = data.default as PaletteId;

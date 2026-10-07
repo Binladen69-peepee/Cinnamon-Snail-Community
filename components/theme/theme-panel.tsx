@@ -58,8 +58,8 @@ export function ThemePanel({
         <AccordionItem value="saved" title="How this is saved" icon={<HardDrive />}>
           <p className="text-pretty">
             Your palette and mode are kept in this browser rather than in your account, so each
-            device keeps its own. They apply to the member app and the admin console; the public
-            site keeps the house colours.
+            device keeps its own. They apply everywhere you go on the site: the home page and
+            the other public pages, sign in, the member app and the admin console.
           </p>
         </AccordionItem>
       </Accordion>
