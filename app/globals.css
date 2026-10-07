@@ -557,6 +557,119 @@ h3 strong {
   transform: none;
 }
 
+/* ---------------------------------------------------------------------------
+   Landing sections (DEC-089): the "What's inside" bento, the three steps and
+   the Kitchen Table chips. Entrances are motion's (components/marketing/
+   motion.tsx); these are the ambient and hover effects, all stilled under
+   reduced motion.
+--------------------------------------------------------------------------- */
+.vu-bento-tile {
+  box-shadow: var(--surface-shadow);
+  transition:
+    transform 450ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 450ms cubic-bezier(0.22, 1, 0.36, 1),
+    border-color 300ms ease;
+}
+
+.vu-bento-tile:hover {
+  transform: translateY(-4px);
+  border-color: var(--hairline-firm);
+  box-shadow: var(--e3);
+}
+
+/* The "Live" light: a dot that breathes. */
+.vu-live-dot {
+  position: relative;
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 9999px;
+  background: #ff4d4d;
+}
+
+.vu-live-dot::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: inherit;
+  animation: vu-live-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes vu-live-ping {
+  75%,
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* The class strip: the library's stills drifting past, edges faded. The list
+   is doubled, so moving it half its width loops without a seam. */
+.vu-strip {
+  animation: vu-strip-drift 38s linear infinite;
+}
+
+.vu-strip-mask:hover .vu-strip {
+  animation-play-state: paused;
+}
+
+.vu-strip-mask {
+  mask-image: linear-gradient(to right, transparent, #000 10%, #000 90%, transparent);
+}
+
+@keyframes vu-strip-drift {
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.vu-step-card {
+  box-shadow: var(--surface-shadow);
+  transition:
+    transform 450ms cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 450ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.vu-step-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--e3);
+}
+
+/* Chips over a photograph drift a few pixels, out of step with each other. */
+.vu-float-slow {
+  animation: vu-float 6s ease-in-out infinite;
+}
+
+.vu-float-slow:nth-child(2) {
+  animation-delay: -2s;
+}
+
+.vu-float-slow:nth-child(3) {
+  animation-delay: -4s;
+}
+
+@keyframes vu-float {
+  0%,
+  100% {
+    translate: 0 0;
+  }
+  50% {
+    translate: 0 -6px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vu-live-dot::after,
+  .vu-strip,
+  .vu-float-slow {
+    animation: none;
+  }
+  .vu-bento-tile:hover,
+  .vu-step-card:hover {
+    transform: none;
+  }
+}
+
 /* Class library: title/meta fade in when a slide or featured class changes. */
 @keyframes vu-copy-fade {
   from {

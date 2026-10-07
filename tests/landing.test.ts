@@ -24,7 +24,9 @@ describe("the landing page carries no decorative SVG", () => {
   it("renders none of its own, and none of the retired art", () => {
     for (const file of [
       "app/(marketing)/page.tsx",
-      "components/marketing/what-you-get.tsx",
+      "components/marketing/whats-inside.tsx",
+      "components/marketing/how-it-works.tsx",
+      "components/marketing/motion.tsx",
       "components/marketing/membership-plans.tsx",
       "components/marketing/community-spread.tsx",
       "components/marketing/hero-words.tsx",

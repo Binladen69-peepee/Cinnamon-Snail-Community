@@ -1,18 +1,11 @@
 import Link from "next/link";
-import { ArrowRight, BookOpen, Heart, Users, Utensils } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { MediaFrame } from "@/components/ui/media-frame";
-import { Reveal } from "@/components/marketing/reveal";
+import { CountUp, Rise, Stagger, StaggerItem } from "@/components/marketing/motion";
 import { CLASS_LIBRARY, libraryShelves, shelfForTitle } from "@/lib/marketing/class-library";
 import { communityPostcards } from "@/lib/marketing/community-stories";
 import type { GlobeData } from "@/lib/marketing/globe-markers";
 import { cn } from "@/lib/utils";
-
-const VALUES = [
-  { icon: Users, title: "Real People", body: "Home cooks, chefs, dreamers" },
-  { icon: Utensils, title: "Real Kitchens", body: "Across the globe" },
-  { icon: BookOpen, title: "Real Learning", body: "Step by step, together" },
-  { icon: Heart, title: "Real Impact", body: "Healthier people. Healthier planet." },
-] as const;
 
 /** How each of the four stills sits: a slight, deliberate untidiness. */
 const TILT = ["-rotate-2 lg:-translate-y-2", "rotate-1 lg:translate-y-4", "rotate-2", "-rotate-1 lg:translate-y-2"];
@@ -46,7 +39,7 @@ export function CommunitySpread({
   return (
     <section aria-labelledby="community-title" className="relative">
       <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:gap-16">
-        <Reveal>
+        <Rise>
           <p className="vu-kicker">The community</p>
           <h2 id="community-title" className="vu-title-script-sm vu-headline mt-3 text-foreground">
             <span className="vu-title-anim">Cooks all over the world are already doing this.</span>
@@ -58,13 +51,13 @@ export function CommunitySpread({
           </p>
 
           <dl className="mt-9 grid grid-cols-1 gap-4 border-y border-border py-6 min-[420px]:grid-cols-3 sm:gap-6">
-            <Fact value={String(classCount)} label="Classes" hint={`Across ${shelves} shelves`} />
+            <Fact value={<CountUp value={classCount} />} label="Classes" hint={`Across ${shelves} shelves`} />
             <Fact
-              value={countries ? String(countries) : "Worldwide"}
+              value={countries ? <CountUp value={countries} /> : "Worldwide"}
               label={countries === 1 ? "Country" : "Countries"}
               hint="Real people, real kitchens"
             />
-            <Fact value="100%" label="Plant-based" hint="Good food, kinder planet" />
+            <Fact value={<CountUp value={100} suffix="%" />} label="Plant-based" hint="Good food, kinder planet" />
           </dl>
 
           <div className="mt-8">
@@ -78,12 +71,11 @@ export function CommunitySpread({
               Explore the Community
             </Link>
           </div>
-        </Reveal>
+        </Rise>
 
-        <Reveal delay={120}>
-          <ul className="grid grid-cols-2 gap-3 sm:gap-4">
+        <Stagger as="ul" className="grid grid-cols-2 gap-3 sm:gap-4">
             {cards.map((card, index) => (
-              <li key={card.title} className={cn("vu-lift-sm", TILT[index])}>
+              <StaggerItem as="li" key={card.title} className={cn("vu-lift-sm", TILT[index])}>
                 <MediaFrame
                   src={card.photo}
                   alt={card.title}
@@ -101,30 +93,16 @@ export function CommunitySpread({
                     </span>
                   </span>
                 </MediaFrame>
-              </li>
+              </StaggerItem>
             ))}
-          </ul>
-        </Reveal>
+        </Stagger>
       </div>
 
-      <ul className="mt-12 grid grid-cols-1 gap-5 border-t border-border pt-8 sm:grid-cols-2 lg:grid-cols-4">
-        {VALUES.map((item) => (
-          <li key={item.title} className="flex items-start gap-3">
-            <span className="mt-0.5 grid size-9 shrink-0 place-items-center rounded-full bg-surface-muted text-foreground">
-              <item.icon className="size-4" aria-hidden />
-            </span>
-            <span>
-              <span className="block text-sm font-semibold text-foreground">{item.title}</span>
-              <span className="mt-0.5 block text-xs text-foreground-muted">{item.body}</span>
-            </span>
-          </li>
-        ))}
-      </ul>
     </section>
   );
 }
 
-function Fact({ value, label, hint }: { value: string; label: string; hint: string }) {
+function Fact({ value, label, hint }: { value: React.ReactNode; label: string; hint: string }) {
   return (
     <div>
       <dt className="sr-only">{label}</dt>

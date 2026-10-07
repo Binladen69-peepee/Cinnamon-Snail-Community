@@ -1,15 +1,9 @@
-import {
-  BookOpen,
-  CalendarDays,
-  FlaskConical,
-  Leaf,
-  ListChecks,
-  Users,
-} from "lucide-react";
+import { Leaf, MessageCircle, ShieldCheck, Utensils } from "lucide-react";
 import { FaqAccordion } from "@/components/marketing/faq-accordion";
 import { CheckoutButton } from "@/components/marketing/checkout-button";
 import { StickyCheckout } from "@/components/marketing/sticky-checkout";
-import { Reveal } from "@/components/marketing/reveal";
+
+import { Rise, Stagger, StaggerItem } from "@/components/marketing/motion";
 import { PhotoSlot } from "@/components/marketing/photo-slot";
 import { HeroImage } from "@/components/marketing/hero-image";
 import { HeroWords } from "@/components/marketing/hero-words";
@@ -19,7 +13,8 @@ import { ScrollProgress } from "@/components/marketing/spotlight";
 import { ClassLibrary } from "@/components/marketing/class-library";
 import { CommunitySpread } from "@/components/marketing/community-spread";
 import { MembershipPlans } from "@/components/marketing/membership-plans";
-import { WhatYouGet } from "@/components/marketing/what-you-get";
+import { WhatsInside } from "@/components/marketing/whats-inside";
+import { HowItWorks } from "@/components/marketing/how-it-works";
 import { SenjaEmbed, SENJA_HOMEPAGE_WIDGET } from "@/components/marketing/senja-embed";
 import { CLASS_LIBRARY, libraryShelves, membershipGallery } from "@/lib/marketing/class-library";
 import { getGlobeMarkers } from "@/lib/marketing/globe-markers";
@@ -33,14 +28,20 @@ import {
 import {
   HOMEPAGE_HERO,
   KITCHEN_TABLE_BLOCK,
-  MEMBERSHIP_PAGE,
   MEMBERSHIP_TEASER,
 } from "@/lib/marketing/copy";
 
 export const dynamic = "force-dynamic";
 
-/** The five things inside, as the signed-off copy names them. */
-const INSIDE_ICONS = [CalendarDays, BookOpen, Users, FlaskConical, ListChecks] as const;
+/**
+ * What sets the Kitchen Table apart, in phrases lifted from its signed-off
+ * paragraphs, floated over its photograph.
+ */
+const TABLE_POINTS = [
+  { icon: Utensils, text: "Post the plate" },
+  { icon: MessageCircle, text: "No algorithm decides who gets seen" },
+  { icon: ShieldCheck, text: "Hosts keep it useful, not chaotic" },
+] as const;
 
 export default async function HomePage() {
   const globe = await getGlobeMarkers(8);
@@ -114,53 +115,27 @@ export default async function HomePage() {
       <PressMarquee />
       <StickyCheckout />
 
-      {/* What's inside — the five things, in the client's own words -------- */}
-      <section className="vu-gutter pt-10 md:pt-14" aria-label="What is inside">
+      {/* What's inside: the five parts, each with what it actually is ------- */}
+      <section className="vu-gutter vu-section">
         <div className="vu-feed-shell">
-          <Reveal>
-            <ul className="grid grid-cols-1 gap-3 min-[420px]:grid-cols-2 lg:grid-cols-5">
-              {MEMBERSHIP_PAGE.inside.map((item, index) => {
-                const Icon = INSIDE_ICONS[index] ?? BookOpen;
-                return (
-                  <li
-                    key={item.title}
-                    className="vu-lift-sm flex items-center gap-3 rounded-2xl border border-border bg-surface px-4 py-3.5"
-                  >
-                    <span className="grid size-9 shrink-0 place-items-center rounded-full bg-surface-muted text-foreground">
-                      <Icon className="size-4" aria-hidden />
-                    </span>
-                    <span className="text-[13.5px] font-semibold leading-snug text-foreground">
-                      {item.title}
-                    </span>
-                  </li>
-                );
-              })}
-            </ul>
-          </Reveal>
+          <WhatsInside />
         </div>
       </section>
 
-      {/* Learn / Cook / Belong ----------------------------------------- */}
-      <section className="vu-gutter vu-section">
+      {/* How it works: Learn, Cook, Belong as three steps ------------------ */}
+      <section className="vu-gutter vu-section pt-0">
         <div className="vu-feed-shell">
-          <WhatYouGet />
+          <HowItWorks />
         </div>
       </section>
 
       {/* Kitchen Table — dark panel for contrast rhythm ---------------- */}
       <section className="vu-gutter vu-section-tight">
-        <Reveal>
-          <div className="vu-panel-dark vu-shell grid overflow-hidden rounded-[1.75rem] lg:grid-cols-[minmax(0,0.95fr)_minmax(0,1.05fr)]">
-            <div className="group relative min-h-[16rem] overflow-hidden sm:min-h-[20rem]">
-              <PhotoSlot
-                id="home-kitchen-table"
-                aspect="absolute inset-0 size-full"
-                rounded="rounded-none"
-              />
-            </div>
+        <Rise>
+          <div className="vu-panel-dark vu-shell grid items-center gap-8 overflow-hidden rounded-[1.75rem] p-5 sm:p-8 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,0.95fr)] lg:gap-12 lg:p-12">
             {/* The panel is dark in both themes, so its ink is white in both:
                 literal classes, not tokens, or it inverts out of existence. */}
-            <div className="flex flex-col justify-center px-5 py-9 sm:px-7 sm:py-12 md:px-11 lg:px-14">
+            <div className="order-2 lg:order-1">
               <p className="vu-kicker">The differentiator</p>
               <h2 className="vu-title-script-sm vu-headline-invert mt-3 text-white">
                 <span className="vu-title-anim">Kitchen Table is not a feed. It is the table.</span>
@@ -168,23 +143,47 @@ export default async function HomePage() {
               {KITCHEN_TABLE_BLOCK.paragraphs.map((paragraph) => (
                 <p
                   key={paragraph.slice(0, 32)}
-                  className="vu-measure mt-5 leading-relaxed text-white/80"
+                  className="vu-measure mt-4 text-[15px] leading-relaxed text-white/75"
                 >
                   {paragraph}
                 </p>
               ))}
-              <div className="mt-9">
+              <div className="mt-8">
                 <CheckoutButton tone="onDark" withArrow />
               </div>
             </div>
+
+            <div className="relative order-1 lg:order-2">
+              <div className="overflow-hidden rounded-[1.35rem]">
+                <PhotoSlot
+                  id="home-kitchen-table"
+                  aspect="aspect-[4/3] lg:aspect-[4/5]"
+                  rounded="rounded-[1.35rem]"
+                />
+              </div>
+              <Stagger as="ul" className="absolute inset-x-3 bottom-3 flex flex-col items-start gap-2 sm:inset-x-5 sm:bottom-5">
+                {TABLE_POINTS.map((point, index) => (
+                  <StaggerItem
+                    as="li"
+                    key={point.text}
+                    className={index % 2 ? "vu-float-slow self-end" : "vu-float-slow"}
+                  >
+                    <span className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-black/65 px-3.5 py-2 text-[13px] font-medium text-white shadow-[0_8px_24px_rgba(0,0,0,0.3)] backdrop-blur-md">
+                      <point.icon className="size-4 shrink-0" aria-hidden />
+                      {point.text}
+                    </span>
+                  </StaggerItem>
+                ))}
+              </Stagger>
+            </div>
           </div>
-        </Reveal>
+        </Rise>
       </section>
 
       {/* From Adam's kitchen — vertical reel --------------------------- */}
       <section className="vu-gutter vu-section" aria-labelledby="adam-reel">
         <div className="vu-shell">
-          <Reveal>
+          <Rise>
             <div className="grid grid-cols-1 items-center gap-10 lg:grid-cols-[minmax(0,0.8fr)_minmax(0,1fr)] lg:gap-14">
               {reel.src ? (
                 <Reel src={reel.src} label="Adam, on what's actually inside" />
@@ -214,14 +213,14 @@ export default async function HomePage() {
                 </details>
               </div>
             </div>
-          </Reveal>
+          </Rise>
         </div>
       </section>
 
       {/* Course catalog ------------------------------------------------ */}
       <section className="vu-gutter vu-section" aria-labelledby="class-library-heading">
         <div className="vu-feed-shell">
-          <Reveal>
+          <Rise>
             <div className="flex flex-wrap items-end justify-between gap-4">
               <div>
                 <p className="vu-kicker">The classes</p>
@@ -239,7 +238,7 @@ export default async function HomePage() {
                 </p>
               ) : null}
             </div>
-          </Reveal>
+          </Rise>
           <div className="mt-9 md:mt-11">
             <ClassLibrary />
           </div>
@@ -255,7 +254,7 @@ export default async function HomePage() {
 
       {/* Membership ---------------------------------------------------- */}
       <section className="vu-gutter vu-section">
-        <Reveal>
+        <Rise>
           <div className="vu-feed-shell">
             <MembershipPlans
               heading="Monthly or yearly."
@@ -263,12 +262,12 @@ export default async function HomePage() {
               slides={membershipGallery()}
             />
           </div>
-        </Reveal>
+        </Rise>
       </section>
 
       {/* FAQ ----------------------------------------------------------- */}
       <section className="vu-gutter vu-section pt-0">
-        <Reveal>
+        <Rise>
           <div className="vu-card mx-auto max-w-3xl rounded-[1.75rem] px-5 py-9 sm:px-7 sm:py-12 md:px-11">
             <p className="vu-kicker">FAQ</p>
             <h2 className="vu-title-script-sm vu-headline mt-3 text-foreground">
@@ -281,7 +280,7 @@ export default async function HomePage() {
               <CheckoutButton size="lg" withArrow />
             </div>
           </div>
-        </Reveal>
+        </Rise>
       </section>
     </div>
   );
