@@ -13,7 +13,7 @@ import {
   uploadTicket,
   getBunnyVideo,
 } from "@/lib/bunny/stream";
-import { lessonHasMedia } from "@/lib/learn/access";
+import { gateLesson, lessonHasMedia } from "@/lib/learn/access";
 
 /**
  * Bunny Stream (DEC-081). What matters most is what this module refuses to
@@ -170,10 +170,23 @@ describe("lesson gate", () => {
     body: null,
   };
 
-  it("counts a Bunny video as the lesson's video", () => {
+  it("counts a Bunny video as the lesson's video once links can be signed", () => {
+    process.env.BUNNY_STREAM_TOKEN_KEY = "token-key";
     expect(lessonHasMedia({ ...base, bunnyVideoId: VIDEO })).toBe(true);
     expect(lessonHasMedia({ ...base, bunnyVideoId: null })).toBe(false);
     expect(lessonHasMedia({ ...base, videoUid: "abc123", bunnyVideoId: null })).toBe(true);
+  });
+
+  it("does not offer a Bunny-only lesson while no link can be signed", () => {
+    // No token key and no unsigned flag: production until the key is added.
+    expect(lessonHasMedia({ ...base, bunnyVideoId: VIDEO })).toBe(false);
+    expect(gateLesson({ lesson: { ...base, bunnyVideoId: VIDEO }, membership: "active" }).state).toBe("unavailable");
+    // A lesson that still has its older source keeps playing that.
+    expect(lessonHasMedia({ ...base, videoUid: "abc123", bunnyVideoId: VIDEO })).toBe(true);
+    // The local-testing flag never counts on Vercel production.
+    process.env.BUNNY_STREAM_ALLOW_UNSIGNED = "1";
+    process.env.VERCEL_ENV = "production";
+    expect(lessonHasMedia({ ...base, bunnyVideoId: VIDEO })).toBe(false);
   });
 });
 

@@ -88,6 +88,8 @@ export type EventCard = {
   recurrence: EventRecurrence | null;
   hasRecording: boolean;
   recording: RecordingLink | null;
+  /** There is a recording, but it is a raw link this viewer may not open. */
+  recordingLocked: boolean;
   /** Whether, and when, this member can join. */
   join: JoinState;
 };
@@ -228,7 +230,14 @@ async function toCards(rows: RawEvent[], viewer: JoinViewer): Promise<EventCard[
     const goingCount = going.get(row.id) ?? 0;
     const answer = answers.get(row.id);
     const myStatus = answer?.status ?? null;
-    const recording = recordingOf(row);
+    const found = recordingOf(row);
+    // A raw link (a Zoom share page, a Drive file) is the recording itself, so
+    // it follows the rule the live link does: members, staff and the host. A
+    // lesson or a post is gated where it lives.
+    const recordingLocked =
+      found?.kind === "url" &&
+      !(viewer.isStaff || row.hostId === viewer.userId || viewer.membership === "active");
+    const recording = recordingLocked ? null : found;
     return {
       id: row.id,
       slug: row.slug,
@@ -253,8 +262,9 @@ async function toCards(rows: RawEvent[], viewer: JoinViewer): Promise<EventCard[
       live: row.status === "PUBLISHED" && isLiveNow(now, row.startsAt, row.endsAt),
       full: row.capacity !== null && goingCount >= row.capacity,
       recurrence: row.recurrence,
-      hasRecording: recording !== null,
+      hasRecording: found !== null,
       recording,
+      recordingLocked,
       join: joinState({
         now,
         startsAt: row.startsAt,

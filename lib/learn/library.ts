@@ -2,6 +2,8 @@ import "server-only";
 import { cache } from "react";
 import type { LessonKind } from "@prisma/client";
 import { prisma } from "@/lib/db";
+import { getUserAuth } from "@/lib/community/viewer";
+import { isStaff } from "@/lib/permissions";
 import { matchesQuery } from "@/lib/community/match";
 import { CLASS_SELECT, shapeClass, type ClassSummary } from "@/lib/learn/classes";
 import {
@@ -245,9 +247,12 @@ export async function loadLibrary(input: {
   // it they are: the thing you were doing yesterday is the thing you want back,
   // even when another course is closer to finished. Only published classes are
   // in `byId`, so progress on a class that was since unpublished is not shown.
+  // "Started" is a lesson to go back to, not a percentage: percent counts
+  // finished lessons, so a one-lesson class (every class's recording, DEC-090)
+  // half watched is still 0% and would never be offered.
   const byId = new Map(all.map((cls) => [cls.id, cls] as const));
   const continueLearning = progressRows
-    .filter((row) => !row.completedAt && row.percent > 0)
+    .filter((row) => !row.completedAt && (row.percent > 0 || row.lastLesson !== null))
     .flatMap((row) => {
       const cls = byId.get(row.courseId);
       if (!cls) return [];
@@ -402,7 +407,7 @@ export const getClassDetail = cache(async function getClassDetail(
   });
   if (!course) return null;
 
-  const [membership, progress] = await Promise.all([
+  const [membership, progress, viewer] = await Promise.all([
     membershipState(userId),
     // Scoped by relation rather than by a list of ids: a course with two
     // hundred lessons would otherwise build a two-hundred-item IN clause.
@@ -410,7 +415,11 @@ export const getClassDetail = cache(async function getClassDetail(
       where: { userId, lesson: { section: { courseId: course.id } } },
       select: { lessonId: true, completedAt: true, positionSeconds: true },
     }),
+    getUserAuth(userId),
   ]);
+  // Staff open every lesson, as the player already lets them; without this the
+  // class page showed them locked rows the player would then have played.
+  const staff = viewer ? isStaff(viewer) : false;
 
   const progressByLesson = new Map(
     progress.map((row) => [row.lessonId, row] as const),
@@ -422,7 +431,7 @@ export const getClassDetail = cache(async function getClassDetail(
     summary: section.summary,
     lessons: section.lessons.map((lesson) => {
       const row = progressByLesson.get(lesson.id);
-      const gate = gateLesson({ lesson, membership });
+      const gate = gateLesson({ lesson, membership, isStaff: staff });
       return {
         id: lesson.id,
         slug: lesson.slug,
@@ -461,7 +470,7 @@ export const getClassDetail = cache(async function getClassDetail(
     lessonCount: flat.length,
     completedCount,
     percent: flat.length === 0 ? 0 : Math.round((completedCount / flat.length) * 100),
-    entitled: membership === "active",
+    entitled: membership === "active" || staff,
     membership,
     resume: next
       ? {

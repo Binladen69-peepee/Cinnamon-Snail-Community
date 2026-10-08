@@ -207,6 +207,13 @@ export default async function LiveClassPage({
                       <div>
                         <RecordingLink recording={event.recording} variant="primary" size="md" />
                       </div>
+                    ) : event.recordingLocked ? (
+                      <p className="text-body text-foreground-muted">
+                        The recording is part of the membership.{" "}
+                        <Link href="/billing" className="font-semibold text-link underline">
+                          Check your membership
+                        </Link>
+                      </p>
                     ) : (
                       <p className="text-body text-foreground-muted">
                         There is no recording of this class yet.

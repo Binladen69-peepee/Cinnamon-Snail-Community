@@ -47,8 +47,14 @@ export async function ensureMemberSetup(userId: string, email: string, name?: st
     user.emails.some((entry) => entry.email === normalizedEmail) &&
     user.spaceMemberships.some((entry) => entry.space.slug === KITCHEN_TABLE_SLUG);
 
+  // The sign-in address counts toward a waiting purchase only once it is proven
+  // (a magic link, Google, or a confirmed link). A password registration alone
+  // proves nothing: claiming on it handed a buyer's purchase to whoever typed
+  // their address first.
+  const provenPrimary = user.emailVerified ? normalizedEmail : null;
+
   if (complete) {
-    await claimGrantsIfAny(userId, normalizedEmail, user.emails);
+    await claimGrantsIfAny(userId, provenPrimary, user.emails);
     return;
   }
 
@@ -101,7 +107,7 @@ export async function ensureMemberSetup(userId: string, email: string, name?: st
     });
   }
 
-  await claimGrantsIfAny(userId, normalizedEmail, user.emails);
+  await claimGrantsIfAny(userId, provenPrimary, user.emails);
 }
 
 /**
@@ -112,15 +118,16 @@ export async function ensureMemberSetup(userId: string, email: string, name?: st
  */
 async function claimGrantsIfAny(
   userId: string,
-  primaryEmail: string,
+  provenPrimary: string | null,
   known: { email: string; verifiedAt: Date | null }[],
 ) {
   const addresses = [
     ...new Set([
-      primaryEmail,
+      ...(provenPrimary ? [provenPrimary] : []),
       ...known.filter((entry) => entry.verifiedAt).map((entry) => entry.email),
     ]),
   ];
+  if (addresses.length === 0) return;
   const waiting = await prisma.pendingGrant.count({
     where: { email: { in: addresses }, claimedAt: null },
   });

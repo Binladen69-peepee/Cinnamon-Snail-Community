@@ -284,7 +284,20 @@ export default async function ClassPage({
 
         {cls.resources.length > 0 ? (
           <Section title="Recipes and downloads">
-            <ResourceList resources={cls.resources} />
+            {/* The links themselves are the paid material (many are plain Drive
+                links), so they are only rendered for a member. */}
+            {cls.entitled ? (
+              <ResourceList resources={cls.resources} />
+            ) : (
+              <Callout tone="brand" icon={<Lock />}>
+                {cls.resources.length === 1
+                  ? "This class's recipe download comes with an active membership."
+                  : `This class's ${cls.resources.length} recipes and downloads come with an active membership.`}{" "}
+                <Link href="/billing" className="font-semibold text-link underline">
+                  Check your membership
+                </Link>
+              </Callout>
+            )}
           </Section>
         ) : null}
 

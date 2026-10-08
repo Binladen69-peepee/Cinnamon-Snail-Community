@@ -29,7 +29,7 @@ vi.hoisted(() => {
   process.env.KIT_API_BASE = "https://kit.test/v3";
   process.env.SAMCART_API_KEY = "test-samcart";
   process.env.SAMCART_API_BASE = "https://samcart.test/v1";
-  delete process.env.RESEND_API_KEY;
+  process.env.RESEND_API_KEY = ""; // empty, not deleted: PrismaClient re-reads .env and would restore it
 });
 
 const prisma = new PrismaClient();

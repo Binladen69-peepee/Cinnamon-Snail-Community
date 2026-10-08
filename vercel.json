@@ -30,6 +30,10 @@
       "schedule": "15 6 * * *"
     },
     {
+      "path": "/api/jobs/billing?job=purge",
+      "schedule": "30 6 * * *"
+    },
+    {
       "path": "/api/jobs/automation",
       "schedule": "0 10 * * *"
     },
@@ -48,6 +52,10 @@
     {
       "path": "/api/jobs/bulletin-posts",
       "schedule": "20 10 * * *"
+    },
+    {
+      "path": "/api/jobs/interests",
+      "schedule": "50 5 * * *"
     }
   ]
 }

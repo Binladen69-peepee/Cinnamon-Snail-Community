@@ -2427,16 +2427,20 @@ Claude Code must operate under the following instruction while building this pro
 
 Update this section continuously.
 
-**Last updated:** 2026-09-24
-**Currently building:** the member app rebuild. Phases 0-6 of the rebuild are
-shipped (shell, feed, spaces, post detail, discover, people, messages); Phase 7
-is half done -- the class library and class page exist, `/calendar` and
-`/roadmap` do not. Admin has its own console: overview, members, moderation,
-spaces, events, courses, billing, welcome DM.
+**Last updated:** 2026-10-08
+**Currently building:** the class video migration (Google Drive → Bunny
+Stream, DEC-090) and the fixes from the 2026-10-08 audit (DEC-091–095). Every
+member route resolves: `/search`, `/live-classes` (was `/calendar`),
+`/connect`, `/bulletin`, `/roadmap` and `/challenges` all exist. Admin has its
+own console covering members, moderation, live classes, courses, the video
+library, roadmap, challenges, automation, the AI cohost, billing and welcome DM.
 **Live:** https://cinnamon-snail-community.vercel.app
-**Still 404:** `/search`, `/calendar`, `/connect`, `/bulletin`.
-**Blocked on content, not code:** lesson playback. `lib/learn` is complete and
-idle because zero lessons exist in the database.
+**Blocked on credentials and content, not code:** lesson playback. The 52
+classes have no lessons yet; they are created by migration as each Bunny video
+is verified, and they stay hidden until `BUNNY_STREAM_TOKEN_KEY` is set.
+**Waiting on client decisions:** whether the community (not only classes) is
+for paying members; counsel-reviewed Terms and Privacy; a scheduler faster than
+Vercel Hobby's once a day. See `PROJECT.md` §7.
 **Theme:** monochrome, both modes (`DEC-037`, reinstated by `DEC-068`). Ink on a
 cream ground in light, white on pure black in dark. Amber and red stay reserved
 for warning and danger; green is gone and the headline texture with it. Measured
@@ -2492,12 +2496,12 @@ Seeded local accounts (password `vegan-local-dev`):
 - [x] Courses — original VU catalog; Mighty import blocked (`DEC-003`)
 - [x] Sections
 - [x] Lessons — video, text, reflection
-- [x] Video — entitlement-gated expiring tokens; Stream when keys exist (`DEC-014`)
+- [x] Video — Bunny Stream, a signed player link per member (`DEC-081`); recordings moving from Drive (`DEC-090`)
 - [x] Captions — VTT on demo video lessons
 - [x] Resources
 - [x] Progress — resume position, percent, continue learning
 - [x] Course comments — lesson threads in Course Hall
-- [x] Events — timezone list, RSVP/capacity, ICS, 24h reminder job; Zoom field unused until a real session exists
+- [x] Events — Live Classes: RSVP/capacity/waitlist, recurrence, ICS, Zoom sync (`DEC-079`), reminders (daily job), recordings for members (`DEC-093`)
 
 ## Phase 4
 - [x] DMs — 1:1 + small groups, unread counts, read receipts, typing indicators, image/link sharing, block, report, leave. Polling transport (`DEC-017`); every read and write behind a server-side membership gate.
@@ -2506,7 +2510,7 @@ Seeded local accounts (password `vegan-local-dev`):
 - [x] Cohorts — automatic new-member and course-starter cohorts, each with intro prompt, first cook, goal, and a private space
 - [x] Badges — 12 recognition badges, criteria-driven, awarded off the request path; no points, no leaderboard
 - [ ] Spotlights — not started
-- [x] Recognition — badge awards surface in the home feed rail and at `/connect/recognition`
+- [ ] Recognition in the feed — badges show at `/connect`; the Kitchen Table rail does not show them yet (§12.4)
 
 ## Phase 4B
 - [x] Survey answers

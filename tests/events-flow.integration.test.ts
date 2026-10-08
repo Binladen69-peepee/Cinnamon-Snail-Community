@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { PrismaClient } from "@prisma/client";
 import { RsvpError, cancelRsvp, setRsvp } from "@/lib/events/rsvp";
 import { sendEventReminders, materialiseRecurringEvents } from "@/lib/events/jobs";
+import { carrySeriesEdit } from "@/lib/events/series";
 
 // These race dozens of RSVPs against the real database, and outside a request
 // every notification they cause is delivered inline. Alone they take 2–5s;
@@ -423,5 +424,52 @@ describe("recurring series", () => {
     });
     expect(outcome.status).toBe("GOING");
     expect(outcome.goingCount).toBe(1);
+  });
+});
+
+describe("editing a series head", () => {
+  const head = async () =>
+    prisma.event.findUniqueOrThrow({
+      where: { id: seriesId },
+      select: {
+        title: true, description: true, zoomUrl: true, location: true, capacity: true,
+        coverUrl: true, hostId: true, spaceId: true, status: true, recurrence: true, recurrenceUntil: true,
+      },
+    });
+
+  it("gives the dates still to come a new link, except a date changed on its own", async () => {
+    if (!reachable) return;
+    await materialiseRecurringEvents();
+    const dates = await prisma.event.findMany({ where: { seriesId, status: "PUBLISHED" }, orderBy: { startsAt: "asc" }, select: { id: true } });
+    expect(dates.length).toBeGreaterThan(1);
+    const ownLink = "https://zoom.us/j/its-own";
+    await prisma.event.update({ where: { id: dates[0]!.id }, data: { zoomUrl: ownLink } });
+
+    const before = await head();
+    const after = { ...before, zoomUrl: "https://zoom.us/j/new-series-link" };
+    await prisma.event.update({ where: { id: seriesId }, data: { zoomUrl: after.zoomUrl } });
+    await carrySeriesEdit({ parentId: seriesId, before, after });
+
+    const links = await prisma.event.findMany({ where: { seriesId }, orderBy: { startsAt: "asc" }, select: { zoomUrl: true } });
+    expect(links[0]!.zoomUrl).toBe(ownLink);
+    expect(links.slice(1).every((row) => row.zoomUrl === after.zoomUrl)).toBe(true);
+  });
+
+  it("calls off every date still to come when the series is canceled, and grows no more", async () => {
+    if (!reachable) return;
+    const before = await head();
+    const after = { ...before, status: "CANCELED" as const };
+    await prisma.event.update({ where: { id: seriesId }, data: { status: "CANCELED" } });
+    const result = await carrySeriesEdit({ parentId: seriesId, before, after });
+
+    expect(result.canceled.length).toBeGreaterThan(0);
+    expect(await prisma.event.count({ where: { seriesId, status: "PUBLISHED", startsAt: { gt: new Date() } } })).toBe(0);
+    // With the dates to come gone, a live series would regenerate them on the
+    // next run. A canceled one must not.
+    await prisma.event.deleteMany({ where: { seriesId, startsAt: { gt: new Date() } } });
+    const total = await prisma.event.count({ where: { seriesId } });
+    const run = await materialiseRecurringEvents();
+    expect(run.created).toBe(0);
+    expect(await prisma.event.count({ where: { seriesId } })).toBe(total);
   });
 });

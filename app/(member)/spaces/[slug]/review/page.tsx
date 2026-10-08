@@ -1,6 +1,7 @@
 import { notFound, redirect } from "next/navigation";
 import { Paperclip, ShieldCheck } from "lucide-react";
 import { auth } from "@/auth";
+import { prisma } from "@/lib/db";
 import { listPendingPosts } from "@/lib/community/posts";
 import { getSpaceForMember } from "@/lib/spaces";
 import { canModerateSpace, isStaff } from "@/lib/permissions";
@@ -41,6 +42,11 @@ export default async function SpaceReviewPage({
     getSpaceForMember(userId, slug),
     getUserAuth(userId),
   ]);
+  if (!result) {
+    // Review notifications sent before they used the slug carry the space id.
+    const byId = await prisma.space.findUnique({ where: { id: slug }, select: { slug: true } });
+    if (byId) redirect(`/spaces/${byId.slug}/review`);
+  }
   if (!result || !viewer) notFound();
 
   const isTable = slug === KITCHEN_TABLE_SLUG;

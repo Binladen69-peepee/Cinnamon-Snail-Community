@@ -25,6 +25,8 @@ import {
   type BadgeTone,
 } from "@/components/app/ui";
 import { grantAccessAction } from "@/app/admin/actions";
+import { MemberStatusControl } from "@/components/admin/member-status-control";
+import { auth } from "@/auth";
 
 export const metadata = { title: "Member" };
 
@@ -88,6 +90,10 @@ export default async function AdminMemberPage({
     .map((row) => row.role.name)
     .filter((role) => role !== "MEMBER");
   const hasAccess = canAccessPaidContent(member.entitlements);
+  // The same limits the action enforces: never yourself, never an admin.
+  const session = await auth();
+  const canChangeStatus =
+    member.id !== session?.user.id && !roles.some((role) => role === "ADMIN" || role === "SUPER_ADMIN");
 
   return (
     <div className="flex flex-col gap-6">
@@ -134,6 +140,9 @@ export default async function AdminMemberPage({
             </div>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-2">
+            {canChangeStatus && (member.status === "ACTIVE" || member.status === "SUSPENDED") ? (
+              <MemberStatusControl userId={member.id} name={name} status={member.status} />
+            ) : null}
             <ButtonLink href="/admin/billing" size="sm">
               <CreditCard className="size-4" aria-hidden />
               Back to billing

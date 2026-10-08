@@ -145,6 +145,14 @@ export async function setMemberStatusAction(
   if (targetIsAdmin && suspend) {
     return { ok: false, error: "Admins cannot be suspended from here." };
   }
+  // Only active <-> suspended. Reinstating used to set ACTIVE on anything,
+  // which would have reopened an account its owner asked to delete.
+  if (suspend ? target.status !== "ACTIVE" : target.status !== "SUSPENDED") {
+    return {
+      ok: false,
+      error: suspend ? "Only an active member can be suspended." : "Only a suspended member can be reinstated.",
+    };
+  }
 
   await prisma.user.update({
     where: { id: userId },

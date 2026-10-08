@@ -15,8 +15,8 @@ import { userHasActiveEntitlement } from "@/lib/entitlements/server";
 vi.hoisted(() => {
   process.env.SAMCART_API_KEY = "test-samcart";
   process.env.SAMCART_API_BASE = "https://samcart.test/v1";
-  delete process.env.KIT_API_KEY;
-  delete process.env.KIT_API_SECRET;
+  process.env.KIT_API_KEY = ""; // empty, not deleted: PrismaClient re-reads .env and would restore it
+  process.env.KIT_API_SECRET = "";
 });
 
 const sendTransactionalEmail = vi.hoisted(() =>

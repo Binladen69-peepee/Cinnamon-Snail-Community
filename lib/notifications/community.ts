@@ -165,6 +165,8 @@ export async function notifySpacePost(input: {
 /** A host was handed something to approve. */
 export async function notifyPendingPost(input: {
   spaceId: string;
+  /** The review page is addressed by slug; an id there was a 404. */
+  spaceSlug: string;
   spaceName: string;
   actorId: string;
   actorName: string;
@@ -181,7 +183,7 @@ export async function notifyPendingPost(input: {
       category: "HOST_ANNOUNCEMENTS" as const,
       title: "A post is waiting for review",
       body: `${input.actorName} posted in ${input.spaceName}.`,
-      href: `/spaces/${input.spaceId}/review`,
+      href: `/spaces/${input.spaceSlug}/review`,
       actorId: input.actorId,
       dedupeKey: `pending-post:${input.postId}`,
     })),

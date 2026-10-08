@@ -3,6 +3,7 @@ import { normalizeEmail } from "@/lib/community/format";
 import { consumeRateLimit } from "@/lib/auth/rate-limit";
 import { hashPassword, passwordProblems } from "@/lib/auth/password";
 import { ensureMemberSetup, uniqueHandle } from "@/lib/auth/provision";
+import { releaseUnprovenClaims } from "@/lib/auth/email-confirmation";
 import { requestMagicLink } from "@/lib/auth/magic-link";
 import { writeAuditLog } from "@/lib/audit";
 
@@ -82,8 +83,11 @@ export async function registerAccount(
     };
   }
 
+  // An account's own address, or one another account has proven, is taken. An
+  // address someone merely typed into their settings and never confirmed is
+  // not: that claim is dropped below so it cannot lock the owner out.
   const taken = await prisma.user.findFirst({
-    where: { OR: [{ email }, { emails: { some: { email } } }] },
+    where: { OR: [{ email }, { emails: { some: { email, verifiedAt: { not: null } } } }] },
     select: { id: true },
   });
   if (taken) {
@@ -93,6 +97,7 @@ export async function registerAccount(
       message: "That email already has an account. Sign in instead.",
     };
   }
+  await releaseUnprovenClaims(email);
 
   const passwordHash = await hashPassword(input.password);
   const handle = await uniqueHandle(name || email.split("@")[0] || "member");

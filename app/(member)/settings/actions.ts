@@ -1,10 +1,11 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { auth, revokeAllSessions, revokeSession } from "@/auth";
 import { prisma } from "@/lib/db";
 import { hashPassword, passwordProblems } from "@/lib/auth/password";
-import { normalizeEmail } from "@/lib/community/format";
+import { confirmEmailOwnership, requestEmailConfirmation } from "@/lib/auth/email-confirmation";
 
 /**
  * Account settings that are not the profile.
@@ -41,26 +42,29 @@ export async function setPasswordAction(formData: FormData) {
   revalidatePath("/settings");
 }
 
+/**
+ * Adds an address unverified and mails it a confirmation link. Nothing is
+ * verified or claimed here: an address joins the account, and brings any
+ * purchase made under it, only once its owner confirms (lib/auth/email-confirmation).
+ */
 export async function addEmailAction(formData: FormData) {
   const session = await requireUser();
-  const email = normalizeEmail(String(formData.get("email") ?? ""));
-  const pending = await prisma.pendingGrant.count({
-    where: { email, claimedAt: null },
-  });
-  await prisma.userEmail.create({
-    data: {
-      userId: session.user.id,
-      email,
-      isPrimary: false,
-      verifiedAt: pending > 0 ? new Date() : null,
-    },
-  });
-  if (pending > 0) {
-    const { claimPendingGrantsForEmail } = await import("@/lib/billing/apply");
-    await claimPendingGrantsForEmail(email, session.user.id);
-  }
+  const result = await requestEmailConfirmation(session.user.id, String(formData.get("email") ?? ""));
+  revalidatePath("/settings");
+  redirect(`/settings?email=${result}#emails`);
+}
+
+/** The deliberate click on the confirmation page. */
+export async function confirmEmailAction(formData: FormData) {
+  const session = await requireUser();
+  const result = await confirmEmailOwnership(
+    session.user.id,
+    String(formData.get("email") ?? ""),
+    String(formData.get("token") ?? ""),
+  );
   revalidatePath("/settings");
   revalidatePath("/billing");
+  redirect(`/settings?email=${result === "confirmed" ? "confirmed" : "link-" + result}#emails`);
 }
 
 export async function revokeCurrentSessionAction() {

@@ -1,3 +1,4 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { writeAuditLog } from "@/lib/audit";
 import { isPayingStatus } from "@/lib/billing/types";
@@ -87,16 +88,54 @@ export async function purgeDueDeletions(graceDays: number, now = new Date()) {
   });
   for (const user of due) {
     await cancelWelcomeDm(user.id, "account-purged").catch(() => 0);
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        status: "DELETED",
-        deletedAt: now,
-        email: `deleted+${user.id}@invalid.local`,
-        name: null,
-        image: null,
-      },
-    });
+    // "Personal data is purged" is what the deletion email promises. The
+    // account row stays (posts keep an author, now "Deleted member"); what
+    // identifies or locates the person goes: addresses (which also frees them
+    // to register again), password, sign-ins, push devices and the profile's
+    // own words, place and survey answers. One transaction, so a purge is never
+    // half done.
+    await prisma.$transaction([
+      prisma.user.update({
+        where: { id: user.id },
+        data: {
+          status: "DELETED",
+          deletedAt: now,
+          email: `deleted+${user.id}@invalid.local`,
+          name: null,
+          image: null,
+          passwordHash: null,
+        },
+      }),
+      prisma.profile.updateMany({
+        where: { userId: user.id },
+        data: {
+          displayName: "Deleted member",
+          avatarUrl: null,
+          bio: null,
+          city: null,
+          region: null,
+          country: null,
+          cityLatitude: null,
+          cityLongitude: null,
+          cookingInterests: Prisma.DbNull,
+          dietaryInterests: Prisma.DbNull,
+          links: Prisma.DbNull,
+          surveyTraits: Prisma.DbNull,
+          cookingLately: null,
+          cookVibe: null,
+          suckiestThing: null,
+          primaryBenefit: null,
+          timezone: null,
+          directoryVisible: false,
+          matchingOptIn: false,
+        },
+      }),
+      prisma.profileInterest.deleteMany({ where: { profile: { userId: user.id } } }),
+      prisma.userEmail.deleteMany({ where: { userId: user.id } }),
+      prisma.session.deleteMany({ where: { userId: user.id } }),
+      prisma.pushSubscription.deleteMany({ where: { userId: user.id } }),
+      prisma.account.deleteMany({ where: { userId: user.id } }),
+    ]);
     await writeAuditLog({
       action: "account.deletion.purged",
       targetType: "user",

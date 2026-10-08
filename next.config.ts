@@ -30,9 +30,39 @@ const retiredRoutes = [
   { source: "/calendar/:slug", destination: "/live-classes/:slug", permanent: false },
 ];
 
+/**
+ * Response headers (BUILD.md §23).
+ *
+ * Everywhere: no MIME sniffing, a referrer that never leaks a path to another
+ * site, and no camera, microphone or location (nothing here uses them).
+ *
+ * Framing is refused everywhere except the public pages: a signed-in page in
+ * someone else's frame is how a cancel or delete button gets clicked by
+ * trickery. The public pages stay frameable because the client's own site may
+ * embed them. No full Content-Security-Policy yet: the Bunny player, PostHog,
+ * Sentry and the video embeds each need their sources listed and tested first.
+ */
+const PUBLIC_PAGES = ["membership", "about", "community", "courses", "events", "faq", "privacy", "terms", "unsubscribe"].join("|");
+const securityHeaders = [
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+];
+const noFraming = [
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "Content-Security-Policy", value: "frame-ancestors 'self'" },
+];
+
 const nextConfig: NextConfig = {
   async redirects() {
     return retiredRoutes;
+  },
+  async headers() {
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // Every path but "/" and the public pages above (and anything under them).
+      { source: `/:path((?!(?:${PUBLIC_PAGES})(?:/|$)).+)`, headers: noFraming },
+    ];
   },
   images: {
     remotePatterns: [

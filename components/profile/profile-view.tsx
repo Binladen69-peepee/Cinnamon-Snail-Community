@@ -19,6 +19,7 @@ import {
 import { Avatar } from "@/components/ui/avatar";
 import { Composer } from "@/components/feed/composer";
 import { servableImageUrl } from "@/lib/media/servable-image";
+import { videoEmbedSrc, videoPosterUrl } from "@/lib/community/media";
 import { PostGalleryModal } from "@/components/feed/post-gallery-modal";
 import { useIsMobile } from "@/components/hooks/use-media-query";
 import {
@@ -595,6 +596,9 @@ function PostTile({
     );
   }
 
+  // Through the image mirror: a WordPress still loaded straight from its host is blocked.
+  const poster = first.kind === "video" ? videoPosterUrl(first.url, first.thumbnailUrl) : null;
+
   return (
     <Link
       href={post.href}
@@ -606,10 +610,22 @@ function PostTile({
       }}
       className="group relative block aspect-square overflow-hidden rounded-ctl bg-surface-muted"
     >
-      {first.kind === "video" ? (
+      {first.kind === "video" && videoEmbedSrc(first.url) ? (
+        // A YouTube or Vimeo teaser is a page, not a file a <video> can load:
+        // the tile shows its still (when there is one), and the post opens it.
+        poster ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={poster}
+            alt={first.alt ?? ""}
+            loading="lazy"
+            className="size-full object-cover transition duration-300 group-hover:scale-[1.03]"
+          />
+        ) : null
+      ) : first.kind === "video" ? (
         <video
           src={first.url}
-          poster={first.thumbnailUrl ?? undefined}
+          poster={poster ?? undefined}
           muted
           playsInline
           preload="metadata"

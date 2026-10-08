@@ -11,6 +11,7 @@ import {
   type MagicTokenStatus,
 } from "@/lib/auth/tokens";
 import { ensureMemberSetup, uniqueHandle } from "@/lib/auth/provision";
+import { releaseUnprovenClaims } from "@/lib/auth/email-confirmation";
 import { displayNameFromEmail } from "@/lib/utils";
 
 const TOKEN_TTL_MS = 60 * 60 * 1000;
@@ -61,15 +62,20 @@ export async function consumeMagicToken(email: string, token: string) {
   }
 
   let user = await findUserByAnyEmail(normalized);
+  // Opening the link proves the address: another account's unproven claim on
+  // it (typed into their settings, never confirmed) is void, and must not stop
+  // the owner's account from being created with it.
+  await releaseUnprovenClaims(normalized, user?.id);
   if (!user) {
     user = await createUserFromEmail(normalized);
   }
   if (user.status !== "ACTIVE") {
     return null;
   }
-  await ensureMemberSetup(user.id, user.email, user.name);
   // Opening the link is proof of the address, so this is the moment an
-  // account created with a password stops being unverified.
+  // account created with a password stops being unverified. It happens before
+  // setup, which claims purchases only for proven addresses, so anything
+  // bought under this address arrives on this same sign-in.
   if (!user.emailVerified) {
     await prisma.user
       .update({ where: { id: user.id }, data: { emailVerified: new Date() } })
@@ -81,6 +87,7 @@ export async function consumeMagicToken(email: string, token: string) {
       data: { verifiedAt: new Date() },
     })
     .catch(() => undefined);
+  await ensureMemberSetup(user.id, user.email, user.name);
   return user;
 }
 

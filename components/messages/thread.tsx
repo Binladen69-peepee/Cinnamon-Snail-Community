@@ -21,8 +21,11 @@ import { ThreadMenu } from "@/components/messages/thread-menu";
 import { groupByDay } from "@/lib/messages/day-groups";
 import {
   loadOlderMessagesAction,
+  reportMessageAction,
   sendMessageAction,
 } from "@/app/(member)/messages/actions";
+import { ReasonReportDialog } from "@/components/ui/report-dialog";
+import { REPORT_REASONS } from "@/lib/community/report-reasons";
 import { useMessageStream } from "@/components/messages/use-message-stream";
 import type { LinkPreview } from "@/lib/messages/link-preview";
 import { StreamStatus } from "@/components/messages/stream-status";
@@ -82,6 +85,9 @@ function newClientId(): string {
  * happens), and messages from anyone on either side of a block with the
  * viewer are not shown to them.
  */
+/** "Off topic for this space" means nothing in a private conversation. */
+const MESSAGE_REPORT_REASONS = REPORT_REASONS.filter((reason) => reason.value !== "off_topic");
+
 export function Thread({
   conversationId,
   title,
@@ -124,6 +130,8 @@ export function Thread({
   // so the match can show as messaged. Cleared once it has gone.
   const [draftKey, setDraftKey] = useState<string | null>(draft?.key ?? null);
   const [messages, setMessages] = useState<ThreadMessage[]>(initialMessages);
+  // The message being reported, while the reason dialog is open.
+  const [reporting, setReporting] = useState<string | null>(null);
   const [previews, setPreviews] = useState<Map<string, LinkPreview>>(
     () => new Map(initialPreviews.map((preview) => [preview.url, preview])),
   );
@@ -486,6 +494,7 @@ export function Thread({
                       new Date(message.createdAt).getTime() <= readThrough
                     }
                     previews={previews}
+                    onReport={(target) => setReporting(target.id)}
                   />
                 );
               })}
@@ -542,6 +551,18 @@ export function Thread({
           placeholder={crew ? `Message ${crew.name}` : undefined}
         />
       )}
+
+      {reporting ? (
+        <ReasonReportDialog
+          title="Report this message"
+          reasons={MESSAGE_REPORT_REASONS}
+          onClose={() => setReporting(null)}
+          send={(data) => {
+            data.set("messageId", reporting);
+            return reportMessageAction(data);
+          }}
+        />
+      ) : null}
     </section>
   );
 }

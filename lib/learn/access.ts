@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { prisma } from "@/lib/db";
 import { canAccessPaidContent, isEntitlementActive } from "@/lib/entitlements/check";
+import { bunnyPlaybackReady } from "@/lib/bunny/stream";
 
 /**
  * Who may watch what.
@@ -62,11 +63,17 @@ export type GateableLesson = {
   body: string | null;
 };
 
-/** Whether a lesson has the thing it claims to be. */
+/**
+ * Whether a lesson has the thing it claims to be.
+ *
+ * A Bunny video counts only while a playback link can actually be minted
+ * (DEC-081): without the token key production signs nothing, so a lesson whose
+ * only video is on Bunny would open onto a player with nothing to play.
+ */
 export function lessonHasMedia(lesson: GateableLesson): boolean {
   switch (lesson.kind) {
     case "VIDEO":
-      return Boolean(lesson.videoUid || lesson.bunnyVideoId);
+      return Boolean(lesson.videoUid || (lesson.bunnyVideoId && bunnyPlaybackReady()));
     case "AUDIO":
       return Boolean(lesson.audioUid);
     case "DOWNLOAD":

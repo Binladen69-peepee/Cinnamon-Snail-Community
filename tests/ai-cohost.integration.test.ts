@@ -248,8 +248,12 @@ describe("backpressure", () => {
 
   it("reports plainly when no model is configured rather than failing", async ({ skip }) => {
     if (!reachable) skip();
-    const saved = process.env.ANTHROPIC_API_KEY;
-    delete process.env.ANTHROPIC_API_KEY;
+    // Both providers off. Blanked rather than deleted: PrismaClient re-reads
+    // .env and would put a deleted key back, and this test would then call a
+    // real model.
+    const saved = { anthropic: process.env.ANTHROPIC_API_KEY, groq: process.env.GROQ_API_KEY };
+    process.env.ANTHROPIC_API_KEY = "";
+    process.env.GROQ_API_KEY = "";
     try {
       await prisma.aiPromptSchedule.update({
         where: { id: scheduleId },
@@ -257,9 +261,12 @@ describe("backpressure", () => {
       });
       const report = await runGeneration({ scheduleIds: [scheduleId] });
       expect(report.schedules[0]!.generated).toBe(0);
-      expect(report.schedules[0]!.skipped).toContain("ANTHROPIC_API_KEY");
+      expect(report.schedules[0]!.skipped).toContain("no model key is configured");
     } finally {
-      if (saved) process.env.ANTHROPIC_API_KEY = saved;
+      if (saved.anthropic === undefined) delete process.env.ANTHROPIC_API_KEY;
+      else process.env.ANTHROPIC_API_KEY = saved.anthropic;
+      if (saved.groq === undefined) delete process.env.GROQ_API_KEY;
+      else process.env.GROQ_API_KEY = saved.groq;
     }
   });
 });

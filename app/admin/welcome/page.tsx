@@ -105,7 +105,8 @@ export default async function AdminWelcomePage() {
               </span>
             </h2>
             <p className="mt-0.5 text-caption text-foreground-muted">
-              A cron sweeps this on a timer. You can also run it now.
+              Nothing sends this on a timer yet: the hosting plan runs jobs once a day, too
+              slowly for a welcome. Use the button to send what is due.
             </p>
           </div>
           <form action={runWelcomeSweepAction} className="shrink-0">

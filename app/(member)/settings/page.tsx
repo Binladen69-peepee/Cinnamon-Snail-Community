@@ -34,10 +34,29 @@ import { pushConfigured, vapidPublicKey } from "@/lib/notifications/push";
 
 export const metadata = { title: "Settings" };
 
+/** What happened to the last "Add email" or confirmation link, by `?email=`. */
+const EMAIL_NOTICE: Record<string, { tone: "success" | "info" | "warning" | "neutral"; text: string }> = {
+  sent: {
+    tone: "info",
+    text: "We sent a confirmation link to that address. It joins your account once you open the link while signed in here.",
+  },
+  confirmed: { tone: "success", text: "Email confirmed. Anything bought with it is now on your account." },
+  "already-verified": { tone: "neutral", text: "That address is already on your account." },
+  unavailable: { tone: "warning", text: "That address cannot be added to this account." },
+  invalid: { tone: "warning", text: "That does not look like an email address." },
+  "slow-down": { tone: "warning", text: "Too many requests for now. Try again in an hour." },
+  "link-expired": { tone: "warning", text: "That confirmation link has expired. Add the address again for a fresh one." },
+  "link-used": { tone: "neutral", text: "That confirmation link was already used." },
+  "link-invalid": {
+    tone: "warning",
+    text: "That link does not belong to this account. Open it while signed in to the account that added the address.",
+  },
+};
+
 export default async function SettingsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ saved?: string }>;
+  searchParams: Promise<{ saved?: string; email?: string }>;
 }) {
   const session = await auth();
   if (!session?.user.id) redirect("/login");
@@ -64,7 +83,9 @@ export default async function SettingsPage({
     prisma.pushSubscription.count({ where: { userId: session.user.id } }),
   ]);
   if (!user?.profile) redirect(MEMBER_HOME_PATH);
-  const saved = (await searchParams).saved === "1";
+  const params = await searchParams;
+  const saved = params.saved === "1";
+  const emailNotice = params.email ? EMAIL_NOTICE[params.email] : undefined;
   const privacy = readPrivacy(user.profile.privacy);
   // What each switch shows is the effective value: the member's own choice, or
   // the default they would get without one.
@@ -170,8 +191,13 @@ export default async function SettingsPage({
         <div id="emails" className="scroll-mt-24">
           <FormSection
             title="More emails"
-            description="Verified emails can be used to sign in and to match billing identity later."
+            description="Verified emails can be used to sign in and to match billing identity later. A new address is verified by a link we send to it."
           >
+            {emailNotice ? (
+              <Callout tone={emailNotice.tone} role="status" className="mb-3">
+                {emailNotice.text}
+              </Callout>
+            ) : null}
             <Card padding="none">
               {user.emails.length === 0 ? (
                 <EmptyState

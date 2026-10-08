@@ -42,6 +42,7 @@ export function MessageBubble({
   showName,
   readByAll,
   onRetry,
+  onReport,
   previews,
 }: {
   message: ThreadMessage;
@@ -51,6 +52,8 @@ export function MessageBubble({
   showName: boolean;
   readByAll: boolean;
   onRetry?: (message: ThreadMessage) => void;
+  /** Report someone else's message to the moderators. */
+  onReport?: (message: ThreadMessage) => void;
   /** Unfurled internal links, keyed by URL. Empty for external ones. */
   previews?: Map<string, LinkPreview>;
 }) {
@@ -63,7 +66,7 @@ export function MessageBubble({
   return (
     <li
       className={cn(
-        "flex w-full items-end gap-2",
+        "group flex w-full items-end gap-2",
         message.mine ? "justify-end" : "justify-start",
       )}
     >
@@ -149,6 +152,17 @@ export function MessageBubble({
         >
           <time dateTime={at.toISOString()}>{time}</time>
           {message.mine ? <DeliveryMark state={message.state} read={readByAll} /> : null}
+          {!message.mine && message.state === undefined && onReport ? (
+            // Out of the way until wanted: shown on hover or focus where there
+            // is a pointer, always on a phone, which has neither.
+            <button
+              type="button"
+              onClick={() => onReport(message)}
+              className="font-medium underline-offset-2 hover:text-foreground hover:underline focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+            >
+              Report
+            </button>
+          ) : null}
           {message.state === "failed" && onRetry ? (
             <button
               type="button"

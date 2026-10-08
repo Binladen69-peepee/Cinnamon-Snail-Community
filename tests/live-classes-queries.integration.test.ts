@@ -58,7 +58,7 @@ beforeAll(async () => {
     reachable = false;
     return;
   }
-  delete process.env.RESEND_API_KEY;
+  process.env.RESEND_API_KEY = ""; // empty, not deleted: PrismaClient re-reads .env and would restore it
 
   ids.active = await user("active");
   ids.none = await user("none");
@@ -219,6 +219,20 @@ describe("a member without an active membership", () => {
     const cards = await upcomingFor(ids.expired);
     expect(find(cards, events.soon).join).toEqual({ kind: "members-only", membership: "expired" });
     expect(JSON.stringify(cards)).not.toContain(ZOOM);
+  });
+
+  it("is told a recording exists but never receives its link", async () => {
+    if (!reachable) return;
+    for (const userId of [ids.none, ids.expired]) {
+      const list = await loadCalendarList({ userId, direction: "past", take: 50 });
+      const past = find(list?.events ?? [], events.past);
+      expect(past.hasRecording).toBe(true);
+      expect(past.recording).toBeNull();
+      expect(past.recordingLocked).toBe(true);
+      expect(JSON.stringify(list)).not.toContain("video.example.test/recording");
+    }
+    const staff = find((await loadCalendarList({ userId: ids.staff, direction: "past", take: 50 }))?.events ?? [], events.past);
+    expect(staff.recording?.href).toBe("https://video.example.test/recording");
   });
 
   it("gets no link in a calendar file even after saying they are going", async () => {

@@ -48,16 +48,20 @@ export default async function CohostPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="AI cohost"
-        description="Prompts written by Claude, published only once you approve them."
+        description="Prompts written by AI in your voice, published only once you approve them."
       />
 
       {!data.configured ? (
         <Callout tone="warning" icon={<ShieldAlert />} title="No model key.">
           Set{" "}
           <code className="rounded-chip bg-default px-1 py-px font-mono text-caption text-foreground">
-            ANTHROPIC_API_KEY
+            GROQ_API_KEY
           </code>{" "}
-          to let the cohost write. Everything else here — the queue, approvals and publishing —
+          (or{" "}
+          <code className="rounded-chip bg-default px-1 py-px font-mono text-caption text-foreground">
+            ANTHROPIC_API_KEY
+          </code>
+          ) to let the cohost write. Everything else here — the queue, approvals and publishing —
           works without it.
         </Callout>
       ) : null}

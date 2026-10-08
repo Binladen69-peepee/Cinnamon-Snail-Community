@@ -316,3 +316,15 @@ describe("accepted billing decisions", () => {
     expect(periodEnd?.toISOString()).toBe("2026-10-10T12:00:00.000Z");
   });
 });
+
+describe("MRR", () => {
+  it("counts an annual plan as a twelfth of its price each month", async () => {
+    const { monthlyEquivalentCents } = await import("@/lib/billing/metrics");
+    expect(monthlyEquivalentCents(1900, "month")).toBe(1900);
+    expect(monthlyEquivalentCents(1900, "1 Month")).toBe(1900);
+    expect(monthlyEquivalentCents(19900, "year")).toBe(1658);
+    expect(monthlyEquivalentCents(19900, "annual")).toBe(1658);
+    expect(monthlyEquivalentCents(1900, null)).toBe(1900);
+    expect(monthlyEquivalentCents(null, "year")).toBe(0);
+  });
+});

@@ -24,7 +24,7 @@ import { loadSimilarities } from "@/lib/social/similarities";
  * machine.
  */
 
-delete process.env.RESEND_API_KEY;
+process.env.RESEND_API_KEY = ""; // empty, not deleted: PrismaClient re-reads .env and would restore it
 
 const prisma = new PrismaClient();
 const stamp = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;

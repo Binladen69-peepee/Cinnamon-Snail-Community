@@ -203,7 +203,8 @@ export async function materialiseRecurringEvents(
   const parents = await prisma.event.findMany({
     where: {
       recurrence: { not: null },
-      status: { not: "DRAFT" },
+      // Only a live series grows: a canceled or draft head makes no new dates.
+      status: "PUBLISHED",
       // A parent is a series head: it has a rule and is not itself an
       // occurrence of something else.
       seriesId: null,

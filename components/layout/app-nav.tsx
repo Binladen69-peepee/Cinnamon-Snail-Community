@@ -110,7 +110,7 @@ export async function AppNav() {
                 />
                 {isAdmin ? (
                   <span className="hidden lg:inline-flex">
-                    <NavIconLink href="/admin/billing" label="Admin" icon="admin" />
+                    <NavIconLink href="/admin" label="Admin" icon="admin" />
                   </span>
                 ) : null}
                 <NavProfileLink href="/settings">

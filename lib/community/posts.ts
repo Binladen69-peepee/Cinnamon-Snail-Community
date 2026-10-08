@@ -300,6 +300,7 @@ export async function createPost(input: CreatePostInput) {
     } else if (status === "PENDING") {
       await notifyPendingPost({
         spaceId: space.id,
+        spaceSlug: space.slug,
         spaceName: space.name,
         actorId: input.userId,
         actorName,

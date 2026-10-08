@@ -62,10 +62,13 @@ export const PREF_ROWS: {
     label: "Host announcements",
     hint: "Adam posts something for everyone",
   },
-  { category: "DIGESTS", label: "Weekly digest", hint: "A summary of the week" },
 ];
 
 /**
+ * DIGESTS is absent too, for now: nothing sends a digest yet, and a switch for
+ * mail that never comes is a promise the product does not keep. Add the row
+ * back with the job that sends one.
+ *
  * SYSTEM is deliberately absent from PREF_ROWS: billing and account
  * notifications are not optional, and offering a switch that is ignored is
  * worse than offering none.

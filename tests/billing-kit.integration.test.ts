@@ -97,7 +97,7 @@ beforeAll(async () => {
     reachable = false;
     return;
   }
-  delete process.env.RESEND_API_KEY;
+  process.env.RESEND_API_KEY = ""; // empty, not deleted: PrismaClient re-reads .env and would restore it
   process.env.BILLING_ALERT_EMAIL = `alerts-${stamp}@veganuniversity.test`;
   installNetwork();
 

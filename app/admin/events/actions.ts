@@ -19,6 +19,7 @@ import {
   resetEventReminders,
 } from "@/lib/events/notify";
 import { liveClassHref } from "@/lib/events/paths";
+import { carrySeriesEdit } from "@/lib/events/series";
 import { revalidateLiveClasses } from "@/lib/events/revalidate";
 import { objectPathFromUrl, verifyUploaded } from "@/lib/uploads/storage";
 import { zoomConfigured } from "@/lib/zoom/config";
@@ -244,6 +245,15 @@ export async function updateEventAction(formData: FormData): Promise<Result> {
       timezone: true,
       zoomUrl: true,
       status: true,
+      description: true,
+      location: true,
+      capacity: true,
+      coverUrl: true,
+      hostId: true,
+      spaceId: true,
+      recurrence: true,
+      recurrenceUntil: true,
+      seriesId: true,
     },
   });
   if (!existing) return { ok: false, error: "That class no longer exists." };
@@ -266,6 +276,16 @@ export async function updateEventAction(formData: FormData): Promise<Result> {
 
   await prisma.event.update({ where: { id }, data: fields.data });
   await indexEvent(id).catch(() => undefined);
+
+  // A series head: its dates already on the calendar follow the edit (a
+  // cancellation, an earlier end, a new link), and their RSVPs are told.
+  if (existing.seriesId === null && existing.recurrence !== null) {
+    const series = await carrySeriesEdit({ parentId: id, before: existing, after: fields.data });
+    for (const date of series.canceled) {
+      await announceEventCanceled(date).catch(() => undefined);
+      revalidateEvent(date.slug);
+    }
+  }
 
   // Telling people is the whole point of a change to a time or a cancellation.
   const moved = existing.startsAt.getTime() !== fields.data.startsAt.getTime();

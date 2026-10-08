@@ -21,6 +21,7 @@ import { objectPathFromUrl, verifyUploaded } from "@/lib/uploads/storage";
 import { MessageRateLimitError } from "@/lib/messages/rate-limits";
 import { markMatchMessaged } from "@/lib/social/suggestions";
 import { track } from "@/lib/analytics/server";
+import { isReportReason } from "@/lib/community/report-reasons";
 
 type Result = { ok: true } | { ok: false; error: string };
 
@@ -179,7 +180,7 @@ export async function reportMessageAction(formData: FormData): Promise<Result> {
   if (!session?.user.id) return { ok: false, error: "Sign in required." };
   const messageId = String(formData.get("messageId") ?? "").trim();
   const reason = String(formData.get("reason") ?? "").trim();
-  if (!messageId || !reason) {
+  if (!messageId || !isReportReason(reason)) {
     return { ok: false, error: "Tell us what is wrong with it." };
   }
   try {

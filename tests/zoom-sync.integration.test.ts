@@ -164,7 +164,7 @@ beforeAll(async () => {
     return;
   }
   // Notifications deliver inline outside a request; keep them off the wire.
-  delete process.env.RESEND_API_KEY;
+  process.env.RESEND_API_KEY = ""; // empty, not deleted: PrismaClient re-reads .env and would restore it
 
   const hostRole = await role("HOST");
   const host = await prisma.user.create({

@@ -61,6 +61,16 @@ export function unsignedEmbedsAllowed(): boolean {
   return process.env.BUNNY_STREAM_ALLOW_UNSIGNED === "1";
 }
 
+/**
+ * Whether a member's player can be handed a Bunny link at all: Bunny is
+ * configured and either the token key exists or unsigned links are allowed
+ * here. When it cannot, a lesson that has only a Bunny video has nothing to
+ * play, and must not be offered as if it did.
+ */
+export function bunnyPlaybackReady(config: BunnyConfig | null = bunnyConfig()): boolean {
+  return Boolean(config && (config.tokenKey || unsignedEmbedsAllowed()));
+}
+
 /** Bunny video ids are GUIDs. Anything else is refused before it reaches the API. */
 const GUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 

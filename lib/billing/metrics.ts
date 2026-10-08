@@ -1,5 +1,17 @@
 import { prisma } from "@/lib/db";
 import { isPayingStatus } from "@/lib/billing/types";
+import { normalizeInterval } from "@/lib/billing/kit-tags";
+
+/**
+ * What one subscription adds to MRR. An annual plan counts as a twelfth of its
+ * price each month; it used to count as nothing, so every member on the live
+ * annual product (DEC-086) was missing from the figure. An interval nobody can
+ * read is counted as monthly, as before.
+ */
+export function monthlyEquivalentCents(amountCents: number | null, interval: string | null | undefined): number {
+  if (!amountCents) return 0;
+  return normalizeInterval(interval) === "year" ? Math.round(amountCents / 12) : amountCents;
+}
 
 export async function billingMetrics() {
   const [subscriptions, entitlements, failedWebhooks, deadLetters, lastRun] =
@@ -12,9 +24,10 @@ export async function billingMetrics() {
     ]);
 
   const paying = subscriptions.filter((item) => isPayingStatus(item.status));
-  const mrrCents = paying
-    .filter((item) => (item.interval ?? "month").toLowerCase().includes("month"))
-    .reduce((sum, item) => sum + (item.amountCents ?? 0), 0);
+  const mrrCents = paying.reduce(
+    (sum, item) => sum + monthlyEquivalentCents(item.amountCents, item.interval),
+    0,
+  );
   const monthStart = new Date();
   monthStart.setDate(1);
   monthStart.setHours(0, 0, 0, 0);

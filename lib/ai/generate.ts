@@ -16,9 +16,14 @@ import { MAX_PROMPT_CHARS } from "@/lib/ai/guardrails";
  * than between the queue and publishing.
  *
  * Structured output rather than free text, so the type and the body come back
- * as fields instead of something to parse out of prose. The whole thing is off
- * when `ANTHROPIC_API_KEY` is unset — the schedule still runs, finds it cannot
- * generate, and says so.
+ * as fields instead of something to parse out of prose.
+ *
+ * Two providers, one contract: Groq (`GROQ_API_KEY`, an OpenAI-compatible API
+ * whose models are held to the exact JSON schema) when its key is set,
+ * otherwise Claude (`ANTHROPIC_API_KEY`). Either way the same schema checks the
+ * answer and the same guardrails read it before a human does. With neither key
+ * the whole thing is off — the schedule still runs, finds it cannot generate,
+ * and says so.
  */
 
 const PromptSchema = z.object({
@@ -51,11 +56,122 @@ export type GenerateResult =
   | { ok: true; prompt: GeneratedPrompt }
   | { ok: false; error: string; retryable: boolean };
 
+export type CohostProvider = "groq" | "anthropic";
+
+/** Which model writes the drafts: Groq when its key is set, then Claude, else none. */
+export function cohostProvider(): CohostProvider | null {
+  if (process.env.GROQ_API_KEY?.trim()) return "groq";
+  if (process.env.ANTHROPIC_API_KEY?.trim()) return "anthropic";
+  return null;
+}
+
 export function cohostConfigured(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+  return cohostProvider() !== null;
 }
 
 const MODEL = process.env.ANTHROPIC_MODEL || "claude-opus-5-5";
+const GROQ_MODEL = process.env.GROQ_MODEL || "openai/gpt-oss-120b";
+const GROQ_URL = "https://api.groq.com/openai/v1/chat/completions";
+
+/** The schema Groq is held to, from the same definition the answer is checked against. */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+const { $schema: _dialect, ...PROMPT_JSON_SCHEMA } = z.toJSONSchema(PromptSchema) as Record<string, unknown>;
+
+/** Trimmed and capped the same way, whichever model wrote it. */
+function shapePrompt(
+  parsed: z.infer<typeof PromptSchema>,
+  usage: { model: string; inputTokens: number; outputTokens: number },
+): GeneratedPrompt {
+  return {
+    body: parsed.body.trim(),
+    rationale: parsed.rationale?.trim() ?? "",
+    pollOptions: (parsed.pollOptions ?? [])
+      .map((option) => option.trim())
+      .filter(Boolean)
+      .slice(0, 4),
+    ...usage,
+  };
+}
+
+type GroqReply = {
+  model?: string;
+  error?: { message?: string };
+  choices?: { finish_reason?: string; message?: { content?: string | null } }[];
+  usage?: { prompt_tokens?: number; completion_tokens?: number };
+};
+
+/**
+ * One prompt from Groq. `strict` structured output, so the reply is the
+ * schema's JSON or an error; it is still parsed against the zod schema.
+ */
+async function generateWithGroq(system: string, brief: string): Promise<GenerateResult> {
+  let response: Response;
+  try {
+    response = await fetch(GROQ_URL, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.GROQ_API_KEY?.trim()}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        model: GROQ_MODEL,
+        // Room for the model's reasoning as well as one short prompt.
+        max_completion_tokens: 2000,
+        reasoning_effort: "medium",
+        messages: [
+          { role: "system", content: system },
+          { role: "user", content: brief },
+        ],
+        response_format: {
+          type: "json_schema",
+          json_schema: { name: "community_prompt", strict: true, schema: PROMPT_JSON_SCHEMA },
+        },
+      }),
+    });
+  } catch {
+    return { ok: false, error: "could not reach the Groq API", retryable: true };
+  }
+
+  const payload = (await response.json().catch(() => null)) as GroqReply | null;
+
+  // Most specific first: a bad key will never succeed on retry, a rate limit
+  // or a 5xx will. Never echo the request: it carries the key.
+  if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      return { ok: false, error: "the Groq API key was rejected", retryable: false };
+    }
+    if (response.status === 429) {
+      return { ok: false, error: "rate limited by the Groq API", retryable: true };
+    }
+    if (response.status >= 400 && response.status < 500) {
+      const detail = payload?.error?.message ?? String(response.status);
+      return { ok: false, error: `the request was refused: ${detail.slice(0, 200)}`, retryable: false };
+    }
+    return { ok: false, error: `Groq API error ${response.status}`, retryable: true };
+  }
+
+  const choice = payload?.choices?.[0];
+  if (choice?.finish_reason === "content_filter") {
+    return { ok: false, error: "the model declined", retryable: false };
+  }
+  let parsed: ReturnType<typeof PromptSchema.safeParse> | null = null;
+  try {
+    parsed = PromptSchema.safeParse(JSON.parse(choice?.message?.content ?? ""));
+  } catch {
+    parsed = null;
+  }
+  if (!parsed?.success || !parsed.data.body.trim()) {
+    return { ok: false, error: "the model returned nothing usable", retryable: true };
+  }
+  return {
+    ok: true,
+    prompt: shapePrompt(parsed.data, {
+      model: payload?.model ?? GROQ_MODEL,
+      inputTokens: payload?.usage?.prompt_tokens ?? 0,
+      outputTokens: payload?.usage?.completion_tokens ?? 0,
+    }),
+  };
+}
 
 function systemPrompt(context: GenerationContext): string {
   return [
@@ -87,11 +203,11 @@ export async function generatePrompt(input: {
   /** Extra steer, e.g. a reviewer pressing Regenerate with a note. */
   note?: string;
 }): Promise<GenerateResult> {
-  if (!cohostConfigured()) {
-    return { ok: false, error: "ANTHROPIC_API_KEY is not configured", retryable: false };
+  const provider = cohostProvider();
+  if (!provider) {
+    return { ok: false, error: "no model key is configured (GROQ_API_KEY or ANTHROPIC_API_KEY)", retryable: false };
   }
 
-  const client = new Anthropic();
   const brief = [
     contextBrief(input.context, input.promptType),
     "",
@@ -101,6 +217,9 @@ export async function generatePrompt(input: {
     .filter(Boolean)
     .join("\n");
 
+  if (provider === "groq") return generateWithGroq(systemPrompt(input.context), brief);
+
+  const client = new Anthropic();
   try {
     const response = await client.messages.parse({
       model: MODEL,
@@ -128,17 +247,11 @@ export async function generatePrompt(input: {
 
     return {
       ok: true,
-      prompt: {
-        body: parsed.body.trim(),
-        rationale: parsed.rationale?.trim() ?? "",
-        pollOptions: (parsed.pollOptions ?? [])
-          .map((option) => option.trim())
-          .filter(Boolean)
-          .slice(0, 4),
+      prompt: shapePrompt(parsed, {
         model: response.model,
         inputTokens: response.usage.input_tokens,
         outputTokens: response.usage.output_tokens,
-      },
+      }),
     };
   } catch (error) {
     // Most specific first: a bad key will never succeed on retry, a rate limit
